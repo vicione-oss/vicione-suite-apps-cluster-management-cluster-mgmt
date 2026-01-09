@@ -1,0 +1,136 @@
+﻿@using Sdk.Client.Components.Settings
+@using Sdk.Client.ControlPanels.Components
+@inherits ControlPanelBase<IoddDetailsControlPanelState>
+
+<ControlPanelPage Title="@Localization.IoddDetailsControlPanel.Overview">
+    <DescriptionBanner Title="@($"{Localization.IoddDetailsControlPanel.Details} {State.DeviceVariant!.Name}")">
+        @Localization.IoddDetailsControlPanel.BannerDescription
+    </DescriptionBanner>
+
+    <SettingsLayout>
+        <SettingsGroup Title="@Localization.IoddDetailsControlPanel.ProductOverview" @bind-Expanded="_isOverviewExpanded">
+            <ChildContent>
+                @if (_isOverviewExpanded)
+                {
+                    <div class="field">
+                        <div class="label">
+                            <p>@(State.DeviceVariant.Name)</p>
+                            <p>@(State.DeviceVariant.VendorName)</p>
+                        </div>
+                        <div class="content">
+                            @if (string.IsNullOrEmpty(State.DeviceImage))
+                            {
+                                <img src="@(ModuleAssetHelper.GetModuleIconPath<ClusterManagementClientModule>("no-picture.svg"))"
+                                        alt="device image"
+                                        width="88"
+                                        height="88" />
+                            }
+                            else
+                            {
+                                <img src="@($"data:image/png;base64,{State.DeviceImage}")"
+                                            alt="device image"
+                                            width="88"
+                                            height="88" />
+                            }
+                        </div>
+                    </div>
+                }
+            </ChildContent>
+        </SettingsGroup>
+
+        <SettingsGroup Title="@Localization.IoddDetailsControlPanel.DetailledInformation" @bind-Expanded="_isDetailsExpanded">
+
+            <ChildContent>
+                @if (_isDetailsExpanded)
+                {
+                    <SettingsField Label="@Localization.IoddDetailsControlPanel.Manufacturer">
+                        <ChildContent>
+                            <p>@(State.DeviceVariant.VendorName)</p>
+                        </ChildContent>
+                    </SettingsField>
+
+                    <SettingsField Label="@Localization.IoddDetailsControlPanel.ArticleNumber">
+                        <ChildContent>
+                            <p>@(State.DeviceVariant.ProductId)</p>
+                        </ChildContent>
+                    </SettingsField>
+
+                    <SettingsField Label="@Localization.IoddDetailsControlPanel.ProductName">
+                        <ChildContent>
+                            <p>@(State.DeviceVariant.Name)</p>
+                        </ChildContent>
+                    </SettingsField>
+
+                    <SettingsField Label="@Localization.Common.DeviceId">
+                        <ChildContent>
+                            <p>@(State.DeviceVariant.DeviceId)</p>
+                        </ChildContent>
+                    </SettingsField>
+
+                    @if (!string.IsNullOrEmpty(State.DeviceVariant.DeviceDescription))
+                    {
+                        <SettingsField Label="@ViciOne.Ui.Localization.Resources.CommonVocabulary.Description">
+                            <ChildContent>
+                                <p class="text-field">@(State.DeviceVariant.DeviceDescription)</p>
+                            </ChildContent>
+                        </SettingsField>
+                    }
+
+                    <SettingsField Label="@Localization.IoddDetailsControlPanel.DeviceFamily">
+                        <ChildContent>
+                            <p>@(State.DeviceVariant.DeviceFamily)</p>
+                        </ChildContent>
+                    </SettingsField>
+
+                    <SettingsField Label="@Localization.Common.UploadedAt">
+                        <ChildContent>
+                            <p>@(State.DeviceVariant.UploadedAt)</p>
+                        </ChildContent>
+                    </SettingsField>
+
+                    @if (!string.IsNullOrEmpty(State.DeviceVariant.HardwareRevision))
+                    {
+                        <SettingsField Label="@Localization.IoddDetailsControlPanel.HardwareRevision">
+                            <ChildContent>
+                                <p>@(State.DeviceVariant.HardwareRevision)</p>
+                            </ChildContent>
+                        </SettingsField>
+                    }
+
+                    @if (!string.IsNullOrEmpty(State.DeviceVariant.FirmwareRevision))
+                    {
+                        <SettingsField Label="@Localization.IoddDetailsControlPanel.FirmwareRevision">
+                            <ChildContent>
+                                <p>@(State.DeviceVariant.FirmwareRevision)</p>
+                            </ChildContent>
+                        </SettingsField>
+                    }
+
+                    <SettingsField Label="@Localization.IoddDetailsControlPanel.IoLinkRevision">
+                        <ChildContent>
+                            <p>@(State.DeviceVariant.IoLinkRevision)</p>
+                        </ChildContent>
+                    </SettingsField>
+
+                    <SettingsField Label="@Localization.IoddDetailsControlPanel.Version">
+                        <ChildContent>
+                            <p>@(State.DeviceVariant.Version)</p>
+                        </ChildContent>
+                    </SettingsField>
+
+                    <SettingsField Label="@Localization.IoddDetailsControlPanel.IoddReleaseDate">
+                        <ChildContent>
+                            <p>@(State.DeviceVariant.IoddReleaseDate)</p>
+                        </ChildContent>
+                    </SettingsField>
+
+                    <SettingsField Label="@Localization.Common.DeviceDescription">
+                        <ChildContent>
+                            <p>@(State.DeviceVariant.Filename)</p>
+                        </ChildContent>
+                    </SettingsField>
+                }
+            </ChildContent>
+        </SettingsGroup>
+    </SettingsLayout>
+</ControlPanelPage>

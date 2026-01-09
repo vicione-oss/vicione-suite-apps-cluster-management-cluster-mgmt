@@ -1,0 +1,110 @@
+﻿@using ClusterManagement.Client.Editor.Components
+@using ClusterManagement.Client.Editor.Enums
+@using ClusterManagement.Client.Extensions
+@using ViciOne.Ui.Localization.Resources
+@using ViciOne.Ui.Shared.Dx.Components
+
+<DxDialog @ref="_refDialog"
+          Closing="@CloseDialog"
+          CloseOnOutsideClick="false"
+          Header="@Localization.LoadFunctionBlockDialog.Header"
+          Height="70%"
+          Showing="@ResetTree"
+          Width="70%">
+
+    <HeaderToolbarItems>
+        <DxToolbarItem Alignment="ToolbarItemAlignment.Right">
+            <Template Context="tplCtx">
+                 <div class="search-container">
+                     <SearchBox TextChanged="async (string f) => await ShowFilteredFunctionBlocks(f)"
+                                NullText="@CommonVocabulary.SearchVerb" />
+                 </div>
+            </Template>
+        </DxToolbarItem>
+
+        <DxToolbarItem AdaptiveText="@_localizeExpandAllGroups"
+                       Alignment="ToolbarItemAlignment.Right"
+                       BeginGroup=true
+                       Tooltip="@_localizeExpandAllGroups">
+
+            <Template Context="tplCtx">
+                @{var adaptiveTextVisible = tplCtx.HiddenToAdaptiveMenu; }
+                <button @onclick="OnExpandAllClick"
+                        class="btn btn-toolbar @(adaptiveTextVisible ? "adaptive-hidden" : string.Empty)">
+                
+                    <img src="@SvgIcon.ExpandAllRows.GetPath()" />
+
+                    @if (adaptiveTextVisible)
+                    {
+                        <span>@tplCtx.AdaptiveText</span>
+                    }
+                </button>
+             </Template>
+        </DxToolbarItem>
+
+        <DxToolbarItem AdaptiveText="@_localizeCollapseAllGroups"
+                       Alignment="ToolbarItemAlignment.Right"
+                       Tooltip="@_localizeCollapseAllGroups">
+
+            <Template Context="tplCtx">
+                @{var adaptiveTextVisible = tplCtx.HiddenToAdaptiveMenu;}
+                <button @onclick="OnCollapseAllClick"
+                        class="btn btn-toolbar @(adaptiveTextVisible ? "adaptive-hidden" : string.Empty)">
+
+                    <img src="@SvgIcon.CollapseAllRows.GetPath()" />
+
+                    @if (adaptiveTextVisible)
+                    {
+                        <span>@tplCtx.AdaptiveText</span>
+                    }
+                </button>
+            </Template>
+        </DxToolbarItem>
+    </HeaderToolbarItems>
+
+    <Body>
+        <div class="content-container">
+            <div class="all">
+                <DxCheckBox Checked="_functionBlockTreeRoot.Checked"
+                            CheckedChanged="((bool? b) => OnCheckedChanged(b))">
+
+                    @CommonVocabulary.All
+                </DxCheckBox>
+            </div>
+
+            @if (_functionBlockTreeRoot.FunctionBlocks.Any())
+            {
+                <div class="relative-container">
+                    <div class="absolute-container">
+                        @foreach (var child in _functionBlockTreeRoot.FunctionBlocks)
+                        {
+                            <LoadFunctionBlockTree CheckChanged="async () => await InvokeAsync(StateHasChanged)"
+                                                   FunctionBlockModel="@child"
+                                                   IsVisible="true"
+                                                   Layer="0">
+
+                                <FunctionBlockModelTemplate>
+                                    <SearchHighlighter SearchText="@_filter"
+                                                       Text="@context.Name" />
+                                </FunctionBlockModelTemplate>
+                            </LoadFunctionBlockTree>  
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="wrapper">
+                    <div>@Localization.LoadFunctionBlockDialog.NoFunctionBlockAvailable</div>
+                </div>
+            }
+        </div>
+    </Body>
+    <Footer>
+        <DxDialogFooterButton OnClick="@OnOkButtonClick"
+                              Text="@CommonVocabulary.Ok" />
+
+        <DxDialogFooterButton OnClick="@CloseDialog"
+                              Text="@CommonVocabulary.Cancel" />
+    </Footer>
+</DxDialog>

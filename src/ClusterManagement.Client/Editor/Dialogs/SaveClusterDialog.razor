@@ -1,0 +1,48 @@
+﻿@using ViciOne.Ui.Shared.Dx.Components
+@using ViciOne.Ui.Blazor.Components.CheckBox
+@using ViciOne.Ui.Blazor.Components.TextBox
+@using ViciOne.Ui.Localization.Resources
+
+<DxDialog @ref="_refDialog"
+          Closing="() => SaveService.DisplayDialog = false"
+          Header="@Localization.SaveClusterDialog.Header"
+          Height="350"
+          Width="650">
+    <Body>
+        @if (!SaveService.IsWorking)
+        {
+            <div class="save-dialog-content">
+                <div class="controls-container">
+                    <span>
+                        @CommonVocabulary.Name
+                    </span>
+                    <TextBox @bind-Value="SaveService.Name" />
+
+                    <span>
+                        @CommonVocabulary.Description
+                    </span>
+                    <TextBox @bind-Value="SaveService.Description" />
+
+                    <span>
+                        @Localization.SaveClusterDialog.CleanupDependencies
+                    </span>
+                    <CheckBox @bind-Value="SaveService.StoreOptions.CleanupDependencies" />
+                </div>
+            </div>
+        }
+        @if (SaveService.ConfirmationMessage?.IsError == true)
+        {
+            <div class="alert alert-warning mx-3 mb-0 p-2" role="alert">@SaveService.ConfirmationMessage?.Message</div>
+        }
+    </Body>
+
+    <Footer>
+        <DxDialogFooterButton OnClick="@SaveService.Save"
+                              Enabled="@(SaveService.Builder != null && !SaveService.IsWorking)"
+                              Text="@CommonVocabulary.Save" />
+
+        <DxDialogFooterButton OnClick="() => SaveService.DisplayDialog = false"
+                              Enabled="@(!SaveService.IsWorking)"
+                              Text="@CommonVocabulary.Cancel" />
+    </Footer>
+</DxDialog>

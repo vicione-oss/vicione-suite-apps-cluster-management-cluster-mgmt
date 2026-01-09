@@ -1,0 +1,149 @@
+﻿@using ClusterManagement.Client.Editor.Extensions
+@using ClusterManagement.Client.Editor.Localization
+@using ClusterManagement.Client.Editor.Services
+@using ClusterManagement.Public.Iodds
+@using Microsoft.AspNetCore.Components.Forms
+@using Sdk.Client.Components.Settings
+@using Sdk.Client.Components.Settings.Expanders
+@using Sdk.Client.ControlPanels.Components
+@using Sdk.Client.ControlPanels.Services
+@using System.Globalization
+@using ClusterManagement.Client.IoddManagement.Models
+@using ViciOne.Ui.Blazor.Components.Grid.Components
+@using ViciOne.Ui.Blazor.Components.Grid.Components.ActionButtons
+@using ViciOne.Ui.Blazor.Components.Grid.Components.Columns
+@using ViciOne.Ui.Blazor.Components.Grid.Components.Panes
+@using ViciOne.Ui.Localization.Resources
+@using ViciOne.Ui.MonochromeIcons.Core.Enums
+@using ViciOne.Ui.MonochromeIcons.Core.Extensions
+@using ViciOne.Ui.Shared.Dx.Components
+@using ViciOne.Ui.TreeEditor
+
+@inherits ControlPanelBase<IoddControlPanelState>
+
+<ControlPanelPage Title="@Localization.IoddControlPanel.Manual">
+    <div class="iodds-control-panel-page">
+        <DescriptionBanner Title="@Localization.IoddControlPanel.ManualIoLinkConfiguration">
+            @Localization.IoddControlPanel.ManualIoLinkConfigurationDescription
+        </DescriptionBanner>
+        <div class="input">
+
+            <script>
+                window.triggerUploadClick = () => { let label = window.document.getElementById("uploadtrigger"); label.click(); }
+            </script>
+
+            <label id="uploadtrigger"
+                    for="item-upload">
+                UPLOAD
+            </label>
+
+            <InputFile id="item-upload"
+                       accept=".zip"
+                       OnChange="OnFileChange" />
+        </div>
+
+        <Grid Items="@FilterItems(_itemsQueryable)" Virtualize="true" CssClass="iodds-grid">
+            <ActionButtons>
+                <div style="display:contents;">
+                    <GridActionButton Text="@Localization.IoddControlPanel.Upload" 
+                                      OnClick="@OnIoddUploadClickAsync"
+                                      IconCssClass="@MonochromeIconName.Export.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()" />
+                    <GridActionButton Text="@CommonVocabulary.DownloadVerb"
+                                      Enabled="@(ItemSelection.Any())"
+                                      OnClick="@OnIoddDownloadClickAsync"
+                                      IconCssClass="@MonochromeIconName.Import.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()" />
+                    <GridActionButton Text="@CommonVocabulary.Delete"
+                                      OnClick="@OnIoddDeleteClickAsync"
+                                      Enabled="@(ItemSelection.Any())"
+                                      IconCssClass="@MonochromeIconName.Delete.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()" />
+                </div>
+            </ActionButtons>
+
+            <Filter>
+                <GridFilterControl @bind-Text="@_filterText" @bind-Text:after="@(() => InvokeAsync(StateHasChanged))" />
+            </Filter>
+
+            <ChildContent>
+                <LeftPane CssClass="tree-pane">
+                    <div style="display:contents">
+                        <TreeEditor Builder="@_treeBuilder" />
+                    </div>
+                </LeftPane>
+
+                <ItemSelectColumn KeySelector="@(item => new IoddId(item.VendorId, item.DeviceId))"
+                                  Selection="@ItemSelection" />
+
+                <TemplateColumn Title="@CommonVocabulary.Name">
+                    @{
+                        var key = new MarkupString(context.Name);
+
+                        if (!string.IsNullOrEmpty(_filterText))
+                            key = key.WithHighlightedText(_filterText);
+
+                        @key
+                    }
+                </TemplateColumn>
+
+                <TemplateColumn Title="@Localization.Common.DeviceId">
+                    @{
+                        var value = new MarkupString(context.DeviceId.ToString(CultureInfo.InvariantCulture));
+
+                        if (!string.IsNullOrEmpty(_filterText))
+                            value = value.WithHighlightedText(_filterText);
+
+                        @value
+                    }
+                </TemplateColumn>
+
+                <PropertyColumn Property="@(item => item.UploadedAt)"
+                                Title="@Localization.Common.UploadedAt" />
+
+                <NavigationColumn NavigationButtonTitle="@Localization.IoddControlPanel.ShowDetails" 
+                                  Navigate="@((DeviceView item) => ShowDetailsAsync(item))" />
+            </ChildContent>
+
+            <Footer>
+                <div>@GetFooterString()</div>
+            </Footer>
+        </Grid>
+    </div>
+</ControlPanelPage>
+
+<ControlPanelPage Title="@Localization.IoddControlPanel.Automatic">
+
+    <DescriptionBanner Title="@Localization.IoddControlPanel.AutomaticIoLinkDownload">
+        @Localization.IoddControlPanel.AutomaticIoLinkDownloadDescription
+    </DescriptionBanner>
+
+    <SettingsLayout>
+        <SettingsGroup Expanded="true"
+                       Title="@Localization.IoddControlPanel.AutomaticDownloadFromFinder">
+            <Expander>
+                <SwitchExpander Value="@State.AutoDownload"
+                                ValueChanged="@AutoDownloadChanged"
+                                IsLoading="@_waitingForAutoDownloadChanged"/>
+            </Expander>
+        </SettingsGroup>
+    </SettingsLayout>
+</ControlPanelPage>
+
+<DxDialog @ref="@_refDeleteIoddsDialog"
+          CloseOnEscape="true"
+          CloseOnOutsideClick="false"
+          Header="@Localization.IoddControlPanel.DeleteIoddsHeader"
+          Height="300px"
+          IsTextOnly="true"
+          Width="600px">
+
+    <Body>
+        <p class="dialog-content text-only">@Localization.IoddControlPanel.DeleteIodds</p>
+    </Body>
+
+    <Footer>
+        <DxDialogFooterButton OnClick="@OnDeleteIoddsOkAsync"
+                              Text="@CommonVocabulary.Ok" />
+
+        <DxDialogFooterButton OnClick="@OnDeleteIoddsCloseAsync"
+                              Text="@CommonVocabulary.Cancel" />
+    </Footer>
+</DxDialog>

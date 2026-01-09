@@ -1,0 +1,63 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <!-- Versioning -->
+    <PropertyGroup>
+        <VersionWithSuffix>$([System.IO.File]::ReadAllText('$(MsBuildThisFileDirectory)VERSION').Trim())</VersionWithSuffix>
+        <!-- Default is 0.1.0 -->
+        <VersionPrefix Condition="$(VersionWithSuffix) == ''">0.1.0</VersionPrefix>
+        <VersionPrefix Condition="$(VersionWithSuffix.Contains('-')) == true">$(VersionWithSuffix.Substring(0, $(VersionWithSuffix.IndexOf('-'))))</VersionPrefix>
+        <VersionPrefix Condition="$(VersionWithSuffix.Contains('-')) == false">$(VersionWithSuffix)</VersionPrefix>
+        <!-- Add suffix if available -->
+        <VersionSuffix></VersionSuffix>
+        <VersionSuffix Condition="$(VersionWithSuffix.Contains('-')) == true">$(VersionWithSuffix.Substring($(VersionWithSuffix.IndexOf('-'))))</VersionSuffix>
+        <VersionSuffix Condition="$(VersionSuffix.Contains('-')) == true">$(VersionSuffix.Substring(1))</VersionSuffix>
+        <!-- PackageVersion -->
+        <PackageVersion>$(VersionPrefix)</PackageVersion>
+        <PackageVersion Condition="$(PackageVersionSuffix) != ''">$(PackageVersion).$(PackageVersionSuffix)</PackageVersion>
+        <PackageVersion Condition="$(VersionSuffix) != ''">$(PackageVersion)-$(VersionSuffix)</PackageVersion>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+        <!-- General -->
+        <TargetFramework>net9.0</TargetFramework>
+        <RuntimeIdentifiers Condition="$(MSBuildProjectDirectory.Contains('src'))">linux-x64;linux-arm64;win-x64</RuntimeIdentifiers>
+        <Description>-</Description>
+        <Product>ViciOne</Product>
+        <Company>ifm software</Company>
+        <Year>$([System.DateTime]::Now.Year)</Year>
+        <Copyright>Copyright © $(Company) $(Year)</Copyright>
+        <NeutralLanguage>en</NeutralLanguage>
+        <SatelliteResourceLanguages>en;de</SatelliteResourceLanguages>
+        <!-- Code quality -->
+        <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+        <WarningsNotAsErrors>612,618</WarningsNotAsErrors>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+        <NoWarn>$(NoWarn);EnableGenerateDocumentationFile</NoWarn> <!-- Workaround for https://github.com/dotnet/roslyn/issues/41640 -->
+        <!-- NuGet Lock File -->
+        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+        <RestoreLockedMode Condition="'$(CI)' == 'true'">true</RestoreLockedMode>
+        <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
+        <DisableImplicitLibraryPacksFolder>true</DisableImplicitLibraryPacksFolder>
+    </PropertyGroup>
+
+    <!-- NuGet packages -->
+    <PropertyGroup>
+        <!-- https://docs.microsoft.com/de-de/nuget/reference/msbuild-targets -->
+        <PackageProjectUrl>https://gitlab.i40.ifm-datalink.net/acx/vo-suite/modules/cluster-mgmt</PackageProjectUrl>
+        <Authors>$(Company)</Authors>
+    </PropertyGroup>
+
+    <!-- Don't publish test projects -->
+    <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('Tests')) And $(MSBuildProjectDirectory.Contains('tests'))">
+        <IsPackable>false</IsPackable>
+        <IsPublishable>false</IsPublishable>
+        <RunSettingsFilePath>$(MsBuildThisFileDirectory)\tests.runsettings</RunSettingsFilePath>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('Backend')) Or $(MSBuildProjectName.EndsWith('Client'))">
+        <EnableDynamicLoading>true</EnableDynamicLoading>
+    </PropertyGroup>
+
+</Project>

@@ -1,0 +1,17 @@
+﻿using ClusterManagement.Internal.Commands;
+using ClusterManagement.Public.Events;
+using ClusterManagement.Public.Iodds;
+using MassTransit;
+using Sdk.Backend.Messaging;
+
+namespace ClusterManagement.Backend.Iodds.Consumers;
+
+public sealed class SetAutoIoddDownloadConsumer(ISuiteMediator mediator, IIoddStore ioddStore) :
+    IConsumer<SetAutoIoddDownload>
+{
+    public async Task Consume(ConsumeContext<SetAutoIoddDownload> context)
+    {
+        await ioddStore.SetAutoDownloadIodds(context.Message.Value);
+        await mediator.Publish(new AutoIoddDownloadChanged(context.Message.Value));
+    }
+}

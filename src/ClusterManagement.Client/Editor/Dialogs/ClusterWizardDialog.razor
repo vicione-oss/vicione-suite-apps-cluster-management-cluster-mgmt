@@ -1,0 +1,32 @@
+﻿@using ViciOne.Ui.Localization.Resources
+@using ViciOne.Ui.Shared.Dx.Components
+
+<DxDialog @ref="_refDialog"
+          Closing="() => WizardService.DisplayDialog = false"
+          CloseOnOutsideClick="false"
+          Header="@(WizardService.CurrentWizard?.Title ?? "Title")"
+          Height="440"
+          Width="620">
+
+    <Body>
+        @if (WizardService.CurrentWizard is not null)
+        {
+            <DynamicComponent Type="@(WizardService.CurrentWizard.ComponentType)" @ref="_wizardComponent" />
+        }
+        else
+        {
+            <p>@Localization.ClusterWizardDialog.WizardIsNotAvailable</p>
+        }
+    </Body>
+
+    <Footer>
+        <DxDialogFooterButton OnClick="@WizardService.ProcessCurrentWizard"
+                              Id="@GenerateButtonId"
+                              Enabled="@WizardService.CanProcess"
+                              Text="@CommonVocabulary.Generate" />
+
+        <DxDialogFooterButton OnClick="() => WizardService.DisplayDialog = false"
+                              Id="@CancelButtonId"
+                              Text="@CommonVocabulary.Cancel" />
+    </Footer>
+</DxDialog>

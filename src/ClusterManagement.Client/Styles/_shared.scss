@@ -1,0 +1,29 @@
+﻿@use "./design/colors";
+@use "./../../../shared/styles/variables.scss";
+
+.cm-page-base {
+    display: grid;
+    grid-row-gap: 6px;
+    grid-template-rows: variables.$top-bar-height auto min-content;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    top: 0;    
+}
+
+.cm-page-toolbar-base {
+    padding: variables.$toolbar-padding;
+    border-bottom: 1px solid colors.$color-border;
+}
+
+.cm-page-grid-base {
+    margin: 12px;
+    position: relative;
+}
+
+.cm-page-detail-container-base {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 10px;
+}

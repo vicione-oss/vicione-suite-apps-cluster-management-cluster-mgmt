@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32px" height="32px" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>dark-theme/standard/32x32/search</title>
+    <g id="dark-theme/standard/32x32/search" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <path d="M14,4.99999997 C19,4.99999997 23,8.99999997 23,14 C23,16.1169673 22.2829519,18.0546726 21.0765508,19.5854208 L27,25.6 L25.5,27 L19.6308241,21.0405291 C18.0930725,22.268665 16.1379531,23 14,23 C8.99999997,23 4.99999997,19 4.99999997,14 C4.99999997,8.99999997 8.99999997,4.99999997 14,4.99999997 Z M14,6.99999997 C10.1,6.99999997 6.99999997,10.1 6.99999997,14 C6.99999997,17.9 10.1,21 14,21 C17.9,21 21,17.9 21,14 C21,10.1 17.9,6.99999997 14,6.99999997 Z" id="Icon" fill="#DEDEDE"></path>
+    </g>
+</svg>

@@ -1,0 +1,17 @@
+include:
+  - project: "acx/tooling/ci-templates"
+    file: "module/v2/dotnet.yml"
+
+variables:
+  PROJECT_NAME: ClusterManagement
+  MODULE_FULLNAME: ViciOne.Suite.ClusterManagement
+  IMAGE_NAME: mcr.microsoft.com/dotnet/sdk:9.0
+  TEST_FILTER: "Category!=System"
+
+default:
+  image: ${IMAGE_NAME}
+
+# Reference for pre build actions.
+# Do not remove! It's used/referenced in the downstream CI config.
+.before_build_script: &before_build_script
+  - echo "Before build actions"

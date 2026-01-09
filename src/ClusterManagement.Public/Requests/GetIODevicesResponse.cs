@@ -1,0 +1,10 @@
+﻿using ClusterManagement.Public.Iodds;
+using Sdk.Messaging;
+
+namespace ClusterManagement.Public.Requests;
+
+public class GetIODevicesResponse : IResponse
+{
+    public required IEnumerable<DeviceInfo> IODevices { get; init; }
+    public ErrorInfo? RequestError { get; init; }
+}

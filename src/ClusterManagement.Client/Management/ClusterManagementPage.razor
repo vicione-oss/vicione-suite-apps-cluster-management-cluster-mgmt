@@ -1,0 +1,136 @@
+﻿@using ClusterManagement.Client.Management.Components;
+@using ClusterManagement.Client.Management.Models
+@using ClusterManagement.Public
+@using Sdk.Authorization
+@using ViciOne.Cluster.Model
+@using ViciOne.Ui.Localization.Resources
+
+@attribute [Route(Constants.ManagementModuleRoute)]
+@attribute [ModuleAuthorize<ClusterManagementClientModule>(AccessLevel.Full)]
+
+@inherits ModulePageBase<ClusterManagementClientModule>
+
+
+<div class="cluster-mgmt">
+    <div class="cluster-mgmt-toolbar">
+        <DxToolbar ItemRenderStyleMode="ToolbarRenderStyleMode.Plain">
+
+            <DxToolbarItem Alignment="ToolbarItemAlignment.Right"
+                           BeginGroup="true"
+                           Click="@ResetSagaState"
+                           IconCssClass="mdi mdi-cloud-off-outline"
+                           Text="@(string.Format(UserActions.ResetSomething, "Saga"))" />
+
+            <DxToolbarItem Click="@GetSagaState"
+                           IconCssClass="mdi mdi-cloud-download"
+                           Text="@(string.Format(UserActions.GetSomething, "Saga"))" />
+
+            <DxToolbarItem Click="@NavigateToEvents"
+                           IconCssClass="mdi mdi-message-processing"
+                           Text="@TechnicalTerms.EventPlural" />
+
+            <DxToolbarItem Alignment="ToolbarItemAlignment.Left"
+                           BeginGroup="true" Tooltip="@SelectedCluster?.Key"
+                           Text="@(SelectedCluster?.DisplayNameVersion)"
+                           Enabled="false" />
+
+        </DxToolbar>
+    </div>
+
+    @if (!_hasLoaded)
+    {
+        <LoadingSpinner Visible="true" />
+    }
+    else
+    {
+        <div class="cluster-mgmt-grid">
+            <DxGrid AllowSelectRowByClick="true"
+                    AllowGroup="false"
+                    AutoCollapseDetailRow="true"
+                    Data="@Clusters"
+                    PagerVisible="true"
+                    KeyFieldName="@nameof(ClusterInfoModel.Key)"
+                    SelectionMode="GridSelectionMode.Single"
+                    SelectedDataItem="@SelectedCluster"
+                    SelectedDataItemChanged="@SelectedClusterChanged">
+                <Columns>
+                    <DxGridDataColumn Caption="@CommonVocabulary.Name"
+                                      FieldName="@nameof(ClusterInfoModel.DisplayName)"
+                                      MinWidth="150" Width="35%" />
+
+                    <DxGridDataColumn AllowGroup="false"
+                                      Caption="@CommonVocabulary.Description"
+                                      FieldName="@nameof(ClusterInfoModel.Description)" />
+
+                    <DxGridDataColumn Caption="@TechnicalTerms.Version"
+                                      FieldName="@nameof(ClusterInfoModel.Version)"
+                                      Width="60" />
+
+                    <DxGridDataColumn AllowGroup="false"
+                                      FieldName="@nameof(ClusterInfoModel.Status)"
+                                      TextAlignment="GridTextAlignment.Left"
+                                      Width="15%" />
+
+                    <DxGridDataColumn AllowGroup="false"
+                                      FieldName="@nameof(ClusterInfoModel.DeploymentDuration)"
+                                      TextAlignment="GridTextAlignment.Left"
+                                      Width="15%" />
+
+                    <DxGridCommandColumn Width="150px">
+                        <HeaderTemplate>
+                            Actions
+                        </HeaderTemplate>
+                        <CellDisplayTemplate>
+                            @if (context.DataItem is ClusterInfoModel model)
+                            {
+                                <button @onclick="@(async () => await DeployClusterVersion(model))"
+                                        class="btn"
+                                        type="button"
+                                        disabled="@(model.IsActive || Clusters.Any(k => k.IsExecuting))"
+                                        title="@CommonVocabulary.StartVerb">
+                                    <span class="mdi mdi-motion-play-outline"></span>
+                                </button>
+
+                                <button @onclick="@(() => HandleEdit(model))"
+                                        class="btn"
+                                        type="button"
+                                        disabled="@(model.IsExecuting || !model.IsLatest)"
+                                        title="@CommonVocabulary.EditVerb">
+                                    <span class="mdi @(model.IsLatest ? "mdi-pencil" : "mdi-information-outline")"></span>
+                                </button>
+
+                                <button @onclick="@(async () => await DownloadClusterJson(model))"
+                                        class="btn"
+                                        type="button"
+                                        disabled="@(model.IsExecuting)"
+                                        title="@($"{CommonVocabulary.DownloadVerb} JSON")">
+                                    <span class="mdi mdi-cloud-download-outline"></span>
+                                </button>
+
+                                <button @onclick="@(async () => await RemoveCluster(model))"
+                                        class="btn"
+                                        type="button"
+                                        disabled="@(model.IsExecuting || model.IsActive || model.IsDefault)"
+                                        title="@CommonVocabulary.Delete">
+                                    <span class="mdi mdi-trash-can-outline"></span>
+                                </button>
+                            }
+                        </CellDisplayTemplate>
+                    </DxGridCommandColumn>
+                </Columns>
+            </DxGrid>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_sagaState))
+    {
+        <div class="detail-container">
+            <p>@_sagaState</p>
+        </div>
+    }
+    else
+    {
+        <ClusterUpdateDisplay />
+    }
+
+</div>

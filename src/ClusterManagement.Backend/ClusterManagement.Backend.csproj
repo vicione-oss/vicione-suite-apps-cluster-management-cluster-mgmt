@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>ViciOne.Suite.ClusterManagement.Backend</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ClusterManagement.Internal\ClusterManagement.Internal.csproj" />    
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MassTransit.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="MQTTnet" />
+    <PackageReference Include="Semver" />
+    <PackageReference Include="System.IO.Abstractions" />
+    <PackageReference Include="System.Reflection.MetadataLoadContext" />
+    <PackageReference Include="ViciOne.Core.Dataflow.DataModel.Generation" />
+    <PackageReference Include="ViciOne.Suite.DataPort" />
+    <PackageReference Include="ViciOne.Suite.Sdk.Backend" />
+    <PackageReference Include="ViciOne.Suite.System.DataPort" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ViciOne.Suite.ClusterManagement.Tests.Tools" />
+    <InternalsVisibleTo Include="ViciOne.Suite.ClusterManagement.Backend.Tests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+    <InternalsVisibleTo Include="Benchmarks" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Packages\**" />
+  </ItemGroup>
+
+</Project>

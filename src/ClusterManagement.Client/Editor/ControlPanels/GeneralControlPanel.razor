@@ -1,0 +1,100 @@
+﻿@using ClusterManagement.Client.Editor.Localization
+@using ClusterManagement.Client.Editor.Services
+@using Sdk.Authorization
+@using Sdk.Client.Components.Settings
+@using Sdk.Client.Components.Settings.Expanders
+@using Sdk.Client.ControlPanels.Components
+@using Sdk.Client.ControlPanels.Services
+@using ViciOne.Ui.Localization.Resources
+
+@attribute [ModuleAuthorize<ClusterManagementClientModule>(AccessLevel.Full)]
+
+@inherits ControlPanelBase<GeneralControlPanelState>
+
+<DescriptionBanner Title="@CommonVocabulary.General">
+    @ClusterEditorSettings.DescriptionBanner
+</DescriptionBanner>
+
+<SettingsLayout>
+    <SettingsGroup Expanded="true"
+                   Title="@ClusterEditorSettings.GridModeHeading">
+
+        <Expander>
+            <ComboBoxExpander @bind-Value="State.Settings.GridMode"
+                              @bind-Value:after="AfterChange"
+                              Items="_gridModeComboBoxItems"
+                              TextSelector="@(cbi => cbi.Text)"
+                              ValueSelector="@(cbi => cbi.Value)" />
+        </Expander>
+
+        <ChildContent>
+            <SettingsInformation>
+                @ClusterEditorSettings.GridModeDescription
+            </SettingsInformation>
+        </ChildContent>
+    </SettingsGroup>
+
+    <SettingsGroup Expanded="true"
+                   Title="@ClusterEditorSettings.GimpPanBehaviorHeading">
+
+        <Expander>
+            <SwitchExpander @bind-Value="@State.Settings.PanBehavior"
+                            @bind-Value:after="@AfterChange" />
+
+        </Expander>
+
+        <ChildContent>
+            <SettingsInformation>
+                @ClusterEditorSettings.GimpPanBehaviorDescription
+            </SettingsInformation>
+        </ChildContent>
+    </SettingsGroup>
+
+    <SettingsGroup Expanded="true"
+                   Title="@ClusterEditorSettings.SimplifiedViewHeading">
+
+        <Expander>
+            <SwitchExpander @bind-Value="@State.Settings.SimplifiedView"
+                            @bind-Value:after="@AfterChange" />
+
+        </Expander>
+
+        <ChildContent>
+            <SettingsInformation>
+                @ClusterEditorSettings.SimplifiedViewDescription
+            </SettingsInformation>
+        </ChildContent>
+    </SettingsGroup>
+
+    <SettingsGroup Expanded="true"
+                   Title="@ClusterEditorSettings.NodeAlignmentBorderHeading">
+
+        <Expander>
+            <SwitchExpander @bind-Value="@State.Settings.NodeAlignmentBorder"
+                            @bind-Value:after="@AfterChange" />
+
+        </Expander>
+
+        <ChildContent>
+            <SettingsInformation>
+                @ClusterEditorSettings.NodeAlignmentBorderDescription
+            </SettingsInformation>
+        </ChildContent>
+    </SettingsGroup>
+
+    <SettingsGroup Expanded="true"
+                   Title="@ClusterEditorSettings.NodeSpecificMinimapColoringHeading">
+
+        <Expander>
+            <SwitchExpander @bind-Value="@State.Settings.MinimapNodeColoring"
+                            @bind-Value:after="@AfterChange" />
+
+        </Expander>
+
+        <ChildContent>
+            <SettingsInformation>
+                @ClusterEditorSettings.NodeSpecificMinimapColoringDescription
+            </SettingsInformation>
+        </ChildContent>
+    </SettingsGroup>
+</SettingsLayout>

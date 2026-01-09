@@ -1,0 +1,28 @@
+﻿@use "./../Styles/_shared.scss";
+
+.cluster-events {
+    @extend .cm-page-base;
+
+    .cluster-events-toolbar {
+        @extend .cm-page-toolbar-base;
+    }
+
+    .cluster-events-grid {
+        @extend .cm-page-grid-base;
+    }
+
+    .cluster-events-send {
+        margin: 12px;
+        display: grid;
+        grid-template-rows: 28px 28px;
+        grid-template-columns: auto 1fr;
+        grid-column-gap: 10px;
+        grid-row-gap: 5px;
+
+        .send-row {
+            display: inline-grid;
+            grid-template-columns: 1fr auto 1fr;
+            grid-column-gap: 5px;
+        }
+    }
+}

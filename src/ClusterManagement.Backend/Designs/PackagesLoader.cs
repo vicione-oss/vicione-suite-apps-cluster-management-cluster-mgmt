@@ -1,0 +1,74 @@
+﻿using System.IO.Abstractions;
+using System.Reflection;
+using System.Runtime.Loader;
+using ClusterManagement.Public;
+using Sdk.Modules;
+using ViciOne.Cluster.Model;
+using ViciOne.Core.Dataflow.DataModel;
+using ViciOne.Core.Dataflow.DataModel.Generation;
+using ViciOne.Core.Dataflow.Pooling;
+using ViciOne.Engine.DefaultPoolings;
+
+namespace ClusterManagement.Backend.Designs;
+
+internal class PackagesLoader
+{
+    private static readonly Assembly[] s_shared =
+    [
+        typeof(ViciOne.Core.Contracts.DataModel.IConnectorDesign).Assembly,             // ViciOne.Core.Contracts
+        typeof(ViciOne.Core.Dataflow.NameValidator).Assembly,                           // ViciOne.Core.Dataflow
+        typeof(ViciOne.Core.Runtime.Attributes.FunctionBlockDesignAttribute).Assembly,  // ViciOne.Core.Runtime
+        typeof(ViciOne.Engine.DefaultValidators.StringLengthValidator).Assembly,        // ViciOne.Engine.DefaultValidators
+        typeof(AndPooling).Assembly,                                                    // ViciOne.Engine.DefaultPoolings
+        typeof(Microsoft.Extensions.Logging.ILoggerFactory).Assembly,                   // Microsoft.Extensions.Logging.Abstractions
+    ];
+    private static readonly Type[] s_relevantInterfaces =
+    [
+        typeof(ViciOne.Core.Contracts.Runtime.IRuntimeFunctionBlock),
+        typeof(ViciOne.Core.Contracts.Runtime.IRuntimeDriver),
+        typeof(ViciOne.Core.Contracts.DataModel.IAggregatingPooling),
+        typeof(ViciOne.Core.Contracts.DataModel.IValidator),
+        typeof(ViciOne.Core.Contracts.DataModel.ITypeConversion),
+    ];
+    private readonly AssemblyLoadContext _parentContext;
+
+    private readonly IFileSystem _fileSystem;
+
+    private PackagesLoader(StackedAssemblyLoadContext context, AssemblyLoadContext parentContext, IFileSystem fileSystem)
+    {
+        Context = context;
+        _parentContext = parentContext;
+        _fileSystem = fileSystem;
+    }
+
+    internal StackedAssemblyLoadContext Context { get; }
+
+    internal static PackagesLoader Create(IReadOnlyCollection<ClusterDependency> dependencies, string packagesDirectory, IFileSystem fileSystem)
+        => new(
+            new(Constants.PackagesContext, s_shared, dependencies, packagesDirectory, fileSystem),
+            GetAssemblyLoadContext($"{ModuleIdResolver.ResolveId<ClusterManagementBackendModule>()}{ModuleIdResolver.ModuleSuffixBackend}"),
+            fileSystem);
+
+    internal IReadOnlyDictionary<Guid, FunctionBlockDesign> Load(string directory)
+    {
+        var depsFile = _fileSystem.Directory.GetFiles(directory, "*.deps.json", SearchOption.AllDirectories).FirstOrDefault()
+            ?? throw new InvalidOperationException($"Could not find main component in directory '{directory}'.");
+        var mainComponentPath = depsFile.Replace(".deps.json", ".dll", StringComparison.OrdinalIgnoreCase);
+        var assemblies = TypeSearch.Create(mainComponentPath, _parentContext)
+            .RegisterInterfacesToLoad(s_relevantInterfaces)
+            .LoadAssemblies(Context);
+
+        PoolingFactory poolingFactory = new(assemblies.Append(typeof(SumPooling).Assembly));
+        var functionBlockDesignInfos = RuntimeFunctionBlockAssemblyAnalyzer
+            .GetFunctionBlockDesigns(assemblies)
+            .ToArray();
+        var coreDesigns = FunctionBlockDesignGenerator
+            .GenerateFunctionBlockDesigns(functionBlockDesignInfos, poolingFactory)
+            .ToDictionary(d => d.Id);
+
+        return coreDesigns;
+    }
+
+    private static AssemblyLoadContext GetAssemblyLoadContext(string name)
+        => AssemblyLoadContext.All.FirstOrDefault(a => a.Name?.Equals(name, StringComparison.OrdinalIgnoreCase) is true) ?? throw new InvalidOperationException($"AssemblyLoadContext for {name} not found.");
+}

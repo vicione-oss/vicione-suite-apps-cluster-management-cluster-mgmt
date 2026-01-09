@@ -1,0 +1,144 @@
+﻿@using ClusterManagement.Client.DataflowEvents.Models
+@using ClusterManagement.Public
+@using ViciOne.Ui.Localization.Resources
+
+@inherits ModulePageBase<ClusterManagementClientModule>
+@attribute [Route(Constants.ManagementEventsRoute)]
+
+<div class="cluster-events">
+    <div class="cluster-events-toolbar">
+        <DxToolbar ItemRenderStyleMode="ToolbarRenderStyleMode.Plain">
+
+            <!-- SET VALUE -->
+            <DxToolbarItem Alignment="ToolbarItemAlignment.Right"
+                           Enabled="false"
+                           Text="@("Selected: " + @PageService.SelectedEvent?.Name ?? "<ListItem>")" />
+
+            <DxToolbarItem Alignment="ToolbarItemAlignment.Right"
+                           Text="@CommonVocabulary.Value"
+                           Enabled="false">
+                <Template>
+                    <DxTextBox BindValueMode="BindValueMode.OnInput"
+                               CssClass="event-input"
+                               @bind-Text="@PageService.SendInputValue">
+                    </DxTextBox>
+                </Template>
+            </DxToolbarItem>
+
+            <DxToolbarItem Alignment="ToolbarItemAlignment.Right"
+                           Click="@PageService.SetSelectedValue"
+                           Text="@(string.Format(UserActions.SetSomething, CommonVocabulary.Value))"
+                           Enabled="@(PageService.CanSetValue)"
+                           IconCssClass="mdi mdi-send"
+                           Name="@nameof(PageService.SetSelectedValue)">
+            </DxToolbarItem>
+
+            <DxToolbarItem Alignment="ToolbarItemAlignment.Right"
+                           BeginGroup="true"
+                           Click="@NavigateToManagement"
+                           IconCssClass="mdi mdi-share-variant"
+                           Text="@CommonVocabulary.Management" />
+
+            <DxToolbarItem Alignment="ToolbarItemAlignment.Right"
+                           Click="@RefreshDataflowEvents"
+                           IconCssClass="mdi mdi-refresh"
+                           Text="@CommonVocabulary.RefreshVerb" />
+
+            <DxToolbarItem Alignment="ToolbarItemAlignment.Right"
+                           Click="@PageService.SubscribeAll"
+                           IconCssClass="mdi mdi-access-point-plus"
+                           Text="@(string.Format(UserActions.SubscribeSomething, CommonVocabulary.All))" />
+
+            <DxToolbarItem Alignment="ToolbarItemAlignment.Right"
+                           Click="@PageService.UnsubscribeAll"
+                           IconCssClass="mdi mdi-access-point-minus"
+                           Text="@(string.Format(UserActions.UnsubscribeSomething, CommonVocabulary.All))" />
+
+            <!-- CLUSTER VERSION -->
+            <DxToolbarItem Alignment="ToolbarItemAlignment.Left"
+                           BeginGroup="true"
+                           Enabled="false"
+                           Text="@($"Cluster {PageService.ActiveVersion}")"
+                           Tooltip="@PageService.ActiveClusterId?.ToString()" />
+
+        </DxToolbar>
+    </div>
+
+    <div class="cluster-events-grid">
+        <DxGrid AllowSelectRowByClick="true"
+                AllowGroup="false"
+                AutoCollapseDetailRow="true"
+                Data="@PageService.Events"
+                PagerVisible="true"
+                KeyFieldName="@nameof(DataflowEventModel.EventId)"
+                SelectionMode="GridSelectionMode.Single"
+                SelectedDataItem="@PageService.SelectedEvent"
+                SelectedDataItemChanged="@SelectedEventChanged">
+            <Columns>
+                <DxGridDataColumn Caption="@nameof(DataflowEventModel.EventId)"
+                                  FieldName="@nameof(DataflowEventModel.EventId)"
+                                  Width="15%" />
+
+                <DxGridDataColumn AllowGroup="false"
+                                  Caption="@CommonVocabulary.Name"
+                                  FieldName="@nameof(DataflowEventModel.Name)"
+                                  MinWidth="110"
+                                  Width="20%" />
+
+                <DxGridDataColumn AllowGroup="false"
+                                  Caption="@TechnicalTerms.ValueType"
+                                  FieldName="@nameof(DataflowEventModel.ValueType)"
+                                  Width="20%" />
+
+                <DxGridDataColumn AllowGroup="false"
+                                  Caption="@Localization.DataflowEventsPage.Writable"
+                                  FieldName="@nameof(DataflowEventModel.CanWrite)"
+                                  TextAlignment="GridTextAlignment.Left" />
+
+                <DxGridDataColumn AllowGroup="false"
+                                  Caption="@Localization.DataflowEventsPage.Readable"
+                                  FieldName="@nameof(DataflowEventModel.CanRead)"
+                                  TextAlignment="GridTextAlignment.Left" />
+
+                <DxGridDataColumn AllowGroup="false"
+                                  Caption="@CommonVocabulary.Value"
+                                  FieldName="@nameof(DataflowEventModel.DisplayValue)"
+                                  MinWidth="100" />
+
+                <DxGridDataColumn AllowGroup="false"
+                                  DisplayFormat="s"
+                                  Caption="@TechnicalTerms.Timestamp"
+                                  FieldName="@nameof(DataflowEventModel.Timestamp)" />
+
+                <DxGridCommandColumn Width="100px">
+                    <HeaderTemplate>
+                        @CommonVocabulary.ActionPlural
+                    </HeaderTemplate>
+                    <CellDisplayTemplate>
+                        @if (context.DataItem is DataflowEventModel model)
+                        {
+                            if (model.Subscription is null)
+                            {
+                                <button @onclick="@(() => PageService.SubscribeEvent(model))"
+                                        class="btn"
+                                        type="button"
+                                        title="@CommonVocabulary.Subscribe">
+                                    <span class="mdi mdi-access-point-plus"></span>
+                                </button>
+                            }
+                            else
+                            {
+                                <button @onclick="@(() => PageService.UnsubscribeEvent(model))"
+                                        class="btn"
+                                        type="button"
+                                        title="@CommonVocabulary.Unsubscribe">
+                                    <span class="mdi mdi-access-point-minus"></span>
+                                </button>
+                            }
+                        }
+                    </CellDisplayTemplate>
+                </DxGridCommandColumn>
+            </Columns>
+        </DxGrid>
+    </div>
+</div>

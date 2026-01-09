@@ -1,0 +1,17 @@
+﻿@use "./../Styles/_shared.scss";
+
+.cluster-mgmt {
+    @extend .cm-page-base;
+
+    .cluster-mgmt-toolbar {
+        @extend .cm-page-toolbar-base;
+    }
+
+    .cluster-mgmt-grid {
+        @extend .cm-page-grid-base;
+    }
+
+    .detail-container {
+        @extend .cm-page-detail-container-base;
+    }
+}

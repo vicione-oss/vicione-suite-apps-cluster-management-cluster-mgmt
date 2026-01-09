@@ -1,0 +1,48 @@
+﻿@use "./../../Styles/design/colors";
+@use "./../../../../shared/styles/colors-staged";
+@use "./../../../../shared/styles/typography";
+@use "./../../Styles/icons/monochrome-icons" with (
+    $svg-base-url: "./icons/monochrome-icons",
+    $base-selector: "::deep"
+);
+
+@use 'sass:color';
+
+.iodds-control-panel-page {
+    display: contents;
+
+    .input {
+        display: none;
+    }
+
+    ::deep .iodds-grid {
+        height: 100%;
+
+        .tree-pane {
+            width: 188px;
+        }
+    }
+
+    ::deep .tree-editor-container {
+        background-color: transparent !important;
+        margin-top: 12px;
+        overflow: hidden;
+
+        .icon > svg {
+            height: 24px;
+            width: 24px;
+
+            g {
+                fill: colors.$color-font;
+            }
+        }
+
+        .tree-node {
+            grid-column-gap: 8px;
+        }
+
+        .tree-node-display-container.selected {
+            background-color: colors-staged.$color-foreground-light-dark;
+        }
+    }
+}
