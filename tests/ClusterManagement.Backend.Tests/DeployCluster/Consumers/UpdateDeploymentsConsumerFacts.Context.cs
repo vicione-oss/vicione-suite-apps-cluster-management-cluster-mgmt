@@ -17,6 +17,7 @@ using ClusterManagement.Tests.Tools.Factories;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MQTTnet;
 using NSubstitute;
 using Sdk.Backend.Modules;
 using Sdk.Instance;
@@ -29,6 +30,8 @@ namespace ClusterManagement.Backend.Tests.DeployCluster.Consumers;
 public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<ClusterDbContextSqlite>
 {
     private static readonly Guid s_functionBlockDesignId = Guid.NewGuid();
+    private static readonly Guid s_functionBlockOutputDesignId = Guid.NewGuid();
+    private static readonly Guid s_functionBlockOutputId = Guid.NewGuid();
 
     private readonly IMqttBrokerConnectionCache _brokerConnectionCache;
     private readonly EngineDbContext _engineDbContext;
@@ -38,17 +41,19 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
     private readonly ISuiteRulesetProvider _rulesetProvider;
     private readonly IInstanceInformationProvider _instanceInformationProvider;
     private readonly InMemoryLogger<UpdateDeploymentsConsumer> _logger;
+    private readonly IMqttClient _mqttClient;
     private readonly IWorkspaceProvider<ClusterManagementBackendModule> _workspaceProvider;
     private readonly MockFileSystem _fileSystemMock = new();
     private readonly IInstanceInformation _instanceInformation;
     private readonly ClusterBuilder _clusterBuilder;
+    private readonly Guid _correlationId = Guid.NewGuid();
     private readonly List<object> _events = [];
     private CorrelatedBy<Guid>? _result;
 
     public UpdateDeploymentsConsumerFacts()
     {
-        var functionBlockDesign = CreateEmptyFunctionBlockDesign();
-        var dependencyDesigns = ClusterDependencyPackageFactory.CreateDependencyDesigns([functionBlockDesign]);
+        var functionBlockDesign = CreateFunctionBlockDesign();
+        var dependencyDesigns = ClusterDependencyPackageFactory.CreateDependencyDesigns([functionBlockDesign,]);
 
         var functionBlockDesignResolver = new ClusterDependencyResolver(dependencyDesigns);
         _clusterBuilder = new(functionBlockDesignResolver);
@@ -81,19 +86,22 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
         _instanceInformationProvider.Local.Returns(_instanceInformation);
 
         _logger = new InMemoryLogger<UpdateDeploymentsConsumer>();
+        _mqttClient = Substitute.For<IMqttClient>();
         _workspaceProvider = Substitute.For<IWorkspaceProvider<ClusterManagementBackendModule>>();
     }
 
-    private static ViciOne.Core.Dataflow.DataModel.FunctionBlockDesign CreateEmptyFunctionBlockDesign()
+    private static ViciOne.Core.Dataflow.DataModel.FunctionBlockDesign CreateFunctionBlockDesign()
     {
         var functionBlockDesign = FunctionBlockDesignBuilder.Create(s_functionBlockDesignId);
         functionBlockDesign.SystemInputs.Clear();
         functionBlockDesign.SystemOutputs.Clear();
+        functionBlockDesign.AddOutput<double>(s_functionBlockOutputDesignId, "Value");
         return functionBlockDesign;
     }
 
     protected override void Dispose(bool disposing)
     {
+        _mqttClient.Dispose();
         _engineDbContext.Dispose();
         _clusterBuilder.Dispose();
 
@@ -128,14 +136,14 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
         var clusterInfo = new ClusterSnapshotInfo(_clusterBuilder.Cluster.Id, clusterVersion, _clusterBuilder.Cluster.Name);
 
         var consumeContext = Substitute.For<ConsumeContext<UpdateDeployments>>();
-        consumeContext.Message.Returns(new UpdateDeployments(clusterCompressed, _clusterBuilder.Cluster.Id));
-        consumeContext.CorrelationId.Returns(_clusterBuilder.Cluster.Id);
+        consumeContext.Message.Returns(new UpdateDeployments(clusterCompressed, _correlationId, _clusterBuilder.Cluster.Id));
+        consumeContext.CorrelationId.Returns(_correlationId);
         consumeContext.CancellationToken.Returns(cancellationToken);
         consumeContext.When(x => x.Publish(Arg.Any<Arg.AnyType>(), Arg.Is(cancellationToken))).Do(x => _events.Add(x[0]));
 
         UpdateDeploymentsConsumer consumer = new(_instanceInformationProvider, _engineDbContext, _poolCommunication,
             _hostCommunication, _brokerConnectionCache, _designProvider, Substitute.For<IClusterDbContext>(), _workspaceProvider,
-            _rulesetProvider, _fileSystemMock, _logger);
+            _rulesetProvider, _fileSystemMock, _logger, _mqttClient);
         await consumer.Consume(consumeContext);
 
         _result = _events.OfType<CorrelatedBy<Guid>>().SingleOrDefault();
@@ -145,7 +153,7 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
     {
         using var scope = new AssertionScope();
         var updatedEvent = _result.Should().NotBeNull().And.BeOfType<ClusterNodeDeploymentsUpdatedEvent>().Subject;
-        updatedEvent.CorrelationId.Should().Be(_clusterBuilder.Cluster.Id);
+        updatedEvent.CorrelationId.Should().Be(_correlationId);
         scope.AppendTracing(_logger.LastMessage);
         Then_no_errors_were_logged();
     }

@@ -8,34 +8,34 @@ using Sdk.Messaging;
 
 namespace ClusterManagement.Backend.Consumers;
 
-public sealed class RemoveClusterConsumer(IClusterDbContext dbContext, IClusterSnapshotStore store, ILogger<RemoveClusterConsumer> logger) :
+public sealed partial class RemoveClusterConsumer(IClusterDbContext dbContext, IClusterSnapshotStore store, ILogger<RemoveClusterConsumer> logger) :
     IConsumer<Public.Commands.RemoveCluster>, IConsumer<Fault<Public.Commands.RemoveCluster>>
 {
-    private readonly IClusterDbContext _dbContext = dbContext;
-    private readonly IClusterSnapshotStore _store = store;
-    private readonly ILogger<RemoveClusterConsumer> _logger = logger;
-
     public async Task Consume(ConsumeContext<Public.Commands.RemoveCluster> context)
     {
-        _logger.LogInformation("Consume {Command} CorrelationId:{CorrelationId} Id:{Id}",
-            nameof(Public.Commands.RemoveCluster), context.CorrelationId, context.Message.ClusterId);
+        LogConsume(logger,
+            nameof(Public.Commands.RemoveCluster),
+            context.CorrelationId,
+            context.Message.ClusterId,
+            context.Message.Version);
 
-        if (!_store.Exists(context.Message.ClusterId, context.Message.Version))
-            return;
+        if (context.Message.Version == Public.Constants.DefaultClusterVersion)
+            throw new InvalidOperationException("Default cluster can't be deleted");
 
-        var clusterIsActive = await _dbContext.ActiveClusters.AsNoTracking()
+        if (!store.Exists(context.Message.ClusterId, context.Message.Version))
+            throw new InvalidOperationException($"Cluster version '{context.Message.Version}' does not exist");
+
+        var clusterIsActive = await dbContext.ActiveClusters.AsNoTracking()
             .AnyAsync(c => c.Id == context.Message.ClusterId
                 && c.Version == context.Message.Version, context.CancellationToken);
 
         if (clusterIsActive)
-            throw new InvalidOperationException($"Active cluster v{context.Message.Version} can't be deleted");
-        if (context.Message.Version == Public.Constants.DefaultClusterVersion)
-            throw new InvalidOperationException("Default cluster can't be deleted");
+            throw new InvalidOperationException($"Active cluster version '{context.Message.Version}' can't be deleted");
 
-        _store.Delete(context.Message.ClusterId, context.Message.Version);
+        store.Delete(context.Message.ClusterId, context.Message.Version);
 
         await context.Publish(
-            new ClusterChanged(context.Message.ClusterId, CrudAction.Deleted, context.Message.Version)
+            new ClusterChanged(context.Message.CorrelationId, context.Message.ClusterId, CrudAction.Deleted, context.Message.Version)
             {
                 CorrelationId = context.Message.CorrelationId
             }, context.CancellationToken);
@@ -48,11 +48,24 @@ public sealed class RemoveClusterConsumer(IClusterDbContext dbContext, IClusterS
     /// <returns></returns>
     public async Task Consume(ConsumeContext<Fault<Public.Commands.RemoveCluster>> context)
     {
-        _logger.LogError("{Command} faulted with errors: {Errors}",
+        var command = context.Message.Message;
+        var errorEvent = ClusterEventFactory.CreateErrorEvent(command.ClusterId,
+            ClusterError.DeleteFailed,
+            command.CorrelationId,
+            command.Version);
+
+        LogError(logger,
             nameof(Public.Commands.RemoveCluster),
+            command.ClusterId,
+            command.Version,
             string.Join(" | ", context.Message.Exceptions.Select(e => e.Message)));
 
-        await context.Publish(ClusterEventFactory.CreateErrorEvent(context.Message.Message.ClusterId,
-            ClusterError.DeleteFailed, context.Message.Message.CorrelationId), context.CancellationToken);
+        await context.Publish(errorEvent, context.CancellationToken);
     }
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Debug, Message = "Consume {command} CorrelationId={correlationId} Id={clusterId} Version={version}")]
+    internal static partial void LogConsume(ILogger<RemoveClusterConsumer> logger, string command, Guid? correlationId, Guid clusterId, Version version);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Error, Message = "Consume {command} faulted on cluster Id={clusterId} Version={version} with '{message}'")]
+    internal static partial void LogError(ILogger<RemoveClusterConsumer> logger, string command, Guid clusterId, Version version, string message);
 }

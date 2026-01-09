@@ -83,11 +83,15 @@ internal sealed class LoadClusterService : DialogServiceBase, IDisposable
         var stopwatch = new Stopwatch();
         stopwatch.Start();
 
-        var usedFunctionBlockDesignIds = await _designProvider.GetFunctionBlockDesignIds(cluster.Dependencies);
+        if (cluster.Dependencies.Count > 0)
+        {
+            // if we call it with empty dependencies all available designs would be returned
+            var usedFunctionBlockDesignIds = await _designProvider.GetFunctionBlockDesignIds(cluster.Dependencies);
 
-        // ensure all designs referenced by current cluster are added
-        foreach (var designId in usedFunctionBlockDesignIds)
-            _clusterBuilder.Editors.FunctionBlockDesign.AddFunctionBlockDesign(designId);
+            // ensure all designs referenced by current cluster are added
+            foreach (var designId in usedFunctionBlockDesignIds)
+                _clusterBuilder.Editors.FunctionBlockDesign.AddFunctionBlockDesign(designId);
+        }
 
         _dataManagementService.LoadDataflow(_clusterBuilder);
         stopwatch.Stop();

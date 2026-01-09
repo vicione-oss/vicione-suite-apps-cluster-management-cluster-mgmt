@@ -4,13 +4,13 @@
     "net9.0": {
       "ViciOne.Cluster.Builder": {
         "type": "Direct",
-        "requested": "[0.10.0, )",
-        "resolved": "0.10.0",
-        "contentHash": "fG4muufvDQSkFCpUMD7ANPVNK/3t+e90hAmv3+EShK7qcWmUI8dtEqD2lJTPVSuwnxB/7JpBeCXP3Lh6641rkQ==",
+        "requested": "[0.11.0, )",
+        "resolved": "0.11.0",
+        "contentHash": "5L6bjq+pIgoD+c5+wvVmX+/poMJLW7+n/geMOjVIlgIEKvLPXWHTnsbpZL6Gpyo9yrkF3eMAjoQs4Fx8HQO/4w==",
         "dependencies": {
-          "ViciOne.Cluster.Model": "0.10.0",
-          "ViciOne.Core.Dataflow": "0.48.0",
-          "ViciOne.Engine.DefaultPoolings": "0.48.0"
+          "ViciOne.Cluster.Model": "0.11.0",
+          "ViciOne.Core.Dataflow": "0.51.0",
+          "ViciOne.Engine.DefaultPoolings": "0.51.0"
         }
       },
       "ViciOne.Suite.Sdk": {
@@ -27,8 +27,8 @@
       },
       "FastCloner": {
         "type": "Transitive",
-        "resolved": "3.3.4",
-        "contentHash": "gaeBjs6r3XYAePCpQIjHfAOwvZGJgdWUpwOkh8KapjToBHah/U+p54NABT1uB3QI86dzPF4XysvHT4sqVzAzbA=="
+        "resolved": "3.3.10",
+        "contentHash": "3Qw0IlWqsfNHep1ryRSW3J3mSz9fPOktHiinESThg9RVQTIH0FfVNoiDnSp7/byINOpSVUVAUuFAFqUxokm7BA=="
       },
       "MassTransit.Abstractions": {
         "type": "Transitive",
@@ -89,12 +89,12 @@
       },
       "ViciOne.Cluster.Model": {
         "type": "Transitive",
-        "resolved": "0.10.0",
-        "contentHash": "AS+53NL9EWBoXwS8Ygn/yvCnhoxkzBefbZWxUlTqEUkc62ymORiw99Lndq+TCOSvIkLAIETIAJ+0G1Zkvi6Jqg==",
+        "resolved": "0.11.0",
+        "contentHash": "pQIf9/9xdSYbS7tn3ldlOzyWfm7BhwMkQbbIYUdsg6gxkwjF0Nynp0L+RBkM9tE/5VXYSezjBxh0fZPJfFxFcA==",
         "dependencies": {
-          "ViciOne.Core.Contracts": "0.48.0",
+          "ViciOne.Core.Contracts": "0.51.0",
           "ViciOne.ManagedEngine.Serialization": "0.61.0",
-          "ViciOne.Serialization.Json": "0.48.0"
+          "ViciOne.Serialization.Json": "0.51.0"
         }
       },
       "ViciOne.CodeAnalysis.MustCallBase": {
@@ -104,27 +104,27 @@
       },
       "ViciOne.Core.Contracts": {
         "type": "Transitive",
-        "resolved": "0.48.0",
-        "contentHash": "6kMHF/LuT0e/gqDhwhNII9p9ztHea9W6qQZN1/2r9+KxTIr6q4EkaBoucJQS6FIolKIlhfyRBvqWvluy6MIOmw==",
+        "resolved": "0.51.0",
+        "contentHash": "3uyq+x3QvdmzgGgep1Z8rUKv+s8fh/Em5RQL3hOquk+WDi9/Y48s7TuErEnPkAAzJN7zaK8NE/dIe4Qxi47U1A==",
         "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "9.0.4"
+          "Microsoft.Extensions.Logging.Abstractions": "9.0.7"
         }
       },
       "ViciOne.Core.Dataflow": {
         "type": "Transitive",
-        "resolved": "0.48.0",
-        "contentHash": "5u2iHYkcJCsSkKYFGwQzmy7Snh/glZwD49e6k86BBbPE0BCg3WgYziiRSbIc+P0tEuqJjP2PuCQJOzjjMDDfnw==",
+        "resolved": "0.51.0",
+        "contentHash": "eAgYzt5rzNYkDuq0dleev7s05quV+U2/1wCG/pm3MFfHFBOItRODO7vui0a8HDNm0IOag3q67tPP2yblfbBgzQ==",
         "dependencies": {
-          "FastCloner": "3.3.4",
-          "ViciOne.Core.Contracts": "0.48.0"
+          "FastCloner": "3.3.10",
+          "ViciOne.Core.Contracts": "0.51.0"
         }
       },
       "ViciOne.Engine.DefaultPoolings": {
         "type": "Transitive",
-        "resolved": "0.48.0",
-        "contentHash": "nXTY88ywF2+v2qTJZvkzLmuR3zs7WjIe8XIVxj3PMB4Kf8Vu7iFdqHWoN/JmZk9hE8ahuWWMxj7f/3JpQxd5Tw==",
+        "resolved": "0.51.0",
+        "contentHash": "Kr0ukLNz3IP7NaF5NN3TGpwcdM0gkmZoXSwaOQ38nIc4n46e9yFiDFaVN2P2PVx88BUhy7O5d2qTk2Cg6nfaWQ==",
         "dependencies": {
-          "ViciOne.Core.Runtime": "0.48.0"
+          "ViciOne.Core.Runtime": "0.51.0"
         }
       },
       "ViciOne.ManagedEngine.Serialization": {
@@ -134,19 +134,19 @@
       },
       "ViciOne.Serialization.Json": {
         "type": "Transitive",
-        "resolved": "0.48.0",
-        "contentHash": "YAcpW62/S6SopTcF/sr8zsjl1kH3Fon9jSWR3myyJwCRrz83PcEyCHJmSGW7V84BIsW4hPP11pq6sZk7gcxVJA==",
+        "resolved": "0.51.0",
+        "contentHash": "WtsPTyb9caYmbBYi/Vht88ctExv5rqXduF1DuD0Zvd1gVaaAFYLG6TDfOnNdFHzwOhvBe7rXoz4ShEQG/HUl3Q==",
         "dependencies": {
           "Newtonsoft.Json": "13.0.3"
         }
       },
       "ViciOne.Core.Runtime": {
         "type": "CentralTransitive",
-        "requested": "[0.48.0, )",
-        "resolved": "0.48.0",
-        "contentHash": "BrJk+2rO8KEHKEMEElnSnFm5ySortG7tME2MQeX0u3amN8DvahNlYarwQoxgs2bliI1zLtugAcXHbgogTH2u3g==",
+        "requested": "[0.51.0, )",
+        "resolved": "0.51.0",
+        "contentHash": "Fx/lbcNJBM1fFWhHQse0FBJEca7b+wrY52HyR6xNASAol7adkITrXkPD1g8k+7zUoVff/fXlcdb33Z6+ytzloQ==",
         "dependencies": {
-          "ViciOne.Core.Contracts": "0.48.0"
+          "ViciOne.Core.Contracts": "0.51.0"
         }
       }
     },

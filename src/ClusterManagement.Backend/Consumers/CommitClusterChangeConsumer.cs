@@ -53,10 +53,7 @@ public sealed class CommitClusterChangeConsumer(
         }
 
         await context.Publish(
-            new ClusterChanged(metaInfo.ClusterId, CrudAction.Created, version)
-            {
-                CorrelationId = context.Message.CorrelationId
-            },
+            new ClusterChanged(context.Message.CorrelationId, metaInfo.ClusterId, CrudAction.Created, version),
             context.CancellationToken);
     }
 
@@ -64,7 +61,7 @@ public sealed class CommitClusterChangeConsumer(
     {
         if (options.IncrementVersion)
         {
-            cluster.Version = await snapshotStore.GetLatestVersionIncrement(cluster.Id, options.IncrementType ?? VersionIncrementType.Patch, cancellationToken);
+            cluster.Version = await snapshotStore.GetLatestVersionIncrement(cluster.Id, options.IncrementType ?? VersionIncrementKind.Patch, cancellationToken);
             cluster.VersionCreated = DateTime.UtcNow;
             logger.LogDebug("Increased cluster {Id} version to v{Version}",
                 cluster.Id,
@@ -111,9 +108,10 @@ public sealed class CommitClusterChangeConsumer(
             string.Join(" | ", context.Message.Exceptions.Select(e => e.Message)));
 
         var metaInfo = context.Message.Message.MetaInfo;
+        var correlationId = context.CorrelationId ?? throw new InvalidOperationException("CorrelationId is missing");
 
         var errorInfo = ClusterEventFactory.CreateErrorInfo(ClusterError.PublishFailed, metaInfo.ClusterId, metaInfo.ClusterVersion);
-        await context.Publish(new CommitClusterChangeFailed(metaInfo.ClusterId, metaInfo.ClusterVersion, errorInfo),
+        await context.Publish(new CommitClusterChangeFailed(correlationId, metaInfo.ClusterId, metaInfo.ClusterVersion, errorInfo),
             context.CancellationToken);
     }
 }

@@ -5,5 +5,5 @@ namespace ClusterManagement.Backend.DeployCluster.Contracts;
 
 public sealed record ClusterApplicationStartedEvent(Guid ClusterId, Guid ClusterApplicationId) : IEvent, CorrelatedBy<Guid>
 {
-    public Guid CorrelationId => ClusterId;
+    public Guid CorrelationId { get; init; } = Guid.NewGuid();
 }

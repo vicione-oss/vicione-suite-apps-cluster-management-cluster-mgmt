@@ -101,8 +101,8 @@ public class UpdateDeploymentsConsumerSystemFacts
         var clusterJson = await store.LoadCompressedJson(context.ClusterId, context.ClusterVersion, context.CancellationToken);
         if (clusterJson.Length == 0)
             throw new InvalidOperationException("Cant load cluster from store!");
-        consumeContext.Message.Returns(new UpdateDeployments(clusterJson, context.ClusterId));
-        consumeContext.CorrelationId.Returns(context.ClusterId);
+        consumeContext.Message.Returns(new UpdateDeployments(clusterJson, context.CorrelationId, context.ClusterId));
+        consumeContext.CorrelationId.Returns(context.CorrelationId);
         consumeContext.CancellationToken.Returns(context.CancellationToken);
         consumeContext.When(x => x.Publish(Arg.Any<Arg.AnyType>(), Arg.Is(context.CancellationToken))).Do(x => context.AddEvent(x[0]));
 

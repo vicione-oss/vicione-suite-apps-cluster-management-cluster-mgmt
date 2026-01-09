@@ -26,7 +26,7 @@
                            Text="Get Saga" />
 
             <DxToolbarItem Click="@NavigateToEvents"
-                           IconCssClass="mdi mdi-share-variant"
+                           IconCssClass="mdi mdi-message-processing"
                            Text="Events" />
 
             <DxToolbarItem Alignment="ToolbarItemAlignment.Left"
@@ -91,12 +91,12 @@
                                     <span class="mdi mdi-motion-play-outline"></span>
                                 </button>
 
-                                <button @onclick="@(() => HandleEditOrInfo(model))"
+                                <button @onclick="@(() => HandleEdit(model))"
                                         class="btn"
                                         type="button"
-                                        disabled="@(model.IsExecuting)"
-                                        title="@(model.IsLatest ? CommonVocabulary.EditVerb : CommonVocabulary.Information)">
-                                    <span class="mdi @(model.IsLatest ? "mdi-pencil" : "mdi-information-outline")"></span>
+                                        disabled="@(!model.IsLatest || model.IsExecuting)"
+                                        title="@CommonVocabulary.EditVerb">
+                                    <span class="mdi mdi-pencil"></span>
                                 </button>
 
                                 <button @onclick="@(async () => await DownloadClusterJson(model))"
@@ -128,9 +128,7 @@
             <p>@_sagaState</p>
         </div>
     }
-    else
-    {
-        <ClusterUpdateDisplay />
-    }    
+    
+    <ClusterUpdateDisplay />
     
 </div>

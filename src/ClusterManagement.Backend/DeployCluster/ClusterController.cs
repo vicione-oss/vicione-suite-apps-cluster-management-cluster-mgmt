@@ -17,25 +17,40 @@ public sealed class ClusterController(IClusterSagaDbContext sagaDbContext, ILogg
     [HttpGet("saga/{command}")]
     public async Task<IActionResult> Saga(string command)
     {
-        var deployState = await sagaDbContext.DeployClusterState
-            .FirstOrDefaultAsync(ControllerContext.HttpContext.RequestAborted);
-
-        if (deployState is null)
-            return Content("No cluster saga state found");
-
-        switch (command.ToUpperInvariant())
+        try
         {
-            case "RESET":
-                TryLogClusterState(deployState);
-                sagaDbContext.DeployClusterState.Remove(deployState);
-                await sagaDbContext.Instance.SaveChangesAsync();
-                return Content("Cluster saga state removed!");
+            var deployState = await sagaDbContext.DeployClusterState
+                .FirstOrDefaultAsync(ControllerContext.HttpContext.RequestAborted);
 
-            case "STATUS":
-                return new JsonResult(deployState, GetSerializerOptions());
+            if (deployState is null)
+                return Content("No cluster saga state found");
 
-            default:
-                return Content("Invalid saga command!");
+            switch (command.ToUpperInvariant())
+            {
+                case "RESET":
+                    TryLogClusterState(deployState);
+                    sagaDbContext.DeployClusterState.Remove(deployState);
+                    await sagaDbContext.Instance.SaveChangesAsync(ControllerContext.HttpContext.RequestAborted);
+                    return Content("Cluster saga state removed!");
+
+                case "STATUS":
+                    return new JsonResult(deployState, GetSerializerOptions());
+
+                default:
+                    return Content("Invalid saga command!");
+            }
+        }
+        catch (ArgumentException aex)
+        {
+            // On edge-s after excessive testing a saga state was stored to database where CommitVersion is empty
+            // and therefore this exception is raised on Version.Parse that's called internally by EF. I don't know
+            // how this can happen yet...set the default version "0.0.0" to the migration.
+            logger.LogError(aex, "Invalid deploy database state detected");
+            return Content($"Invalid database deploy state detected");
+        }
+        catch (Exception ex)
+        {
+            return Content($"Failed: {ex.Message}");
         }
     }
 

@@ -311,7 +311,7 @@ public partial class UpdateDeploymentsConsumerFacts
 
             await When_updating_deployments();
 
-            await Assert(cluster, engineHost, engine);
+            await Assert(cluster, engineDbContext, engineHost, engine);
         }
 
         private void Arrange(ClusterState cluster, EngineDbState engineDbContext, PhysicalState physical)
@@ -367,7 +367,7 @@ public partial class UpdateDeploymentsConsumerFacts
             }
         }
 
-        private async Task Assert(ClusterState clusterState, EngineHostActions engineHost, EngineActions engine)
+        private async Task Assert(ClusterState clusterState, EngineDbState engineDbContext, EngineHostActions engineHost, EngineActions engine)
         {
             Then_update_succeeded();
 
@@ -432,6 +432,11 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_engine_was_torn_down(s_engine);
             else
                 Then_no_engine_was_torn_down();
+
+            if (clusterState.FunctionBlock == Existence.None && engineDbContext.FunctionBlock == Existence.Defined)
+                await Then_topics_were_deleted();
+            else
+                await Then_no_topics_were_deleted();
         }
     }
 
@@ -483,6 +488,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_no_engine_was_torn_down();
                 await Then_no_engineHost_gets_stopped();
                 await Then_no_engineHost_gets_torn_down();
+                await Then_no_topics_were_deleted();
             }
 
             [Fact]
@@ -510,6 +516,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_no_engine_was_torn_down();
                 await Then_no_engineHost_gets_stopped();
                 await Then_no_engineHost_gets_torn_down();
+                await Then_no_topics_were_deleted();
             }
 
             [Fact]
@@ -537,6 +544,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_no_engine_was_torn_down();
                 await Then_no_engineHost_gets_stopped();
                 await Then_no_engineHost_gets_torn_down();
+                await Then_no_topics_were_deleted();
             }
 
             [Fact]
@@ -564,6 +572,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_no_engine_was_torn_down();
                 await Then_no_engineHost_gets_stopped();
                 await Then_no_engineHost_gets_torn_down();
+                await Then_no_topics_were_deleted();
             }
 
             [Fact]
@@ -591,6 +600,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_no_engine_was_torn_down();
                 await Then_no_engineHost_gets_stopped();
                 await Then_no_engineHost_gets_torn_down();
+                await Then_no_topics_were_deleted();
             }
 
             [Fact]
@@ -622,6 +632,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_no_engine_was_torn_down();
                 await Then_no_engineHost_gets_stopped();
                 await Then_no_engineHost_gets_torn_down();
+                await Then_no_topics_were_deleted();
             }
 
             [Theory]
@@ -671,6 +682,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_engine_was_started(_engine1);
                 await Then_no_engineHost_gets_stopped();
                 await Then_no_engineHost_gets_torn_down();
+                await Then_no_topics_were_deleted();
             }
 
             [Fact]
@@ -704,6 +716,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_engine_was_started(_engine1);
                 await Then_engineHost_gets_stopped(_engineHost1);
                 await Then_no_engineHost_gets_torn_down();
+                await Then_no_topics_were_deleted();
             }
 
             [Theory]
@@ -737,6 +750,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_no_engine_was_stopped();
                 await Then_no_engine_gets_torn_down();
                 Then_no_engine_was_torn_down();
+                await Then_no_topics_were_deleted();
             }
 
             [Fact]
@@ -798,6 +812,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_engine_was_not_started(_engine3);
                 await Then_no_engineHost_gets_stopped();
                 await Then_no_engineHost_gets_torn_down();
+                await Then_no_topics_were_deleted();
             }
 
             [Fact]
@@ -863,6 +878,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_engine_was_not_started(_engine3);
                 await Then_no_engineHost_gets_stopped();
                 await Then_no_engineHost_gets_torn_down();
+                await Then_no_topics_were_deleted();
             }
 
             [Fact]
@@ -896,6 +912,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_no_engine_was_started();
                 await Then_no_engineHost_gets_stopped();
                 await Then_no_engineHost_gets_torn_down();
+                await Then_no_topics_were_deleted();
             }
 
             [Fact]
@@ -930,6 +947,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_no_engine_was_started();
                 await Then_no_engineHost_gets_stopped();
                 await Then_no_engineHost_gets_torn_down();
+                await Then_no_topics_were_deleted();
             }
         }
 
@@ -964,6 +982,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_no_engine_was_torn_down();
                 await Then_no_engineHost_gets_stopped();
                 await Then_no_engineHost_gets_torn_down();
+                await Then_no_topics_were_deleted();
             }
 
             [Fact]
@@ -995,6 +1014,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_no_engine_was_torn_down();
                 await Then_no_engineHost_gets_stopped();
                 await Then_no_engineHost_gets_torn_down();
+                await Then_no_topics_were_deleted();
             }
 
             [Fact]
@@ -1026,6 +1046,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_engine_was_torn_down(_engine1);
                 await Then_engineHost_gets_stopped(_engineHost1);
                 await Then_no_engineHost_gets_torn_down();
+                await Then_no_topics_were_deleted();
             }
 
             [Fact]
@@ -1057,6 +1078,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_engine_was_torn_down(_engine1);
                 await Then_engineHost_gets_stopped(_engineHost1);
                 await Then_engineHost_gets_torn_down(_engineHost1);
+                await Then_no_topics_were_deleted();
             }
 
             [Fact]
@@ -1097,6 +1119,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_engine_was_not_torn_down(_engine2);
                 await Then_no_engineHost_gets_stopped();
                 await Then_no_engineHost_gets_torn_down();
+                await Then_no_topics_were_deleted();
             }
 
             [Fact]
@@ -1128,6 +1151,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_engine_was_torn_down(_engine1);
                 await Then_engineHost_gets_stopped(_engineHost1);
                 await Then_engineHost_gets_torn_down(_engineHost1);
+                await Then_no_topics_were_deleted();
             }
 
             [Fact]
@@ -1158,6 +1182,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_engine_was_torn_down(_engine1);
                 await Then_engineHost_gets_stopped(_engineHost1);
                 await Then_engineHost_gets_torn_down(_engineHost1);
+                await Then_no_topics_were_deleted();
             }
 
             [Fact]
@@ -1187,6 +1212,7 @@ public partial class UpdateDeploymentsConsumerFacts
                 Then_engine_was_torn_down(_engine1);
                 await Then_engineHost_gets_stopped(_engineHost1);
                 await Then_engineHost_gets_torn_down(_engineHost1);
+                await Then_no_topics_were_deleted();
             }
         }
     }

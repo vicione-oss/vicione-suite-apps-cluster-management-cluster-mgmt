@@ -14,18 +14,18 @@ internal sealed class ClusterService(IUiMediator mediator,
     private readonly IUiMediator _mediator = mediator;
     private readonly ILogger<ClusterService> _logger = logger;
 
-    public async Task<List<Version>> QueryVersions(Guid clusterId)
-        => [.. (await QueryClusterInfos(clusterId)).Select(k => k.Version)];
+    public async Task<List<Version>> QueryVersions(Guid clusterId, CancellationToken cancellationToken = default)
+        => [.. (await QueryClusterInfos(clusterId, cancellationToken)).Select(k => k.Version)];
 
-    public async Task<Dictionary<Guid, List<Version>>> QueryVersions()
-        => (await QueryClusterInfos())
+    public async Task<Dictionary<Guid, List<Version>>> QueryVersions(CancellationToken cancellationToken = default)
+        => (await QueryClusterInfos(null, cancellationToken))
             .GroupBy(n => n.Id, n => n.Version)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-    public async Task<Version?> QueryLatestVersion(Guid clusterId)
-        => (await QueryVersions(clusterId)).Max(k => k);
+    public async Task<Version?> QueryLatestVersion(Guid clusterId, CancellationToken cancellationToken = default)
+        => (await QueryVersions(clusterId, cancellationToken)).Max(k => k);
 
-    public async Task<List<ClusterInfo>> QueryClusterInfos(Guid? clusterId = null)
+    public async Task<List<ClusterInfo>> QueryClusterInfos(Guid? clusterId = null, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Sending mediator query {Name}", nameof(QueryClusterInfos));
 
@@ -33,7 +33,7 @@ internal sealed class ClusterService(IUiMediator mediator,
         {
             ClusterId = clusterId
         };
-        var response = await _mediator.Request<GetClusterInfosRequest, GetClusterInfosResponse>(query);
+        var response = await _mediator.Request<GetClusterInfosRequest, GetClusterInfosResponse>(query, cancellationToken);
 
         _logger.LogDebug("Result mediator query {Name} contains {Count} items",
             nameof(QueryClusterInfos),
@@ -42,14 +42,14 @@ internal sealed class ClusterService(IUiMediator mediator,
         return response.Results;
     }
 
-    public async Task<Cluster> Query(Guid clusterId, Version? version)
+    public async Task<Cluster> Query(Guid clusterId, Version? version, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Sending mediator query {Name} width id {Id}",
             nameof(Query),
             clusterId);
 
         var response = await _mediator
-            .Request<GetClusterRequest, GetClusterResponse>(new GetClusterRequest(clusterId, version));
+            .Request<GetClusterRequest, GetClusterResponse>(new GetClusterRequest(clusterId, version), cancellationToken);
 
         if (response.RequestError != null)
             throw new InvalidOperationException(response.RequestError.Message);
@@ -57,7 +57,7 @@ internal sealed class ClusterService(IUiMediator mediator,
         if (response.CompressedCluster is null || response.CompressedCluster.Length == 0)
             throw new InvalidOperationException($"Received empty data for cluster {clusterId} v{version}");
 
-        var result = await ClusterSerializer.Decompress(response.CompressedCluster);
+        var result = await ClusterSerializer.Decompress(response.CompressedCluster, cancellationToken: cancellationToken);
         _logger.LogDebug("Result mediator query {Name} returned item id {Id}",
             nameof(Query),
             result.Id);
@@ -65,7 +65,7 @@ internal sealed class ClusterService(IUiMediator mediator,
         return result;
     }
 
-    public async Task CommitChange(Cluster cluster, CommitClusterOptions? options)
+    public async Task CommitChange(Cluster cluster, CommitClusterOptions? options, CancellationToken cancellationToken = default)
     {
         var stopwatch = new Stopwatch();
         _logger.LogDebug("Publishing {Name} width id {Id}, version {Version}",
@@ -80,15 +80,15 @@ internal sealed class ClusterService(IUiMediator mediator,
 
         stopwatch.Restart();
         var command = new CommitClusterChange(compressedCluster, new CommitClusterMetaInfo(cluster), options);
-        await _mediator.Send(command);
+        await _mediator.Send(command, cancellationToken);
         stopwatch.Stop();
 
         _logger.LogInformation("Sending {Command} command took {Elapsed}", nameof(CommitClusterChange), stopwatch.Elapsed);
     }
 
-    public Task Remove(Guid clusterId, Version version)
+    public Task Remove(Guid clusterId, Version version, CancellationToken cancellationToken = default)
     {
         var command = new RemoveCluster(clusterId, version);
-        return _mediator.Send(command);
+        return _mediator.Send(command, cancellationToken);
     }
 }

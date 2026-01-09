@@ -44,7 +44,10 @@ public sealed class InstanceCreatedConsumer(IClusterSnapshotStore clusterSnapsho
                 cluster.Version);
 
             //cluster model is already fine. The instance is either restarted, or new and created from the saga
-            await context.Publish(new ClusterApplicationStartedEvent(clusterId, context.Message.InstanceId));
+            await context.Publish(new ClusterApplicationStartedEvent(clusterId, context.Message.InstanceId)
+            {
+                CorrelationId = context.CorrelationId ?? Guid.NewGuid()
+            });
             return;
         }
 
@@ -56,7 +59,7 @@ public sealed class InstanceCreatedConsumer(IClusterSnapshotStore clusterSnapsho
         cluster.NodeGroups[0].Nodes.Add(newNode); //currently only one node group. Better solution depends on how NodeGroups will be managed
         cluster.Description = $"Added node and application for instance {context.Message.InstanceId}";
 
-        cluster.Version = cluster.Version.GetVersionIncrement(VersionIncrementType.Patch);
+        cluster.Version = cluster.Version.GetVersionIncrement(VersionIncrementKind.Patch);
 
         _logger.LogInformation("Consumed {Name}. Added new {Type} application for instance:{Instance} (id:{InstanceId}) to cluster:{ClusterId} v.{Version}",
             nameof(InstanceCreated),
@@ -69,5 +72,9 @@ public sealed class InstanceCreatedConsumer(IClusterSnapshotStore clusterSnapsho
         await _mediator.Send(new CommitClusterChange(ClusterSerializer.Compress(cluster), new CommitClusterMetaInfo(cluster), null), context.CancellationToken);
     }
 
-    public Task Consume(ConsumeContext<InstanceSynchronizationFailed> context) => Task.CompletedTask; //TODO
+    public Task Consume(ConsumeContext<InstanceSynchronizationFailed> context)
+    {
+        _logger.LogWarning("Failed to synchronize instance={InstanceId}", context.Message.InstanceId);
+        return Task.CompletedTask;
+    }
 }

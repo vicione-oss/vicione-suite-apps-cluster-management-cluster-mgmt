@@ -10,11 +10,11 @@ public interface IClusterManagementService
     event EventHandler<ClusterUpdateCompleted>? OnClusterUpdateCompleted;
     event EventHandler<ClusterUpdateFailed>? OnClusterUpdateFailed;
 
-    Task DeployCluster(Guid clusterId, Version version);
+    Task DeployCluster(Guid clusterId, Version version, CancellationToken cancellationToken = default);
 
-    Task<List<ClusterInfoModel>> QueryClusterVersions(Guid? clusterId = null);
+    Task<List<ClusterInfoModel>> QueryClusterVersions(Guid? clusterId = null, CancellationToken cancellationToken = default);
 
-    Task RemoveCluster(Guid clusterId, Version version);
+    Task RemoveCluster(Guid clusterId, Version version, CancellationToken cancellationToken = default);
 
-    Task DownloadClusterJson(Guid clusterId, Version version);
+    Task DownloadClusterJson(Guid clusterId, Version version, CancellationToken cancellationToken = default);
 }

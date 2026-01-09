@@ -1,6 +1,6 @@
 ﻿namespace ClusterManagement.Public.Enums;
 
-public enum VersionIncrementType
+public enum VersionIncrementKind
 {
     Major,
     Minor,

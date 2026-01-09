@@ -1,7 +1,7 @@
-﻿using ClusterManagement.Client.DataflowEvents.Services;
+﻿using AwesomeAssertions;
+using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Client.Management.Extensions;
 using ClusterManagement.Public.DataflowEvents;
-using AwesomeAssertions;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Packets;
@@ -36,7 +36,7 @@ public class DataflowEventMqttHandlerTests
         public async Task Should_throw_if_connection_fails()
         {
             // Arrange
-            using var handler = CreateHandler(false);
+            await using var handler = CreateHandler(false);
             var action = () => handler.Subscribe(_outputEvent);
 
             // Act + Assert
@@ -47,7 +47,7 @@ public class DataflowEventMqttHandlerTests
         public async Task Should_ensure_connection_is_established()
         {
             // Arrange
-            using var handler = CreateHandler();
+            await using var handler = CreateHandler();
 
             // Act
             await handler.Subscribe(_outputEvent);
@@ -60,7 +60,7 @@ public class DataflowEventMqttHandlerTests
         public async Task Should_not_connect_if_already_connected()
         {
             // Arrange
-            using var handler = CreateHandler();
+            await using var handler = CreateHandler();
             _mqttClient.IsConnected.Returns(true);
 
             // Act
@@ -74,7 +74,7 @@ public class DataflowEventMqttHandlerTests
         public async Task Should_subscribe_to_mqtt_topic()
         {
             // Arrange
-            using var handler = CreateHandler();
+            await using var handler = CreateHandler();
 
             // Act
             await handler.Subscribe(_outputEvent);
@@ -90,7 +90,7 @@ public class DataflowEventMqttHandlerTests
         public async Task Should_throw_if_connection_fails()
         {
             // Arrange
-            using var handler = CreateHandler(false);
+            await using var handler = CreateHandler(false);
             var action = () => handler.Subscribe(_outputEvent);
 
             // Act + Assert
@@ -101,7 +101,7 @@ public class DataflowEventMqttHandlerTests
         public async Task Should_ensure_connection_is_established()
         {
             // Arrange
-            using var handler = CreateHandler();
+            await using var handler = CreateHandler();
 
             // Act
             await handler.Subscribe(_outputEvent);
@@ -114,7 +114,7 @@ public class DataflowEventMqttHandlerTests
         public async Task Should_unsubscribe_from_mqtt_topic()
         {
             // Arrange
-            using var handler = CreateHandler();
+            await using var handler = CreateHandler();
 
             // Act
             await handler.Unsubscribe(_outputEvent);
@@ -130,7 +130,7 @@ public class DataflowEventMqttHandlerTests
         public async Task Should_throw_if_connection_cant_be_established()
         {
             // Arrange
-            using var handler = CreateHandler(false);
+            await using var handler = CreateHandler(false);
             var action = () => handler.Subscribe(_outputEvent);
 
             // Act + Assert
@@ -141,7 +141,7 @@ public class DataflowEventMqttHandlerTests
         public async Task Should_ensure_connection_is_established()
         {
             // Arrange
-            using var handler = CreateHandler();
+            await using var handler = CreateHandler();
 
             // Act
             await handler.Subscribe(_outputEvent);
@@ -154,7 +154,7 @@ public class DataflowEventMqttHandlerTests
         public async Task Should_publish_value_to_mqtt_broker()
         {
             // Arrange
-            using var handler = CreateHandler();
+            await using var handler = CreateHandler();
 
             // Act
             await handler.PublishValue(_inputEvent.EventId, "Test", typeof(string).AssemblyQualifiedName!);
@@ -167,7 +167,7 @@ public class DataflowEventMqttHandlerTests
         public async Task Should_not_publish_value_types_that_cant_be_serialized()
         {
             // Arrange
-            using var handler = CreateHandler();
+            await using var handler = CreateHandler();
 
             // Act
             await handler.PublishValue(_inputEvent.EventId, "Test", "Some.Invalid.Type");
@@ -183,7 +183,7 @@ public class DataflowEventMqttHandlerTests
         public async Task Should_not_handle_topics_that_are_no_valid_guid()
         {
             // Arrange
-            using var handler = CreateHandler();
+            await using var handler = CreateHandler();
             var receivedArgs = CreateMessageReceivedArgs("topic");
             var receivedEvent = false;
 
@@ -201,7 +201,7 @@ public class DataflowEventMqttHandlerTests
         public async Task Should_not_invoke_received_if_no_user_properties_are_set()
         {
             // Arrange
-            using var handler = CreateHandler();
+            await using var handler = CreateHandler();
             var receivedArgs = CreateMessageReceivedArgs(Guid.NewGuid().ToString());
             var receivedEvent = false;
 
@@ -219,7 +219,7 @@ public class DataflowEventMqttHandlerTests
         public async Task Should_not_handle_topic_that_is_a_valid_guid()
         {
             // Arrange
-            using var handler = CreateHandler();
+            await using var handler = CreateHandler();
             var receivedArgs = CreateMessageReceivedArgs(Guid.NewGuid().ToString(), builder =>
             {
                 builder.WithUserProperty(MqttUserProperties.Timestamp, DateTime.UtcNow);

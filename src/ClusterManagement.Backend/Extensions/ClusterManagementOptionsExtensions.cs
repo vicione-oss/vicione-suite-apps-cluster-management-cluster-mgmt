@@ -6,7 +6,7 @@ namespace ClusterManagement.Backend.Extensions;
 
 internal static class ClusterManagementOptionsExtensions
 {
-    private static readonly SemVersion s_engineHostVersion = new(0, 28, 0);
+    private static readonly SemVersion s_engineHostVersion = new(0, 30, 0);
 
     internal static SemVersion GetEngineHostVersion(this ClusterManagementOptions options)
     {

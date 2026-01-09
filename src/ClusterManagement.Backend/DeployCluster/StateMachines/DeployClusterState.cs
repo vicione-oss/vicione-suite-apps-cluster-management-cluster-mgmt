@@ -4,9 +4,10 @@ using Sdk.Messaging;
 
 namespace ClusterManagement.Backend.DeployCluster.StateMachines;
 
-
 public sealed class DeployClusterState : SagaStateMachineInstance
 {
+    public static readonly Version EmptyVersion = new(0, 0, 0);
+
     public Guid CorrelationId { get; set; }
 
     // If using Optimistic concurrency, this property is required
@@ -19,7 +20,10 @@ public sealed class DeployClusterState : SagaStateMachineInstance
     public Guid ClusterId { get; set; }
 
     public Version ActiveVersion { get; set; } = new("0.0.1");
-    public Version TargetVersion { get; set; } = new("0.0.1");
+    public Version TargetVersion { get; set; } = EmptyVersion;
+    public Version CommitVersion { get; set; } = EmptyVersion;
+    public Version RemoveVersion { get; set; } = EmptyVersion;
+
     public DateTime Started { get; set; }
 
     public List<Guid> ClusterApplicationsToUpdate { get; } = [];

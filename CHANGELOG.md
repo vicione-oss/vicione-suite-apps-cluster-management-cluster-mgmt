@@ -1,5 +1,49 @@
 # Changelog
 
+## 1.2.7 - 2025-11-14
+
+### Added
+
+- Add display of errors when get/reset saga state actions fail to `ClusterManagementPage`
+
+### Changed
+
+- Delete obsolete MQTT retain messages on cluster update
+- Clear existing deployment states on startup for standalone systems
+
+## 1.2.6 - 2025-11-06
+
+### Added
+
+- `DeployCluster` command, added `DeletePreviousVersionOnSuccess` that defaults to `false`
+
+### Changed
+
+- `ViciOne.Driver.IoTCore`, updated to version `1.21.0`
+- Update Engine Host to `0.30.0`
+
+## 1.2.5 - 2025-10-28
+
+### Added
+
+- Reconnect loop for event MQTT client
+
+### Changed
+
+- Ignore additional directories in iodd zip files
+- `ViciOne.Driver.IoTCore`, updated to version `1.20.1`
+
+## 1.2.4 - 2025-10-23
+
+### Changed
+
+- `ViciOne.Driver.IoTCore`, updated to version `1.19.0`
+
+### Fixed
+
+- `DeployCluster` removes created cluster version on rollback
+- Fix HTTP client issue on `ResetSaga` and `GetSaga` actions 
+
 ## 1.2.3 - 2025-10-08
 
 ### Fixed

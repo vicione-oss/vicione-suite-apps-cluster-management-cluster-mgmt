@@ -10,15 +10,17 @@ internal static class ClusterEventFactory
         {
             ClusterId = clusterId,
             Error = CreateErrorInfo(code, clusterId, clusterVersion),
-            CorrelationId = correlationId
+            CorrelationId = correlationId,
+            Version = clusterVersion
         };
 
-    public static ClusterError CreateErrorEvent(Guid clusterId, int code, Guid correlationId)
+    public static ClusterError CreateErrorEvent(Guid clusterId, int code, Guid correlationId, Version? clusterVersion = null)
         => new()
         {
             ClusterId = clusterId,
             Error = CreateErrorInfo(code, clusterId),
-            CorrelationId = correlationId
+            CorrelationId = correlationId,
+            Version = clusterVersion
         };
 
     public static ErrorInfo CreateErrorInfo(int code, Guid? clusterId, Version? clusterVersion = null)

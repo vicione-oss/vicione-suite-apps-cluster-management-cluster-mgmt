@@ -2,14 +2,15 @@
 using System.Globalization;
 using System.IO.Abstractions;
 using System.Reflection;
+using AwesomeAssertions;
+using AwesomeAssertions.Execution;
 using ClusterManagement.Backend.Designs;
+using ClusterManagement.Backend.EngineHosts.Extensions;
 using ClusterManagement.Backend.Snapshots;
+using ClusterManagement.Backend.Tests.TestUtils;
 using ClusterManagement.Public.Designs;
 using ClusterManagement.Public.Requests;
 using ClusterManagement.Tests.Tools;
-using AwesomeAssertions;
-using AwesomeAssertions.Execution;
-using ClusterManagement.Backend.EngineHosts.Extensions;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -29,7 +30,6 @@ using ViciOne.Cluster.Builder;
 using ViciOne.Core.Dataflow.DataModel.Generation;
 using ViciOne.Core.Dataflow.Pooling;
 using Constants = ClusterManagement.Public.Constants;
-using ClusterManagement.Backend.Tests.TestUtils;
 
 namespace ClusterManagement.Backend.Tests;
 
@@ -47,6 +47,7 @@ internal sealed partial class ClusterSystemTestContext : IAsyncDisposable
     private readonly InMemoryLoggerProvider _inMemoryLogging = new();
     private readonly ISuiteMediator _suiteMediator = Substitute.For<ISuiteMediator>();
     private readonly CancellationTokenSource _cancellationTokenSource = new();
+    private readonly Guid _correlationId = Guid.NewGuid();
 
     private static readonly MqttConnection s_mqttConnection = new()
     {
@@ -57,6 +58,7 @@ internal sealed partial class ClusterSystemTestContext : IAsyncDisposable
 
     internal IServiceProvider Services => _services;
     internal Guid ClusterId => _cluster.Id;
+    internal Guid CorrelationId => _correlationId;
     internal Version ClusterVersion => _cluster.Version;
     internal CancellationToken CancellationToken => _cancellationTokenSource.Token;
     public IReadOnlyCollection<object> Events => _events;

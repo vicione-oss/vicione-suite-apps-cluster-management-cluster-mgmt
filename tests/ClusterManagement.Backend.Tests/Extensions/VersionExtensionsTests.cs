@@ -16,7 +16,7 @@ public class VersionExtensionsTests
             var version = new Version(1, 2, 3);
 
             // Act
-            var result = version.GetVersionIncrement(VersionIncrementType.Major);
+            var result = version.GetVersionIncrement(VersionIncrementKind.Major);
 
             // Assert
             result.Should().Be(new Version(2, 0, 0));
@@ -29,7 +29,7 @@ public class VersionExtensionsTests
             var version = new Version(1, 2, 3);
 
             // Act
-            var result = version.GetVersionIncrement(VersionIncrementType.Minor);
+            var result = version.GetVersionIncrement(VersionIncrementKind.Minor);
 
             // Assert
             result.Should().Be(new Version(1, 3, 0));
@@ -42,25 +42,25 @@ public class VersionExtensionsTests
             var version = new Version(1, 2, 3);
 
             // Act
-            var result = version.GetVersionIncrement(VersionIncrementType.Patch);
+            var result = version.GetVersionIncrement(VersionIncrementKind.Patch);
 
             // Assert
             result.Should().Be(new Version(1, 2, 4));
         }
 
         [Fact]
-        public void Should_throw_for_invalid_update_type()
+        public void Should_throw_for_invalid_update_kind()
         {
             // Arrange
             var version = new Version(1, 2, 3);
-            var invalidUpdateType = (VersionIncrementType)99;
+            var invalidUpdateType = (VersionIncrementKind)99;
 
             // Act
             var act = () => version.GetVersionIncrement(invalidUpdateType);
 
             // Assert
             act.Should().Throw<InvalidOperationException>()
-               .WithMessage("99 is no valid VersionIncrementType");
+               .WithMessage("99 is no valid VersionIncrementKind");
         }
     }
 }

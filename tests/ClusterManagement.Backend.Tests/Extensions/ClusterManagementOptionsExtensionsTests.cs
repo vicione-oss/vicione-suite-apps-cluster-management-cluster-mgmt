@@ -9,6 +9,7 @@ namespace ClusterManagement.Backend.Tests.Extensions;
 public class ClusterManagementOptionsExtensionsTests
 {
     private readonly string _platform = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "win" : "linux";
+    private const string RecentEngineHostVersion = "0.30.0";
 
 #pragma warning disable CA1308
     private readonly string _architecture = RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant();
@@ -45,14 +46,14 @@ public class ClusterManagementOptionsExtensionsTests
             var packageName = options.GetEngineHostPackageName();
 
             // Assert
-            packageName.Should().Be($"0.28.0-{_platform}-{_architecture}");
+            packageName.Should().Be($"{RecentEngineHostVersion}-{_platform}-{_architecture}");
         }
 
         [Theory]
         [InlineData(null)]
         [InlineData("")]
         [InlineData("1.2.3.4")]
-        public void Uses_default_version_if_setting_not_a_semantic_version(string? engineHostVersion)
+        public void Uses_default_version_if_setting_is_not_a_semantic_version(string? engineHostVersion)
         {
             // Arrange
             ClusterManagementOptions options = new()
@@ -64,7 +65,7 @@ public class ClusterManagementOptionsExtensionsTests
             var packageName = options.GetEngineHostPackageName();
 
             // Assert
-            packageName.Should().Be($"0.28.0-{_platform}-{_architecture}");
+            packageName.Should().Be($"{RecentEngineHostVersion}-{_platform}-{_architecture}");
         }
     }
 }

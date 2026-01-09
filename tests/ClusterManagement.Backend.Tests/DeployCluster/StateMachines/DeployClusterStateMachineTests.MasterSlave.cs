@@ -30,19 +30,19 @@ public partial class DeployClusterStateMachineTests
             await harness.Start();
 
             // Act
-            await harness.DeployCluster(_clusterId, prepared.Item2.Version);
-            await harness.PublishClusterNodeAdded(_clusterId, _slave2NodeId);
+            await harness.DeployCluster(_correlationId, _clusterId, prepared.Item2.Version);
+            await harness.PublishClusterNodeAdded(_correlationId, _clusterId, _slave2NodeId);
 
-            await harness.PublishClusterApplicationStarted(_clusterId, _slave1ApplicationId);
-            await harness.PublishClusterApplicationStarted(_clusterId, _slave2ApplicationId);
+            await harness.PublishClusterApplicationStarted(_correlationId, _clusterId, _slave1ApplicationId);
+            await harness.PublishClusterApplicationStarted(_correlationId, _clusterId, _slave2ApplicationId);
 
-            await harness.PublishClusterNodeDeploymentsUpdated(_clusterId, _slave1ApplicationId);
-            await harness.PublishClusterNodeDeploymentsUpdated(_clusterId, _slave2ApplicationId);
+            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _slave1ApplicationId);
+            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _slave2ApplicationId);
 
-            await harness.PublishClusterNodeCleaned(_clusterId, _nodeIdToClean);
+            await harness.PublishClusterNodeCleaned(_correlationId, _clusterId, _nodeIdToClean);
 
             // Assert
-            await harness.AssertClusterUpdateCompleted(_clusterId, prepared.Item2.Version);
+            await harness.AssertClusterUpdateCompleted(_correlationId, prepared.Item2.Version);
         }
 
         private (Cluster, Cluster) SetupSagaDbClusterLocal(IServiceProvider services, IClusterSnapshotStore store)

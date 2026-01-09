@@ -22,7 +22,7 @@ internal sealed class MqttNetObserverClient(IOptions<MqttNetRpcClientOptions> op
         if (string.IsNullOrWhiteSpace(topic))
             throw new ArgumentException("Topic is invalid.", nameof(topic));
 
-        var mqttClient = await ConnectClient(cancellationToken).ConfigureAwait(false);
+        var mqttClient = await _connectionProvider.ConnectClient(_mqttClient, HandleApplicationMessageReceived, cancellationToken).ConfigureAwait(false);
 
         using CancellationTokenSource timeOutTokenSource = new();
         try
@@ -53,34 +53,11 @@ internal sealed class MqttNetObserverClient(IOptions<MqttNetRpcClientOptions> op
 
             await mqttClient.UnsubscribeAsync(topic, cancellationToken).ConfigureAwait(false);
 
-            await DisconnectClient(mqttClient, cancellationToken).ConfigureAwait(false);
+            await mqttClient.DisconnectClient(_mqttClient, HandleApplicationMessageReceived, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private async Task<IMqttClient> ConnectClient(CancellationToken cancellationToken)
-    {
-        var mqttClient = _mqttClient;
-        if (mqttClient is null)
-        {
-            mqttClient = new MqttClientFactory().CreateMqttClient();
-            var options = await _connectionProvider.GetClientOptionsBuilder(cancellationToken);
-            await mqttClient.ConnectAsync(options.Build(), cancellationToken).ConfigureAwait(false);
-        }
-        mqttClient.ApplicationMessageReceivedAsync += HandleApplicationMessageReceivedAsync;
-        return mqttClient;
-    }
-
-    private async Task DisconnectClient(IMqttClient mqttClient, CancellationToken cancellationToken)
-    {
-        mqttClient.ApplicationMessageReceivedAsync -= HandleApplicationMessageReceivedAsync;
-        if (mqttClient != _mqttClient)
-        {
-            await mqttClient.DisconnectAsync(new() { Reason = MqttClientDisconnectOptionsReason.NormalDisconnection, }, cancellationToken).ConfigureAwait(false);
-            mqttClient.Dispose();
-        }
-    }
-
-    private Task HandleApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs eventArgs)
+    private Task HandleApplicationMessageReceived(MqttApplicationMessageReceivedEventArgs eventArgs)
     {
         if (_waitingCalls.TryRemove(eventArgs.ApplicationMessage.Topic, out var awaitable))
         {

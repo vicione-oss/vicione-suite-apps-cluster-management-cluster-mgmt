@@ -132,7 +132,7 @@
   <data name="StateUpdating" xml:space="preserve">
     <value>Aktualisierung läuft...</value>
   </data>
-  <data name="UpdateFailed" xml:space="preserve">
-    <value>Aktualisierung fehlgeschlagen - siehe Detail-Information</value>
+  <data name="StateFailed" xml:space="preserve">
+    <value>Bereitstellung fehlgeschlagen</value>
   </data>
 </root>

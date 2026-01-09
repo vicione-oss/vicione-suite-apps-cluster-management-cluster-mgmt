@@ -88,6 +88,15 @@ namespace ClusterManagement.Client.Management.Localization {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Deployment failed.
+        /// </summary>
+        internal static string StateFailed {
+            get {
+                return ResourceManager.GetString("StateFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Started....
         /// </summary>
         internal static string StateStarted {
@@ -102,15 +111,6 @@ namespace ClusterManagement.Client.Management.Localization {
         internal static string StateUpdating {
             get {
                 return ResourceManager.GetString("StateUpdating", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Update failed - open details for more info.
-        /// </summary>
-        internal static string UpdateFailed {
-            get {
-                return ResourceManager.GetString("UpdateFailed", resourceCulture);
             }
         }
     }

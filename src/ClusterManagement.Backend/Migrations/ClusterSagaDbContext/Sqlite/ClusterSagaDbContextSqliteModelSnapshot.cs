@@ -62,11 +62,19 @@ namespace ClusterManagement.Backend.Ef.Migrations.ClusterSagaDbContext.Sqlite
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CommitVersion")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("CurrentState")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("InitializeFailed")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("RemoveVersion")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()

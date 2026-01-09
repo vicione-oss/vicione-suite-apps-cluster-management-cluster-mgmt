@@ -10,13 +10,21 @@ using Sdk.Messaging;
 
 namespace ClusterManagement.Client.DataflowEvents.Services;
 
-internal sealed class DataflowEventMqttHandler(IDataflowEventMqttClientProvider mqttProvider, ILogger<DataflowEventMqttHandler> logger) : IDataflowEventMqttHandler, IDisposable
+internal sealed class DataflowEventMqttHandler(IDataflowEventMqttClientProvider mqttProvider, ILogger<DataflowEventMqttHandler> logger) : IDataflowEventMqttHandler, IAsyncDisposable
 {
+    private const int ReconnectIntervalSeconds = 5;
+    private static readonly TimeSpan s_reconnectInterval = TimeSpan.FromSeconds(ReconnectIntervalSeconds);
+
+    private PeriodicTimer? _reconnectTimer;
+    private Task? _reconnectLoopTask;
+    private CancellationTokenSource? _reconnectCancellation;
+
     private readonly ILogger<DataflowEventMqttHandler> _logger = logger;
     private readonly MqttQualityOfServiceLevel _subscriptionServiceLevel = MqttQualityOfServiceLevel.AtMostOnce;
     private readonly MqttQualityOfServiceLevel _writeServiceLevel = MqttQualityOfServiceLevel.AtMostOnce;
 
     private IMqttClient? _client;
+    private MqttClientOptions? _options;
 
     public event Func<DataflowEventArgs, Task>? EventReceivedAsync;
 
@@ -24,6 +32,8 @@ internal sealed class DataflowEventMqttHandler(IDataflowEventMqttClientProvider 
     {
         if (_client is null)
             return;
+
+        await StopReconnectLoop();
 
         _client.ApplicationMessageReceivedAsync -= HandleApplicationMessageReceived;
 
@@ -34,7 +44,14 @@ internal sealed class DataflowEventMqttHandler(IDataflowEventMqttClientProvider 
         _client = null;
     }
 
-    public void Dispose() => _client?.Dispose();
+    public async ValueTask DisposeAsync()
+    {
+        if (_client is null)
+            return;
+
+        await StopReconnectLoop();
+        _client.Dispose();
+    }
 
     private async Task<bool> EnsureConnected(CancellationToken cancellationToken = default)
     {
@@ -49,10 +66,13 @@ internal sealed class DataflowEventMqttHandler(IDataflowEventMqttClientProvider 
             if (_client.IsConnected)
                 return true;
 
-            var options = await mqttProvider.CreateSystemMqttClientOptions();
-            var result = await _client.ConnectAsync(options, cancellationToken);
+            _options = await mqttProvider.CreateSystemMqttClientOptions();
+            var result = await _client.ConnectAsync(_options, cancellationToken);
             if (result.ResultCode == MqttClientConnectResultCode.Success)
+            {
+                await StartReconnectLoop();
                 return true;
+            }
 
             _logger.LogWarning("Could not connect to dataflow events because of '{Status}'", result.ResultCode);
         }
@@ -157,6 +177,87 @@ internal sealed class DataflowEventMqttHandler(IDataflowEventMqttClientProvider 
             _logger.LogError(ex, "Failed to serialize type {ValueType}", valueType);
         }
         return false;
+    }
+
+    private async Task StartReconnectLoop()
+    {
+        if (_reconnectLoopTask is not null || _client is null || _options is null)
+            return;
+
+        _reconnectCancellation = new CancellationTokenSource();
+        var token = _reconnectCancellation.Token;
+        _reconnectTimer = new PeriodicTimer(s_reconnectInterval);
+
+        _reconnectLoopTask = Task.Run(async () =>
+        {
+            _logger.LogInformation("Reconnect loop started (interval: {IntervalSeconds}s).", ReconnectIntervalSeconds);
+            try
+            {
+                while (await _reconnectTimer.WaitForNextTickAsync(token))
+                {
+                    if (token.IsCancellationRequested)
+                        break;
+
+                    try
+                    {
+                        if (!await _client.TryPingAsync(token))
+                            await _client.ConnectAsync(_options, token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Shutting down
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "Reconnect attempt failed: {Message}", ex.Message);
+                        // Swallow to retry next tick.
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Graceful shutdown
+            }
+            finally
+            {
+                _logger.LogInformation("Reconnect loop stopped.");
+            }
+        }, token);
+    }
+
+    private async Task StopReconnectLoop()
+    {
+        if (_reconnectCancellation is null)
+            return;
+
+        try
+        {
+            await _reconnectCancellation.CancelAsync();
+        }
+        catch (ObjectDisposedException)
+        {
+            // ignore
+        }
+
+        _reconnectTimer?.Dispose();
+        _reconnectTimer = null;
+
+        if (_reconnectLoopTask is not null)
+        {
+            try
+            {
+                await _reconnectLoopTask;
+            }
+            catch (OperationCanceledException)
+            {
+                // ignore
+            }
+            _reconnectLoopTask = null;
+        }
+
+        _reconnectCancellation.Dispose();
+        _reconnectCancellation = null;
     }
 
     /// <summary>

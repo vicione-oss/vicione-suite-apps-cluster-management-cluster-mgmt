@@ -9,4 +9,5 @@ public sealed class EngineDeployment
     public string Version { get; set; } = string.Empty;
     public int Replica { get; set; }
     public int Checksum { get; set; }
+    public List<Guid> MqttRetainTopics { get; init; } = [];
 }

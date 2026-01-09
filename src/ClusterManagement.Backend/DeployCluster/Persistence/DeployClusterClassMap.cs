@@ -23,6 +23,8 @@ public sealed class DeployClusterClassMap : SagaClassMap<DeployClusterState>
 
         entity.Property(x => x.ActiveVersion).PersistAsString();
         entity.Property(x => x.TargetVersion).PersistAsString();
+        entity.Property(x => x.CommitVersion).PersistAsString();
+        entity.Property(x => x.RemoveVersion).PersistAsString();
 
         // If using Optimistic concurrency, otherwise remove this property
         entity.Property(x => x.RowVersion).IsRowVersion();

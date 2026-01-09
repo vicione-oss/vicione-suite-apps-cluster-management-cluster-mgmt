@@ -134,7 +134,7 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
         if (model is null)
             return;
 
-        model.Status = Common.UpdateFailed;
+        model.Status = Common.StateFailed;
         model.IsExecuting = false;
         model.DeploymentErrors.AddRange(ev.ErrorsByApplication.Select(k => new DeploymentErrorModel(k.Key, k.Value.ErrorCode, k.Value.Message)));
 
@@ -191,7 +191,7 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
         await InvokeAsync(StateHasChanged);
     }
 
-    private void HandleEditOrInfo(ClusterInfoModel model)
+    private void HandleEdit(ClusterInfoModel model)
     {
         if (!model.IsLatest)
             return;

@@ -17,7 +17,7 @@ namespace ClusterManagement.Backend.Ef.Migrations.EngineDbContext.Sqlite
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("engines")
-                .HasAnnotation("ProductVersion", "9.0.5");
+                .HasAnnotation("ProductVersion", "9.0.10");
 
             modelBuilder.Entity("ClusterManagement.Backend.EngineHosts.EngineHost", b =>
                 {
@@ -46,6 +46,10 @@ namespace ClusterManagement.Backend.Ef.Migrations.EngineDbContext.Sqlite
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("EngineId")
+                        .HasColumnType("TEXT");
+
+                    b.PrimitiveCollection<string>("MqttRetainTopics")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Replica")

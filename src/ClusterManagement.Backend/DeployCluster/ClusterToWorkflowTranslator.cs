@@ -20,7 +20,7 @@ namespace ClusterManagement.Backend.DeployCluster;
 
 internal static class ClusterToWorkflowTranslator
 {
-    internal static Workflow CreateWorkflow(Cluster cluster,
+    internal static (Workflow Workflow, WorkflowMetadata Metadata) CreateWorkflow(Cluster cluster,
         EngineHost host,
         Engine engine,
         IDependencyResolver dependencyResolver,
@@ -48,8 +48,18 @@ internal static class ClusterToWorkflowTranslator
         AddExternalCommunications(directConnection, internalConnection, engineDataPorts, workflow, brokerCommunicationAtMostOnce);
         AddAdditionalConnectorDesigns(engineDataPorts, workflow);
 
-        return workflow;
+        WorkflowMetadata metadata = new()
+        {
+            MqttRetainTopics = [.. GetRetainedTopicsOnInternalBroker(workflow, internalConnection)],
+        };
+        return (workflow, metadata);
     }
+
+    private static IEnumerable<Guid> GetRetainedTopicsOnInternalBroker(this Workflow workflow, ExternalConnection internalConnection)
+        => [
+            .. internalConnection.OutgoingLinks.Select(ol => ol.RemoteId).Distinct(),
+            .. workflow.FunctionBlocks.SelectMany(x => x.Settings.Select(s => s.Id).Concat(x.Variables.Select(v => v.Id))).Distinct(),
+        ];
 
     private static CommunicationConfiguration ConfigureEngineLog(EngineHost host, Engine engine, string engineLogDirectory)
     {
@@ -105,7 +115,7 @@ internal static class ClusterToWorkflowTranslator
         return workflow;
     }
 
-    internal static MqttCommunication TranslateMqttCommunication(MqttConnection connection, short qualityOfServiceLevel = 0)
+    private static MqttCommunication TranslateMqttCommunication(MqttConnection connection, short qualityOfServiceLevel = 0)
         => new()
         {
             Protocol = connection.Protocol == MqttConnectionType.WebSocket ? MqttProtocol.WebSocket : MqttProtocol.TCP,

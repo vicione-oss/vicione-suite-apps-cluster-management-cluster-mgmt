@@ -178,7 +178,7 @@ public class ClusterToWorkflowTranslatorFacts
                 ],
             };
 
-            var workflow = ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, myEngineHost, myEngine, functionBlockDesignResolver,
+            var (workflow, metadata) = ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, myEngineHost, myEngine, functionBlockDesignResolver,
                 brokerConnection, enginesDataPorts, "ThisIsMyPath");
 
             var clusterDependency = functionBlockDesignResolver.ResolveFunctionBlockDesignDependency(functionBlockDesign.Id);
@@ -479,6 +479,7 @@ public class ClusterToWorkflowTranslatorFacts
                         ],
                     },
             });
+            metadata.MqttRetainTopics.Should().HaveCount(3); // An andere Engine auf anderen Host senden + Setting + Variable
         }
 
         [Theory]
@@ -512,7 +513,7 @@ public class ClusterToWorkflowTranslatorFacts
                     BuildContainerStructure(subContainerInfo, container);
             }
 
-            var workflow = ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, engineHost, engine, functionBlockDesignResolver,
+            var (workflow, metadata) = ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, engineHost, engine, functionBlockDesignResolver,
                 new(), new Dictionary<ViciOne.Cluster.Model.Engine, List<DataPortTransformation>>(), string.Empty);
 
             var containerInfos = containerInfo.Flatten(x => x.Containers).ToList();
@@ -728,7 +729,7 @@ public class ClusterToWorkflowTranslatorFacts
             var functionBlock2 = builder.Editors.Container.AddFunctionBlock(dataflow2.Root, functionBlockDesignId, "FunctionBlock2");
             builder.Editors.FunctionBlock.AssignEngine(engine2, functionBlock2);
 
-            var workflow = ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, engineHost, engine1, functionBlockDesignResolver,
+            var (workflow, metadata) = ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, engineHost, engine1, functionBlockDesignResolver,
                 new(), new Dictionary<ViciOne.Cluster.Model.Engine, List<DataPortTransformation>>(), string.Empty);
 
             workflow.Engine.Id.Should().Be(engine1.Id);
@@ -782,7 +783,7 @@ public class ClusterToWorkflowTranslatorFacts
             }
 
             // act
-            var workflow = ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, myEngineHost, myEngine,
+            var (workflow, metadata) = ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, myEngineHost, myEngine,
                 functionBlockDesignResolver, new(), new Dictionary<ViciOne.Cluster.Model.Engine, List<DataPortTransformation>>(), string.Empty);
 
             // assert
@@ -793,10 +794,12 @@ public class ClusterToWorkflowTranslatorFacts
                 var outgoingLink = externalConnection.OutgoingLinks.Should().ContainSingle().Subject;
                 outgoingLink.RemoteId.Should().Be(outgoingLink.ConnectorId);
                 outgoingLink.ConnectorId.Should().Be(myOutputConnector.Id);
+                metadata.MqttRetainTopics.Should().ContainSingle();
             }
             else
             {
                 workflow.ExternalConnections.Should().BeEmpty();
+                metadata.MqttRetainTopics.Should().BeEmpty();
             }
         }
 
@@ -835,7 +838,7 @@ public class ClusterToWorkflowTranslatorFacts
                 builder.Editors.Connector.AddLink(remoteOutputConnector, myInputConnector);
 
             // act
-            var workflow = ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, myEngineHost, myEngine,
+            var (workflow, metadata) = ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, myEngineHost, myEngine,
                 functionBlockDesignResolver, new(), new Dictionary<ViciOne.Cluster.Model.Engine, List<DataPortTransformation>>(), string.Empty);
 
             // assert
@@ -870,6 +873,7 @@ public class ClusterToWorkflowTranslatorFacts
             {
                 workflow.ExternalConnections.Should().BeEmpty();
             }
+            metadata.MqttRetainTopics.Should().BeEmpty();
         }
 
         [Fact]
@@ -943,12 +947,13 @@ public class ClusterToWorkflowTranslatorFacts
                 ],
             };
 
-            var workflow = ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, engineHost,
+            var (workflow, metadata) = ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, engineHost,
                 myEngine, functionBlockDesignResolver, new(), enginesDataPorts, string.Empty);
 
             workflow.ExternalConnections.Should().ContainSingle()
                 .Which.IncomingLinks.Should().ContainSingle()
                 .Which.SourceType.Should().Be(typeof(string).AssemblyQualifiedName!);
+            metadata.MqttRetainTopics.Should().BeEmpty();
         }
 
         [Fact]
@@ -1023,11 +1028,12 @@ public class ClusterToWorkflowTranslatorFacts
             var dataflow = builder.Cluster.Dataflows.First();
             var functionBlock = builder.Editors.Container.AddFunctionBlock(dataflow.Root, functionBlockDesignId);
 
-            var workflow = ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, engineHost, engine,
+            var (workflow, metadata) = ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, engineHost, engine,
                 functionBlockDesignResolver, new(), new Dictionary<ViciOne.Cluster.Model.Engine, List<DataPortTransformation>>(), string.Empty);
 
             workflow.Containers.Should().BeEmpty();
             workflow.FunctionBlocks.Should().BeEmpty();
+            metadata.MqttRetainTopics.Should().BeEmpty();
         }
 
         [Fact]
@@ -1056,11 +1062,12 @@ public class ClusterToWorkflowTranslatorFacts
             link.SourceConnector = default;
             link.SourceConnectorId = default;
 
-            var workflow = ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, engineHost,
+            var (workflow, metadata) = ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, engineHost,
                 engine, functionBlockDesignResolver, new(), new Dictionary<ViciOne.Cluster.Model.Engine, List<DataPortTransformation>>(), string.Empty);
 
             workflow.FunctionBlockConnectorLinks.Should().BeEmpty();
             workflow.ExternalConnections.Should().BeEmpty();
+            metadata.MqttRetainTopics.Should().BeEmpty();
         }
 
         [Fact]

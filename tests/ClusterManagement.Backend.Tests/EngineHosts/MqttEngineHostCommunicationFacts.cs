@@ -27,11 +27,11 @@ public class MqttEngineHostCommunicationFacts
     private readonly Guid _engineHostId = Guid.NewGuid();
     private readonly Guid _deploymentId = Guid.NewGuid();
 
-    private readonly SemVersion _latestSupportedEngineHostVersion = new(0, 28, 0);
-    private readonly SemVersion _oldestSupportedEngineHostVersion = new(0, 28, 0);
+    private readonly SemVersion _latestSupportedEngineHostVersion = new(0, 30, 0);
+    private readonly SemVersion _oldestSupportedEngineHostVersion = new(0, 30, 0);
 
-    private readonly SemVersion _latestSupportedManagedEngineVersion = new(0, 61, 0);
-    private readonly SemVersion _oldestSupportedManagedEngineVersion = new(0, 61, 0);
+    private readonly SemVersion _latestSupportedManagedEngineVersion = new(0, 62, 0);
+    private readonly SemVersion _oldestSupportedManagedEngineVersion = new(0, 62, 0);
 
     public MqttEngineHostCommunicationFacts()
     {

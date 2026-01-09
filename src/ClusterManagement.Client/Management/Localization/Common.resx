@@ -132,7 +132,7 @@
   <data name="StateUpdating" xml:space="preserve">
     <value>Updating....</value>
   </data>
-  <data name="UpdateFailed" xml:space="preserve">
-    <value>Update failed - open details for more info</value>
+  <data name="StateFailed" xml:space="preserve">
+    <value>Deployment failed</value>
   </data>
 </root>

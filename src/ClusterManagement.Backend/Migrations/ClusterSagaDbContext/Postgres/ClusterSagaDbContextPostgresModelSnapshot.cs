@@ -66,11 +66,19 @@ namespace ClusterManagement.Backend.Ef.Migrations.ClusterSagaDbContext.Postgres
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("CommitVersion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<int>("CurrentState")
                         .HasColumnType("integer");
 
                     b.Property<bool>("InitializeFailed")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("RemoveVersion")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()

@@ -24,7 +24,7 @@ public sealed class CleanClusterNodesConsumer(ISuiteMediator mediator) : IConsum
         foreach (var nodeId in context.Message.NodesToClean)
         {
             await Task.Delay(200);
-            await _mediator.Publish(new ClusterNodeCleanedEvent(context.Message.ClusterId, nodeId));
+            await _mediator.Publish(new ClusterNodeCleanedEvent(context.Message.CorrelationId, context.Message.ClusterId, nodeId));
         }
     }
 }

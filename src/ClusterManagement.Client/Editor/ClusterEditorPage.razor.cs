@@ -142,7 +142,7 @@ public sealed partial class ClusterEditorPage
         builder.Editors.Dataflow.DataPortAdded += DataPortAdded;
     }
 
-    private void DataPortAdded(DataPort dataPort)
+    private void DataPortAdded(object? sender, DataPort dataPort)
     {
         if (_builder == null || dataPort.EngineId != null)
             return;

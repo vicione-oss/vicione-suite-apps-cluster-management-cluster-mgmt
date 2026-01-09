@@ -1,0 +1,17 @@
+﻿@use "./../Styles/_shared.scss";
+
+.debug-engines {
+    @extend .cm-page-base;
+
+    .debug-engines-toolbar {
+        @extend .cm-page-toolbar-base;
+    }
+
+    .debug-engines-grid {
+        @extend .cm-page-grid-base;
+    }
+
+    .detail-container {
+        @extend .cm-page-detail-container-base;
+    }
+}

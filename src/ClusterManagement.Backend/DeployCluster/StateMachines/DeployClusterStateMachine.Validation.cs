@@ -1,10 +1,4 @@
-﻿using System.Globalization;
-using System.Text;
-using MassTransit;
-using Microsoft.Extensions.Logging;
-using Sdk.Extensions;
-
-namespace ClusterManagement.Backend.DeployCluster.StateMachines;
+﻿namespace ClusterManagement.Backend.DeployCluster.StateMachines;
 
 public sealed partial class DeployClusterStateMachine
 {
@@ -13,8 +7,8 @@ public sealed partial class DeployClusterStateMachine
         var allAppsUpdated = CollectionsEqual(saga.ClusterApplicationsToUpdate, saga.ClusterApplicationsUpdateFinished.Keys);
         if (allAppsUpdated)
         {
-            _logger.LogInformation("{Name} appsFinished:{AppsFinished} at least one failed:{OneFailed}",
-                nameof(AreAllDeploymentsUpdated),
+            LogAllDeploymentsUpdated(_logger,
+                saga.CorrelationId,
                 string.Join(", ", saga.ClusterApplicationsUpdateFinished.Keys),
                 saga.AtLeastOneDeployReturnedError);
 
@@ -22,10 +16,9 @@ public sealed partial class DeployClusterStateMachine
             return true;
         }
 
-        _logger.LogInformation("{Name} appsToUpdate:{AppsToUpdate} appsFinished:{AppsFinished} at least one failed:{OneFailed}",
-            nameof(AreAllDeploymentsUpdated),
+        LogDeploymentsUpdated(_logger,
+            saga.CorrelationId,
             string.Join(", ", saga.ClusterApplicationsToUpdate.Except(saga.ClusterApplicationsUpdateFinished.Keys)),
-            string.Join(", ", saga.ClusterApplicationsUpdateFinished.Keys),
             saga.AtLeastOneDeployReturnedError);
 
         LogErrors();
@@ -38,18 +31,10 @@ public sealed partial class DeployClusterStateMachine
             if (errs.Length <= 0)
                 return;
 
-            var sb = new StringBuilder();
-            sb.AppendFormat(CultureInfo.InvariantCulture, "{0} errors:", nameof(AreAllDeploymentsUpdated));
-
-            for (var i = 0; i < errs.Length; i++)
+            foreach (var error in errs)
             {
-                if (i == errs.Length - 1)
-                    sb.AppendFormat(CultureInfo.InvariantCulture, "{0} - {1}", errs[i].Key, errs[i].Value?.Message);
-                else
-                    sb.AppendFormattedLine("{0} - {1}", errs[i].Key, errs[i].Value?.Message);
+                LogDeploymentsError(_logger, saga.CorrelationId, error.Key, error.Value?.Message);
             }
-
-            _logger.LogWarning("{Message}", sb.ToString());
         }
     }
 
@@ -59,12 +44,14 @@ public sealed partial class DeployClusterStateMachine
     private bool AreAllNodesAdded(DeployClusterState saga)
     {
         var allNodesCreated = CollectionsEqual(saga.ClusterNodesToCreate.Keys, saga.ClusterNodesCreated);
-
-        _logger.LogInformation("{Name} nodesToCreate:{NodesToCreate} nodesCreated:{NodesCreated} equal:{Equal}",
-            nameof(AreAllNodesAdded),
-            string.Join(", ", saga.ClusterNodesToCreate),
-            string.Join(", ", saga.ClusterNodesCreated),
-            allNodesCreated);
+        if (allNodesCreated)
+        {
+            LogAllNodesAdded(_logger, saga.CorrelationId, string.Join(", ", saga.ClusterNodesCreated));
+        }
+        else
+        {
+            LogNodesAdded(_logger, saga.CorrelationId, string.Join(", ", saga.ClusterNodesToCreate));
+        }
 
         return allNodesCreated;
     }
@@ -74,38 +61,35 @@ public sealed partial class DeployClusterStateMachine
         var allNodesStarted = CollectionsEqual(saga.ClusterNodesToCreate.Values.Where(a => a is not null).Cast<Guid>(),
             saga.ClusterApplicationStarted);
 
-        _logger.LogInformation("{Name} appsToStart:{AppsToStart} appsStarted:{AppsCreated} equal:{Equal}",
-            nameof(AreAllNodesAdded),
-            string.Join(", ", saga.ClusterNodesToCreate.Values.Where(a => a is not null).Cast<Guid>()),
-            string.Join(", ", saga.ClusterApplicationStarted),
-            allNodesStarted);
+        if (allNodesStarted)
+        {
+            LogAllAppsStarted(
+                _logger,
+                saga.CorrelationId,
+                string.Join(", ", saga.ClusterNodesToCreate.Values.Where(a => a is not null).Cast<Guid>()));
+        }
+        else
+        {
+            LogAppsStarted(_logger, saga.CorrelationId, string.Join(", ", saga.ClusterApplicationStarted));
+        }
 
         return allNodesStarted;
     }
 
     private bool AreAllClusterNodesCleaned(DeployClusterState saga)
     {
-        var nodesCleaned = CollectionsEqual(saga.ClusterNodesToClean, saga.ClusterNodesCleaned);
-        _logger.LogInformation("{Name} nodesToClean:{NodesToClean} nodesCleaned:{NodesCleaned} equal:{Equal}",
-            nameof(AreAllClusterNodesCleaned),
-            string.Join(", ", saga.ClusterNodesToClean),
-            string.Join(", ", saga.ClusterNodesCleaned),
-            nodesCleaned);
-        return nodesCleaned;
+        var allNodesCleaned = CollectionsEqual(saga.ClusterNodesToClean, saga.ClusterNodesCleaned);
+        if (allNodesCleaned)
+        {
+            LogAllNodesCleaned(_logger, saga.CorrelationId, string.Join(", ", saga.ClusterNodesCleaned));
+        }
+        else
+        {
+            LogNodesCleaned(_logger, saga.CorrelationId, string.Join(", ", saga.ClusterNodesToClean));
+        }
+
+        return allNodesCleaned;
     }
     private static bool CollectionsEqual(IEnumerable<Guid>? requested, IEnumerable<Guid> returned)
         => !requested?.Except(returned).Any() ?? true;
-
-    private void LogEvent<TMessage>(BehaviorContext<DeployClusterState, TMessage> context, string message) where TMessage : class
-        => _logger.LogInformation(
-            "Saga[{CorrelationId}][{Event}] {Message}",
-            context.CorrelationId,
-            context.Message.GetType().Name,
-            message);
-
-    private void LogDeployDuration(DeployClusterState saga)
-        => _logger.LogInformation(
-            "Saga[{CorrelationId}]] Deployment duration: {Duration}",
-            saga.CorrelationId,
-            (DateTime.UtcNow - saga.Started).ToString(@"hh\:mm\:ss", CultureInfo.InvariantCulture));
 }

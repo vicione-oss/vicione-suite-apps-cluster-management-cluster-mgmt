@@ -15,6 +15,7 @@ using ClusterManagement.Public.Events;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MQTTnet;
 using Sdk.Backend.Modules;
 using Sdk.Connections.Contracts;
 using Sdk.Instance;
@@ -31,7 +32,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
     IEngineDbContext engineDbContext, IEngineHostPoolCommunication poolCommunication, IEngineHostCommunication hostCommunication,
     IMqttBrokerConnectionCache brokerConnectionCache, IDesignProvider designProvider, IClusterDbContext clusterContext,
     IWorkspaceProvider<ClusterManagementBackendModule> workspaceProvider, ISuiteRulesetProvider rulesetProvider,
-    IFileSystem fileSystem, ILogger<UpdateDeploymentsConsumer> logger) : IConsumer<UpdateDeployments>
+    IFileSystem fileSystem, ILogger<UpdateDeploymentsConsumer> logger, IMqttClient? mqttClientSubstitute = default) : IConsumer<UpdateDeployments>
 {
     private readonly IInstanceInformationProvider _instanceInfoProvider = instanceInfoProvider;
     private readonly IEngineDbContext _engineDbContext = engineDbContext;
@@ -42,6 +43,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
     private readonly IClusterDbContext _clusterContext = clusterContext;
     private readonly ISuiteRulesetProvider _rulesetProvider = rulesetProvider;
     private readonly ILogger<UpdateDeploymentsConsumer> _logger = logger;
+    private readonly IMqttClient? _mqttClientSubstitute = mqttClientSubstitute;
     private readonly string _packagesDirectory = fileSystem.Path.GetFullPath(fileSystem.GetDependenciesPath(workspaceProvider));
     private readonly string _engineLogDirectory = fileSystem.Path.GetFullPath(fileSystem.GetEnginesDirectory(workspaceProvider));
 
@@ -53,6 +55,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
     public async Task Consume(ConsumeContext<UpdateDeployments> context)
     {
         var clusterApplicationId = _instanceInfoProvider.Local.Id;
+        IMqttClient? mqttClient = default;
         try
         {
             var targetCluster = await ClusterSerializer.Decompress(context.Message.CompressedTargetCluster);
@@ -82,17 +85,20 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
 
             LogRelevanceInformation(builder, desiredEngineHosts);
 
-            var expectedEngineHosts = await _engineDbContext.EngineHosts.Include(eh => eh.Deployments).ToListAsync(context.CancellationToken);
-            var physicalEngineHosts = await _poolCommunication.GetStates(context.CancellationToken);
-            LogDeployedInformation(expectedEngineHosts);
+            var mqttClientTask = _brokerConnectionCache.ConnectClient(_mqttClientSubstitute, default, context.CancellationToken);
+            var expectedEngineHosts = _engineDbContext.EngineHosts.Include(eh => eh.Deployments).ToListAsync(context.CancellationToken);
+            var physicalEngineHosts = _poolCommunication.GetStates(context.CancellationToken);
+            await Task.WhenAll(mqttClientTask, expectedEngineHosts, physicalEngineHosts);
+            LogDeployedInformation(expectedEngineHosts.Result);
+            mqttClient = mqttClientTask.Result;
 
             var enginesDataPorts = TransformDataPorts(builder, desiredEngineHosts);
             builder.Editors.Cluster.SortFunctionBlocks();
 
-            var engineHostActions = IdentifyEngineHostActions(desiredEngineHosts, expectedEngineHosts, physicalEngineHosts, targetCluster,
+            var engineHostActions = IdentifyEngineHostActions(desiredEngineHosts, expectedEngineHosts.Result, physicalEngineHosts.Result, targetCluster,
                 dependencyResolver, brokerConnection, enginesDataPorts);
             engineHostActions = OptimizeEngineHostActions(engineHostActions);
-            await UpdateEngineHosts(engineHostActions, context, context.CancellationToken);
+            await UpdateEngineHosts(engineHostActions, mqttClient, context, context.CancellationToken);
 
             if (_instanceInfoProvider.Local.Type == InstanceType.Slave)
             {
@@ -100,7 +106,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
             }
 
             await context.Publish(
-                new ClusterNodeDeploymentsUpdatedEvent(context.CorrelationId!.Value, clusterApplicationId),
+                new ClusterNodeDeploymentsUpdatedEvent(context.Message.CorrelationId, context.Message.ClusterId, clusterApplicationId),
                 context.CancellationToken);
         }
         catch (ClusterUpdateException e)
@@ -108,7 +114,8 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
             _logger.LogError(e, "Error deploying on application {ClusterApplicationId}", clusterApplicationId);
             var errorInfo = new ErrorInfo(e.ErrorCode, e.InnerException is null ? e.Message : e.InnerException.Message);
             await context.Publish(
-                new ClusterNodeDeploymentsUpdateFailedEvent(context.CorrelationId!.Value,
+                new ClusterNodeDeploymentsUpdateFailedEvent(context.Message.CorrelationId,
+                    context.Message.ClusterId,
                     clusterApplicationId,
                     errorInfo),
                 context.CancellationToken);
@@ -118,7 +125,8 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
             var errorInfo = ClusterErrorInfos.DeploymentCancelled(clusterApplicationId);
             _logger.LogError("{Message}", errorInfo.Message);
             await context.Publish(
-                new ClusterNodeDeploymentsUpdateFailedEvent(context.CorrelationId!.Value,
+                new ClusterNodeDeploymentsUpdateFailedEvent(context.Message.CorrelationId,
+                    context.Message.ClusterId,
                     clusterApplicationId,
                     errorInfo),
                 context.CancellationToken);
@@ -128,8 +136,16 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
             _logger.LogError(e, "Unexpected error deploying on application {ClusterApplicationId}", clusterApplicationId);
             var errorInfo = new ErrorInfo(-1, e.Message);
             await context.Publish(
-                new ClusterNodeDeploymentsUpdateFailedEvent(context.CorrelationId!.Value, clusterApplicationId, errorInfo),
+                new ClusterNodeDeploymentsUpdateFailedEvent(context.Message.CorrelationId,
+                    context.Message.ClusterId,
+                    clusterApplicationId,
+                    errorInfo),
                 context.CancellationToken);
+        }
+        finally
+        {
+            if (mqttClient is not null)
+                await mqttClient.DisconnectClient(_mqttClientSubstitute, default, context.CancellationToken);
         }
     }
 
@@ -168,16 +184,17 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
             foreach (var desiredEngine in desiredEngineHost.Engines)
             {
                 Workflow workflow;
+                WorkflowMetadata workflowMetadata;
                 try
                 {
-                    workflow = ClusterToWorkflowTranslator.CreateWorkflow(cluster, desiredEngineHost, desiredEngine, dependencyResolver, brokerConnection, enginesDataPorts, _engineLogDirectory);
+                    (workflow, workflowMetadata) = ClusterToWorkflowTranslator.CreateWorkflow(cluster, desiredEngineHost, desiredEngine, dependencyResolver, brokerConnection, enginesDataPorts, _engineLogDirectory);
                 }
                 catch (Exception e)
                 {
                     throw ClusterErrorInfos.CouldNotCreateDeployParameter().AsException(e);
                 }
                 var expectedEngineDeployment = expectedEngineHost?.Deployments.SingleOrDefault(e => e.EngineId == desiredEngine.Id);
-                hostProvisioning.EngineActions.Add(new EngineProvisioning(desiredEngine, workflow, expectedEngineDeployment));
+                hostProvisioning.EngineActions.Add(new EngineProvisioning(desiredEngine, workflow, workflowMetadata, expectedEngineDeployment));
             }
 
             foreach (var expectedEngineDeployment in expectedEngineHost?.Deployments.Where(e => !desiredEngineHost.Engines.Select(x => x.Id).Contains(e.EngineId)) ?? [])
@@ -208,7 +225,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         public List<EngineDisposal> EngineActions { get; init; } = [];
     }
     private interface IEngineAction;
-    private sealed record EngineProvisioning(Engine Desired, Workflow Workflow, EngineDeployment? Expected = default) : IEngineAction;
+    private sealed record EngineProvisioning(Engine Desired, Workflow Workflow, WorkflowMetadata WorkflowMetadata, EngineDeployment? Expected = default) : IEngineAction;
     private sealed record EngineDisposal(EngineDeployment Expected) : IEngineAction;
 
     private static List<IEngineHostAction> OptimizeEngineHostActions(List<IEngineHostAction> engineHostActions)
@@ -244,25 +261,26 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         return optimizedActions;
     }
 
-    private async Task UpdateEngineHosts(IReadOnlyCollection<IEngineHostAction> engineHostActions, ConsumeContext context,
+    private async Task UpdateEngineHosts(IReadOnlyCollection<IEngineHostAction> engineHostActions, IMqttClient mqttClient, ConsumeContext context,
         CancellationToken cancellationToken)
     {
         foreach (var engineHostAction in engineHostActions)
         {
             switch (engineHostAction)
             {
-                case EngineHostProvisioning provisioning: await ProvisionEngineHost(provisioning, context, cancellationToken); break;
-                case EngineHostDisposal disposal: await DisposeEngineHost(disposal, context, cancellationToken); break;
+                case EngineHostProvisioning provisioning: await ProvisionEngineHost(provisioning, mqttClient, context, cancellationToken); break;
+                case EngineHostDisposal disposal: await DisposeEngineHost(disposal, mqttClient, context, cancellationToken); break;
             }
         }
     }
 
-    private async Task ProvisionEngineHost(EngineHostProvisioning engineHostProvisioning, ConsumeContext context, CancellationToken cancellationToken)
+    private async Task ProvisionEngineHost(EngineHostProvisioning engineHostProvisioning, IMqttClient mqttClient, ConsumeContext context,
+        CancellationToken cancellationToken)
     {
         await ProvisionEngineHost(engineHostProvisioning, cancellationToken);
         var deploymentStates = await GetDeploymentStates(engineHostProvisioning.Desired.Id, EngineHostState.Started, cancellationToken);
         var deploymentActions = IdentifyDeploymentActions(engineHostProvisioning, deploymentStates);
-        await UpdateDeployments(engineHostProvisioning.Desired.Id, engineHostProvisioning.Desired.Name, context, deploymentActions, cancellationToken);
+        await UpdateDeployments(engineHostProvisioning.Desired.Id, engineHostProvisioning.Desired.Name, context, deploymentActions, mqttClient, cancellationToken);
     }
 
     private async Task ProvisionEngineHost(EngineHostProvisioning engineHostProvisioning, CancellationToken cancellationToken)
@@ -382,31 +400,31 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
                             else
                             {
                                 if (desired.Enabled && actualState == EngineState.Stopped)
-                                    actions.Start.Add(expected);
+                                    actions.Start.Add((expected.Id, expected.EngineId));
                                 else if (!desired.Enabled)
-                                    actions.Stop.Add((expected.EngineHostId, expected.Id, expected.EngineId, actualState == EngineState.Running, raiseStop));
+                                    actions.Stop.Add((expected.Id, expected.EngineId, actualState == EngineState.Running, raiseStop));
                             }
                         }
                         else
                         {
                             _logger.LogUpdatingEngine(desired.Id, expected.EngineHostId, expected.Id);
                             actions.ShouldNotRun.Add(expected);
-                            actions.Stop.Add((expected.EngineHostId, expected.Id, expected.EngineId, actualState == EngineState.Running, raiseStop));
-                            actions.Delete.Add(expected);
-                            actions.TearDown.Add((expected.EngineHostId, expected.Id, expected.EngineId, true, true));
-                            actions.Deploy.Add((desired, engineProvisioning.Workflow));
+                            actions.Stop.Add((expected.Id, expected.EngineId, actualState == EngineState.Running, raiseStop));
+                            actions.Delete.Add((expected, [.. expected.MqttRetainTopics.Except(engineProvisioning.WorkflowMetadata.MqttRetainTopics)]));
+                            actions.TearDown.Add((expected.Id, expected.EngineId, true, true));
+                            actions.Deploy.Add((desired, engineProvisioning.Workflow, engineProvisioning.WorkflowMetadata));
                         }
                     }
                     else
                     {
                         _logger.LogRestoreMissingEngine(desired.Id, expected.EngineHostId, expected.Id);
-                        actions.Delete.Add(expected);
-                        actions.Deploy.Add((desired, engineProvisioning.Workflow));
+                        actions.Delete.Add((expected, [.. expected.MqttRetainTopics.Except(engineProvisioning.WorkflowMetadata.MqttRetainTopics)]));
+                        actions.Deploy.Add((desired, engineProvisioning.Workflow, engineProvisioning.WorkflowMetadata));
                     }
                 }
                 else
                 {
-                    actions.Deploy.Add((desired, engineProvisioning.Workflow));
+                    actions.Deploy.Add((desired, engineProvisioning.Workflow, engineProvisioning.WorkflowMetadata));
                 }
             }
             else if (engineAction is EngineDisposal engineDisposal)
@@ -417,29 +435,29 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
                     if (actualState == EngineState.Running)
                     {
                         actions.ShouldNotRun.Add(expected);
-                        actions.Stop.Add((expected.EngineHostId, expected.Id, expected.EngineId, true, true));
+                        actions.Stop.Add((expected.Id, expected.EngineId, true, true));
                     }
                 }
-                actions.Delete.Add(expected);
-                actions.TearDown.Add((expected.EngineHostId, expected.Id, expected.EngineId, true, true));
+                actions.Delete.Add((expected, expected.MqttRetainTopics));
+                actions.TearDown.Add((expected.Id, expected.EngineId, true, true));
             }
         }
         foreach (var actualState in physicalDeploymentStates)
         {
             _logger.LogRemoveUnexpectedEngine(engineHostProvisioning.Desired.Id, actualState.Key);
-            EngineDeployment unexpectedEngineDeployment = new() { Id = actualState.Key, EngineHostId = engineHostProvisioning.Desired.Id, };
             if (actualState.Value == EngineState.Running)
-                actions.Stop.Add((unexpectedEngineDeployment.EngineHostId, unexpectedEngineDeployment.Id, Guid.Empty, true, false));
-            actions.TearDown.Add((unexpectedEngineDeployment.EngineHostId, unexpectedEngineDeployment.Id, Guid.Empty, true, false));
+                actions.Stop.Add((actualState.Key, Guid.Empty, true, false));
+            actions.TearDown.Add((actualState.Key, Guid.Empty, true, false));
         }
         return actions;
     }
 
-    private async Task DisposeEngineHost(EngineHostDisposal engineHostDisposal, ConsumeContext context, CancellationToken cancellationToken)
+    private async Task DisposeEngineHost(EngineHostDisposal engineHostDisposal, IMqttClient mqttClient, ConsumeContext context,
+        CancellationToken cancellationToken)
     {
         var deploymentStates = await GetDeploymentStates(engineHostDisposal.Expected.Id, engineHostDisposal.PhysicalState, cancellationToken);
         var deploymentActions = IdentifyDeploymentActions(engineHostDisposal, deploymentStates);
-        await UpdateDeployments(engineHostDisposal.Expected.Id, "<currently unavailable>", context, deploymentActions, cancellationToken);
+        await UpdateDeployments(engineHostDisposal.Expected.Id, "<currently unavailable>", context, deploymentActions, mqttClient, cancellationToken);
         await DisposeEngineHost(engineHostDisposal, cancellationToken);
     }
 
@@ -465,25 +483,25 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
                 {
                     raiseEvent = true;
                 }
-                actions.Stop.Add((engineDisposal.Expected.EngineHostId, engineDisposal.Expected.Id, engineDisposal.Expected.EngineId, execute, raiseEvent));
+                actions.Stop.Add((engineDisposal.Expected.Id, engineDisposal.Expected.EngineId, execute, raiseEvent));
             }
 
-            actions.Delete.AddRange(engineHostDisposal.EngineActions.Select(e => e.Expected));
+            actions.Delete.AddRange(engineHostDisposal.EngineActions.Select(e => (e.Expected, e.Expected.MqttRetainTopics)));
 
             foreach (var engineDisposal in engineHostDisposal.EngineActions)
             {
                 var execute = false;
                 if (physicalDeploymentStates.Remove(engineDisposal.Expected.Id, out var _))
                     execute = true;
-                actions.TearDown.Add((engineDisposal.Expected.EngineHostId, engineDisposal.Expected.Id, engineDisposal.Expected.EngineId, execute, true));
+                actions.TearDown.Add((engineDisposal.Expected.Id, engineDisposal.Expected.EngineId, execute, true));
             }
         }
 
         foreach (var deploymentState in physicalDeploymentStates)
         {
             if (deploymentState.Value == EngineState.Running)
-                actions.Stop.Add((engineHostDisposal.Expected.Id, deploymentState.Key, Guid.Empty, true, false));
-            actions.TearDown.Add((engineHostDisposal.Expected.Id, deploymentState.Key, Guid.Empty, true, false));
+                actions.Stop.Add((deploymentState.Key, Guid.Empty, true, false));
+            actions.TearDown.Add((deploymentState.Key, Guid.Empty, true, false));
         }
 
         return actions;
@@ -525,7 +543,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         return deploymentStates;
     }
 
-    private async Task UpdateDeployments(Guid engineHostId, string engineHostName, ConsumeContext context, DeploymentActions actions,
+    private async Task UpdateDeployments(Guid engineHostId, string engineHostName, ConsumeContext context, DeploymentActions actions, IMqttClient mqttClient,
         CancellationToken cancellationToken)
     {
         if (actions.ShouldNotRun.Count != 0)
@@ -539,9 +557,9 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         {
             foreach (var stop in actions.Stop)
             {
-                _logger.LogStoppingEngine(stop.EngineId, stop.EngineHostId, stop.DeploymentId);
+                _logger.LogStoppingEngine(stop.EngineId, engineHostId, stop.DeploymentId);
                 var stopped = !stop.Execute && stop.RaiseEvent;
-                if (stop.Execute && await _hostCommunication.StopEngine(stop.EngineHostId, stop.DeploymentId, cancellationToken)
+                if (stop.Execute && await _hostCommunication.StopEngine(engineHostId, stop.DeploymentId, cancellationToken)
                     .CatchAs(ClusterErrorInfos.CouldNotStopEngine(), cancellationToken))
                 {
                     stopped = true;
@@ -553,8 +571,12 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
 
         if (actions.Delete.Count != 0)
         {
-            foreach (var deployment in actions.Delete)
-                _engineDbContext.EngineDeployments.Remove(deployment);
+            foreach (var delete in actions.Delete)
+            {
+                var deleteRetainMessages = DeleteRetainMessages(mqttClient, delete.MqttRetainTopics, cancellationToken);
+                _engineDbContext.EngineDeployments.Remove(delete.Deployment);
+                await deleteRetainMessages;
+            }
             await _engineDbContext.Instance.SaveChangesAsync(cancellationToken);
         }
 
@@ -562,58 +584,59 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         {
             foreach (var tearDown in actions.TearDown)
             {
-                _logger.LogTearingDownEngine(tearDown.EngineId, tearDown.EngineHostId, tearDown.DeploymentId);
+                _logger.LogTearingDownEngine(tearDown.EngineId, engineHostId, tearDown.DeploymentId);
                 var tornDown = !tearDown.Execute && tearDown.RaiseEvent;
                 if (tearDown.Execute)
                 {
-                    await _hostCommunication.TearDownEngine(tearDown.EngineHostId, tearDown.DeploymentId, cancellationToken)
+                    await _hostCommunication.TearDownEngine(engineHostId, tearDown.DeploymentId, cancellationToken)
                         .CatchAs(ClusterErrorInfos.CouldNotTearDownEngine(), cancellationToken);
                     tornDown = true;
                 }
                 if (tearDown.RaiseEvent && tornDown)
-                    await context.Publish(new EngineTornDown(tearDown.EngineId), context.CancellationToken);
+                    await context.Publish(new EngineTornDown(tearDown.EngineId), cancellationToken);
             }
         }
 
-        foreach (var deployment in actions.Deploy)
+        foreach (var deploy in actions.Deploy)
         {
-            _logger.LogDeployingEngine(deployment.Engine.Id, deployment.Engine.Name, engineHostId, engineHostName);
-            var deploymentIdentifier = await _hostCommunication.DeployEngine(engineHostId, deployment.Workflow, cancellationToken)
+            _logger.LogDeployingEngine(deploy.Engine.Id, deploy.Engine.Name, engineHostId, engineHostName);
+            var deploymentIdentifier = await _hostCommunication.DeployEngine(engineHostId, deploy.Workflow, cancellationToken)
                 .CatchAs(ClusterErrorInfos.CouldNotDeployEngine(), cancellationToken);
 
             EngineDeployment engineDeployment = new()
             {
                 Id = deploymentIdentifier,
                 EngineHostId = engineHostId,
-                EngineId = deployment.Engine.Id,
-                Checksum = new WorkflowComparer().GetHashCode(deployment.Workflow),
+                EngineId = deploy.Engine.Id,
+                Checksum = new WorkflowComparer().GetHashCode(deploy.Workflow),
+                MqttRetainTopics = deploy.WorkflowMetadata.MqttRetainTopics,
             };
             _engineDbContext.EngineDeployments.Add(engineDeployment);
             await _engineDbContext.Instance.SaveChangesAsync(cancellationToken);
 
-            if (deployment.Engine.Enabled)
+            if (deploy.Engine.Enabled)
             {
                 actions.ShouldRun.Add(engineDeployment);
-                actions.Start.Add(engineDeployment);
+                actions.Start.Add((engineDeployment.Id, engineDeployment.EngineId));
             }
         }
 
         if (actions.ShouldRun.Count != 0)
         {
-            foreach (var deployment in actions.ShouldRun)
-                deployment.ShouldRun = true;
+            foreach (var shouldRun in actions.ShouldRun)
+                shouldRun.ShouldRun = true;
             await _engineDbContext.Instance.SaveChangesAsync(cancellationToken);
         }
 
         if (actions.Start.Count != 0)
         {
-            foreach (var deployment in actions.Start)
+            foreach (var start in actions.Start)
             {
-                _logger.LogStartingEngine(deployment.EngineId, deployment.EngineHostId, deployment.Id);
-                if (await _hostCommunication.StartEngine(deployment.EngineHostId, deployment.Id, cancellationToken)
+                _logger.LogStartingEngine(start.EngineId, engineHostId, start.DeploymentId);
+                if (await _hostCommunication.StartEngine(engineHostId, start.DeploymentId, cancellationToken)
                     .CatchAs(ClusterErrorInfos.CouldNotStartEngine(), cancellationToken))
                 {
-                    await context.Publish(new EngineStarted(deployment.EngineId), cancellationToken);
+                    await context.Publish(new EngineStarted(start.EngineId), cancellationToken);
                 }
             }
         }
@@ -622,12 +645,12 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
     private sealed class DeploymentActions
     {
         public List<EngineDeployment> ShouldNotRun { get; init; } = [];
-        public List<(Guid EngineHostId, Guid DeploymentId, Guid EngineId, bool Execute, bool RaiseEvent)> Stop { get; init; } = [];
-        public List<EngineDeployment> Delete { get; init; } = [];
-        public List<(Guid EngineHostId, Guid DeploymentId, Guid EngineId, bool Execute, bool RaiseEvent)> TearDown { get; init; } = [];
-        public List<(Engine Engine, Workflow Workflow)> Deploy { get; init; } = [];
+        public List<(Guid DeploymentId, Guid EngineId, bool Execute, bool RaiseEvent)> Stop { get; init; } = [];
+        public List<(EngineDeployment Deployment, List<Guid> MqttRetainTopics)> Delete { get; init; } = [];
+        public List<(Guid DeploymentId, Guid EngineId, bool Execute, bool RaiseEvent)> TearDown { get; init; } = [];
+        public List<(Engine Engine, Workflow Workflow, WorkflowMetadata WorkflowMetadata)> Deploy { get; init; } = [];
         public List<EngineDeployment> ShouldRun { get; init; } = [];
-        public List<EngineDeployment> Start { get; init; } = [];
+        public List<(Guid DeploymentId, Guid EngineId)> Start { get; init; } = [];
     }
 
     private void LogDeployedInformation(IEnumerable<EngineHosts.EngineHost> hosts)
@@ -659,5 +682,16 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
             string.Join(", ", hostsIds),
             string.Join(", ", engineIds),
             dataPortIds == null ? string.Empty : $" with data ports:{string.Join(", ", dataPortIds)}");
+    }
+
+    private async Task DeleteRetainMessages(IMqttClient mqttClient, IEnumerable<Guid> topics, CancellationToken cancellationToken)
+    {
+        foreach (var topic in topics)
+        {
+            var builder = new MqttApplicationMessageBuilder()
+                .WithTopic(topic.ToString())
+                .WithRetainFlag(true);
+            await mqttClient.PublishAsync(builder.Build(), cancellationToken);
+        }
     }
 }

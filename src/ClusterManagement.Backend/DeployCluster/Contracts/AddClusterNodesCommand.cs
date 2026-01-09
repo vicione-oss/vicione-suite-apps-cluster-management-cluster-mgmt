@@ -2,7 +2,4 @@
 
 namespace ClusterManagement.Backend.DeployCluster.Contracts;
 
-public sealed record AddClusterNodesCommand(Guid ClusterId, Dictionary<Guid, Guid?> NodesToCreate) : ICommand
-{
-    public Guid CorrelationId => ClusterId;
-}
+public sealed record AddClusterNodesCommand(Guid CorrelationId, Guid ClusterId, Dictionary<Guid, Guid?> NodesToCreate) : ICommand;

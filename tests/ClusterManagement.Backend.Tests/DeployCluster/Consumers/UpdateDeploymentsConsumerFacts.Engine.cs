@@ -4,10 +4,12 @@ using AwesomeAssertions;
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Backend.Engines;
 using ClusterManagement.Backend.Engines.Extensions;
+using ClusterManagement.Backend.Extensions;
 using ClusterManagement.Public.Events;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
+using ViciOne.Cluster.Model.Extensions;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster.Consumers;
 
@@ -141,8 +143,45 @@ public partial class UpdateDeploymentsConsumerFacts
                 DesignId = s_functionBlockDesignId,
                 Id = functionBlockId,
                 Name = functionBlockId.ToString(),
+                Connectors =
+                [
+                    new()
+                    {
+                        DesignId = s_functionBlockOutputDesignId,
+                        Id = s_functionBlockOutputId,
+                        InitialValue = TypedObject.CreateOptional(0.0),
+                        MarkAsChangedOnlyIfNotEqual = true,
+                    },
+                ],
+            });
+            workflow.ExternalConnections.Add(new()
+            {
+                Name = "Suite MQTT Broker",
+                Communication = new()
+                {
+                    Id = "07AB9DE8-6216-41FE-9E94-D324C5C55F7A",
+                    Properties =
+                    [
+                        new("Host") { Value = TypedObject.CreateOptional(string.Empty), },
+                        new("Port") { Value = TypedObject.CreateOptional(1883), },
+                        new("Username") { Value = TypedObject.CreateOptional(string.Empty), },
+                        new("Password") { Value = TypedObject.CreateOptional(string.Empty), },
+                        new("MaxPendingMessages") { Value = TypedObject.CreateOptional(10_000), },
+                        new("QualityOfService") { Value = TypedObject.CreateOptional((short)0), },
+                        new("Retain") { Value = TypedObject.CreateOptional(true), },
+                    ],
+                },
+                OutgoingLinks =
+                [
+                    new()
+                    {
+                        ConnectorId = s_functionBlockOutputId,
+                        RemoteId = s_functionBlockOutputId,
+                    },
+                ],
             });
             engineDeployment.Checksum = new WorkflowComparer().GetHashCode(workflow);
+            engineDeployment.MqttRetainTopics.Add(s_functionBlockOutputId);
             _engineDbContext.SaveChanges();
         }
     }
@@ -236,6 +275,9 @@ public partial class UpdateDeploymentsConsumerFacts
         var dataflow = _clusterBuilder.Cluster.Dataflows.First();
         var functionBlock = _clusterBuilder.Editors.Container.AddFunctionBlock(dataflow.Root, s_functionBlockDesignId, id: functionBlockId);
         _clusterBuilder.Editors.FunctionBlock.SetName(functionBlock, functionBlockId.ToString());
+        var output = functionBlock.GetConnectorByDesignId(s_functionBlockOutputDesignId) ?? throw new InvalidOperationException("Could not find output connector.") ;
+        output.Id = s_functionBlockOutputId;
+        _clusterBuilder.Editors.Connector.SetEventEnabled(true, output);
         var engine = _clusterBuilder.Cache.EngineGuids[engineId];
         _clusterBuilder.Editors.FunctionBlock.AssignEngine(engine, functionBlock);
     }
@@ -393,4 +435,10 @@ public partial class UpdateDeploymentsConsumerFacts
         => string.Format(CultureInfo.CurrentCulture, EngineEventReason, engineId, existence ? string.Empty : "not ", actionName);
     private static string BecauseNoEngineWas(string actionName)
         => string.Format(CultureInfo.CurrentCulture, NoEngineEventsReason, actionName);
+
+    internal Task Then_topics_were_deleted()
+        => _mqttClient.ReceivedWithAnyArgs(1).PublishAsync(default, default);
+
+    internal Task Then_no_topics_were_deleted()
+        => _mqttClient.DidNotReceiveWithAnyArgs().PublishAsync(default, default);
 }

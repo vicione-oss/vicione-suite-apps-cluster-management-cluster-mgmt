@@ -4,7 +4,7 @@ using Sdk.Messaging;
 namespace ClusterManagement.Public.Events;
 
 [ForwardToUI]
-public sealed record ClusterUpdateFailed(Guid ClusterId, Version Version) : IEvent, CorrelatedBy<Guid>
+public sealed record ClusterUpdateFailed(Guid CorrelationId, Guid ClusterId, Version Version) : IEvent, CorrelatedBy<Guid>
 {
     public Dictionary<Guid, ErrorInfo> ErrorsByApplication { get; init; } = [];
 
@@ -17,8 +17,6 @@ public sealed record ClusterUpdateFailed(Guid ClusterId, Version Version) : IEve
     /// The failing state of cluster deployment
     /// </summary>
     public string? State { get; init; }
-
-    public Guid CorrelationId => ClusterId;
 
     /// <summary>
     /// Duration of failed cluster deployment

@@ -37,7 +37,7 @@ public sealed class AddClusterNodesConsumer(ISuiteMediator mediator, ILogger<Add
 
             //The following will need to be moved to a Kubernetes Watcher See: https://github.com/kubernetes-client/csharp/blob/master/examples/watch/Program.cs
             //To correlate the message to the saga the watcher will need to load the clusterId of the node via the cluster-repo
-            await mediator.Publish(new ClusterNodeAddedEvent(context.Message.ClusterId, nodeId));
+            await mediator.Publish(new ClusterNodeAddedEvent(context.Message.CorrelationId, context.Message.ClusterId, nodeId));
 
             //The following will need to be moved to "Consume(ConsumeContext<InstanceCreatedEvent> context)"
             //To correlate the message to the saga the consumer will need to load the clusterId of the application via the cluster-repo
@@ -50,7 +50,10 @@ public sealed class AddClusterNodesConsumer(ISuiteMediator mediator, ILogger<Add
                     nameof(ClusterApplicationStartedEvent),
                     nodeId);
 
-                await mediator.Publish(new ClusterApplicationStartedEvent(context.Message.ClusterId, applicationId.Value));
+                await mediator.Publish(new ClusterApplicationStartedEvent(context.Message.ClusterId, applicationId.Value)
+                {
+                    CorrelationId = context.Message.CorrelationId,
+                });
             }
         }
     }

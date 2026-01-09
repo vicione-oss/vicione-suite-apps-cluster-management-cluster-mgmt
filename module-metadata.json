@@ -7,7 +7,7 @@
     "Company": "ifm software",
     "ProjectUrl": "https://gitlab.i40.ifm-datalink.net/acx/vo-suite/modules/cluster-mgmt",
     "ReadmeUrl": "https://gitlab.i40.ifm-datalink.net/acx/vo-suite/modules/cluster-mgmt/-/blob/master/README.md?ref_type=heads",
-    "Published": "2025-09-19T12:00:00",
+    "Published": "2025-11-14T12:30:00",
     "Options": [
         {
             "Key": "MqttRpcTimeout",

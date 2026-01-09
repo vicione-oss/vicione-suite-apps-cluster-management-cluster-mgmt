@@ -1,4 +1,5 @@
 ﻿using ClusterManagement.Backend.DbContext;
+using ClusterManagement.Backend.DeployCluster.Persistence;
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
@@ -9,8 +10,13 @@ using Sdk.Instance;
 
 namespace ClusterManagement.Backend.Engines;
 
-internal sealed class EngineLifetime(IEngineHostPoolCommunication engineHostPoolCommunication, IEngineHostCommunication engineHostCommunication,
-    IEngineDbContext engineDbContext, ISuiteMediator mediator, ILogger<EngineLifetime> logger, IInstanceInformationProvider instanceInformationProvider)
+internal sealed class EngineLifetime(IEngineHostPoolCommunication engineHostPoolCommunication,
+    IEngineHostCommunication engineHostCommunication,
+    IEngineDbContext engineDbContext,
+    IClusterSagaDbContext sagaDbContext,
+    ISuiteMediator mediator,
+    IInstanceInformationProvider instanceInformationProvider,
+    ILogger<EngineLifetime> logger)
 {
     internal async Task Start(CancellationToken cancellationToken)
     {
@@ -22,6 +28,8 @@ internal sealed class EngineLifetime(IEngineHostPoolCommunication engineHostPool
                 var activeCluster = clusterInfos.Results.SingleOrDefault(clusterInfo => clusterInfo.IsActive);
                 if (activeCluster is not null)
                 {
+                    await RemoveExistingSagaState(activeCluster.Id, cancellationToken);
+
                     Public.Commands.DeployCluster deployCluster = new(activeCluster.Id, activeCluster.Version);
                     await mediator.Send(deployCluster, cancellationToken);
                 }
@@ -109,5 +117,19 @@ internal sealed class EngineLifetime(IEngineHostPoolCommunication engineHostPool
         {
             logger.LogStoppingEngineFailed(ex, engineId, engineHostId, deploymentId);
         }
+    }
+
+    private async Task RemoveExistingSagaState(Guid clusterId, CancellationToken cancellationToken)
+    {
+        var deployState = await sagaDbContext.DeployClusterState
+                .FirstOrDefaultAsync(k => k.ClusterId == clusterId, cancellationToken);
+
+        if (deployState is null)
+            return;
+
+        logger.LogRemoveDeploySagaState(clusterId);
+
+        sagaDbContext.DeployClusterState.Remove(deployState);
+        await sagaDbContext.Instance.SaveChangesAsync(cancellationToken);
     }
 }

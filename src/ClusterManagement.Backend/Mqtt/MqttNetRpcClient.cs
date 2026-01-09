@@ -27,7 +27,7 @@ internal sealed class MqttNetRpcClient(IOptions<MqttNetRpcClientOptions> options
         if (string.IsNullOrWhiteSpace(request.Method))
             throw new ArgumentException("RPC method is invalid.", nameof(request));
 
-        var mqttClient = await ConnectClient(cancellationToken);
+        var mqttClient = await _connectionProvider.ConnectClient(_mqttClient, HandleApplicationMessageReceived, cancellationToken);
 
         var correlationData = Guid.NewGuid();
         var requestMessageBuilder = new MqttApplicationMessageBuilder()
@@ -72,30 +72,7 @@ internal sealed class MqttNetRpcClient(IOptions<MqttNetRpcClientOptions> options
 
             await mqttClient.UnsubscribeAsync(responseTopic, CancellationToken.None).ConfigureAwait(false);
 
-            await DisconnectClient(mqttClient, cancellationToken);
-        }
-    }
-
-    private async Task<IMqttClient> ConnectClient(CancellationToken cancellationToken)
-    {
-        var mqttClient = _mqttClient;
-        if (mqttClient is null)
-        {
-            mqttClient = new MqttClientFactory().CreateMqttClient();
-            var options = await _connectionProvider.GetClientOptionsBuilder(cancellationToken);
-            await mqttClient.ConnectAsync(options.Build(), cancellationToken);
-        }
-        mqttClient.ApplicationMessageReceivedAsync += HandleApplicationMessageReceived;
-        return mqttClient;
-    }
-
-    private async Task DisconnectClient(IMqttClient mqttClient, CancellationToken cancellationToken)
-    {
-        mqttClient.ApplicationMessageReceivedAsync -= HandleApplicationMessageReceived;
-        if (mqttClient != _mqttClient)
-        {
-            await mqttClient.DisconnectAsync(new() { Reason = MqttClientDisconnectOptionsReason.NormalDisconnection, }, cancellationToken);
-            mqttClient.Dispose();
+            await mqttClient.DisconnectClient(_mqttClient, HandleApplicationMessageReceived, cancellationToken);
         }
     }
 

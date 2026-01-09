@@ -46,21 +46,23 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
     public void Dispose()
         => _subscriptionHandle.Dispose();
 
-    public async Task DeployCluster(Guid clusterId, Version version)
+    public async Task DeployCluster(Guid clusterId, Version version, CancellationToken cancellationToken = default)
     {
         var command = new DeployCluster(clusterId, version);
         CorrelationId = command.CorrelationId;
-        await _mediator.Send(command);
-        _logger.LogDebug("{Command} sent clusterId:{ClusterId} version:{Version} -> correlationId:{CorrelationId}",
+
+        _logger.LogDebug("Sending {Command} clusterId:{ClusterId} version:{Version} -> correlationId:{CorrelationId}",
             nameof(Public.Commands.DeployCluster),
             clusterId,
             version,
             CorrelationId);
+
+        await _mediator.Send(command, cancellationToken);
     }
 
-    public async Task<List<ClusterInfoModel>> QueryClusterVersions(Guid? clusterId = null)
+    public async Task<List<ClusterInfoModel>> QueryClusterVersions(Guid? clusterId = null, CancellationToken cancellationToken = default)
     {
-        var infos = (await _clusterService.QueryClusterInfos(clusterId))
+        var infos = (await _clusterService.QueryClusterInfos(clusterId, cancellationToken))
             .Select(info => new ClusterInfoModel(info));
 
         var clusters = new List<ClusterInfoModel>(infos);
@@ -75,9 +77,8 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
         return clusters;
     }
 
-    public Task RemoveCluster(Guid clusterId, Version version)
-        => _clusterService.Remove(clusterId, version);
-
+    public Task RemoveCluster(Guid clusterId, Version version, CancellationToken cancellationToken = default)
+        => _clusterService.Remove(clusterId, version, cancellationToken);
 
     public Task Consume(ClientContext<ClusterUpdateStarted> context, CancellationToken cancellationToken)
     {
@@ -143,11 +144,11 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
         return Task.CompletedTask;
     }
 
-    public async Task DownloadClusterJson(Guid clusterId, Version version)
+    public async Task DownloadClusterJson(Guid clusterId, Version version, CancellationToken cancellationToken = default)
     {
         try
         {
-            var cluster = await _clusterService.Query(clusterId, version) ??
+            var cluster = await _clusterService.Query(clusterId, version, cancellationToken) ??
                 throw new InvalidOperationException($"Failed to query cluster {clusterId} v{version}");
 
             await _jsInterop.DownloadClusterJson(cluster);

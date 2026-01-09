@@ -1,35 +1,17 @@
-﻿@use "./../../../shared/styles/colors";
-@use "./../../../shared/styles/variables";
+﻿@use "./../Styles/_shared.scss";
 
-.cluster-mgmt {
-    display: grid;
-    grid-row-gap: 6px;
-    grid-template-rows: variables.$top-bar-height auto min-content;
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    left: 0;
-    top: 0;
+.cluster-events {
+    @extend .cm-page-base;
 
-    .cluster-mgmt-toolbar {
-        padding: variables.$toolbar-padding;
-        border-bottom: 1px solid colors.$color-border;
+    .cluster-events-toolbar {
+        @extend .cm-page-toolbar-base;
     }
 
-    .cluster-mgmt-grid {
-        margin: 12px;
-        position: relative;
-
-        .inner-grid {
-            position: relative !important;
-        }
-
-        ::deep .dxbs-grid.inner-grid {
-            position: relative !important;
-        }
+    .cluster-events-grid {
+        @extend .cm-page-grid-base;
     }
 
-    .cluster-mgmt-send {
+    .cluster-events-send {
         margin: 12px;
         display: grid;
         grid-template-rows: 28px 28px;

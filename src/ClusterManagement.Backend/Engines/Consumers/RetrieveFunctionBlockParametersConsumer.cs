@@ -20,7 +20,7 @@ public sealed class RetrieveFunctionBlockParametersConsumer(IMqttBrokerConnectio
 
     protected override async Task<RetrieveFunctionBlockParametersResponse> Respond(ConsumeContext<RetrieveFunctionBlockParametersRequest> context)
     {
-        var mqttClient = await ConnectClient(context.CancellationToken);
+        var mqttClient = await connectionProvider.ConnectClient(_mqttClient, default, context.CancellationToken);
 
         var parametersId = context.Message.FunctionBlockParameters.SelectMany(s => s.ParametersId).Select(id => id.ToString()).ToList();
         using CancellationTokenSource receiving = new();
@@ -46,7 +46,7 @@ public sealed class RetrieveFunctionBlockParametersConsumer(IMqttBrokerConnectio
         finally
         {
             mqttClient.ApplicationMessageReceivedAsync -= OnMessage;
-            await DisconnectClient(mqttClient, context.CancellationToken);
+            await mqttClient.DisconnectClient(_mqttClient, default, context.CancellationToken);
         }
 
         async Task OnMessage(MqttApplicationMessageReceivedEventArgs eventArgs)
@@ -72,27 +72,6 @@ public sealed class RetrieveFunctionBlockParametersConsumer(IMqttBrokerConnectio
             functionBlockParameters.Add(new(requestedFunctionBlock.FunctionBlockId, parametersValue));
         }
         return new RetrieveFunctionBlockParametersResponse(functionBlockParameters);
-    }
-
-    private async Task<IMqttClient> ConnectClient(CancellationToken cancellationToken)
-    {
-        var mqttClient = _mqttClient;
-        if (mqttClient is null)
-        {
-            mqttClient = new MqttClientFactory().CreateMqttClient();
-            var options = await connectionProvider.GetClientOptionsBuilder(cancellationToken);
-            await mqttClient.ConnectAsync(options.Build(), cancellationToken);
-        }
-        return mqttClient;
-    }
-
-    private async Task DisconnectClient(IMqttClient mqttClient, CancellationToken cancellationToken)
-    {
-        if (mqttClient != _mqttClient)
-        {
-            await mqttClient.DisconnectAsync(new() { Reason = MqttClientDisconnectOptionsReason.NormalDisconnection, }, cancellationToken);
-            mqttClient.Dispose();
-        }
     }
 
     protected override Task<RetrieveFunctionBlockParametersResponse> HandleException(ConsumeContext<RetrieveFunctionBlockParametersRequest> context, Exception e)

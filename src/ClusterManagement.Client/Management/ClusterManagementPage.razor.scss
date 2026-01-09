@@ -1,37 +1,17 @@
-﻿@use "./../../../shared/styles/colors.scss";
-@use "./../../../shared/styles/variables.scss";
+﻿@use "./../Styles/_shared.scss";
 
 .cluster-mgmt {
-    display: grid;
-    grid-row-gap: 6px;
-    grid-template-rows: variables.$top-bar-height auto min-content;
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    left: 0;
-    top: 0;
+    @extend .cm-page-base;
 
     .cluster-mgmt-toolbar {
-        padding: variables.$toolbar-padding;
-        border-bottom: 1px solid colors.$color-border;
+        @extend .cm-page-toolbar-base;
     }
 
     .cluster-mgmt-grid {
-        margin: 12px;
-        position: relative;
-
-        .inner-grid {
-            position: relative !important;
-        }
-
-        ::deep .dxbs-grid.inner-grid {
-            position: relative !important;
-        }
+        @extend .cm-page-grid-base;
     }
 
     .detail-container {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        column-gap: 10px;
-    }    
+        @extend .cm-page-detail-container-base;
+    }
 }

@@ -83,7 +83,7 @@ public class SaveClusterServiceTests
         await service.Save();
         service.DisplayDialog = true;
 
-        var context = ClientContextFactory.Create(new ClusterChanged(builder.Cluster.Id, CrudAction.Created, new Version()));
+        var context = ClientContextFactory.Create(new ClusterChanged(Guid.NewGuid(), builder.Cluster.Id, CrudAction.Created, new Version()));
 
         // Act
         await service.Consume(context, CancellationToken.None);
@@ -100,7 +100,7 @@ public class SaveClusterServiceTests
         var service = SetupService(ctx);
         service.DisplayDialog = true;
 
-        var context = ClientContextFactory.Create(new ClusterChanged(Guid.NewGuid(), CrudAction.Created, new Version()));
+        var context = ClientContextFactory.Create(new ClusterChanged(Guid.NewGuid(), Guid.NewGuid(), CrudAction.Created, new Version()));
 
         // Act
         service.Consume(context, CancellationToken.None);
@@ -123,7 +123,7 @@ public class SaveClusterServiceTests
         service.SaveRequested(builder);
         await service.Save();
 
-        var context = ClientContextFactory.Create(new CommitClusterChangeFailed(clusterId, clusterVersion, errorInfo));
+        var context = ClientContextFactory.Create(new CommitClusterChangeFailed(clusterId, clusterId, clusterVersion, errorInfo));
 
         // Act
         await service.Consume(context, CancellationToken.None);
@@ -141,7 +141,7 @@ public class SaveClusterServiceTests
         var clusterId = Guid.NewGuid();
         var clusterVersion = new Version(0, 1, 1);
         var errorInfo = CreateErrorInfo(ClusterError.PublishFailed, clusterId, clusterVersion);
-        var context = ClientContextFactory.Create(new CommitClusterChangeFailed(clusterId, clusterVersion, errorInfo));
+        var context = ClientContextFactory.Create(new CommitClusterChangeFailed(clusterId, clusterId, clusterVersion, errorInfo));
 
         // Act
         await service.Consume(context, CancellationToken.None);

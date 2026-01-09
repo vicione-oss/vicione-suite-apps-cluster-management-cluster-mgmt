@@ -27,4 +27,7 @@ internal static partial class EngineLifetimeLog
 
     [LoggerMessage(EventId = 14, Level = LogLevel.Error, Message = "Failed to auto stop engine '{EngineId}' on engine host '{HostId}' as deployment '{DeploymentId}'")]
     internal static partial void LogStoppingEngineFailed(this ILogger<EngineLifetime> logger, Exception ex, Guid engineId, Guid hostId, Guid deploymentId);
+
+    [LoggerMessage(EventId = 15, Level = LogLevel.Debug, Message = "Remove existing saga state for cluster '{ClusterId}'")]
+    internal static partial void LogRemoveDeploySagaState(this ILogger<EngineLifetime> logger, Guid clusterId);
 }

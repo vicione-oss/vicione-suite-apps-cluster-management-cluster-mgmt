@@ -46,7 +46,7 @@ public class ClusterManagementPageServiceTests
         ctx.SetupSuiteServices();
         ctx.Services.AddSingleton(_clusterService);
         ctx.Services.AddSingleton<ClusterManagementPageService>();
-        var statusEvent = new ClusterUpdateChanged(Guid.NewGuid(), new Version(0, 2, 0), "Ready") { Change = ClusterUpdateChange.Update };
+        var statusEvent = new ClusterUpdateChanged(Guid.NewGuid(), Guid.NewGuid(), new Version(0, 2, 0), "Ready") { Change = ClusterUpdateChange.Update };
         var service = ctx.Services.GetRequiredService<ClusterManagementPageService>();
         using var monitor = service.Monitor();
 
@@ -68,7 +68,7 @@ public class ClusterManagementPageServiceTests
         ctx.SetupSuiteServices();
         ctx.Services.AddSingleton(_clusterService);
         ctx.Services.AddSingleton<ClusterManagementPageService>();
-        var statusEvent = new ClusterUpdateCompleted(Guid.NewGuid(), new Version(0, 2, 0), TimeSpan.FromSeconds(19));
+        var statusEvent = new ClusterUpdateCompleted(Guid.NewGuid(), Guid.NewGuid(), new Version(0, 2, 0), TimeSpan.FromSeconds(19));
         var service = ctx.Services.GetRequiredService<ClusterManagementPageService>();
         using var monitor = service.Monitor();
 
@@ -90,7 +90,7 @@ public class ClusterManagementPageServiceTests
         ctx.SetupSuiteServices();
         ctx.Services.AddSingleton(_clusterService);
         ctx.Services.AddSingleton<ClusterManagementPageService>();
-        var statusEvent = new ClusterUpdateFailed(Guid.NewGuid(), new Version(0, 2, 0));
+        var statusEvent = new ClusterUpdateFailed(Guid.NewGuid(), Guid.NewGuid(), new Version(0, 2, 0));
         var service = ctx.Services.GetRequiredService<ClusterManagementPageService>();
         using var monitor = service.Monitor();
 

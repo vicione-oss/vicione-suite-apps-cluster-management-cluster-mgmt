@@ -17,7 +17,6 @@ namespace ClusterManagement.Backend.Tests.EngineHosts.Consumers;
 public class GetEngineHostPackageInfoConsumerTests
 {
     private readonly Action<IBusRegistrationConfigurator> _configureServices;
-    private readonly ClusterManagementOptions _options = new() { EngineHostVersion = "0.28.0" };
     private readonly IEngineHostArtifactApi _packageApi = Substitute.For<IEngineHostArtifactApi>();
 
     public GetEngineHostPackageInfoConsumerTests()
@@ -25,7 +24,7 @@ public class GetEngineHostPackageInfoConsumerTests
         _configureServices = cfg =>
         {
             cfg.AddConsumer<GetEngineHostPackageInfoConsumer>();
-            cfg.AddSingleton(Options.Create(_options));
+            cfg.AddSingleton(Options.Create(new ClusterManagementOptions()));
             cfg.AddSingleton(_packageApi);
         };
     }
@@ -77,7 +76,7 @@ public class GetEngineHostPackageInfoConsumerTests
         // Assert
         response.RequestError.Should().BeNull();
         response.PackageInfo.Should().NotBeNull();
-        response.PackageInfo.InstalledVersion.Should().Be(_options.EngineHostVersion);
+        response.PackageInfo.InstalledVersion.Should().Be("0.30.0");
         response.PackageInfo.Versions.Should().HaveCount(3);
     }
 }

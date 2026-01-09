@@ -189,6 +189,9 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
 
         foreach (var entry in entries)
         {
+            if (string.IsNullOrWhiteSpace(entry.Name))
+                continue;
+
             var filePath = fileSystem.Path.Combine(deviceDirectory, entry.Name);
 
             if (fileSystem.File.Exists(filePath))

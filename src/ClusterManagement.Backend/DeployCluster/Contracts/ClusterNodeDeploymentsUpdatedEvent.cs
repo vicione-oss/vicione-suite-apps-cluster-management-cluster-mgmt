@@ -2,7 +2,4 @@
 
 namespace ClusterManagement.Backend.DeployCluster.Contracts;
 
-public sealed record ClusterNodeDeploymentsUpdatedEvent(Guid ClusterId, Guid ClusterApplicationId) : CorrelatedBy<Guid>
-{
-    public Guid CorrelationId => ClusterId;
-}
+public sealed record ClusterNodeDeploymentsUpdatedEvent(Guid CorrelationId, Guid ClusterId, Guid ClusterApplicationId) : CorrelatedBy<Guid>;
