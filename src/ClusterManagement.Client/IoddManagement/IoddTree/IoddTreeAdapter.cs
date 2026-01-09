@@ -1,0 +1,244 @@
+﻿using ClusterManagement.Client.IoddManagement.Models;
+using Microsoft.AspNetCore.Components;
+using ViciOne.Ui.MonochromeIcons.Core.Enums;
+using ViciOne.Ui.TreeEditor.Builder.Interface;
+using ViciOne.Ui.TreeEditor.Builder.Models.Icons;
+
+namespace ClusterManagement.Client.IoddManagement.IoddTree;
+
+internal class IoddTreeAdapter : TreeAdapter, IDisposable
+{
+    private readonly Dictionary<MonochromeIconName, string> _treeIconCache = [];
+
+    private readonly Dictionary<int, RepositoryNode> _repositoryNodes = new()
+    {
+        { 0, new RepositoryNode() { RepositoryId = 0, DisplayText = Localization.Common.IoddRepository, Expanded = true, }},
+    };
+
+    public event Action<IEnumerable<DeviceView>>? SelectionChanged;
+
+    public TreeSelectionKey? SelectedNodeKey
+        => Builder.Selection.SelectedNodes.FirstOrDefault() switch
+        {
+            RepositoryNode n => new TreeSelectionKey(n.RepositoryId, null, null),
+            VendorNode n => new TreeSelectionKey(n.RepositoryNode.RepositoryId, n.VendorId, null),
+            DeviceFamilyNode n => new TreeSelectionKey(n.VendorNode.RepositoryNode.RepositoryId, n.VendorNode.VendorId, n.DisplayText),
+            _ => null
+        };
+
+    public bool SetSelection(TreeSelectionKey? value)
+    {
+        if (value is null)
+        {
+            foreach (var node in Builder.Selection.SelectedNodes.ToArray())
+                Builder.Selection.ChangeSelection(node, false);
+            return true;
+        }
+
+        if (value.VendorId is not null && value.DeviceFamilyName is not null)
+        {
+            if (!_repositoryNodes.TryGetValue(value.RepositoryId, out var repositoryNode))
+                return false;
+            if (!repositoryNode.VendorNodes.TryGetValue(value.VendorId.Value, out var vendorNode))
+                return false;
+            if (!vendorNode.DeviceFamilyNodes.TryGetValue(value.DeviceFamilyName, out var deviceFamilyNode))
+                return false;
+
+            Builder.Expansion.ExpandToNode(deviceFamilyNode);
+            Builder.Selection.ChangeSelection(deviceFamilyNode, true);
+        }
+        else if (value.VendorId is not null)
+        {
+            if (!_repositoryNodes.TryGetValue(value.RepositoryId, out var repositoryNode))
+                return false;
+            if (!repositoryNode.VendorNodes.TryGetValue(value.VendorId.Value, out var vendorNode))
+                return false;
+
+            Builder.Expansion.ExpandToNode(vendorNode);
+            Builder.Selection.ChangeSelection(vendorNode, true);
+        }
+        else
+        {
+            if (!_repositoryNodes.TryGetValue(value.RepositoryId, out var repositoryNode))
+                return false;
+
+            Builder.Expansion.ExpandToNode(repositoryNode);
+            Builder.Selection.ChangeSelection(repositoryNode, true);
+        }
+
+        return true;
+    }
+
+    public void AddDevice(DeviceView device, bool expandVendor = true)
+    {
+        var repositoryNode = GetDefaultRepositoryNode();
+
+        if (!repositoryNode.VendorNodes.TryGetValue(device.VendorId, out var vendorNode))
+        {
+            vendorNode = new()
+            {
+                RepositoryNode = repositoryNode,
+                VendorId = device.VendorId,
+                DisplayText = device.VendorName,
+            };
+            repositoryNode.VendorNodes.Add(device.VendorId, vendorNode);
+            Builder.Notifications.NotifyChildrenChanged(repositoryNode);
+        }
+
+        if (expandVendor)
+            Builder.Expansion.ChangeExpansion(vendorNode, true);
+
+        if (!vendorNode.DeviceFamilyNodes.TryGetValue(device.DeviceFamily, out var deviceFamilyNode))
+        {
+            deviceFamilyNode = new()
+            {
+                VendorNode = vendorNode,
+                DisplayText = device.DeviceFamily,
+            };
+            vendorNode.DeviceFamilyNodes.Add(device.DeviceFamily, deviceFamilyNode);
+            Builder.Notifications.NotifyChildrenChanged(vendorNode);
+        }
+
+        deviceFamilyNode.Devices.Add(device);
+        Builder.Notifications.NotifyChildrenChanged(deviceFamilyNode);
+    }
+
+    public void CoupleTreeBuilderEvents()
+        // builder is available after the adapter was passed to TreeBuilder.SetAdapter method
+        => Builder.Selection.SelectionChanged += OnSelectionChanged;
+
+    public void DeleteDevice(int vendorId, int deviceId)
+    {
+        var repositoryNode = GetDefaultRepositoryNode();
+
+        if (!repositoryNode.VendorNodes.TryGetValue(vendorId, out var vendorNode))
+            return;
+
+        var updatedDeviceFamilyNodes = vendorNode.DeviceFamilyNodes.Where(df => df.Value.Devices.RemoveAll(d => d.DeviceId == deviceId) > 0).ToArray();
+
+        foreach (var (key, node) in updatedDeviceFamilyNodes)
+        {
+            if (node.Devices.Count == 0)
+            {
+                vendorNode.DeviceFamilyNodes.Remove(key);
+
+                if (vendorNode.DeviceFamilyNodes.Count == 0)
+                {
+                    repositoryNode.VendorNodes.Remove(vendorId);
+                    Builder.Notifications.NotifyChildrenChanged(repositoryNode);
+                }
+                else
+                {
+                    Builder.Notifications.NotifyChildrenChanged(vendorNode);
+                }
+            }
+        }
+    }
+
+    public TreeSelectionKey? GetDefaultSelectioNode()
+    {
+        var repositoryNode = _repositoryNodes.FirstOrDefault().Value;
+
+        if (repositoryNode is null)
+            return null;
+
+        var vendorNode = repositoryNode.VendorNodes.Values.FirstOrDefault();
+
+        if (vendorNode is null)
+            return new(repositoryNode.RepositoryId, null, null);
+
+        var deviceFamilyNode = vendorNode.DeviceFamilyNodes.Values.FirstOrDefault();
+
+        if (deviceFamilyNode is null)
+            return new(repositoryNode.RepositoryId, vendorNode.VendorId, null);
+
+        return new(repositoryNode.RepositoryId, vendorNode.VendorId, deviceFamilyNode.DisplayText);
+    }
+
+    public void Dispose()
+    {
+        if (Builder is not null)
+            Builder.Selection.SelectionChanged -= OnSelectionChanged;
+    }
+
+    public void ExpandFirstVendor()
+    {
+        if (_repositoryNodes[0].VendorNodes.Count > 0)
+            Builder.Expansion.ChangeExpansion(_repositoryNodes[0].VendorNodes.Values.OrderBy(n => n.DisplayText).First(), true);
+    }
+
+    public override IEnumerable<ITreeNode> GetChildren(ITreeNode node)
+        => node switch
+        {
+            RepositoryNode n => n.VendorNodes.Values.OrderBy(n => n.DisplayText),
+            VendorNode n => n.DeviceFamilyNodes.Values.OrderBy(n => n.DisplayText),
+            _ => []
+        };
+
+    public override IEnumerable<IIcon> GetIcons(ITreeNode node)
+    {
+        if (node is RepositoryNode or VendorNode or DeviceFamilyNode && _treeIconCache.TryGetValue(MonochromeIconName.Folder, out var icon))
+            return [new SvgIcon(icon)];
+        return [];
+    }
+
+    public override ITreeNode? GetParent(ITreeNode node)
+        => node switch
+        {
+            VendorNode n => n.RepositoryNode,
+            DeviceFamilyNode n => n.VendorNode,
+            _ => null
+        };
+
+    public override IEnumerable<ITreeNode> GetRootNodes()
+        => _repositoryNodes.Values;
+
+    private void OnSelectionChanged(ITreeNode node)
+    {
+        List<DeviceView> devices = [];
+
+        foreach (var selectedNode in Builder.Selection.SelectedNodes)
+        {
+            if (selectedNode is RepositoryNode repositoryNode)
+                devices.AddRange(repositoryNode.VendorNodes.SelectMany(n => n.Value.DeviceFamilyNodes.Values.SelectMany(n => n.Devices)));
+            if (selectedNode is VendorNode vendorNode)
+                devices.AddRange(vendorNode.DeviceFamilyNodes.Values.SelectMany(n => n.Devices));
+            if (selectedNode is DeviceFamilyNode deviceFamilyNode)
+                devices.AddRange(deviceFamilyNode.Devices);
+        }
+
+        SelectionChanged?.Invoke(devices);
+    }
+
+    public override bool HasChildren(ITreeNode node)
+        => node switch
+        {
+            RepositoryNode n => n.VendorNodes.Count > 0,
+            VendorNode n => n.DeviceFamilyNodes.Count > 0,
+            _ => false
+        };
+
+    public async Task InitialiseTreeIcons(HttpClient httpClient, NavigationManager navigationManager)
+    {
+        var contentIconBasePath = $"_content/{typeof(IoddTreeAdapter).Assembly.GetName().Name}/icons/monochrome-icons/32x32/";
+#pragma warning disable CA1308 // Normalize strings to uppercase - no normalisation but a filename!
+        var iconPath = $"{navigationManager.BaseUri}{contentIconBasePath}{MonochromeIconName.Folder.GetName().ToLowerInvariant()}.svg";
+#pragma warning restore CA1308 // Normalize strings to uppercase
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, iconPath);
+        try
+        {
+            var response = await httpClient.SendAsync(request);
+
+            if (!response.IsSuccessStatusCode)
+                return;
+
+            _treeIconCache[MonochromeIconName.Folder] = await response.Content.ReadAsStringAsync();
+        }
+        catch
+        { }
+    }
+
+    private RepositoryNode GetDefaultRepositoryNode()
+        => _repositoryNodes[0];
+}

@@ -1,0 +1,43 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net9.0": {
+      "ViciOne.Core.Runtime": {
+        "type": "Direct",
+        "requested": "[0.48.0, )",
+        "resolved": "0.48.0",
+        "contentHash": "BrJk+2rO8KEHKEMEElnSnFm5ySortG7tME2MQeX0u3amN8DvahNlYarwQoxgs2bliI1zLtugAcXHbgogTH2u3g==",
+        "dependencies": {
+          "ViciOne.Core.Contracts": "0.48.0"
+        }
+      },
+      "ViciOne.Core.Runtime.Analyzers": {
+        "type": "Direct",
+        "requested": "[0.4.0, )",
+        "resolved": "0.4.0",
+        "contentHash": "Gj7dBI5A8ik64Hxn0h7+A3JlaNIOjLl1qzpo6UmDC6+t0GS4K3nHc17B+RYW8YG9XXS/pgRFF+bC9TsHWTFD8A=="
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions": {
+        "type": "Transitive",
+        "resolved": "9.0.4",
+        "contentHash": "UI0TQPVkS78bFdjkTodmkH0Fe8lXv9LnhGFKgKrsgUJ5a5FVdFRcgjIkBVLbGgdRhxWirxH/8IXUtEyYJx6GQg=="
+      },
+      "Microsoft.Extensions.Logging.Abstractions": {
+        "type": "Transitive",
+        "resolved": "9.0.4",
+        "contentHash": "0MXlimU4Dud6t+iNi5NEz3dO2w1HXdhoOLaYFuLPCjAsvlPQGwOT6V2KZRMLEhCAm/stSZt1AUv0XmDdkjvtbw==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.4"
+        }
+      },
+      "ViciOne.Core.Contracts": {
+        "type": "Transitive",
+        "resolved": "0.48.0",
+        "contentHash": "6kMHF/LuT0e/gqDhwhNII9p9ztHea9W6qQZN1/2r9+KxTIr6q4EkaBoucJQS6FIolKIlhfyRBvqWvluy6MIOmw==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "9.0.4"
+        }
+      }
+    }
+  }
+}

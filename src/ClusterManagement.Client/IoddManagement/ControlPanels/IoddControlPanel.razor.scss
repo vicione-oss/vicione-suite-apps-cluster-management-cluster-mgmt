@@ -1,0 +1,39 @@
+﻿@use "./../../../../shared/styles/colors.scss";
+@use "./../../../../shared/styles/typography";
+@use 'sass:color';
+@use "./../../Styles/icons/monochrome-icons" with (
+    $svg-base-url: "./icons/monochrome-icons",
+    $base-selector: "::deep"
+);
+
+.input {
+    display: none;
+}
+
+.grid-wrapper {
+    ::deep .tree-pane {
+        height: 100%;
+    }
+}
+
+::deep .tree-editor-container {
+    background-color: transparent !important;
+    margin-top: 12px;
+
+    .icon > svg {
+        height: 24px;
+        width: 24px;
+
+        g {
+            fill: colors.$color-font;
+        }
+    }
+
+    .tree-node {
+        grid-column-gap: 8px;
+    }
+
+    .tree-node-display-container.selected {
+        background-color: colors.$color-foreground-light-dark;
+    }
+}

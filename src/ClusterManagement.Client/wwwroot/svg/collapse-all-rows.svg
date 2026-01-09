@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32px" height="32px" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>dark-theme/standard/32x32/collapse all rows</title>
+    <g id="dark-theme/standard/32x32/collapse-all-rows" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <path d="M28,17 L28,25 L20,25 L20,17 L28,17 Z M26.4130738,20.370219 L21.2585935,20.370219 L21.2585935,21.6588391 L26.4130738,21.6588391 L26.4130738,20.370219 Z M21,15 L21,16 L19,16 L19,16.999 L5,17 L5,15 L21,15 Z M21,11 L21,13 L5,13 L5,11 L21,11 Z M21,7 L21,9 L5,9 L5,7 L21,7 Z" id="Icon" fill="#DEDEDE"></path>
+    </g>
+</svg>

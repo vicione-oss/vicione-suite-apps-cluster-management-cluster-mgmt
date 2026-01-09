@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>ViciOne.Suite.ClusterManagement.Public</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ViciOne.Cluster.Builder" />
+    <PackageReference Include="ViciOne.Suite.Sdk" />
+  </ItemGroup>
+
+</Project>

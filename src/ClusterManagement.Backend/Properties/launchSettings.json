@@ -1,0 +1,12 @@
+﻿{
+  "profiles": {
+    "ClusterManagement.SuiteDebug": {
+        "commandName": "Executable",
+        "executablePath": "C:\\Repos\\vo-suite-2\\src\\Core.OS\\bin\\Debug\\net9.0\\ViciOne.Suite.Core.OS.exe",
+        "workingDirectory": "C:\\Repos\\vo-suite-2\\src\\Core.OS\\bin\\Debug\\net9.0",
+        "environmentVariables": {
+            "ASPNETCORE_ENVIRONMENT": "Development"
+        }
+    }
+  }
+}

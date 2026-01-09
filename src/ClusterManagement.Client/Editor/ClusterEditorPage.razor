@@ -1,0 +1,22 @@
+﻿@using ClusterManagement.Public
+@using ClusterManagement.Client.Editor.Dialogs
+@using Microsoft.AspNetCore.Components.Routing
+@using Sdk.Authorization
+@using ViciOne.Ui.ClusterEditor.Components
+
+
+@attribute [Route(Constants.EditorModuleRoute)]
+@attribute [ModuleAuthorize<ClusterManagementClientModule>(AccessLevel.Full)]
+@inherits ModulePageBase<ClusterManagementClientModule>
+
+<div class="cluster-editor-page">
+    @if (_resourcesLoaded)
+    {
+        <ClusterEditor />
+    }
+    <NavigationLock OnBeforeInternalNavigation="ConfirmLeave" ConfirmExternalNavigation="@_hasUnsavedChanges" />
+</div>
+
+<SaveClusterDialog />
+<LoadFunctionBlockDialog />
+<ClusterWizardDialog />

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32px" height="32px" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>device-outline</title>
+    <g id="device-outline" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <path d="M28,7.5 L28,24.5 L4,24.5 L4,7.5 L28,7.5 Z M27,8.5 L5,8.5 L5,23.5 L27,23.5 L27,8.5 Z M21.25,17.4166667 C22.4926407,17.4166667 23.5,18.3680616 23.5,19.5416667 C23.5,20.7152718 22.4926407,21.6666667 21.25,21.6666667 C20.0073593,21.6666667 19,20.7152718 19,19.5416667 C19,18.3680616 20.0073593,17.4166667 21.25,17.4166667 Z M13.6,10.6875 L13.6,21.3125 L7.6,21.3125 L7.6,10.6875 L13.6,10.6875 Z M24.4,10.6875 L24.4,12.8125 L17.2,12.8125 L17.2,10.6875 L24.4,10.6875 Z" id="Icon" fill="#DEDEDE"></path>
+    </g>
+</svg>

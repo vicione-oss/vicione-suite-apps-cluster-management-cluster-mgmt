@@ -1,0 +1,94 @@
+﻿using ClusterManagement.Public.Requests;
+
+namespace ClusterManagement.Client.Management.Models;
+
+public sealed class ClusterInfoModel : IComparable<ClusterInfoModel>, IEquatable<ClusterInfoModel>
+{
+    private readonly ClusterInfo _clusterInfo;
+
+    /// <summary>
+    /// Wrap the original cluster to avoid its IEquatable 
+    /// </summary>
+    public Version Version => _clusterInfo.Version;
+
+    public Guid Id => _clusterInfo.Id;
+
+    public string DisplayName => _clusterInfo.Name;
+
+    public string DisplayNameVersion => $"{_clusterInfo.Name} v{_clusterInfo.Version}";
+
+    public string Description => _clusterInfo.Description ?? "-";
+
+    /// <summary>
+    /// Provide a unique key value for data grid rows
+    /// </summary>
+    public string Key => $"{Id}-{Version}";
+
+    public bool IsActive { get; set; }
+    public bool IsExecuting { get; set; }
+    public bool IsDefault { get; set; }
+
+    public bool IsLatest { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public TimeSpan? DeploymentDuration { get; set; }
+
+    public List<DeploymentErrorModel> DeploymentErrors { get; } = [];
+
+    public ClusterInfoModel(ClusterInfo info)
+    {
+        _clusterInfo = info;
+        IsActive = info.IsActive;
+        if (IsActive)
+            Status = "Active";
+        if (info.Version == Public.Constants.DefaultClusterVersion)
+            IsDefault = true;
+    }
+
+    public int CompareTo(ClusterInfoModel? other)
+    {
+        if (other is null)
+            return -1;
+
+        if (!Equals(Id, other.Id))
+            return Id.CompareTo(other.Id);// asc
+
+        // descending
+        return other.Version.CompareTo(Version);
+    }
+
+    public bool Equals(ClusterInfoModel? other)
+        => Equals(Key, other?.Key);
+
+    public bool IsMatch(Guid? clusterId, Version? version)
+        => Equals(Id, clusterId)
+            && Equals(Version, version);
+
+    public override bool Equals(object? obj)
+        => Equals(obj as ClusterInfoModel);
+
+    public override int GetHashCode()
+        => HashCode.Combine(Id, Version);
+
+    public static bool operator ==(ClusterInfoModel? left, ClusterInfoModel? right)
+    {
+        if (left is null)
+            return right is null;
+
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(ClusterInfoModel? left, ClusterInfoModel? right)
+        => !(left == right);
+
+    public static bool operator <(ClusterInfoModel left, ClusterInfoModel right)
+        => left is null ? right is not null : left.CompareTo(right) < 0;
+
+    public static bool operator <=(ClusterInfoModel left, ClusterInfoModel right)
+        => left is null || left.CompareTo(right) <= 0;
+
+    public static bool operator >(ClusterInfoModel left, ClusterInfoModel right)
+        => left is not null && left.CompareTo(right) > 0;
+
+    public static bool operator >=(ClusterInfoModel left, ClusterInfoModel right)
+        => left is null ? right is null : left.CompareTo(right) >= 0;
+}

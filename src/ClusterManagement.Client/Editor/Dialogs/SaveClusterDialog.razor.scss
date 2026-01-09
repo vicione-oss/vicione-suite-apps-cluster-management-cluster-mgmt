@@ -1,0 +1,27 @@
+.controls-container {
+    align-items: center;
+    display: grid;
+    justify-items: end;
+    padding: 32px;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(3, 24px);
+    grid-row-gap: 16px;
+
+    & span {
+        justify-self: start;
+    }
+
+    > ::deep input {
+        justify-self: stretch;
+        text-align: right;
+    }
+}
+
+.save-dialog-content {
+    align-content: center;
+    bottom: 0;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+}

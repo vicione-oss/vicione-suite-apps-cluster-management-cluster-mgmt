@@ -1,0 +1,13 @@
+﻿@using Sdk.Authorization
+@using Sdk.Client.NavTiles.Components
+
+@attribute [ModuleAuthorize<ClusterManagementClientModule>(AccessLevel.Full)]
+
+@inherits NavTileBase
+
+<NavTileStandardContent Headline="@Localization.ClusterEditor.ModuleTitle"
+                        Subline="@Localization.ClusterEditor.ModuleDescription"
+                        IconSrc="@(ModuleAssetHelper.GetModuleIconPath<ClusterManagementClientModule>("cluster-editor.svg"))"
+                        IconAlt="@Localization.ClusterEditor.ModuleTitle"
+                        OnContentLoading="@ContentLoading"
+                        OnContentReady="@ContentReady" />

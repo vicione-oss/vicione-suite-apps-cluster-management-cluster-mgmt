@@ -1,0 +1,16 @@
+﻿::deep .cluster-editor-page div:first-of-type {
+    height: 100%;
+}
+
+::deep .cluster-editor {
+    height: 100%;
+}
+
+.cluster-editor-page {
+    height: 100%;
+    position: relative;
+}
+
+span.confirmation {
+    padding: 10px 5px 10px 5px
+}

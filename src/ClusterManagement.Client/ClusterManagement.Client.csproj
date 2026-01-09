@@ -1,0 +1,185 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <AssemblyName>ViciOne.Suite.ClusterManagement.Client</AssemblyName>
+    <CompressionEnabled>false</CompressionEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AspNetCore.SassCompiler" PrivateAssets="all" />
+    <PackageReference Include="MQTTnet" />
+    <PackageReference Include="ViciOne.Suite.Sdk.Client" />
+    <PackageReference Include="ViciOne.Ui.ClusterEditor" />
+    <PackageReference Include="ViciOne.Ui.MonochromeIcons.Assets">
+      <PrivateAssets>all</PrivateAssets>
+      <ExcludeAssets>runtime</ExcludeAssets>
+      <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ClusterManagement.Internal\ClusterManagement.Internal.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ViciOne.Suite.ClusterManagement.Client.Tests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+  </ItemGroup>
+
+  <!-- Prevent Microsoft.NET.Sdk.Razor from copying unnecessary file -->
+  <ItemGroup>
+    <Content Update="sasscompiler.json;tsconfig.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+    <Content Update="package*.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Editor\Localization\ClusterEditorSettings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ClusterEditorSettings.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Editor\Localization\SaveClusterDialog.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>SaveClusterDialog.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Editor\Localization\ClusterTopologyEditDialog.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ClusterTopologyEditDialog.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Editor\Localization\ClusterWizardDialog.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ClusterWizardDialog.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Editor\Localization\LoadFunctionBlockDialog.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>LoadFunctionBlockDialog.resx</DependentUpon>
+    </Compile>
+    <Compile Update="IoddManagement\Localization\IoddControlPanel.Designer.cs">
+      <DependentUpon>IoddControlPanel.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+    </Compile>
+    <Compile Update="IoddManagement\Localization\Common.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Common.resx</DependentUpon>
+    </Compile>
+    <Compile Update="IoddManagement\Localization\IoddDetailsControlPanel.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>IoddDetailsControlPanel.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Localization\ClusterTerms.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ClusterTerms.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Management\Localization\ClusterTopologyInfoDialog.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ClusterTopologyInfoDialog.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Management\Localization\Common.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Common.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Editor\Localization\ClusterEditor.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ClusterEditor.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\SvgIcons.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>SvgIcons.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Editor\Localization\ImportWizard.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ImportWizard.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Editor\Localization\ClusterEditorSettings.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ClusterEditorSettings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Editor\Localization\SaveClusterDialog.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>SaveClusterDialog.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Editor\Localization\ClusterTopologyEditDialog.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>ClusterTopologyEditDialog.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Editor\Localization\ClusterWizardDialog.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ClusterWizardDialog.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Editor\Localization\LoadFunctionBlockDialog.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>LoadFunctionBlockDialog.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="IoddManagement\Localization\IoddControlPanel.resx">
+      <LastGenOutput>IoddControlPanel.Designer.cs</LastGenOutput>
+      <Generator>ResXFileCodeGenerator</Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Update="IoddManagement\Localization\Common.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Common.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="IoddManagement\Localization\IoddDetailsControlPanel.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>IoddDetailsControlPanel.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Localization\ClusterTerms.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ClusterTerms.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Management\Localization\ClusterTopologyInfoDialog.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ClusterTopologyInfoDialog.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Management\Localization\Common.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Common.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Editor\Localization\ClusterEditor.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ClusterEditor.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\SvgIcons.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>SvgIcons.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Editor\Localization\ImportWizard.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ImportWizard.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <Target Name="ConfigureMonochromeIcons" BeforeTargets="BeforeMonochromeIconTargets">
+    <ItemGroup>
+      <MonochromeIcon Include="import" Size="24" />
+      <MonochromeIcon Include="export" Size="24" />
+      <MonochromeIcon Include="delete" Size="24" />
+      <MonochromeIcon Include="folder" Size="24" />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <MonochromeIconSvgOutputFolder>$(MSBuildProjectDirectory)/wwwroot/icons/monochrome-icons</MonochromeIconSvgOutputFolder>
+      <MonochromeIconScssOutputFolder>$(MSBuildProjectDirectory)/Styles/icons/monochrome-icons</MonochromeIconScssOutputFolder>
+    </PropertyGroup>
+  </Target>
+
+</Project>

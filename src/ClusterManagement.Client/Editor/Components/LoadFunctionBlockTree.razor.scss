@@ -1,0 +1,163 @@
+﻿@use "./../../../../shared/styles/colors.scss";
+
+.fb-tree-container {
+    display: grid;
+    font-size: 11px;
+    grid-template-columns: 16px auto;
+
+    &.block-layer,
+    &.sub-layer {
+        > .sub-layer-container {
+            padding-left: 2px;
+        }
+    }
+
+    &.block-layer {
+        background-color: colors.$color-background;
+
+        > .orientation-guide {
+            grid-column: 1;
+        }
+
+        > .sub-layer-container {
+            border-radius: 5px 0px 0px 5px;
+            cursor: pointer;
+            grid-column: 2;
+            padding-left: 5px;
+            user-select: none;
+        }
+    }
+
+    &.hidden {
+        visibility: hidden;
+        max-height: 0px;
+    }
+
+    &.sub-layer {
+        background-color: colors.$color-background;
+        overflow: hidden;
+    }
+
+    &:not(.sub-layer):not(.block-layer) {
+        grid-template-columns: 14px 18px auto;
+        grid-template-rows: 40px max-content;
+
+        &:not(.hidden) {
+            border-top: 1px solid colors.$color-border;
+        }
+
+        &.last-sibling {
+            &:not(.hidden) {
+                border-bottom: 1px solid colors.$color-border;
+            }
+        }
+
+        > .dropdown-icon {
+            grid-column: 2;
+        }
+
+        > .header-text {
+            align-items: center;
+            display: flex;
+            font-weight: 700;
+            grid-column: 3 !important;
+            height: 40px;
+            padding-left: 5px;
+        }
+
+        > .sub-layer-container {
+            grid-column: 1 / -1 !important;
+        }
+    }
+
+    &.upper-layer {
+        padding-left: 16px;
+    }
+
+    > .dropdown-icon {
+        align-items: center;
+        border-radius: 5px 0px 0px 5px;
+        cursor: pointer;
+        display: flex;
+        grid-column: 1;
+        grid-row: 1;
+        justify-content: center;
+        user-select: none;
+
+        &.expanded > ::deep svg {
+            transform: rotate(90deg);
+        }
+
+        ::deep > svg {
+            height: 9px;
+            width: 9px;
+
+            > path {
+                fill: colors.$color-font;
+            }
+        }
+    }
+
+    > .header-text {
+        align-items: center;
+        cursor: pointer;
+        display: flex;
+        grid-column: 2;
+        grid-row: 1;
+        user-select: none;
+        padding-left: 5px;
+    }
+
+    > .orientation-guide {
+        display: grid;
+        grid-column: 1;
+        grid-row: 2;
+        grid-template-columns: auto 2px auto;
+        grid-template-rows: auto 2px auto;
+        user-select: none;
+
+        &.branch {
+            > span:first-of-type {
+                grid-column: 2;
+                grid-row: 1 / -1;
+            }
+
+            > span:last-of-type {
+                grid-column: 3;
+                grid-row: 2;
+            }
+        }
+
+        &.line {
+            > span:first-of-type {
+                grid-column: 2;
+                grid-row: 1 / -1;
+            }
+
+            > span:last-of-type {
+                visibility: hidden;
+            }
+        }
+
+        &.end {
+            > span:first-of-type {
+                grid-column: 2;
+                grid-row: 1 / -2;
+            }
+
+            > span:last-of-type {
+                grid-column: 3;
+                grid-row: 2;
+            }
+        }
+
+        > span {
+            background-color: colors.$color-border;
+        }
+    }
+
+    > .sub-layer-container {
+        grid-column: 2;
+        grid-row: 2;
+    }
+}

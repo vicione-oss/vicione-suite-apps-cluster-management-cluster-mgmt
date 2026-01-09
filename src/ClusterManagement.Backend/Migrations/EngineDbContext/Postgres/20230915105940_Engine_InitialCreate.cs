@@ -1,0 +1,703 @@
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+
+#nullable disable
+
+namespace ClusterManagement.Backend.Ef.Migrations.EngineDbContext.Postgres
+{
+    /// <inheritdoc />
+    public partial class Engine_InitialCreate : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.EnsureSchema(
+                name: "engines");
+
+            migrationBuilder.CreateTable(
+                name: "EngineHosts",
+                schema: "engines",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EngineHosts", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "EngineDeployments",
+                schema: "engines",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    EngineHostId = table.Column<Guid>(type: "uuid", nullable: false),
+                    EngineId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ShouldRun = table.Column<bool>(type: "boolean", nullable: false),
+                    Version = table.Column<string>(type: "text", nullable: false),
+                    Replica = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EngineDeployments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_EngineDeployments_EngineHosts_EngineHostId",
+                        column: x => x.EngineHostId,
+                        principalSchema: "engines",
+                        principalTable: "EngineHosts",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Workflow",
+                schema: "engines",
+                columns: table => new
+                {
+                    DatabaseId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    EngineDeploymentId = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Workflow", x => x.DatabaseId);
+                    table.ForeignKey(
+                        name: "FK_Workflow_EngineDeployments_EngineDeploymentId",
+                        column: x => x.EngineDeploymentId,
+                        principalSchema: "engines",
+                        principalTable: "EngineDeployments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ClusterDependency",
+                schema: "engines",
+                columns: table => new
+                {
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Version = table.Column<string>(type: "text", nullable: false),
+                    WorkflowDatabaseId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ClusterDependency", x => new { x.Name, x.Version, x.WorkflowDatabaseId });
+                    table.ForeignKey(
+                        name: "FK_ClusterDependency_Workflow_WorkflowDatabaseId",
+                        column: x => x.WorkflowDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "Workflow",
+                        principalColumn: "DatabaseId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Container",
+                schema: "engines",
+                columns: table => new
+                {
+                    DatabaseId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ParentContainerId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    WorkflowDatabaseId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Container", x => x.DatabaseId);
+                    table.ForeignKey(
+                        name: "FK_Container_Workflow_WorkflowDatabaseId",
+                        column: x => x.WorkflowDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "Workflow",
+                        principalColumn: "DatabaseId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Engine",
+                schema: "engines",
+                columns: table => new
+                {
+                    DatabaseId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    CycleTime = table.Column<long>(type: "bigint", nullable: false),
+                    ChainIndex = table.Column<int>(type: "integer", nullable: false),
+                    LogLevel = table.Column<int>(type: "integer", nullable: false),
+                    WorkflowId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Engine", x => x.DatabaseId);
+                    table.ForeignKey(
+                        name: "FK_Engine_Workflow_WorkflowId",
+                        column: x => x.WorkflowId,
+                        principalSchema: "engines",
+                        principalTable: "Workflow",
+                        principalColumn: "DatabaseId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ExternalConnection",
+                schema: "engines",
+                columns: table => new
+                {
+                    DatabaseId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WorkflowDatabaseId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ExternalConnection", x => x.DatabaseId);
+                    table.ForeignKey(
+                        name: "FK_ExternalConnection_Workflow_WorkflowDatabaseId",
+                        column: x => x.WorkflowDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "Workflow",
+                        principalColumn: "DatabaseId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "FunctionBlock",
+                schema: "engines",
+                columns: table => new
+                {
+                    DatabaseId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ContainerId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    DesignId = table.Column<Guid>(type: "uuid", nullable: false),
+                    RunMode = table.Column<int>(type: "integer", nullable: false),
+                    CycleFrequency = table.Column<long>(type: "bigint", nullable: false),
+                    RunIndex = table.Column<long>(type: "bigint", nullable: false),
+                    WorkflowDatabaseId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FunctionBlock", x => x.DatabaseId);
+                    table.ForeignKey(
+                        name: "FK_FunctionBlock_Workflow_WorkflowDatabaseId",
+                        column: x => x.WorkflowDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "Workflow",
+                        principalColumn: "DatabaseId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "FunctionBlockConnectorDesign",
+                schema: "engines",
+                columns: table => new
+                {
+                    DatabaseId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ConnectorId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    ValueType = table.Column<string>(type: "text", nullable: false),
+                    IsInput = table.Column<bool>(type: "boolean", nullable: false),
+                    WorkflowDatabaseId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FunctionBlockConnectorDesign", x => x.DatabaseId);
+                    table.ForeignKey(
+                        name: "FK_FunctionBlockConnectorDesign_Workflow_WorkflowDatabaseId",
+                        column: x => x.WorkflowDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "Workflow",
+                        principalColumn: "DatabaseId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MqttCommunication",
+                schema: "engines",
+                columns: table => new
+                {
+                    DatabaseId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Protocol = table.Column<int>(type: "integer", nullable: false),
+                    Address = table.Column<string>(type: "text", nullable: false),
+                    TcpPort = table.Column<int>(type: "integer", nullable: true),
+                    Username = table.Column<string>(type: "text", nullable: true),
+                    Password = table.Column<string>(type: "text", nullable: true),
+                    PersistenceCommunicationId = table.Column<int>(type: "integer", nullable: true),
+                    RuntimeFunctionsCommunicationId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MqttCommunication", x => x.DatabaseId);
+                    table.ForeignKey(
+                        name: "FK_MqttCommunication_Workflow_PersistenceCommunicationId",
+                        column: x => x.PersistenceCommunicationId,
+                        principalSchema: "engines",
+                        principalTable: "Workflow",
+                        principalColumn: "DatabaseId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MqttCommunication_Workflow_RuntimeFunctionsCommunicationId",
+                        column: x => x.RuntimeFunctionsCommunicationId,
+                        principalSchema: "engines",
+                        principalTable: "Workflow",
+                        principalColumn: "DatabaseId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OutgoingLink",
+                schema: "engines",
+                columns: table => new
+                {
+                    DatabaseId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ConnectorId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ExternalConnectionDatabaseId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OutgoingLink", x => x.DatabaseId);
+                    table.ForeignKey(
+                        name: "FK_OutgoingLink_ExternalConnection_ExternalConnectionDatabaseId",
+                        column: x => x.ExternalConnectionDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "ExternalConnection",
+                        principalColumn: "DatabaseId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TypedObject",
+                schema: "engines",
+                columns: table => new
+                {
+                    DatabaseId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Type = table.Column<string>(type: "text", nullable: false),
+                    Value = table.Column<string>(type: "text", nullable: true),
+                    ExternalConnectionId = table.Column<int>(type: "integer", nullable: true),
+                    WorkflowDatabaseId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TypedObject", x => x.DatabaseId);
+                    table.ForeignKey(
+                        name: "FK_TypedObject_ExternalConnection_ExternalConnectionId",
+                        column: x => x.ExternalConnectionId,
+                        principalSchema: "engines",
+                        principalTable: "ExternalConnection",
+                        principalColumn: "DatabaseId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TypedObject_Workflow_WorkflowDatabaseId",
+                        column: x => x.WorkflowDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "Workflow",
+                        principalColumn: "DatabaseId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "FunctionBlockConnector",
+                schema: "engines",
+                columns: table => new
+                {
+                    DatabaseId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    DesignId = table.Column<Guid>(type: "uuid", nullable: false),
+                    InitialValueDatabaseId = table.Column<int>(type: "integer", nullable: true),
+                    PoolingStrategy = table.Column<int>(type: "integer", nullable: true),
+                    AggregatingPoolingDatabaseId = table.Column<int>(type: "integer", nullable: true),
+                    MarkAsChangedOnlyIfNotEqual = table.Column<bool>(type: "boolean", nullable: false),
+                    ValidatorDatabaseId = table.Column<int>(type: "integer", nullable: true),
+                    FunctionBlockDatabaseId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FunctionBlockConnector", x => x.DatabaseId);
+                    table.ForeignKey(
+                        name: "FK_FunctionBlockConnector_FunctionBlock_FunctionBlockDatabaseId",
+                        column: x => x.FunctionBlockDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "FunctionBlock",
+                        principalColumn: "DatabaseId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_FunctionBlockConnector_TypedObject_AggregatingPoolingDataba~",
+                        column: x => x.AggregatingPoolingDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "TypedObject",
+                        principalColumn: "DatabaseId");
+                    table.ForeignKey(
+                        name: "FK_FunctionBlockConnector_TypedObject_InitialValueDatabaseId",
+                        column: x => x.InitialValueDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "TypedObject",
+                        principalColumn: "DatabaseId");
+                    table.ForeignKey(
+                        name: "FK_FunctionBlockConnector_TypedObject_ValidatorDatabaseId",
+                        column: x => x.ValidatorDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "TypedObject",
+                        principalColumn: "DatabaseId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "FunctionBlockConnectorLink",
+                schema: "engines",
+                columns: table => new
+                {
+                    DatabaseId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    SourceConnectorId = table.Column<Guid>(type: "uuid", nullable: false),
+                    DestinationConnectorId = table.Column<Guid>(type: "uuid", nullable: false),
+                    TypeConverterDatabaseId = table.Column<int>(type: "integer", nullable: true),
+                    WorkflowDatabaseId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FunctionBlockConnectorLink", x => x.DatabaseId);
+                    table.ForeignKey(
+                        name: "FK_FunctionBlockConnectorLink_TypedObject_TypeConverterDatabas~",
+                        column: x => x.TypeConverterDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "TypedObject",
+                        principalColumn: "DatabaseId");
+                    table.ForeignKey(
+                        name: "FK_FunctionBlockConnectorLink_Workflow_WorkflowDatabaseId",
+                        column: x => x.WorkflowDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "Workflow",
+                        principalColumn: "DatabaseId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "FunctionBlockSetting",
+                schema: "engines",
+                columns: table => new
+                {
+                    DatabaseId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    DesignId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ValueDatabaseId = table.Column<int>(type: "integer", nullable: true),
+                    Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    FunctionBlockDatabaseId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FunctionBlockSetting", x => x.DatabaseId);
+                    table.ForeignKey(
+                        name: "FK_FunctionBlockSetting_FunctionBlock_FunctionBlockDatabaseId",
+                        column: x => x.FunctionBlockDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "FunctionBlock",
+                        principalColumn: "DatabaseId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_FunctionBlockSetting_TypedObject_ValueDatabaseId",
+                        column: x => x.ValueDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "TypedObject",
+                        principalColumn: "DatabaseId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "FunctionBlockVariable",
+                schema: "engines",
+                columns: table => new
+                {
+                    DatabaseId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    DesignId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ValueDatabaseId = table.Column<int>(type: "integer", nullable: true),
+                    Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    FunctionBlockDatabaseId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FunctionBlockVariable", x => x.DatabaseId);
+                    table.ForeignKey(
+                        name: "FK_FunctionBlockVariable_FunctionBlock_FunctionBlockDatabaseId",
+                        column: x => x.FunctionBlockDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "FunctionBlock",
+                        principalColumn: "DatabaseId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_FunctionBlockVariable_TypedObject_ValueDatabaseId",
+                        column: x => x.ValueDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "TypedObject",
+                        principalColumn: "DatabaseId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "IncomingLink",
+                schema: "engines",
+                columns: table => new
+                {
+                    DatabaseId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ConnectorId = table.Column<Guid>(type: "uuid", nullable: false),
+                    RemoteId = table.Column<Guid>(type: "uuid", nullable: false),
+                    SourceType = table.Column<string>(type: "text", nullable: false),
+                    TypeConverterDatabaseId = table.Column<int>(type: "integer", nullable: true),
+                    ExternalConnectionDatabaseId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_IncomingLink", x => x.DatabaseId);
+                    table.ForeignKey(
+                        name: "FK_IncomingLink_ExternalConnection_ExternalConnectionDatabaseId",
+                        column: x => x.ExternalConnectionDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "ExternalConnection",
+                        principalColumn: "DatabaseId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_IncomingLink_TypedObject_TypeConverterDatabaseId",
+                        column: x => x.TypeConverterDatabaseId,
+                        principalSchema: "engines",
+                        principalTable: "TypedObject",
+                        principalColumn: "DatabaseId");
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ClusterDependency_WorkflowDatabaseId",
+                schema: "engines",
+                table: "ClusterDependency",
+                column: "WorkflowDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Container_WorkflowDatabaseId",
+                schema: "engines",
+                table: "Container",
+                column: "WorkflowDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Engine_WorkflowId",
+                schema: "engines",
+                table: "Engine",
+                column: "WorkflowId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EngineDeployments_EngineHostId",
+                schema: "engines",
+                table: "EngineDeployments",
+                column: "EngineHostId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ExternalConnection_WorkflowDatabaseId",
+                schema: "engines",
+                table: "ExternalConnection",
+                column: "WorkflowDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FunctionBlock_WorkflowDatabaseId",
+                schema: "engines",
+                table: "FunctionBlock",
+                column: "WorkflowDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FunctionBlockConnector_AggregatingPoolingDatabaseId",
+                schema: "engines",
+                table: "FunctionBlockConnector",
+                column: "AggregatingPoolingDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FunctionBlockConnector_FunctionBlockDatabaseId",
+                schema: "engines",
+                table: "FunctionBlockConnector",
+                column: "FunctionBlockDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FunctionBlockConnector_InitialValueDatabaseId",
+                schema: "engines",
+                table: "FunctionBlockConnector",
+                column: "InitialValueDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FunctionBlockConnector_ValidatorDatabaseId",
+                schema: "engines",
+                table: "FunctionBlockConnector",
+                column: "ValidatorDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FunctionBlockConnectorDesign_WorkflowDatabaseId",
+                schema: "engines",
+                table: "FunctionBlockConnectorDesign",
+                column: "WorkflowDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FunctionBlockConnectorLink_TypeConverterDatabaseId",
+                schema: "engines",
+                table: "FunctionBlockConnectorLink",
+                column: "TypeConverterDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FunctionBlockConnectorLink_WorkflowDatabaseId",
+                schema: "engines",
+                table: "FunctionBlockConnectorLink",
+                column: "WorkflowDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FunctionBlockSetting_FunctionBlockDatabaseId",
+                schema: "engines",
+                table: "FunctionBlockSetting",
+                column: "FunctionBlockDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FunctionBlockSetting_ValueDatabaseId",
+                schema: "engines",
+                table: "FunctionBlockSetting",
+                column: "ValueDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FunctionBlockVariable_FunctionBlockDatabaseId",
+                schema: "engines",
+                table: "FunctionBlockVariable",
+                column: "FunctionBlockDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FunctionBlockVariable_ValueDatabaseId",
+                schema: "engines",
+                table: "FunctionBlockVariable",
+                column: "ValueDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_IncomingLink_ExternalConnectionDatabaseId",
+                schema: "engines",
+                table: "IncomingLink",
+                column: "ExternalConnectionDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_IncomingLink_TypeConverterDatabaseId",
+                schema: "engines",
+                table: "IncomingLink",
+                column: "TypeConverterDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MqttCommunication_PersistenceCommunicationId",
+                schema: "engines",
+                table: "MqttCommunication",
+                column: "PersistenceCommunicationId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MqttCommunication_RuntimeFunctionsCommunicationId",
+                schema: "engines",
+                table: "MqttCommunication",
+                column: "RuntimeFunctionsCommunicationId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OutgoingLink_ExternalConnectionDatabaseId",
+                schema: "engines",
+                table: "OutgoingLink",
+                column: "ExternalConnectionDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TypedObject_ExternalConnectionId",
+                schema: "engines",
+                table: "TypedObject",
+                column: "ExternalConnectionId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TypedObject_WorkflowDatabaseId",
+                schema: "engines",
+                table: "TypedObject",
+                column: "WorkflowDatabaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Workflow_EngineDeploymentId",
+                schema: "engines",
+                table: "Workflow",
+                column: "EngineDeploymentId",
+                unique: true);
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "ClusterDependency",
+                schema: "engines");
+
+            migrationBuilder.DropTable(
+                name: "Container",
+                schema: "engines");
+
+            migrationBuilder.DropTable(
+                name: "Engine",
+                schema: "engines");
+
+            migrationBuilder.DropTable(
+                name: "FunctionBlockConnector",
+                schema: "engines");
+
+            migrationBuilder.DropTable(
+                name: "FunctionBlockConnectorDesign",
+                schema: "engines");
+
+            migrationBuilder.DropTable(
+                name: "FunctionBlockConnectorLink",
+                schema: "engines");
+
+            migrationBuilder.DropTable(
+                name: "FunctionBlockSetting",
+                schema: "engines");
+
+            migrationBuilder.DropTable(
+                name: "FunctionBlockVariable",
+                schema: "engines");
+
+            migrationBuilder.DropTable(
+                name: "IncomingLink",
+                schema: "engines");
+
+            migrationBuilder.DropTable(
+                name: "MqttCommunication",
+                schema: "engines");
+
+            migrationBuilder.DropTable(
+                name: "OutgoingLink",
+                schema: "engines");
+
+            migrationBuilder.DropTable(
+                name: "FunctionBlock",
+                schema: "engines");
+
+            migrationBuilder.DropTable(
+                name: "TypedObject",
+                schema: "engines");
+
+            migrationBuilder.DropTable(
+                name: "ExternalConnection",
+                schema: "engines");
+
+            migrationBuilder.DropTable(
+                name: "Workflow",
+                schema: "engines");
+
+            migrationBuilder.DropTable(
+                name: "EngineDeployments",
+                schema: "engines");
+
+            migrationBuilder.DropTable(
+                name: "EngineHosts",
+                schema: "engines");
+        }
+    }
+}
