@@ -1,5 +1,5 @@
 include:
-  - project: "acx/tooling/ci-templates"
+  - project: "vicione-oss/tooling/ci-templates"
     file: "module/v2/dotnet.yml"
 
 variables:
