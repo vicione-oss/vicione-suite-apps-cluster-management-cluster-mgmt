@@ -274,27 +274,27 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
     }
 
     // Source-generated logging methods
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not connect to dataflow events because of '{Status}'")]
+    [LoggerMessage(LogLevel.Warning, "Could not connect to dataflow events because of '{Status}'")]
     private static partial void LogCouldNotConnectToDataflowEvents(ILogger logger, MqttClientConnectResultCode status);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Could not connect to dataflow events")]
+    [LoggerMessage(LogLevel.Error, "Could not connect to dataflow events")]
     private static partial void LogCouldNotConnectToDataflowEventsError(ILogger logger, Exception exception);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to process cluster event {EventId}")]
+    [LoggerMessage(LogLevel.Error, "Failed to process cluster event {EventId}")]
     private static partial void LogFailedToProcessClusterEvent(ILogger logger, Exception exception, Guid eventId);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to get type for {ValueType}")]
+    [LoggerMessage(LogLevel.Warning, "Failed to get type for {ValueType}")]
     private static partial void LogFailedToGetType(ILogger logger, string valueType);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to serialize type {ValueType}")]
+    [LoggerMessage(LogLevel.Error, "Failed to serialize type {ValueType}")]
     private static partial void LogFailedToSerializeType(ILogger logger, Exception exception, string valueType);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Reconnect loop started (interval: {IntervalSeconds}s).")]
+    [LoggerMessage(LogLevel.Information, "Reconnect loop started (interval: {IntervalSeconds}s).")]
     private static partial void LogReconnectLoopStarted(ILogger logger, int intervalSeconds);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Reconnect attempt failed: {Message}")]
+    [LoggerMessage(LogLevel.Debug, "Reconnect attempt failed: {Message}")]
     private static partial void LogReconnectAttemptFailed(ILogger logger, Exception exception, string message);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Reconnect loop stopped.")]
+    [LoggerMessage(LogLevel.Information, "Reconnect loop stopped.")]
     private static partial void LogReconnectLoopStopped(ILogger logger);
 }
