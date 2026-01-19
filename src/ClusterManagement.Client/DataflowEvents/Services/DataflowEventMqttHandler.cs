@@ -88,12 +88,19 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
         if (EventReceivedAsync is null)
             return;
 
+        if (args.ApplicationMessage.Payload.IsEmpty)
+            return;
+
         if (!Guid.TryParse(args.ApplicationMessage.Topic, out var eventId))
             return;
 
         try
         {
-            ArgumentNullException.ThrowIfNull(args.ApplicationMessage.UserProperties, nameof(args.ApplicationMessage.UserProperties));
+            if (args.ApplicationMessage.UserProperties is null)
+            {
+                UserPropertiesMissing(_logger, args.ApplicationMessage.Topic);
+                return;
+            }
 
             var timestamp = args.ApplicationMessage.FindRequiredUserProperty(MqttUserProperties.Timestamp).GetDateTime();
 
@@ -297,4 +304,7 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
 
     [LoggerMessage(LogLevel.Information, "Reconnect loop stopped.")]
     private static partial void LogReconnectLoopStopped(ILogger logger);
+
+    [LoggerMessage(LogLevel.Error, "Received message on '{Topic}' without UserProperties.")]
+    private static partial void UserPropertiesMissing(ILogger logger, string topic);
 }

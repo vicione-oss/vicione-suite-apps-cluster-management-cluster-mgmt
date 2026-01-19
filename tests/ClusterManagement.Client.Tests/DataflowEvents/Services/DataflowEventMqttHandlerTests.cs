@@ -239,6 +239,7 @@ public class DataflowEventMqttHandlerTests
         private static MqttApplicationMessageReceivedEventArgs CreateMessageReceivedArgs(string topic, Action<MqttApplicationMessageBuilder>? builder = null)
         {
             var messageBuilder = new MqttApplicationMessageBuilder();
+            messageBuilder.WithPayload(" ");
             if (!string.IsNullOrEmpty(topic))
                 messageBuilder.WithTopic(topic);
 
