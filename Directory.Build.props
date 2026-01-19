@@ -45,7 +45,7 @@
     <!-- NuGet packages -->
     <PropertyGroup>
         <!-- https://docs.microsoft.com/de-de/nuget/reference/msbuild-targets -->
-        <PackageProjectUrl>https://gitlab.i40.ifm-datalink.net/acx/vo-suite/modules/cluster-mgmt</PackageProjectUrl>
+        <PackageProjectUrl>https://gitlab.com/vicione-oss/vicione/suite-apps/cluster-management/cluster-mgmt</PackageProjectUrl>
         <Authors>$(Company)</Authors>
     </PropertyGroup>
 
