@@ -268,7 +268,7 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
     }
 
     /// <summary>
-    /// copy of https://gitlab.i40.ifm-datalink.net/acx/vo-suite/engine-host/-/blob/master/src/CommunicationProviders/Communication/MqttUserProperties.cs
+    /// copy of https://gitlab.com/vicione-oss/vicione/runtime/engine-host/-/blob/master/src/CommunicationProviders/Communication/MqttUserProperties.cs
     /// </summary>
     internal static class MqttUserProperties
     {
