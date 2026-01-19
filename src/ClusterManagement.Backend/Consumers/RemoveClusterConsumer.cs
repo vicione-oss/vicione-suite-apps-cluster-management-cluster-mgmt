@@ -63,9 +63,9 @@ public sealed partial class RemoveClusterConsumer(IClusterDbContext dbContext, I
         await context.Publish(errorEvent, context.CancellationToken);
     }
 
-    [LoggerMessage(EventId = 1, Level = LogLevel.Debug, Message = "Consume {command} CorrelationId={correlationId} Id={clusterId} Version={version}")]
+    [LoggerMessage(LogLevel.Debug, "Consume {command} CorrelationId={correlationId} Id={clusterId} Version={version}")]
     internal static partial void LogConsume(ILogger<RemoveClusterConsumer> logger, string command, Guid? correlationId, Guid clusterId, Version version);
 
-    [LoggerMessage(EventId = 2, Level = LogLevel.Error, Message = "Consume {command} faulted on cluster Id={clusterId} Version={version} with '{message}'")]
+    [LoggerMessage(LogLevel.Error, "Consume {command} faulted on cluster Id={clusterId} Version={version} with '{message}'")]
     internal static partial void LogError(ILogger<RemoveClusterConsumer> logger, string command, Guid clusterId, Version version, string message);
 }

@@ -4,6 +4,6 @@ namespace ClusterManagement.Backend.Engines.Consumers;
 
 internal static partial class StopEngineOnInstanceConsumerLog
 {
-    [LoggerMessage(EventId = 1, Level = LogLevel.Debug, Message = "Manually stopping engine '{EngineId}' on '{HostId}' as deployment '{DeploymentId}'")]
+    [LoggerMessage(LogLevel.Debug, "Manually stopping engine '{EngineId}' on '{HostId}' as deployment '{DeploymentId}'")]
     internal static partial void LogStoppingEngine(this ILogger<StopEngineOnInstanceConsumer> logger, Guid engineId, Guid hostId, Guid deploymentId);
 }
