@@ -1,6 +1,6 @@
 ﻿using Sdk.Messaging;
 
-namespace ClusterManagement.Public.Events;
+namespace ClusterManagement.Public.Iodds.Events;
 
 [ForwardToUI]
 public sealed record IoddError(string Name, ErrorInfo Error) : IEvent

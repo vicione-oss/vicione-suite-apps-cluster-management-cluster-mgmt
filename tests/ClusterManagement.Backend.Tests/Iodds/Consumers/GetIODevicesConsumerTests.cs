@@ -1,7 +1,7 @@
 ﻿using AwesomeAssertions;
 using ClusterManagement.Backend.Iodds.Consumers;
 using ClusterManagement.Public.Iodds;
-using ClusterManagement.Public.Requests;
+using ClusterManagement.Public.Iodds.Requests;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;

@@ -1,6 +1,6 @@
 ﻿using Sdk.Messaging;
 
-namespace ClusterManagement.Public.Commands;
+namespace ClusterManagement.Public.Iodds.Commands;
 
 public sealed record DeleteIodd(int VendorId, int DeviceId) : ICommand
 {

@@ -1,6 +1,12 @@
 # Changelog
 
-## 1.3.1 - Unreleased
+## 1.4.0 - Unreleased
+
+### Changed
+
+- Moved commands `AddIodd`, `DeleteIodd` to namespace `Iodds.Commands`
+- Moved events `IoddChanged`, `IoddError` and `AutoIoddDownloadChanged` to namespace `Iodds.Events`
+- Moved all Iodd related requests to namespace `Iodds.Requests`
 
 ### Fixed
 

@@ -1,11 +1,11 @@
-﻿using ClusterManagement.Backend.Iodds.Consumers;
+﻿using AwesomeAssertions;
+using ClusterManagement.Backend.Iodds.Consumers;
 using ClusterManagement.Internal.Commands;
-using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Iodds;
+using ClusterManagement.Public.Iodds.Events;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using Sdk.Backend.Messaging;
 using Sdk.Testing.Backend;
 using Xunit;
 
@@ -14,14 +14,12 @@ namespace ClusterManagement.Backend.Tests.Iodds.Consumers;
 public class SetAutoIoddDownloadConsumerTests
 {
     private readonly Action<IBusRegistrationConfigurator> _configureServices;
-    private readonly ISuiteMediator _mediator = Substitute.For<ISuiteMediator>();
     private readonly IIoddStore _ioddStore = Substitute.For<IIoddStore>();
 
     public SetAutoIoddDownloadConsumerTests()
         => _configureServices = cfg =>
         {
             cfg.AddConsumer<SetAutoIoddDownloadConsumer>();
-            cfg.AddSingleton(_mediator);
             cfg.AddSingleton(_ioddStore);
         };
 
@@ -64,6 +62,6 @@ public class SetAutoIoddDownloadConsumerTests
         await tester.TestCommand<SetAutoIoddDownload, SetAutoIoddDownloadConsumer>(command);
 
         // Assert
-        await _mediator.Received(1).Publish(Arg.Is<AutoIoddDownloadChanged>(e => e.Value));
+        (await tester.Harness.Published.Any<AutoIoddDownloadChanged>()).Should().BeTrue();
     }
 }

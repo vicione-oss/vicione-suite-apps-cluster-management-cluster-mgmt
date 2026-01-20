@@ -663,7 +663,7 @@
       "ViciOne.Suite.ClusterManagement.Internal": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Suite.ClusterManagement.Public": "[1.3.0, )",
+          "ViciOne.Suite.ClusterManagement.Public": "[1.4.0, )",
           "ViciOne.TreeBuilder": "[0.6.0, )"
         }
       },
