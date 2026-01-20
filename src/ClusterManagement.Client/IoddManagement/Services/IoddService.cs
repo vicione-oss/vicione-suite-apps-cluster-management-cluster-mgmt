@@ -1,8 +1,8 @@
 ﻿using ClusterManagement.Internal.Commands;
 using ClusterManagement.Internal.Requests;
-using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Iodds;
-using ClusterManagement.Public.Requests;
+using ClusterManagement.Public.Iodds.Commands;
+using ClusterManagement.Public.Iodds.Requests;
 using Sdk.Client.Infrastructure;
 
 namespace ClusterManagement.Client.IoddManagement.Services;

@@ -1,5 +1,5 @@
 ﻿using ClusterManagement.Public.Iodds;
-using ClusterManagement.Public.Requests;
+using ClusterManagement.Public.Iodds.Requests;
 using MassTransit;
 using Sdk.Messaging;
 

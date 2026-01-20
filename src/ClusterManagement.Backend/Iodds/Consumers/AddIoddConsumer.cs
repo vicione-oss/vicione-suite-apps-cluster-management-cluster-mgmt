@@ -1,14 +1,13 @@
 ﻿using System.IO.Compression;
-using ClusterManagement.Public.Commands;
-using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Iodds;
+using ClusterManagement.Public.Iodds.Commands;
+using ClusterManagement.Public.Iodds.Events;
 using MassTransit;
-using Sdk.Backend.Messaging;
 using Sdk.Messaging;
 
 namespace ClusterManagement.Backend.Iodds.Consumers;
 
-public sealed class AddIoddConsumer(ISuiteMediator mediator, IIoddStore ioddStore) :
+public sealed class AddIoddConsumer(IIoddStore ioddStore) :
     IConsumer<AddIodd>, IConsumer<Fault<AddIodd>>
 {
     public async Task Consume(ConsumeContext<AddIodd> context)
@@ -21,7 +20,7 @@ public sealed class AddIoddConsumer(ISuiteMediator mediator, IIoddStore ioddStor
             var newDevice = ioddStore.Devices.First(d => d.DeviceDescription.DeviceIdentity.VendorId == id.VendorId
                                                         && d.DeviceDescription.DeviceIdentity.DeviceId == id.DeviceId);
 
-            await mediator.Publish(new IoddChanged(id, newDevice, CrudAction.Created));
+            await context.Publish(new IoddChanged(id, newDevice, CrudAction.Created));
         }
         else
         {
@@ -30,5 +29,5 @@ public sealed class AddIoddConsumer(ISuiteMediator mediator, IIoddStore ioddStor
     }
 
     public async Task Consume(ConsumeContext<Fault<AddIodd>> context)
-        => await mediator.Publish(new IoddError("Could not add IODD.", new ErrorInfo(IoddError.ExtractZipError, null)));
+        => await context.Publish(new IoddError("Could not add IODD.", new ErrorInfo(IoddError.ExtractZipError, null)));
 }

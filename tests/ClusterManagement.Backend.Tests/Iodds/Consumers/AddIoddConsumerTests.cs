@@ -1,13 +1,12 @@
 ﻿using System.IO.Compression;
 using AwesomeAssertions;
 using ClusterManagement.Backend.Iodds.Consumers;
-using ClusterManagement.Public.Commands;
-using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Iodds;
+using ClusterManagement.Public.Iodds.Commands;
+using ClusterManagement.Public.Iodds.Events;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using Sdk.Backend.Messaging;
 using Sdk.Messaging;
 using Sdk.Testing.Backend;
 using Xunit;
@@ -18,14 +17,12 @@ public class AddIoddConsumerTests
 {
     private readonly Action<IBusRegistrationConfigurator> _configureServices;
     private readonly IIoddStore _ioddStore = Substitute.For<IIoddStore>();
-    private readonly ISuiteMediator _mediator = Substitute.For<ISuiteMediator>();
 
     public AddIoddConsumerTests()
         => _configureServices = cfg =>
         {
             cfg.AddConsumer<AddIoddConsumer>();
             cfg.AddSingleton(_ioddStore);
-            cfg.AddSingleton(_mediator);
         };
 
     [Fact]
@@ -96,11 +93,11 @@ public class AddIoddConsumerTests
         await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
 
         // Assert
-        await _mediator.Received(1).Publish(Arg.Is<IoddChanged>(e =>
-            e.Iodd.VendorId == expectedId.VendorId &&
-            e.Iodd.DeviceId == expectedId.DeviceId &&
-            e.Action == CrudAction.Created &&
-            e.DeviceInfo == deviceInfo));
+        (await tester.Harness.Published.Any<IoddChanged>(k
+            => k.Context.Message.Iodd.VendorId == expectedId.VendorId
+            && k.Context.Message.Iodd.DeviceId == expectedId.DeviceId
+            && k.Context.Message.Action == CrudAction.Created
+            && k.Context.Message.DeviceInfo == deviceInfo)).Should().BeTrue();
     }
 
     [Fact]
@@ -151,7 +148,6 @@ public class AddIoddConsumerTests
         var faultConfigureServices = new Action<IBusRegistrationConfigurator>(cfg =>
         {
             cfg.AddConsumer<AddIoddConsumer>();
-            cfg.AddSingleton(_mediator);
             cfg.AddSingleton<IIoddStore>(_ =>
             {
                 var store = Substitute.For<IIoddStore>();
@@ -170,9 +166,9 @@ public class AddIoddConsumerTests
 
         // Assert
         await act.Should().ThrowAsync<InvalidDataException>();
-        await _mediator.Received(1).Publish(Arg.Is<IoddError>(e =>
-            e.Error.ErrorCode == IoddError.ExtractZipError &&
-            e.Name == "Could not add IODD."));
+        (await tester.Harness.Published.Any<IoddError>(k 
+            => k.Context.Message.Error.ErrorCode == IoddError.ExtractZipError
+            && k.Context.Message.Name == "Could not add IODD.")).Should().BeTrue();
     }
 
     [Fact]
@@ -231,8 +227,7 @@ public class AddIoddConsumerTests
         await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
 
         // Assert
-        await _mediator.Received(1).Publish(Arg.Is<IoddChanged>(e =>
-            e.DeviceInfo == deviceInfo1));
+        (await tester.Harness.Published.Any<IoddChanged>(k => k.Context.Message.DeviceInfo == deviceInfo1)).Should().BeTrue();
     }
 
     [Fact]

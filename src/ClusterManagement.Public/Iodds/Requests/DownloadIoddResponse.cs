@@ -1,6 +1,6 @@
 ﻿using Sdk.Messaging;
 
-namespace ClusterManagement.Public.Requests;
+namespace ClusterManagement.Public.Iodds.Requests;
 
 public sealed class DownloadIoddResponse : IResponse
 {

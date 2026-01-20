@@ -1,7 +1,7 @@
 ﻿using ClusterManagement.Public.Iodds;
 using Sdk.Messaging;
 
-namespace ClusterManagement.Public.Requests;
+namespace ClusterManagement.Public.Iodds.Requests;
 
 public class GetIODevicesResponse : IResponse
 {

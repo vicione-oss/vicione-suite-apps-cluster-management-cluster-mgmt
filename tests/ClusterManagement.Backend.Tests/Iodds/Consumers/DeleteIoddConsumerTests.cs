@@ -1,12 +1,11 @@
 ﻿using AwesomeAssertions;
 using ClusterManagement.Backend.Iodds.Consumers;
-using ClusterManagement.Public.Commands;
-using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Iodds;
+using ClusterManagement.Public.Iodds.Commands;
+using ClusterManagement.Public.Iodds.Events;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using Sdk.Backend.Messaging;
 using Sdk.Messaging;
 using Sdk.Testing.Backend;
 using Xunit;
@@ -17,14 +16,12 @@ public class DeleteIoddConsumerTests
 {
     private readonly Action<IBusRegistrationConfigurator> _configureServices;
     private readonly IIoddStore _ioddStore = Substitute.For<IIoddStore>();
-    private readonly ISuiteMediator _mediator = Substitute.For<ISuiteMediator>();
 
     public DeleteIoddConsumerTests()
         => _configureServices = cfg =>
         {
             cfg.AddConsumer<DeleteIoddConsumer>();
             cfg.AddSingleton(_ioddStore);
-            cfg.AddSingleton(_mediator);
         };
 
     [Fact]
@@ -74,11 +71,11 @@ public class DeleteIoddConsumerTests
         await tester.TestCommand<DeleteIodd, DeleteIoddConsumer>(command);
 
         // Assert
-        await _mediator.Received(1).Publish(Arg.Is<IoddChanged>(e =>
-            e.Iodd.VendorId == vendorId &&
-            e.Iodd.DeviceId == deviceId &&
-            e.Action == CrudAction.Deleted &&
-            e.DeviceInfo == null));
+        (await tester.Harness.Published.Any<IoddChanged>(k
+            => k.Context.Message.Iodd.VendorId == vendorId
+            && k.Context.Message.Iodd.DeviceId == deviceId
+            && k.Context.Message.Action == CrudAction.Deleted
+            && k.Context.Message.DeviceInfo == null)).Should().BeTrue();
     }
 
     [Fact]
@@ -96,9 +93,9 @@ public class DeleteIoddConsumerTests
         await tester.TestCommand<DeleteIodd, DeleteIoddConsumer>(command);
 
         // Assert
-        await _mediator.Received(1).Publish(Arg.Is<IoddError>(e =>
-            e.Error.ErrorCode == IoddError.DeleteIoddError &&
-            e.Name == "Delete Failed"));
+        (await tester.Harness.Published.Any<IoddError>(k
+            => k.Context.Message.Error.ErrorCode == IoddError.DeleteIoddError
+            && k.Context.Message.Name == "Delete Failed")).Should().BeTrue();
     }
 
     [Fact]
@@ -114,9 +111,9 @@ public class DeleteIoddConsumerTests
         await tester.TestCommand<DeleteIodd, DeleteIoddConsumer>(command);
 
         // Assert
-        await _mediator.Received(1).Publish(Arg.Is<IoddError>(e =>
-            e.Error.ErrorCode == IoddError.DeleteIoddError &&
-            e.Error.Message == "Failed to delete IODD"));
+        (await tester.Harness.Published.Any<IoddError>(k
+            => k.Context.Message.Error.ErrorCode == IoddError.DeleteIoddError
+            && k.Context.Message.Error.Message == "Failed to delete IODD")).Should().BeTrue();
     }
 
     [Fact]
@@ -132,7 +129,7 @@ public class DeleteIoddConsumerTests
         await tester.TestCommand<DeleteIodd, DeleteIoddConsumer>(command);
 
         // Assert
-        await _mediator.DidNotReceive().Publish(Arg.Any<IoddChanged>());
+        (await tester.Harness.Published.Any<IoddChanged>()).Should().BeFalse();
     }
 
     [Fact]
@@ -184,8 +181,8 @@ public class DeleteIoddConsumerTests
         await tester.TestCommand<DeleteIodd, DeleteIoddConsumer>(command);
 
         // Assert
-        await _mediator.Received(1).Publish(Arg.Any<IoddChanged>());
-        await _mediator.DidNotReceive().Publish(Arg.Any<IoddError>());
+        (await tester.Harness.Published.Any<IoddChanged>()).Should().BeTrue();
+        (await tester.Harness.Published.Any<IoddError>()).Should().BeFalse();
     }
 
     [Fact]
@@ -201,8 +198,8 @@ public class DeleteIoddConsumerTests
         await tester.TestCommand<DeleteIodd, DeleteIoddConsumer>(command);
 
         // Assert
-        await _mediator.Received(1).Publish(Arg.Is<IoddError>(e =>
-            e.Error.ErrorCode == IoddError.DeleteIoddError));
+        (await tester.Harness.Published.Any<IoddError>(k
+            => k.Context.Message.Error.ErrorCode == IoddError.DeleteIoddError)).Should().BeTrue();
     }
 
     [Fact]
@@ -212,7 +209,6 @@ public class DeleteIoddConsumerTests
         var exceptionConfigureServices = new Action<IBusRegistrationConfigurator>(cfg =>
         {
             cfg.AddConsumer<DeleteIoddConsumer>();
-            cfg.AddSingleton(_mediator);
             cfg.AddSingleton<IIoddStore>(_ =>
             {
                 var store = Substitute.For<IIoddStore>();
