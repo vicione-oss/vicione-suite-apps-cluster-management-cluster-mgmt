@@ -36,11 +36,11 @@ internal sealed class DesignLoader(
         stoppingToken.Register(() => _downloadProcess.TrySetCanceled(stoppingToken));
         try
         {
-            var dependencies = await _clusterDependencyStore.LoadDependencies(stoppingToken);
-            await DownloadClusterDependencies(dependencies, stoppingToken);
-
             var packagesPath = _fileSystem.GetDependenciesPath(_workspaceProvider);
             _fileSystem.Directory.CreateDirectory(packagesPath);
+
+            var dependencies = await _clusterDependencyStore.LoadDependencies(stoppingToken);
+            await DownloadClusterDependencies(dependencies, stoppingToken);
 
             if (packagesStore is InMemoryPackagesStore inMemoryPackagesStore)
                 inMemoryPackagesStore.Initialize(dependencies);
@@ -48,13 +48,14 @@ internal sealed class DesignLoader(
             // ViciOne.Suite.System.DataPort is a FunctionBlock interface for the providers
             var systemDataPortDependency = LoadSystemDataPortFunctionBlock();
 
-            var existingPackages = PackagesFileProvider.GetComponents(packagesPath, _fileSystem);
+            var existingPackages = _fileSystem.GetComponents(packagesPath);
 
             foreach (var dependency in dependencies)
             {
                 if (dependency.Name.Equals(systemDataPortDependency.Name, StringComparison.OrdinalIgnoreCase))
                     continue;
 
+                // We only load packages that exists as dependency (actually packages.json)
                 var existingPackage = existingPackages.FirstOrDefault(p => p.Key.Name == dependency.Name && ToVersion(p.Key.Version) == dependency.Version);
                 if (existingPackage.Key is null)
                     throw new InvalidOperationException($"Expected package '{dependency.Name}' version '{dependency.Version}' can't be found.");

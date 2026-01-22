@@ -16,7 +16,7 @@ public sealed class GetClusterPackageInfosConsumer(IDesignProvider designProvide
     protected override async Task<GetClusterPackageInfosResponse> Respond(ConsumeContext<GetClusterPackageInfosRequest> context)
     {
         var packageInfos = new List<ClusterPackageInfo>();
-        var coreVersion = SemVersion.FromVersion(PackagesFileProvider.GetViciOneCoreAssemblyVersion());
+        var coreVersion = SemVersion.FromVersion(ClusterAssembliesResolver.GetViciOneCoreAssemblyVersion());
 
         // All packages we have already loaded
         var installed = await designProvider.GetClusterDependencies();

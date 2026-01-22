@@ -2,6 +2,7 @@
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Runtime.Loader;
+using Semver;
 using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Designs;
@@ -9,6 +10,16 @@ namespace ClusterManagement.Backend.Designs;
 // These are merged code snippets from Managed-Engine and Engine-Host
 internal static class ClusterAssembliesResolver
 {
+    public static Version GetViciOneCoreAssemblyVersion()
+        => typeof(ViciOne.Core.Contracts.NameGenerator).Assembly.GetName().Version
+            ?? throw new InvalidOperationException("Failed to resolve ViciOne.Core version.");
+
+    internal static IDictionary<PackageInfo, string> ResolveLatestVersion(this IDictionary<PackageInfo, string> components)
+        => components
+            .GroupBy(p => p.Key.Name)
+            .Select(g => g.OrderByDescending(p => p.Key.Version, SemVersion.PrecedenceComparer).First())
+            .ToDictionary();
+
     internal static IReadOnlyDictionary<string, AssemblyDependencyResolver> Resolve(IEnumerable<ClusterDependency> dependencies, string packagesDirectory, IFileSystem fileSystem)
     {
         var packages = GetPackages(dependencies, packagesDirectory, fileSystem);

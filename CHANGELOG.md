@@ -2,6 +2,10 @@
 
 ## 1.4.0 - Unreleased
 
+### Added
+
+- Allow manual management of cluster packages
+
 ### Changed
 
 - Moved commands `AddIodd`, `DeleteIodd` to namespace `Iodds.Commands`
