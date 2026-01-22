@@ -8,6 +8,7 @@
 
 ### Changed
 
+- Enabled virtual scrolling for `DataflowEventsPage`
 - Moved commands `AddIodd`, `DeleteIodd` to namespace `Iodds.Commands`
 - Moved events `IoddChanged`, `IoddError` and `AutoIoddDownloadChanged` to namespace `Iodds.Events`
 - Moved all Iodd related requests to namespace `Iodds.Requests`
