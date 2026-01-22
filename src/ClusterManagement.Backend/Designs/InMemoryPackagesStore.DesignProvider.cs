@@ -6,7 +6,7 @@ using ViciOne.Core.Dataflow.DataModel;
 
 namespace ClusterManagement.Backend.Designs;
 
-public sealed partial class InMemoryPackagesStore : IDesignProvider
+internal sealed partial class InMemoryPackagesStore : IDesignProvider
 {
     public Task<IDependencyResolver> CreateResolver()
         => Task.FromResult<IDependencyResolver>(new ClusterDependencyResolver(GetDependencyPackages()));

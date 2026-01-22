@@ -141,9 +141,9 @@ internal sealed partial class ClusterSystemTestContext : IAsyncDisposable
 
     private void CopyJsonFiles()
     {
-        var sourcePath = _fileSystem.Path.Combine(GetRootPath(), "src", typeof(ClusterManagementBackendModule).Namespace!, ClusterManagementModuleInitializer.PackagesRessourceFolder);
-        var sourceFile = PackagesFileProvider.GetPackagesFilepath(sourcePath, default, _fileSystem);
-        var targetFile = PackagesFileProvider.GetPackagesFilepath(_workspaceProvider.Home, default, _fileSystem);
+        var sourcePath = _fileSystem.Path.Combine(GetRootPath(), "src", typeof(ClusterManagementBackendModule).Namespace!, ClusterDependencyStore.PackagesRessourceFolder);
+        var sourceFile = ClusterDependencyStore.GetPackagesFilepath(sourcePath, default, _fileSystem);
+        var targetFile = ClusterDependencyStore.GetPackagesFilepath(_workspaceProvider.Home, default, _fileSystem);
         _fileSystem.File.Copy(sourceFile, targetFile);
     }
 

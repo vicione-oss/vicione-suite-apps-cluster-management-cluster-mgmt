@@ -1,6 +1,7 @@
 ﻿using System.IO.Abstractions.TestingHelpers;
-using ClusterManagement.Backend.Designs;
 using AwesomeAssertions;
+using ClusterManagement.Backend.Designs;
+using Semver;
 using ViciOne.Cluster.Model;
 using Xunit;
 
@@ -156,5 +157,37 @@ public class ClusterAssembliesResolver_ToMainComponents
         components.Should().SatisfyRespectively(
             e => e.PackageMainComponent.Should().Be(Path.Combine("dir", "A", "Assembly.dll")),
             e => e.PackageMainComponent.Should().Be(Path.Combine("dir", "B", "Assembly.dll")));
+    }
+}
+
+
+public class ClusterAssembliesResolver_ResolveLatestVersion
+{
+    [Fact]
+    public void Returns_latest_version()
+    {
+        Dictionary<PackageInfo, string> components = new()
+        {
+            { new("A", new(1, 0, 0)), "path/a/1" },
+            { new("A", new(2, 1, 0)), "path/a/2.1" },
+            { new("A", new(2, 0, 0)), "path/a/2" },
+            { new("B", new(1, 0, 0)), "path/b/1" },
+        };
+
+        var result = components.ResolveLatestVersion();
+
+        result.Should().HaveCount(2).And.SatisfyRespectively(
+            e =>
+            {
+                e.Key.Name.Should().Be("A");
+                e.Key.Version.Should().Be(new SemVersion(2, 1, 0));
+                e.Value.Should().Be("path/a/2.1");
+            },
+            e =>
+            {
+                e.Key.Name.Should().Be("B");
+                e.Key.Version.Should().Be(new SemVersion(1, 0, 0));
+                e.Value.Should().Be("path/b/1");
+            });
     }
 }

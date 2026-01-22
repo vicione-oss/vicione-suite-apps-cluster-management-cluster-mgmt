@@ -1,16 +1,12 @@
-﻿using System.IO.Abstractions;
-using System.Reflection;
-using ClusterManagement.Backend.DbContext;
+﻿using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.DeployCluster.Contracts;
 using ClusterManagement.Backend.DeployCluster.Persistence;
 using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Backend.Snapshots;
-using ClusterManagement.Internal;
 using ClusterManagement.Internal.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Sdk.Backend.Messaging;
 using Sdk.Backend.Modules;
 using Sdk.Connections.Commands;
@@ -24,10 +20,9 @@ namespace ClusterManagement.Backend;
 public sealed class ClusterManagementModuleInitializer : IModuleInitializer
 {
     private const string DotnetRunningInContainer = "DOTNET_RUNNING_IN_CONTAINER";
-    internal const string PackagesRessourceFolder = "Packages";
 
     public Task OnPreMigrate(IServiceProvider scopedServices, CancellationToken stoppingToken = default)
-        => CopyPackagesFile(scopedServices, stoppingToken);
+        => scopedServices.GetRequiredService<IClusterDependencyStore>().Initialize(stoppingToken);
 
     public async Task Migrate(IServiceProvider scopedServices, CancellationToken stoppingToken = default)
     {
@@ -51,6 +46,9 @@ public sealed class ClusterManagementModuleInitializer : IModuleInitializer
         var instanceId = scopedServices.GetRequiredService<IInstanceInformationProvider>().Local;
         await SeedDataBase(clusterDb, instanceId, store, stoppingToken);
 
+        await scopedServices.GetRequiredService<IClusterDependencyStore>()
+            .ProcessQueuedOperations(stoppingToken);
+
         await scopedServices.GetRequiredService<ClusterSnapshotStoreMigration>()
             .Migrate(stoppingToken);
     }
@@ -58,25 +56,6 @@ public sealed class ClusterManagementModuleInitializer : IModuleInitializer
     public Task OnInitialized(IServiceProvider scopedServices, CancellationToken stoppingToken = default)
         => scopedServices.GetRequiredService<ISuiteMediator>()
             .Send(new UpsertTag(Public.Constants.CentralBroker), stoppingToken);
-
-    private static async Task CopyPackagesFile(IServiceProvider scopedServices, CancellationToken stoppingToken)
-    {
-        var options = scopedServices.GetRequiredService<IOptions<ClusterManagementOptions>>();
-        var workspaceProvider = scopedServices.GetRequiredService<IWorkspaceProvider<ClusterManagementBackendModule>>();
-        var fileSystem = scopedServices.GetRequiredService<IFileSystem>();
-        var destination = PackagesFileProvider.GetPackagesFilepath(workspaceProvider.Home, options.Value.PackageSet, fileSystem);
-
-        if (fileSystem.File.Exists(destination) && !options.Value.OverwritePackagesFiles)
-            return;
-
-        var name = string.Join('.', typeof(ClusterManagementBackendModule).Namespace, PackagesRessourceFolder, PackagesFileProvider.GetPackagesFilename(options.Value.PackageSet));
-        await using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name);
-        if (stream is null)
-            return;
-
-        await using var destinationStream = fileSystem.FileStream.New(destination, FileMode.Create);
-        await stream.CopyToAsync(destinationStream, stoppingToken);
-    }
 
     private static async Task SeedDataBase(IClusterDbContext clusterDb,
         IInstanceInformation localInstanceInfo,

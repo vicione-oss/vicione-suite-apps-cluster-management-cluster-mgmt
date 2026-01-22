@@ -4,7 +4,7 @@ using ViciOne.TreeBuilder.Rules;
 
 namespace ClusterManagement.Backend.Designs;
 
-public sealed partial class InMemoryPackagesStore : ISuiteRulesetProvider
+internal sealed partial class InMemoryPackagesStore : ISuiteRulesetProvider
 {
     private ClusterDependency? _systemDataPortDependency;
 

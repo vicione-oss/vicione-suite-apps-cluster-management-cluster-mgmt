@@ -20,7 +20,7 @@ public sealed class GetEngineHostPackageInfoConsumer(IEngineHostArtifactReposito
 
     protected override async Task<GetEngineHostPackageInfoResponse> Respond(ConsumeContext<GetEngineHostPackageInfoRequest> context)
     {
-        var coreVersion = PackagesFileProvider.GetViciOneCoreAssemblyVersion();
+        var coreVersion = ClusterAssembliesResolver.GetViciOneCoreAssemblyVersion();
         var installedVersion = _options.GetEngineHostVersion();
 
         // All EngineHost packages available on jfrog for referenced core version
@@ -42,7 +42,7 @@ public sealed class GetEngineHostPackageInfoConsumer(IEngineHostArtifactReposito
     {
         logger.LogError(e, "Consume {Request} failed", nameof(GetEngineHostPackageInfoRequest));
 
-        var coreVersion = PackagesFileProvider.GetViciOneCoreAssemblyVersion();
+        var coreVersion = ClusterAssembliesResolver.GetViciOneCoreAssemblyVersion();
         var installedVersion = _options.GetEngineHostVersion();
         var info = ClusterPackageInfo(installedVersion, coreVersion);
 

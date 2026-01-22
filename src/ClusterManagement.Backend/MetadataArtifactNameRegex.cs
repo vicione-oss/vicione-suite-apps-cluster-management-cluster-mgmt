@@ -43,15 +43,9 @@ internal static partial class MetadataArtifactNameRegex
     {
         packageVersion = null;
 
-        if (string.IsNullOrEmpty(name))
+        if (!Parse(name, out var versionString, out _, out _))
             return false;
 
-        var match = Matcher().Match(name);
-        if (!match.Success)
-            return false;
-
-        var version = match.Groups[VersionGroupName].Value;
-
-        return SemVersion.TryParse(version, out packageVersion);
+        return SemVersion.TryParse(versionString, out packageVersion);
     }
 }
