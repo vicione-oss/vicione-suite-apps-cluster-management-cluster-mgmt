@@ -68,12 +68,13 @@
         <DxGrid AllowSelectRowByClick="true"
                 AllowGroup="false"
                 AutoCollapseDetailRow="true"
+                CssClass="cluster-events-grid__dx-grid"
                 Data="@PageService.Events"
-                PagerVisible="true"
                 KeyFieldName="@nameof(DataflowEventModel.EventId)"
                 SelectionMode="GridSelectionMode.Single"
                 SelectedDataItem="@PageService.SelectedEvent"
-                SelectedDataItemChanged="@SelectedEventChanged">
+                SelectedDataItemChanged="@SelectedEventChanged"
+                VirtualScrollingEnabled="true">
             <Columns>
                 <DxGridDataColumn Caption="@nameof(DataflowEventModel.EventId)"
                                   FieldName="@nameof(DataflowEventModel.EventId)"
