@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.Loader;
 using ClusterManagement.Backend.Designs;
 using ClusterManagement.Internal;
+using ClusterManagement.Internal.Designs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -17,7 +18,8 @@ public class DesignLoaderFacts
 {
     private readonly IFileSystem _fileSystem = Substitute.For<IFileSystem>();
     private readonly IPackageArtifactRepository _repository = Substitute.For<IPackageArtifactRepository>();
-    private readonly IPackagesStore _packageStore = Substitute.For<IPackagesStore>();
+    private readonly IPackageStore _packageStore = Substitute.For<IPackageStore>();
+    private readonly ISuiteRulesetProvider _rulesetProvider = Substitute.For<ISuiteRulesetProvider>();
     private readonly IWorkspaceProvider<ClusterManagementBackendModule> _workspaceService = Substitute.For<IWorkspaceProvider<ClusterManagementBackendModule>>();
     private readonly ILogger<DesignLoader> _logger = Substitute.For<ILogger<DesignLoader>>();
 
@@ -26,11 +28,13 @@ public class DesignLoaderFacts
     public DesignLoaderFacts()
     {
         _services = new ServiceCollection()
+            .AddSingleton<DesignLoader>()
             .AddSingleton<ClusterManagementOptions>()
             .AddSingleton(_fileSystem)
             .AddSingleton(_workspaceService)
             .AddSingleton(_packageStore)
             .AddSingleton(_repository)
+            .AddSingleton(_rulesetProvider)
             .AddTransient(_ => _logger)
             .BuildServiceProvider();
     }
@@ -47,10 +51,7 @@ public class DesignLoaderFacts
 
         SetupSharedAssemblies<ClusterManagementBackendModule>(shared);
 
-        var wsProvider = _services.GetRequiredService<IWorkspaceProvider<ClusterManagementBackendModule>>();
-        var repository = _services.GetRequiredService<IPackageArtifactRepository>();
-        var dependencyStore = Substitute.For<IClusterDependencyStore>();
-        using var service = new DesignLoader(new FileSystem(), wsProvider, dependencyStore, _packageStore, repository, _logger);
+        using var service = _services.GetRequiredService<DesignLoader>();
 
         // Act
         await service.StartAsync(CancellationToken.None);

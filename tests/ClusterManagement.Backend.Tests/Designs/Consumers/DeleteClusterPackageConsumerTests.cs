@@ -16,7 +16,7 @@ namespace ClusterManagement.Backend.Tests.Designs.Consumers;
 public class DeleteClusterPackageConsumerTests
 {
     private readonly Action<IBusRegistrationConfigurator> _configureServices;
-    private readonly IPackagesStore _packageStore = Substitute.For<IPackagesStore>();
+    private readonly IPackageStore _packageStore = Substitute.For<IPackageStore>();
 
     public DeleteClusterPackageConsumerTests()
     {

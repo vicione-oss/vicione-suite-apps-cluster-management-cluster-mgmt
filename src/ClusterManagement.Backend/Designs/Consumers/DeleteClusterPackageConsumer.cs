@@ -6,7 +6,7 @@ using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Designs.Consumers;
 
-public sealed class DeleteClusterPackageConsumer(IPackagesStore packageStorage) :
+public sealed class DeleteClusterPackageConsumer(IPackageStore packageStorage) :
     IConsumer<DeleteClusterPackage>
 {
     public async Task Consume(ConsumeContext<DeleteClusterPackage> context)

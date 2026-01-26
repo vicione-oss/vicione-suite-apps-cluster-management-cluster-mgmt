@@ -5,7 +5,7 @@ using Sdk.Messaging;
 
 namespace ClusterManagement.Backend.Designs.Consumers;
 
-public sealed class AddClusterPackageConsumer(IPackagesStore packageStorage) :
+public sealed class AddClusterPackageConsumer(IPackageStore packageStorage) :
     IConsumer<AddClusterPackage>
 {
     public async Task Consume(ConsumeContext<AddClusterPackage> context)
@@ -13,7 +13,7 @@ public sealed class AddClusterPackageConsumer(IPackagesStore packageStorage) :
         try
         {
             // We get a zip archive as byte array and try to add it to our package storage.
-            var added = await packageStorage.AddPackageManually(context.Message.Data, context.CancellationToken);
+            var added = await packageStorage.StorePackage(context.Message.Data, true, context.CancellationToken);
 
             await context.Publish(new ClusterPackageChanged(added.Name, added.Version.ToString(), ClusterPackageChange.Add) { CorrelationId = context.Message.CorrelationId });
         }

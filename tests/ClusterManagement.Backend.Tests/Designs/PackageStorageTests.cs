@@ -1,82 +1,192 @@
 ﻿using System.IO.Abstractions;
-using System.IO.Compression;
 using AwesomeAssertions;
 using ClusterManagement.Backend.Designs;
 using ClusterManagement.Internal;
+using ClusterManagement.Internal.Contracts;
+using ClusterManagement.Tests.Tools.Factories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sdk.Backend.Modules;
+using Sdk.Testing;
+using ViciOne.Cluster.Model;
 using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Designs;
 
 public class PackageStorageTests
 {
-    private readonly IFileSystem _fileSystem = new FileSystem();
+    private readonly IClusterDependencyStore _dependencyStore = Substitute.For<IClusterDependencyStore>();
     private readonly IWorkspaceProvider<ClusterManagementBackendModule> _workspaceService = Substitute.For<IWorkspaceProvider<ClusterManagementBackendModule>>();
-    private readonly ILogger<DesignLoader> _logger = Substitute.For<ILogger<DesignLoader>>();
-    private readonly IServiceProvider _services;
+    private readonly ILogger<PackageStore> _logger = Substitute.For<ILogger<PackageStore>>();
 
-
-    public PackageStorageTests()
+    private ServiceProvider CreateServices(IFileSystem? fileSystem = null)
     {
-        _services = new ServiceCollection()
+        fileSystem ??= new FileSystem();
+
+        return new ServiceCollection()
             .AddSingleton<ClusterManagementOptions>()
-            .AddSingleton<IPackagesStore, InMemoryPackagesStore>()
-            .AddSingleton(_fileSystem)
+            .AddSingleton<IPackageStore, PackageStore>()
+            .AddSingleton(_dependencyStore)
+            .AddSingleton(fileSystem)
             .AddSingleton(_workspaceService)
             .AddTransient(_ => _logger)
             .BuildServiceProvider();
     }
 
-    public sealed class TryAddDevelopmentPackage : PackageStorageTests
+    public sealed class StorePackage : PackageStorageTests
     {
         [Fact]
-        [Trait(Traits.Category, Traits.System)]
         public async Task Should_extract_name_and_version_from_archive()
         {
-            // Arrange                        
-            var destinationPath = "Path\\To\\Cache\\ViciOne.Suite-ClusterManagement";
+            // Arrange
+            using var services = CreateServices();
+            using var tempDirectory = new TemporaryDirectory();
+            var fileSystem = services.GetRequiredService<IFileSystem>();
+            var destinationPath = Path.Combine(tempDirectory.Path, "ViciOne.Suite-ClusterManagement");
             var packageName = "ViciOne.Test.Package";
             var packageVersion = "0.46.4";
 
-            var sourceZipBytes = CreateTestZipArchiveBytes("ViciOne.Test.Package", "0.46.4");
-            var store = _services.GetRequiredService<IPackagesStore>();
+            var sourceZipBytes = PackageFactory.CreatePackageZipArchiveBytes(packageName, packageVersion);
+            var store = services.GetRequiredService<IPackageStore>();
 
             _workspaceService.Cache.Returns(destinationPath);
 
             // Act
-            await store.AddPackageManually(sourceZipBytes, CancellationToken.None);
+            await store.StorePackage(sourceZipBytes, true, CancellationToken.None);
 
             // Assert
-            var expectedFbPath = _fileSystem.Path.Combine(destinationPath, "Dependencies", packageName);
-            _fileSystem.Directory.Exists(expectedFbPath).Should().BeTrue();
-            _fileSystem.Directory.Exists(_fileSystem.Path.Combine(expectedFbPath, packageVersion)).Should().BeTrue();
+            var expectedFbPath = fileSystem.Path.Combine(destinationPath, "Dependencies", packageName);
+            fileSystem.Directory.Exists(expectedFbPath).Should().BeTrue();
+            fileSystem.Directory.Exists(fileSystem.Path.Combine(expectedFbPath, packageVersion)).Should().BeTrue();
         }
 
-        private static byte[] CreateTestZipArchiveBytes(string packageName, string version)
+        [Fact]
+        public async Task Should_enqueue_package_install_operation()
         {
-            using var memoryStream = new MemoryStream();
-            using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, leaveOpen: true))
+            // Arrange
+            using var services = CreateServices();
+            using var tempDirectory = new TemporaryDirectory();
+            var destinationPath = Path.Combine(tempDirectory.Path, "ViciOne.Suite-ClusterManagement");
+            var packageName = "ViciOne.Test.Package";
+            var packageVersion = "0.46.4";
+
+            var sourceZipBytes = PackageFactory.CreatePackageZipArchiveBytes(packageName, packageVersion);
+            var store = services.GetRequiredService<IPackageStore>();
+
+            _workspaceService.Cache.Returns(destinationPath);
+
+            // Act
+            var dependency = await store.StorePackage(sourceZipBytes, true, CancellationToken.None);
+
+            // Assert
+            dependency.Name.Should().Be(packageName);
+            dependency.Version.Should().Be(Version.Parse(packageVersion));
+
+            await _dependencyStore.Received(1).EnqueueOperations(
+                Arg.Is<List<ClusterDependencyOperation>>(d => d[0].Dependency.Name == packageName
+                && d[0].Dependency.Version == Version.Parse(packageVersion)
+                && d[0].Operation == ClusterDependencyOperationKind.Install),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Should_throw_if_archive_does_not_contain_deps_json_file()
+        {
+            // Arrange
+            using var services = CreateServices();
+            var store = services.GetRequiredService<IPackageStore>();
+            var sourceZipBytes = PackageFactory.CreateInvalidPackageZipArchiveBytes("ViciOne.Test.Package");
+
+            // Act
+            var act = () => store.StorePackage(sourceZipBytes, true, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("The provided package archive does not contain a deps.json file.");
+        }
+
+        [Fact]
+        public async Task Should_throw_if_we_can_get_aversion_from_deps_json_file()
+        {
+            // Arrange
+            using var services = CreateServices();
+            var store = services.GetRequiredService<IPackageStore>();
+
+            var sourceZipBytes = PackageFactory.CreatePackageZipArchiveBytes("ViciOne.Test.Package", "0.46.4", string.Empty);
+
+            // Act
+            var act = () => store.StorePackage(sourceZipBytes, true, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("Package version of 'ViciOne.Test.Package' not found in deps.json.");
+        }
+    }
+
+    public sealed class DeletePackage : PackageStorageTests
+    {
+        [Fact]
+        public async Task Should_delete_package_from_file_system_if_no_dependency_exists_for_it()
+        {
+            // Arrange            
+            var fileSystem = Substitute.For<IFileSystem>();
+            using var services = CreateServices(fileSystem);
+            var store = services.GetRequiredService<IPackageStore>();
+            var dependency = new ClusterDependency
             {
-                // Add package.json or manifest
-                var manifestEntry = archive.CreateEntry("package.json", CompressionLevel.Fastest);
-                using (var entryStream = manifestEntry.Open())
-                using (var writer = new StreamWriter(entryStream))
-                {
-                    writer.Write($$"""{"name":"{{packageName}}","version":"{{version}}"}""");
-                }
+                Name = "ViciOne.Test.Package",
+                Version = Version.Parse("0.46.4")
+            };
 
-                // Add other required files
-                var dllEntry = archive.CreateEntry($"{packageName}.dll", CompressionLevel.Fastest);
-                using (var entryStream = dllEntry.Open())
-                {
-                    entryStream.Write([0x4D, 0x5A]); // PE header magic
-                }
-            }
+            var packagePath = "some/path/ViciOne.Test.Package/0.46.4";
 
-            return memoryStream.ToArray();
+            _dependencyStore.LoadDependencies(Arg.Any<CancellationToken>())
+                .Returns([]);
+
+            fileSystem.Path.Combine(string.Empty, dependency.Name, dependency.Version.ToString())
+                .Returns(packagePath);
+
+            fileSystem.Path.Exists(packagePath).Returns(true);
+
+            // Act
+            await store.DeletePackage(dependency, CancellationToken.None);
+
+            // Assert
+            fileSystem.Directory.Received(0).Delete(path: Arg.Is<string>(packagePath), Arg.Any<bool>());
+            await _dependencyStore.Received(1).EnqueueOperations(
+                Arg.Is<List<ClusterDependencyOperation>>(d => d[0].Dependency.Name == dependency.Name
+                && d[0].Dependency.Version == dependency.Version
+                && d[0].Operation == ClusterDependencyOperationKind.Uninstall),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Should_not_delete_package_from_file_system_if_dependency_exists()
+        {
+            // Arrange            
+            var fileSystem = Substitute.For<IFileSystem>();
+            using var services = CreateServices(fileSystem);
+            var store = services.GetRequiredService<IPackageStore>();
+            var dependency = new ClusterDependency
+            {
+                Name = "ViciOne.Test.Package",
+                Version = Version.Parse("0.46.4")
+            };
+
+            _dependencyStore.LoadDependencies(Arg.Any<CancellationToken>())
+                .Returns([dependency]);
+
+            // Act
+            await store.DeletePackage(dependency, CancellationToken.None);
+
+            // Assert
+            fileSystem.Directory.Received(0).Delete(Arg.Any<string>(), Arg.Any<bool>());
+            await _dependencyStore.Received(1).EnqueueOperations(
+                Arg.Is<List<ClusterDependencyOperation>>(d => d[0].Dependency.Name == dependency.Name
+                && d[0].Dependency.Version == dependency.Version
+                && d[0].Operation == ClusterDependencyOperationKind.Uninstall),
+                Arg.Any<CancellationToken>());
         }
     }
 }

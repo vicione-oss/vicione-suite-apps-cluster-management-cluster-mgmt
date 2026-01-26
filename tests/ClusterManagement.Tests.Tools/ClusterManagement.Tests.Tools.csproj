@@ -29,4 +29,19 @@
     <EmbeddedResource Include="Resources\Mqtt.yaml" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Dependencies\ViciOne.Constant\0.34.0\ViciOne.Constant.deps.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Dependencies\ViciOne.Constant\0.34.0\ViciOne.Constant.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Dependencies\ViciOne.Logic\0.34.0\ViciOne.Logic.deps.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Dependencies\ViciOne.Logic\0.34.0\ViciOne.Logic.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

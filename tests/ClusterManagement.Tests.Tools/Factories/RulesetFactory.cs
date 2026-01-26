@@ -21,4 +21,12 @@ public static class RulesetFactory
 
         return ruleset;
     }
+
+    public static Ruleset CreateInvalidRuleset()
+    {
+        var mqttRulesetYaml = CreateTestRulesetMqtt();
+        mqttRulesetYaml.Root = null; // invalidate the ruleset
+
+        return mqttRulesetYaml;
+    }
 }

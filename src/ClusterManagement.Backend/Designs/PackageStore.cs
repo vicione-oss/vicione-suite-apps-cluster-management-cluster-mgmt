@@ -6,79 +6,16 @@ using ClusterManagement.Internal.Contracts;
 using Microsoft.Extensions.Logging;
 using Sdk.Backend.Modules;
 using ViciOne.Cluster.Model;
-using ViciOne.Core.Dataflow.DataModel;
-using ViciOne.Core.Dataflow.DataModel.Generation;
-using ViciOne.Core.Dataflow.Pooling;
-using ViciOne.Engine.DefaultPoolings;
-using ViciOne.TreeBuilder.Rules;
 
 namespace ClusterManagement.Backend.Designs;
 
-internal sealed partial class InMemoryPackagesStore(
+internal sealed partial class PackageStore(
     IWorkspaceProvider<ClusterManagementBackendModule> workspaceProvider,
     IFileSystem fileSystem,
     IClusterDependencyStore dependencyStore,
-    ILogger<InMemoryPackagesStore> logger) : IPackagesStore
+    ILogger<PackageStore> logger) : IPackageStore
 {
-    private readonly Dictionary<ClusterDependency, Content> _packages = [];
-    private readonly Lock _lock = new();
-
-    private PackagesLoader? _packagesLoader;
-
-    private record Content(IReadOnlyDictionary<Guid, FunctionBlockDesign> Designs, IReadOnlyDictionary<string, Ruleset> Rulesets, bool Hide);
-
-    /// <summary>
-    /// Creates and initializes the packages loader.
-    /// </summary>
-    internal void Initialize(IReadOnlyCollection<ClusterDependency> dependencies)
-        => _packagesLoader = PackagesLoader.Create(dependencies, fileSystem.GetDependenciesPath(workspaceProvider), fileSystem);
-
-    public bool TryAddPackage(ClusterDependency dependency, string directory, bool hide = false)
-    {
-        if (_packagesLoader is null)
-            throw new InvalidOperationException("Packages loader is not initialized.");
-
-        lock (_lock)
-        {
-            if (_packages.ContainsKey(dependency))
-                return false;
-
-            var designs = _packagesLoader.Load(directory);
-            var rulesets = RulesetLoader.LoadRulesets(directory);
-
-            _packages[dependency] = new(designs, rulesets, hide);
-            return true;
-        }
-    }
-
-    public bool TryAddPackage(ClusterDependency dependency, IReadOnlyCollection<Type> types, IReadOnlyCollection<Ruleset> rulesets, bool hide = false)
-    {
-        lock (_lock)
-        {
-            if (_packages.ContainsKey(dependency))
-                return false;
-
-            PoolingFactory poolingFactory = new([typeof(SumPooling).Assembly]);
-
-            List<FunctionBlockDesign> functionBlockDesigns = [];
-
-            foreach (var type in types)
-            {
-                var functionBlockDesignInfo = RuntimeFunctionBlockAssemblyAnalyzer.GetFunctionBlockDesign(type);
-                var coreDesign = FunctionBlockDesignGenerator.GenerateFunctionBlockDesign(functionBlockDesignInfo, poolingFactory);
-
-                functionBlockDesigns.Add(coreDesign);
-            }
-
-            _packages[dependency] = new(
-                functionBlockDesigns.ToDictionary(d => d.Id),
-                rulesets.Where(r => r.Root is not null).ToDictionary(r => r.Root!.Id),
-                hide);
-            return true;
-        }
-    }
-
-    public async Task<ClusterDependency> AddPackageManually(byte[] zipArchive, CancellationToken cancellationToken = default)
+    public async Task<ClusterDependency> StorePackage(byte[] zipArchive, bool overwrite = true, CancellationToken cancellationToken = default)
     {
         using var memoryStream = new MemoryStream(zipArchive);
         using var archive = new ZipArchive(memoryStream, ZipArchiveMode.Read);
@@ -99,11 +36,12 @@ internal sealed partial class InMemoryPackagesStore(
             // What if the package is still in use by engine host?
             // EH probably is able to continue with previous version loaded into memory
             // If the FB is not loaded yet, but requested afterwards by LoadContext it will be a problem
-            logger?.LogWarning("Removing existing FunctionBlock '{PackageName}' path '{Name}'", packageName, packageDestinationPath);
+            logger.LogWarning("Removing existing package '{PackageName}' path '{Name}'", packageName, packageDestinationPath);
             fileSystem.Directory.Delete(packageDestinationPath, true);
         }
 
         // Extract package to our packages folder. It won't be loaded from there until we add it to our dependency store.
+        logger.LogInformation("Uploading package '{PackageName}' version '{PackageVersion}' to path '{Name}'", packageName, packageVersion, packageDestinationPath);
         fileSystem.Directory.CreateDirectory(packageDestinationPath);
         archive.ExtractToDirectory(packageDestinationPath);
 
@@ -137,17 +75,14 @@ internal sealed partial class InMemoryPackagesStore(
                 return version;
         }
 
-        throw new InvalidOperationException($"Package version of '{packageName}' not found in deps.json");
+        throw new InvalidOperationException($"Package version of '{packageName}' not found in deps.json.");
     }
 
     public async Task DeletePackage(ClusterDependency dependency, CancellationToken cancellationToken)
     {
         // Check if we already have loaded the package
-        bool inUse;
-        lock (_lock)
-        {
-            inUse = _packages.ContainsKey(dependency);
-        }
+        var dependencies = await dependencyStore.LoadDependencies(cancellationToken);
+        var inUse = dependencies.Any(k => k.Name == dependency.Name && k.Version == dependency.Version);
 
         // Is it even possible to delete a package that is not in use?
         if (!inUse)
