@@ -1,5 +1,4 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Backend.Designs;
+﻿using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.Designs.Consumers;
 using ClusterManagement.Internal.Commands;
 using ClusterManagement.Internal.Events;
@@ -17,7 +16,7 @@ namespace ClusterManagement.Backend.Tests.Designs.Consumers;
 public class AddClusterPackageConsumerTests
 {
     private readonly Action<IBusRegistrationConfigurator> _configureServices;
-    private readonly IPackagesStore _packageStore = Substitute.For<IPackagesStore>();
+    private readonly IPackageStore _packageStore = Substitute.For<IPackageStore>();
 
     public AddClusterPackageConsumerTests()
     {
@@ -38,7 +37,7 @@ public class AddClusterPackageConsumerTests
         var command = new AddClusterPackage(zipData);
         var dependency = new ClusterDependency { Name = "TestPackage", Version = new Version(1, 0, 0) };
 
-        _packageStore.AddPackageManually(Arg.Is<byte[]>(data => data.SequenceEqual(zipData)), Arg.Any<CancellationToken>())
+        _packageStore.StorePackage(Arg.Is<byte[]>(data => data.SequenceEqual(zipData)), true, Arg.Any<CancellationToken>())
             .Returns(dependency);
 
         // Act
@@ -58,7 +57,7 @@ public class AddClusterPackageConsumerTests
         var command = new AddClusterPackage(zipData);
         var dependency = new ClusterDependency { Name = "MyPackage", Version = new Version(2, 1, 3) };
 
-        _packageStore.AddPackageManually(Arg.Is<byte[]>(data => data.SequenceEqual(zipData)), Arg.Any<CancellationToken>())
+        _packageStore.StorePackage(Arg.Is<byte[]>(data => data.SequenceEqual(zipData)), true, Arg.Any<CancellationToken>())
             .Returns(dependency);
 
         // Act
@@ -79,15 +78,16 @@ public class AddClusterPackageConsumerTests
         var command = new AddClusterPackage(zipData);
         var dependency = new ClusterDependency { Name = "PackageA", Version = new Version(1, 0, 0) };
 
-        _packageStore.AddPackageManually(Arg.Is<byte[]>(data => data.SequenceEqual(zipData)), Arg.Any<CancellationToken>())
+        _packageStore.StorePackage(Arg.Is<byte[]>(data => data.SequenceEqual(zipData)), true, Arg.Any<CancellationToken>())
             .Returns(dependency);
 
         // Act
         await tester.TestCommand<AddClusterPackage, AddClusterPackageConsumer>(command);
 
         // Assert: Verify the package store was called with the correct data
-        await _packageStore.Received(1).AddPackageManually(
+        await _packageStore.Received(1).StorePackage(
             Arg.Is<byte[]>(data => data.SequenceEqual(zipData)),
+            true,
             Arg.Any<CancellationToken>());
     }
 
@@ -99,7 +99,7 @@ public class AddClusterPackageConsumerTests
         var zipData = new byte[] { 0x00, 0x01, 0x02 };
         var command = new AddClusterPackage(zipData);
 
-        _packageStore.AddPackageManually(Arg.Is<byte[]>(data => data.SequenceEqual(zipData)), Arg.Any<CancellationToken>())
+        _packageStore.StorePackage(Arg.Is<byte[]>(data => data.SequenceEqual(zipData)), true, Arg.Any<CancellationToken>())
             .Throws(new InvalidOperationException("Invalid package format"));
 
         // Act

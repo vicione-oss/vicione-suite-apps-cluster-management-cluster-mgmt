@@ -12,9 +12,10 @@ internal static class IServiceCollectionExtensions
             .AddTransient<IPackageArtifactRepository, PackageArtifactRepository>()
             .AddHostedService<DesignLoader>()
             .AddTransient<IClusterDependencyStore, ClusterDependencyStore>()
-            .AddSingleton<IPackagesStore, InMemoryPackagesStore>()
-            .AddSingleton<ISuiteRulesetProvider>(s => (InMemoryPackagesStore)s.GetRequiredService<IPackagesStore>())
-            .AddSingleton<IDesignProvider>(s => (InMemoryPackagesStore)s.GetRequiredService<IPackagesStore>());
+            .AddTransient<IDesignProvider, DesignProvider>()
+            .AddTransient<IPackageStore, PackageStore>()
+            .AddSingleton<IPackageContentProvider, PackageContentProvider>()
+            .AddSingleton<ISuiteRulesetProvider, RulesetProvider>();
 
         return services;
     }

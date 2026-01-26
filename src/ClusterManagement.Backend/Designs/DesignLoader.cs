@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.IO.Abstractions;
-using System.Reflection;
 using ClusterManagement.Backend.Designs.Extensions;
+using ClusterManagement.Internal.Designs;
 using ClusterManagement.Public;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -15,8 +15,9 @@ internal sealed class DesignLoader(
     IFileSystem fileSystem,
     IWorkspaceProvider<ClusterManagementBackendModule> workspaceProvider,
     IClusterDependencyStore clusterDependencyStore,
-    IPackagesStore packagesStore,
+    IPackageContentProvider packageContentProvider,
     IPackageArtifactRepository repository,
+    ISuiteRulesetProvider rulesetProvider,
     ILogger<DesignLoader> logger) : BackgroundService, IDownloader
 {
     private readonly IWorkspaceProvider<ClusterManagementBackendModule> _workspaceProvider = workspaceProvider;
@@ -42,11 +43,8 @@ internal sealed class DesignLoader(
             var dependencies = await _clusterDependencyStore.LoadDependencies(stoppingToken);
             await DownloadClusterDependencies(dependencies, stoppingToken);
 
-            if (packagesStore is InMemoryPackagesStore inMemoryPackagesStore)
-                inMemoryPackagesStore.Initialize(dependencies);
-
             // ViciOne.Suite.System.DataPort is a FunctionBlock interface for the providers
-            var systemDataPortDependency = LoadSystemDataPortFunctionBlock();
+            var systemDataPortDependency = await rulesetProvider.AddSystemDataPortFunctionBlock(stoppingToken);
 
             var existingPackages = _fileSystem.GetComponents(packagesPath);
 
@@ -60,7 +58,7 @@ internal sealed class DesignLoader(
                 if (existingPackage.Key is null)
                     throw new InvalidOperationException($"Expected package '{dependency.Name}' version '{dependency.Version}' can't be found.");
 
-                if (!packagesStore.TryAddPackage(dependency, existingPackage.Value))
+                if (!await packageContentProvider.TryAddPackage(dependency, existingPackage.Value, false, stoppingToken))
                     _logger.LogWarning("Failed to add package {Name} {Version} to store.", dependency.Name, dependency.Version);
             }
 
@@ -74,36 +72,6 @@ internal sealed class DesignLoader(
         {
             _downloadProcess.TrySetResult();
         }
-    }
-
-    private ClusterDependency LoadSystemDataPortFunctionBlock()
-    {
-        var dataportType = typeof(ViciOne.Suite.System.DataPort);
-        var systemDataPortDependency = CreateDependency(dataportType);
-
-        if (!packagesStore.TryAddPackage(systemDataPortDependency, [dataportType], [], true))
-            _logger.LogWarning("Failed to add System DataPort package {Name} {Version} to store.", systemDataPortDependency.Name, systemDataPortDependency.Version);
-
-        if (packagesStore is InMemoryPackagesStore inMemoryPackagesStore)
-            inMemoryPackagesStore.SetSystemDataPortDependency(systemDataPortDependency);
-
-        return systemDataPortDependency;
-    }
-
-    private static ClusterDependency CreateDependency(Type type)
-        => CreateDependency(type.Assembly);
-
-    private static ClusterDependency CreateDependency(Assembly assembly)
-    {
-        var assemblyName = assembly.GetName();
-        var assemblyVersion = assemblyName.Version ?? throw new InvalidDataException();
-
-        // assembly version might be 0.1.0.0 but our version has major.minor.build
-        return new()
-        {
-            Name = assemblyName.Name!,
-            Version = new(assemblyVersion.Major, assemblyVersion.Minor, assemblyVersion.Build),
-        };
     }
 
     private async Task DownloadClusterDependencies(IReadOnlyCollection<ClusterDependency> dependencies, CancellationToken stoppingToken)

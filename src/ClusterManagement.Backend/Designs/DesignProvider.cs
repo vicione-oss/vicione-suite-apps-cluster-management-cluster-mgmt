@@ -6,16 +6,19 @@ using ViciOne.Core.Dataflow.DataModel;
 
 namespace ClusterManagement.Backend.Designs;
 
-internal sealed partial class InMemoryPackagesStore : IDesignProvider
+internal sealed class DesignProvider(IPackageContentProvider packageContentProvider, ILogger<DesignProvider> logger) : IDesignProvider
 {
     public Task<IDependencyResolver> CreateResolver()
         => Task.FromResult<IDependencyResolver>(new ClusterDependencyResolver(GetDependencyPackages()));
 
     public Task<IReadOnlyCollection<ClusterDependency>> GetClusterDependencies(bool includeDataPortDependencies = false)
     {
+        var packages = packageContentProvider.GetPackageContents();
+
         if (includeDataPortDependencies)
-            return Task.FromResult<IReadOnlyCollection<ClusterDependency>>(_packages.Keys);
-        return Task.FromResult<IReadOnlyCollection<ClusterDependency>>([.. _packages.Where(p => !p.Value.Rulesets.Any()).Select(p => p.Key)]);
+            return Task.FromResult<IReadOnlyCollection<ClusterDependency>>([.. packages.Keys]);
+
+        return Task.FromResult<IReadOnlyCollection<ClusterDependency>>([.. packages.Where(p => !p.Value.Rulesets.Any()).Select(p => p.Key)]);
     }
 
     public Task<IReadOnlyCollection<Guid>> GetFunctionBlockDesignIds(params IReadOnlyCollection<ClusterDependency> clusterDependencies)
@@ -26,9 +29,10 @@ internal sealed partial class InMemoryPackagesStore : IDesignProvider
 
     private ClusterDependencyPackage[] GetDependencyPackages()
     {
-        Dictionary<ClusterDependency, ClusterDependencyPackage> packages = new(_packages.Count);
+        var packageContents = packageContentProvider.GetPackageContents();
+        Dictionary<ClusterDependency, ClusterDependencyPackage> packages = new(packageContents.Count);
 
-        foreach (var (dependency, storeItem) in _packages)
+        foreach (var (dependency, storeItem) in packageContents)
         {
             if (packages.TryGetValue(dependency, out var package))
             {
@@ -61,7 +65,8 @@ internal sealed partial class InMemoryPackagesStore : IDesignProvider
 
     private IEnumerable<FunctionBlockDesign> GetFunctionBlockDesigns(ClusterDependency clusterDependency)
     {
-        if (_packages.TryGetValue(clusterDependency, out var item))
+        var packageContents = packageContentProvider.GetPackageContents();
+        if (packageContents.TryGetValue(clusterDependency, out var item))
         {
             if (item.Hide)
             {
@@ -73,6 +78,7 @@ internal sealed partial class InMemoryPackagesStore : IDesignProvider
                 yield return design;
             yield break;
         }
+
         logger.LogError("Cluster dependency {Dependency} version {Version} can't be found.", clusterDependency.Name, clusterDependency.Version);
     }
 }

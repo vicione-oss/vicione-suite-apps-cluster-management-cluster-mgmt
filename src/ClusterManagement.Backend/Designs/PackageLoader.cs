@@ -11,7 +11,7 @@ using ViciOne.Engine.DefaultPoolings;
 
 namespace ClusterManagement.Backend.Designs;
 
-internal class PackagesLoader
+internal class PackageLoader
 {
     private static readonly Assembly[] s_shared =
     [
@@ -34,7 +34,7 @@ internal class PackagesLoader
 
     private readonly IFileSystem _fileSystem;
 
-    private PackagesLoader(StackedAssemblyLoadContext context, AssemblyLoadContext parentContext, IFileSystem fileSystem)
+    private PackageLoader(StackedAssemblyLoadContext context, AssemblyLoadContext parentContext, IFileSystem fileSystem)
     {
         Context = context;
         _parentContext = parentContext;
@@ -43,7 +43,7 @@ internal class PackagesLoader
 
     internal StackedAssemblyLoadContext Context { get; }
 
-    internal static PackagesLoader Create(IReadOnlyCollection<ClusterDependency> dependencies, string packagesDirectory, IFileSystem fileSystem)
+    internal static PackageLoader Create(IReadOnlyCollection<ClusterDependency> dependencies, string packagesDirectory, IFileSystem fileSystem)
         => new(
             new(Constants.PackagesContext, s_shared, dependencies, packagesDirectory, fileSystem),
             GetAssemblyLoadContext($"{ModuleIdResolver.ResolveId<ClusterManagementBackendModule>()}{ModuleIdResolver.ModuleSuffixBackend}"),
