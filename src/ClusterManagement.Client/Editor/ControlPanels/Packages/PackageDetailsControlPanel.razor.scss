@@ -1,0 +1,11 @@
+﻿.package-detail-control-panel-page {
+    ::deep .installed-version-wrapper {
+        display: contents;
+
+        &:has(.combo-box) {
+            .version {
+                display: none;
+            }
+        }
+    }
+}

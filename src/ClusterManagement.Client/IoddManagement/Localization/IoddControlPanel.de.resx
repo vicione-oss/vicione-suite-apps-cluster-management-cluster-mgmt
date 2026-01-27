@@ -135,9 +135,6 @@
   <data name="DeleteIoddsHeader" xml:space="preserve">
     <value>IODDs löschen</value>
   </data>
-  <data name="FileTypeMissmatch" xml:space="preserve">
-    <value>Die Datei muss ein Zip-Archiv sein.</value>
-  </data>
   <data name="Manual" xml:space="preserve">
     <value>Manuell</value>
   </data>
@@ -146,23 +143,5 @@
   </data>
   <data name="ManualIoLinkConfigurationDescription" xml:space="preserve">
     <value>Dieser IO-Link IODD Explorer und Browser bietet einen Überblick über alle im System verfügbaren IODD-Dateien. Benutzer können neue IODDs hochladen und bestehende löschen. Die Dateien werden automatisch in Ordnern nach Hersteller und Sensortyp organisiert.</value>
-  </data>
-  <data name="MaxFileSizeReached" xml:space="preserve">
-    <value>Die Dateigröße ist auf 2 MB begrenzt.</value>
-  </data>
-  <data name="ShowDetails" xml:space="preserve">
-    <value>Mehr Details</value>
-  </data>
-  <data name="Upload" xml:space="preserve">
-    <value>Hochladen</value>
-  </data>
-  <data name="UploadOnlySingleFile" xml:space="preserve">
-    <value>Sie können immer nur eine Datei auf einmal hochladen.</value>
-  </data>
-  <data name="FileIsEmpty" xml:space="preserve">
-    <value>Das hochgeladene Archiv enthält keine Dateien.</value>
-  </data>
-  <data name="UploadFailed" xml:space="preserve">
-    <value>Etwas stimmt mit dem Archiv nicht.</value>
   </data>
 </root>
