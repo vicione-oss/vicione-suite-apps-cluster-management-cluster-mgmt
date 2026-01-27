@@ -1,8 +1,10 @@
 ﻿using System.Globalization;
+using ClusterManagement.Client.Extensions;
 using ClusterManagement.Client.IoddManagement.Extensions;
 using ClusterManagement.Client.IoddManagement.IoddTree;
 using ClusterManagement.Client.IoddManagement.Models;
 using ClusterManagement.Client.IoddManagement.Services;
+using ClusterManagement.Client.Localization;
 using ClusterManagement.Public.Iodds;
 using ClusterManagement.Public.Iodds.Events;
 using Microsoft.AspNetCore.Components;
@@ -24,8 +26,6 @@ namespace ClusterManagement.Client.IoddManagement.ControlPanels;
 [ControlPanelCategory<IoddControlPanelCategoryDescriptor>]
 public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEventConsumer<IoddError>, IEventConsumer<AutoIoddDownloadChanged>
 {
-    private const long TwoMB = 2 * 1024 * 1024;
-    private const long EmptyZip = 22;
 
     private string _filterText = string.Empty;
     private readonly IoddTreeAdapter _ioddTreeAdapter = new();
@@ -96,7 +96,7 @@ public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEve
     public Task Consume(ClientContext<IoddError> context, CancellationToken cancellationToken)
     {
         if (context.Message.Error.ErrorCode == IoddError.ExtractZipError)
-            MessageBannerService.ShowMessageBanner(MessageType.Error, Localization.IoddControlPanel.UploadFailed);
+            MessageBannerService.ShowMessageBanner(MessageType.Error, Common.UploadFailed);
         else
             MessageBannerService.ShowMessageBanner(MessageType.Error, context.Message.Error.Message);
 
@@ -127,26 +127,8 @@ public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEve
 
     private async Task OnFileChange(InputFileChangeEventArgs args)
     {
-        if (args.FileCount != 1)
-        {
-            MessageBannerService.ShowMessageBanner(MessageType.Error, Localization.IoddControlPanel.UploadOnlySingleFile);
+        if (!MessageBannerService.IsValidZipArchive(args))
             return;
-        }
-        if (args.File.Size > TwoMB)
-        {
-            MessageBannerService.ShowMessageBanner(MessageType.Error, Localization.IoddControlPanel.MaxFileSizeReached);
-            return;
-        }
-        if (args.File.Size <= EmptyZip)
-        {
-            MessageBannerService.ShowMessageBanner(MessageType.Error, Localization.IoddControlPanel.FileIsEmpty);
-            return;
-        }
-        if (!args.File.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-        {
-            MessageBannerService.ShowMessageBanner(MessageType.Error, Localization.IoddControlPanel.FileTypeMissmatch);
-            return;
-        }
 
         try
         {
@@ -154,7 +136,7 @@ public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEve
 
             await using (var ms = new MemoryStream())
             {
-                await args.File.OpenReadStream(TwoMB).CopyToAsync(ms);
+                await args.File.OpenReadStream(ControlPanelConstants.TwoMB).CopyToAsync(ms);
                 data = ms.ToArray();
             }
 

@@ -72,6 +72,21 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>LoadFunctionBlockDialog.resx</DependentUpon>
     </Compile>
+    <Compile Update="Editor\Localization\Common.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Common.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Editor\Localization\PackagesControlPanel.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PackagesControlPanel.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Editor\Localization\PackageDetailsControlPanel.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PackageDetailsControlPanel.resx</DependentUpon>
+    </Compile>
     <Compile Update="IoddManagement\Localization\IoddControlPanel.Designer.cs">
       <DependentUpon>IoddControlPanel.resx</DependentUpon>
       <DesignTime>True</DesignTime>
@@ -91,6 +106,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>ClusterTerms.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Localization\Common.Designer.cs">
+      <DependentUpon>Common.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
     </Compile>
     <Compile Update="Management\Localization\ClusterTopologyInfoDialog.Designer.cs">
       <DesignTime>True</DesignTime>
@@ -144,6 +164,18 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>LoadFunctionBlockDialog.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <EmbeddedResource Update="Editor\Localization\Common.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Common.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Editor\Localization\PackagesControlPanel.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>PackagesControlPanel.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Editor\Localization\PackageDetailsControlPanel.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>PackageDetailsControlPanel.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
     <EmbeddedResource Update="IoddManagement\Localization\IoddControlPanel.resx">
       <LastGenOutput>IoddControlPanel.Designer.cs</LastGenOutput>
       <Generator>ResXFileCodeGenerator</Generator>
@@ -159,6 +191,10 @@
     <EmbeddedResource Update="Localization\ClusterTerms.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>ClusterTerms.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Localization\Common.resx">
+      <LastGenOutput>Common.Designer.cs</LastGenOutput>
+      <Generator>ResXFileCodeGenerator</Generator>
     </EmbeddedResource>
     <EmbeddedResource Update="Management\Localization\ClusterTopologyInfoDialog.resx">
       <Generator>ResXFileCodeGenerator</Generator>

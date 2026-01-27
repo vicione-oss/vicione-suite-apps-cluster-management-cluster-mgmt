@@ -120,9 +120,6 @@
   <data name="DetailledInformation" xml:space="preserve">
     <value>Detailled information</value>
   </data>
-  <data name="Overview" xml:space="preserve">
-    <value>Overview</value>
-  </data>
   <data name="ProductOverview" xml:space="preserve">
     <value>Product overview</value>
   </data>
@@ -141,9 +138,6 @@
   <data name="IoddReleaseDate" xml:space="preserve">
     <value>IODD-Release-Date</value>
   </data>
-  <data name="Details" xml:space="preserve">
-    <value>Details</value>
-  </data>
   <data name="FirmwareRevision" xml:space="preserve">
     <value>Firmware revision</value>
   </data>
@@ -158,5 +152,8 @@
   </data>
   <data name="BannerDescription" xml:space="preserve">
     <value>This view presents the details of the selected device variant.</value>
+  </data>
+  <data name="Overview" xml:space="preserve">
+    <value>Overview</value>
   </data>
 </root>

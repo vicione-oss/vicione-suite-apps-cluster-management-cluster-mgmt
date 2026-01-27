@@ -115,24 +115,6 @@ namespace ClusterManagement.Client.IoddManagement.Localization {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The uploaded archive does not contain any files..
-        /// </summary>
-        internal static string FileIsEmpty {
-            get {
-                return ResourceManager.GetString("FileIsEmpty", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The file must be a zip archive..
-        /// </summary>
-        internal static string FileTypeMissmatch {
-            get {
-                return ResourceManager.GetString("FileTypeMissmatch", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Manual.
         /// </summary>
         internal static string Manual {
@@ -156,51 +138,6 @@ namespace ClusterManagement.Client.IoddManagement.Localization {
         internal static string ManualIoLinkConfigurationDescription {
             get {
                 return ResourceManager.GetString("ManualIoLinkConfigurationDescription", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The file size is limited to 2MB..
-        /// </summary>
-        internal static string MaxFileSizeReached {
-            get {
-                return ResourceManager.GetString("MaxFileSizeReached", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Show details.
-        /// </summary>
-        internal static string ShowDetails {
-            get {
-                return ResourceManager.GetString("ShowDetails", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Upload.
-        /// </summary>
-        internal static string Upload {
-            get {
-                return ResourceManager.GetString("Upload", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Something is wrong with the archive..
-        /// </summary>
-        internal static string UploadFailed {
-            get {
-                return ResourceManager.GetString("UploadFailed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to You can only upload one file at a time..
-        /// </summary>
-        internal static string UploadOnlySingleFile {
-            get {
-                return ResourceManager.GetString("UploadOnlySingleFile", resourceCulture);
             }
         }
     }

@@ -1,6 +1,7 @@
 ﻿@using ClusterManagement.Client.Editor.Extensions
 @using ClusterManagement.Client.Editor.Localization
 @using ClusterManagement.Client.Editor.Services
+@using ClusterManagement.Client.Localization
 @using ClusterManagement.Public.Iodds
 @using Microsoft.AspNetCore.Components.Forms
 @using Sdk.Client.Components.Settings
@@ -45,7 +46,7 @@
         <Grid Items="@FilterItems(_itemsQueryable)" Virtualize="true" CssClass="iodds-grid">
             <ActionButtons>
                 <div style="display:contents;">
-                    <GridActionButton Text="@Localization.IoddControlPanel.Upload" 
+                    <GridActionButton Text="@Client.Localization.Common.Upload" 
                                       OnClick="@OnIoddUploadClickAsync"
                                       IconCssClass="@MonochromeIconName.Export.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()" />
                     <GridActionButton Text="@CommonVocabulary.DownloadVerb"
@@ -98,7 +99,7 @@
                 <PropertyColumn Property="@(item => item.UploadedAt)"
                                 Title="@Localization.Common.UploadedAt" />
 
-                <NavigationColumn NavigationButtonTitle="@Localization.IoddControlPanel.ShowDetails" 
+                <NavigationColumn NavigationButtonTitle="@Client.Localization.Common.ShowDetails"
                                   Navigate="@((DeviceView item) => ShowDetailsAsync(item))" />
             </ChildContent>
 

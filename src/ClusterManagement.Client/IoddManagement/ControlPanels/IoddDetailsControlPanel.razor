@@ -1,9 +1,10 @@
-﻿@using Sdk.Client.Components.Settings
+﻿@using ClusterManagement.Client.Localization
+@using Sdk.Client.Components.Settings
 @using Sdk.Client.ControlPanels.Components
 @inherits ControlPanelBase<IoddDetailsControlPanelState>
 
 <ControlPanelPage Title="@Localization.IoddDetailsControlPanel.Overview">
-    <DescriptionBanner Title="@($"{Localization.IoddDetailsControlPanel.Details} {State.DeviceVariant!.Name}")">
+    <DescriptionBanner Title="@($"{Common.Details} {State.DeviceVariant!.Name}")">
         @Localization.IoddDetailsControlPanel.BannerDescription
     </DescriptionBanner>
 

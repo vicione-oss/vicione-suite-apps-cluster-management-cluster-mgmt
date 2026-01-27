@@ -30,7 +30,7 @@ public sealed class GetClusterPackageInfosConsumer(IDesignProvider designProvide
             });
         }
 
-        // All cluster packages available on jfrog for referenced core version        
+        // All cluster packages available on jfrog for referenced core version
         var available = await repository.QueryMetadataArtifacts(coreVersion, null, context.CancellationToken);
 
         // Create Dictionary<PackageName, IEnumerable<Version>>:

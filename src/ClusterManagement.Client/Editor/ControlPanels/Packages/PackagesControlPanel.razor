@@ -1,0 +1,111 @@
+﻿@using ClusterManagement.Client.Editor.Extensions
+@using ClusterManagement.Client.Localization
+@using ClusterManagement.Internal.Contracts
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Sdk.Client.Components.Settings
+@using Sdk.Client.ControlPanels.Components
+@using Sdk.Client.ControlPanels.Services
+@using ViciOne.Ui.Blazor.Components.Grid.Components
+@using ViciOne.Ui.Blazor.Components.Grid.Components.ActionButtons
+@using ViciOne.Ui.Blazor.Components.Grid.Components.Columns
+@using ViciOne.Ui.Blazor.Components.Grid.Components.Footers
+@using ViciOne.Ui.Blazor.Components.Grid.Components.Panes
+@using ViciOne.Ui.Localization.Resources
+@using ViciOne.Ui.MonochromeIcons.Core.Enums
+@using ViciOne.Ui.MonochromeIcons.Core.Extensions
+@using ViciOne.Ui.Shared.Dx.Components
+
+@inherits ControlPanelBase<ControlPanelState>
+
+<ControlPanelPage Title="@Localization.Common.Title">
+    <div class="packages-control-panel-page">
+        <DescriptionBanner Title="@Localization.PackagesControlPanel.DescriptionBannerTitle">
+            @Localization.PackagesControlPanel.DescriptionBannerDescription
+        </DescriptionBanner>
+        <div class="input">
+
+            <script>
+                window.triggerUploadClick = () => { let label = window.document.getElementById("uploadtrigger"); label.click(); }
+            </script>
+
+            <label id="uploadtrigger"
+                   for="item-upload">
+                UPLOAD
+            </label>
+
+            <InputFile id="item-upload"
+                       accept=".zip"
+                       OnChange="OnFileChange" />
+        </div>
+
+        <Grid Items="@FilterItems(_packageInfosQueryable)" Virtualize="true" CssClass="packages-grid">
+            <ActionButtons>
+                <div style="display:contents;">
+                    <AuthorizeView Policy="@AdminPolicy">
+                        <GridActionButton Text="@Common.Upload" 
+                                          OnClick="OnPackageUploadClickAsync"
+                                          IconCssClass="@MonochromeIconName.Export.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()" />
+                        <GridActionButton Text="@Localization.PackagesControlPanel.Uninstall"
+                                          OnClick="@OnPackageDeleteClickAsync"
+                                          Enabled="@(ItemSelection.Any() && ItemSelection.All(i => !string.IsNullOrEmpty(i.InstalledVersion)))"
+                                          IconCssClass="@MonochromeIconName.Delete.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()" />
+                    </AuthorizeView>
+                </div>
+            </ActionButtons>
+
+            <Filter>
+                <GridFilterControl @bind-Text="@_filterText" @bind-Text:after="@(() => InvokeAsync(StateHasChanged))" />
+            </Filter>
+
+            <ChildContent>
+                <ItemSelectColumn KeySelector="@(item => item)"
+                                  Selection="@ItemSelection" />
+
+                <TemplateColumn Title="@CommonVocabulary.Name">
+                    @{
+                        var key = new MarkupString(context.Name);
+
+                        if (!string.IsNullOrEmpty(_filterText))
+                            key = key.WithHighlightedText(_filterText);
+
+                        @key
+                    }
+                </TemplateColumn>
+
+                <PropertyColumn Property="@(item => item.MinCoreVersion)"
+                                Title="@Localization.Common.MinCoreVersion" />
+                <PropertyColumn Property="@(item => item.InstalledVersion)"
+                                Title="@Localization.Common.InstalledVersion" />
+
+                 <NavigationColumn NavigationButtonTitle="@Common.ShowDetails"
+                                  Navigate="@((ClusterPackageInfo item) => ShowDetailsAsync(item))" />
+            </ChildContent>
+
+            <Footer>
+                <SelectionFooter GridSelection="@ItemSelection" />
+            </Footer>
+        </Grid>
+    </div>
+</ControlPanelPage>
+
+<DxDialog @ref="@_refDeletePackagesDialog"
+          CloseOnEscape="true"
+          CloseOnOutsideClick="false"
+          Header="@Localization.PackagesControlPanel.DeletePackagesHeader"
+          Height="300px"
+          IsTextOnly="true"
+          Width="600px">
+
+    <Body>
+        <p class="dialog-content text-only">@Localization.PackagesControlPanel.DeletePackages</p>
+    </Body>
+
+    <Footer>
+        <DxDialogFooterButton OnClick="@OnDeletePackagesOkAsync"
+                              Text="@CommonVocabulary.Ok" />
+
+        <DxDialogFooterButton OnClick="@OnDeletePackagesCloseAsync"
+                              Text="@CommonVocabulary.Cancel" />
+    </Footer>
+</DxDialog>

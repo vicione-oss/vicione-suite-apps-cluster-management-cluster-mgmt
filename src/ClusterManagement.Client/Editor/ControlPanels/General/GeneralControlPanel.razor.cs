@@ -5,7 +5,7 @@ using Sdk.Client.ControlPanels.Attributes;
 using ViciOne.Ui.Blazor.Components.ComboBox;
 using ViciOne.Ui.ClusterEditor.Models;
 
-namespace ClusterManagement.Client.Editor.ControlPanels;
+namespace ClusterManagement.Client.Editor.ControlPanels.General;
 
 [ControlPanelCategory<ControlPanelCategoryDescriptor>]
 public sealed partial class GeneralControlPanel

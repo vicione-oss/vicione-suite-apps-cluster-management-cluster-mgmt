@@ -1,9 +1,11 @@
-﻿using ClusterManagement.Client.Editor.ControlPanels;
+﻿using ClusterManagement.Client.Editor.ControlPanels.General;
+using ClusterManagement.Client.Editor.ControlPanels.Packages;
 using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Client.Editor.Wizards.Services;
 using ClusterManagement.Client.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Client.ControlPanels.Extensions;
+using Sdk.Client.ControlPanels.Services;
 using ViciOne.Ui.ClusterEditor.Extensions;
 using ViciOne.Ui.ClusterEditor.Services;
 
@@ -35,6 +37,14 @@ internal static class IServiceCollectionExtensions
             .WithAutoDiscovery<GeneralControlPanelDescriptor>()
             .WithResetHandler<GeneralControlPanelResetHandler>()
             .WithSaveHandler<GeneralControlPanelSaveHandler>();
+
+        services.AddControlPanel<ClusterManagementClientModule, PackagesControlPanel, ControlPanelState>()
+           .WithAutoDiscovery<PackagesControlPanelDescriptor>();
+
+        services.AddControlPanel<ClusterManagementClientModule, PackageDetailsControlPanel, PackageDetailsControlPanelState>()
+            .WithAutoDiscovery<PackageDetailsControlPanelDescriptor>()
+            .WithResetHandler<PackageDetailsControlPanelResetHandler>()
+            .WithSaveHandler<PackageDetailsControlPanelSaveHandler>(); ;
 
         return services;
     }

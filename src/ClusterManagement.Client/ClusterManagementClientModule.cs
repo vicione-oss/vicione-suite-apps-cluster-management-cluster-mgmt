@@ -1,5 +1,6 @@
 ﻿using ClusterManagement.Client.DataflowEvents.Extensions;
 using ClusterManagement.Client.Editor.Extensions;
+using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Client.IoddManagement.Extensions;
 using ClusterManagement.Client.IoddManagement.Services;
 using ClusterManagement.Client.Localization;
@@ -24,6 +25,7 @@ public sealed class ClusterManagementClientModule : ClientModule
         services.AddNavTiles<ClusterManagementClientModule>();
 
         services.AddScoped<IIoddService, IoddService>();
+        services.AddScoped<IPackageService, PackageService>();
 
         services
             .AddClusterManagement()

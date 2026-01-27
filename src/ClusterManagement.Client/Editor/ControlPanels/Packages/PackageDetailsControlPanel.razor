@@ -1,0 +1,48 @@
+﻿@using ClusterManagement.Client.Localization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Sdk.Client.Components.Settings
+@using Sdk.Client.ControlPanels.Components
+@using ViciOne.Ui.Localization.Resources
+
+@inherits ControlPanelBase<PackageDetailsControlPanelState>
+
+<ControlPanelPage Title="@Common.Details">
+    <div class="package-detail-control-panel-page">
+        <DescriptionBanner Title="@($"{Common.Details} {State.PackageInfo!.Name}")">
+            @Localization.PackageDetailsControlPanel.BannerDescription
+        </DescriptionBanner>
+
+        <SettingsLayout>
+            <SettingsGroup Title="@Localization.PackageDetailsControlPanel.PackageDetails" @bind-Expanded="_isDetailsExpanded">
+                <SettingsField Label="@CommonVocabulary.Name">
+                    @State.PackageInfo.Name
+                </SettingsField>
+
+                <SettingsField Label="@CommonVocabulary.Description">
+                    @State.PackageInfo.Description
+                </SettingsField>
+
+                <SettingsField Label="@Localization.Common.MinCoreVersion">
+                    @State.PackageInfo.MinCoreVersion
+                </SettingsField>
+
+                <SettingsField Label="@Localization.Common.InstalledVersion">
+                    <div class="installed-version-wrapper">
+                        <AuthorizeView Policy="@AdminPolicy">
+                            <SettingsFieldComboBox Items="@State.PackageInfo.Versions"
+                                                   ValueSelector="@(item => item)"
+                                                   TextSelector="@(item => item)"
+                                                   Enabled="@State.PackageInfo.Versions!.Any()"
+                                                   @bind-Value="@State.VersionToInstall"
+                                                   @bind-Value:after="(async () => await BeginEdit())" />
+                        </AuthorizeView>
+
+                        <div class="version">
+                            @State.PackageInfo.InstalledVersion
+                        </div>
+                    </div>
+                </SettingsField>
+            </SettingsGroup>
+        </SettingsLayout>
+    </div>
+</ControlPanelPage>
