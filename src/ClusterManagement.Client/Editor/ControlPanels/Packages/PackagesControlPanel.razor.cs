@@ -155,7 +155,6 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
                 new()
                 {
                     Name = name,
-                    MinCoreVersion = "N/A",
                     Description = "N/A",
                     InstalledVersion = string.Empty,
                     Versions = []

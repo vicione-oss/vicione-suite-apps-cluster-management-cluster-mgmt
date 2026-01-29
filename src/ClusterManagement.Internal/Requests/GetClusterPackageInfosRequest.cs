@@ -2,4 +2,4 @@
 
 namespace ClusterManagement.Internal.Requests;
 
-public record GetClusterPackageInfosRequest : IRequest<GetClusterPackageInfosResponse>;
+public record GetClusterPackageInfosRequest(List<string>? PackageNames = null) : IRequest<GetClusterPackageInfosResponse>;

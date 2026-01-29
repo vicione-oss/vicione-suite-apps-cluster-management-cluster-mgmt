@@ -20,13 +20,66 @@ internal sealed partial class PackageStore(
         using var memoryStream = new MemoryStream(zipArchive);
         using var archive = new ZipArchive(memoryStream, ZipArchiveMode.Read);
 
-        var depsJsonEntry = archive.Entries.FirstOrDefault(e => e.Name.EndsWith("deps.json", StringComparison.OrdinalIgnoreCase))
+        var (packageName, packageVersion) = await VerifyPackageArchive(archive, cancellationToken);
+
+        ExtractPackageArchive(archive, packageName, packageVersion);
+
+        var clusterDependency = new ClusterDependency
+        {
+            Name = packageName,
+            Version = new Version(packageVersion)
+        };
+
+        var operation = new ClusterDependencyOperation(clusterDependency, ClusterDependencyOperationKind.Install);
+
+        // Queue the package for update on next restart
+        await dependencyStore.EnqueueOperations([operation], cancellationToken);
+
+        // Now a restart is required to actually load the package
+        return clusterDependency;
+    }
+
+    private async Task<(string Name, string Version)> VerifyPackageArchive(ZipArchive packageArchive, CancellationToken cancellationToken)
+    {
+        var depsJsonEntry = packageArchive.Entries.FirstOrDefault(e => e.Name.EndsWith("deps.json", StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException("The provided package archive does not contain a deps.json file.");
 
         // We could add validation of core version etc.
         var packageName = depsJsonEntry.Name.Replace(".deps.json", "", StringComparison.OrdinalIgnoreCase);
+        var dllEntryName = $"{packageName}.dll";
         var packageVersion = await GetPackageVersion(depsJsonEntry, packageName, cancellationToken);
 
+        await VerifyPackageDll(packageArchive, packageName, cancellationToken);
+
+        return (packageName, packageVersion);
+    }
+
+    private async Task VerifyPackageDll(ZipArchive packageArchive, string packageName, CancellationToken cancellationToken)
+    {
+        var dllEntry = packageArchive.Entries.FirstOrDefault(e => e.Name.Equals($"{packageName}.dll", StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException($"The provided package archive does not contain the required '{packageName}.dll' file.");
+
+        using var depsJsonStream = dllEntry.Open();
+        using var memoryStream = new MemoryStream();
+
+        await depsJsonStream.CopyToAsync(memoryStream, cancellationToken);
+        memoryStream.Position = 0;
+
+        var (targetFramework, runtimeVersion, platformTarget) = AssemblyMetadataProvider.GetAssemblyInfo(memoryStream);
+        if (targetFramework is null)
+            throw new InvalidOperationException("The provided package DLL does not contain target framework information.");
+
+        if (runtimeVersion is null)
+            throw new InvalidOperationException("The provided package DLL does not contain runtime version information.");
+
+        logger.LogInformation("Package {Name} supports Framework: {TargetFramework}, Runtime Version: {RuntimeVersion}, Platform Target: {PlatformTarget}",
+        dllEntry.Name, targetFramework, runtimeVersion, platformTarget);
+
+        // We could check here if the package is compatible with our system in more detail
+    }
+
+    private void ExtractPackageArchive(ZipArchive packageArchive, string packageName, string packageVersion)
+    {
         var dependenciesPath = fileSystem.GetDependenciesPath(workspaceProvider);
         var packageDestinationPath = fileSystem.Path.Combine(dependenciesPath, packageName, packageVersion);
 
@@ -43,21 +96,7 @@ internal sealed partial class PackageStore(
         // Extract package to our packages folder. It won't be loaded from there until we add it to our dependency store.
         logger.LogInformation("Uploading package '{PackageName}' version '{PackageVersion}' to path '{Name}'", packageName, packageVersion, packageDestinationPath);
         fileSystem.Directory.CreateDirectory(packageDestinationPath);
-        archive.ExtractToDirectory(packageDestinationPath);
-
-        var clusterDependency = new ClusterDependency
-        {
-            Name = packageName,
-            Version = new Version(packageVersion)
-        };
-
-        var operation = new ClusterDependencyOperation(clusterDependency, ClusterDependencyOperationKind.Install);
-
-        // Queue the package for update on next restart
-        await dependencyStore.EnqueueOperations([operation], cancellationToken);
-
-        // Now a restart is required to actually load the package
-        return clusterDependency;
+        packageArchive.ExtractToDirectory(packageDestinationPath);
     }
 
     private static async Task<string> GetPackageVersion(ZipArchiveEntry depsJsonEntry, string packageName, CancellationToken cancellationToken)

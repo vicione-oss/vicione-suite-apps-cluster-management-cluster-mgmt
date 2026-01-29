@@ -3,6 +3,7 @@ using System.IO.Abstractions.TestingHelpers;
 using System.Text.Json;
 using AwesomeAssertions;
 using ClusterManagement.Backend.Designs;
+using ClusterManagement.Backend.Designs.Extensions;
 using ClusterManagement.Internal;
 using ClusterManagement.Internal.Contracts;
 using Microsoft.Extensions.DependencyInjection;
@@ -49,6 +50,51 @@ public class ClusterDependencyStoreTests
             .AddSingleton(_logger)
             .AddSingleton<IClusterDependencyStore, ClusterDependencyStore>()
             .BuildServiceProvider();
+    }
+
+    public class BuildStoredPackageVersionMap : ClusterDependencyStoreTests
+    {
+        [Fact]
+        public void Should_build_package_version_map_for_stored_packages()
+        {
+            // Arrange            
+            var store = _services.GetRequiredService<IClusterDependencyStore>();
+
+            var package1 = new ClusterDependency { Name = "Test.Package1", Version = new Version(1, 0, 0) };
+            var package2 = new ClusterDependency { Name = "Test.Package2", Version = new Version(2, 2, 0) };
+            var package3 = new ClusterDependency { Name = "Test.Package3", Version = new Version(1, 0, 11) };
+
+            SetupStoredPackageVersions([package1, package2, package3]);
+
+            // Act
+            var result = store.BuildStoredPackageVersionMap();
+
+            // Assert
+            result.Should().HaveCount(3);
+            result.Should().Contain(d => d.Key == package1.Name && d.Value.Any(v => v == package1.Version));
+            result.Should().Contain(d => d.Key == package2.Name && d.Value.Any(v => v == package2.Version));
+            result.Should().Contain(d => d.Key == package3.Name && d.Value.Any(v => v == package3.Version));
+        }
+
+        [Fact]
+        public void Should_allow_multiple_package_versions()
+        {
+            // Arrange            
+            var store = _services.GetRequiredService<IClusterDependencyStore>();
+
+            var package1 = new ClusterDependency { Name = "Test.Package1", Version = new Version(1, 0, 0) };
+            var package2 = new ClusterDependency { Name = "Test.Package1", Version = new Version(2, 2, 0) };
+            var package3 = new ClusterDependency { Name = "Test.Package1", Version = new Version(1, 0, 11) };
+
+            SetupStoredPackageVersions([package1, package2, package3]);
+
+            // Act
+            var result = store.BuildStoredPackageVersionMap();
+
+            // Assert
+            result.Should().HaveCount(1);
+            result.Should().Contain(d => d.Key == package1.Name && d.Value.Count() == 3);
+        }
     }
 
     public sealed class LoadDependencies : ClusterDependencyStoreTests
@@ -118,6 +164,9 @@ public class ClusterDependencyStoreTests
             // Arrange
             var store = _services.GetRequiredService<IClusterDependencyStore>();
             var dependency = new ClusterDependency() { Name = "TestPackage", Version = new Version(1, 0, 0) };
+
+            SetupPackagesFile([]);
+
             var operations = new List<ClusterDependencyOperation>
             {
                 new(dependency, ClusterDependencyOperationKind.Install)
@@ -144,6 +193,8 @@ public class ClusterDependencyStoreTests
             var queuedDependency = new ClusterDependency() { Name = "QueuedPackage", Version = new Version(1, 0, 0) };
             var newDependency = new ClusterDependency() { Name = "NewPackage", Version = new Version(2, 0, 0) };
             var otherDependency = new ClusterDependency() { Name = "OtherPackage", Version = new Version(1, 4, 2) };
+
+            SetupPackagesFile([]);
 
             var updateFile = SetupUpdateQueueFile([
                 new ClusterDependencyOperation(queuedDependency, ClusterDependencyOperationKind.Install)
@@ -175,6 +226,8 @@ public class ClusterDependencyStoreTests
             var existingDependency = new ClusterDependency() { Name = "TestPackage", Version = new Version(1, 0, 0) };
             var overwriteDependency = new ClusterDependency() { Name = "TestPackage", Version = new Version(2, 0, 0) };
 
+            SetupPackagesFile([]);
+
             var updateFile = SetupUpdateQueueFile([
                 new ClusterDependencyOperation(existingDependency, ClusterDependencyOperationKind.Install)
             ]);
@@ -200,6 +253,51 @@ public class ClusterDependencyStoreTests
             // Arrange
             var store = _services.GetRequiredService<IClusterDependencyStore>();
             var operations = new List<ClusterDependencyOperation>();
+
+            // Act
+            await store.EnqueueOperations(operations, CancellationToken.None);
+
+            // Assert
+            var updateFile = _fileSystem.Path.Combine(HomePath, QueueFileName);
+            _fileSystem.File.Exists(updateFile).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task Should_remove_redundant_install_package_operations()
+        {
+            // Arrange
+            var store = _services.GetRequiredService<IClusterDependencyStore>();
+            var installedDependency = new ClusterDependency { Name = "TestPackage", Version = new Version(1, 0, 0) };
+
+            SetupPackagesFile([installedDependency]);
+
+            var operations = new List<ClusterDependencyOperation>
+            {
+                new(installedDependency, ClusterDependencyOperationKind.Install)
+            };
+
+            // Act
+            await store.EnqueueOperations(operations, CancellationToken.None);
+
+            // Assert
+            var updateFile = _fileSystem.Path.Combine(HomePath, QueueFileName);
+            _fileSystem.File.Exists(updateFile).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task Should_remove_redundant_uninstall_package_operations()
+        {
+            // Arrange
+            var store = _services.GetRequiredService<IClusterDependencyStore>();
+            var installedDependency = new ClusterDependency { Name = "TestPackage", Version = new Version(1, 0, 0) };
+            var deleteDependency = new ClusterDependency() { Name = "TestPackage", Version = new Version(2, 0, 0) };
+
+            SetupPackagesFile([installedDependency]);
+
+            var operations = new List<ClusterDependencyOperation>
+            {
+                new(deleteDependency, ClusterDependencyOperationKind.Uninstall)
+            };
 
             // Act
             await store.EnqueueOperations(operations, CancellationToken.None);
@@ -340,6 +438,26 @@ public class ClusterDependencyStoreTests
         _fileSystem.AddFile(packagesFile, new MockFileData(packagesJson));
 
         return packagesFile;
+    }
+
+    private void SetupStoredPackageVersions(List<ClusterDependency> dependencies)
+    {
+        var depsPath = _fileSystem.Path.Combine(_workspaceProvider.Cache, IFileSystemExtensions.DependenciesDirectory);
+        if (!_fileSystem.Path.Exists(depsPath))
+        {
+            _fileSystem.AddDirectory(depsPath);
+        }
+
+        foreach (var dependency in dependencies)
+        {
+            var versionDir = _fileSystem.Path.Combine(depsPath, dependency.Name, dependency.Version.ToString());
+            _fileSystem.AddDirectory(versionDir);
+
+            var emptyDll = _fileSystem.Path.Combine(versionDir, $"{dependency.Name}.dll");
+            var emptyDepsJson = _fileSystem.Path.Combine(versionDir, $"{dependency.Name}.deps.json");
+            _fileSystem.AddEmptyFile(emptyDll);
+            _fileSystem.AddEmptyFile(emptyDepsJson);
+        }
     }
 
     private string SetupUpdateQueueFile(List<ClusterDependencyOperation> queuedUpdates)
