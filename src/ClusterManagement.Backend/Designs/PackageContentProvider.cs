@@ -46,12 +46,24 @@ internal class PackageContentProvider(
             if (_packages.ContainsKey(dependency))
                 return false;
 
-            var designs = _packagesLoader.Load(directory);
-            var rulesets = RulesetLoader.LoadRulesets(directory);
+            try
+            {
+                var designs = _packagesLoader.Load(directory);
+                var rulesets = RulesetLoader.LoadRulesets(directory);
 
-            _packages[dependency] = new(designs, rulesets, hide);
-            return true;
+                if (designs.Count == 0 && rulesets.Count == 0)
+                    throw new InvalidOperationException($"No valid designs or rulesets were found in the provided package '{dependency.Name}' version '{dependency.Version}'.");
+
+                _packages[dependency] = new(designs, rulesets, hide);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _packages[dependency] = new PackageContent(new Dictionary<Guid, FunctionBlockDesign>(), new Dictionary<string, Ruleset>(), true) { Error = ex };
+            }
         }
+
+        return false;
     }
 
     public async Task<bool> TryAddPackage(ClusterDependency dependency, IReadOnlyCollection<Type> types, IReadOnlyCollection<Ruleset> rulesets, bool hide = false, CancellationToken cancellationToken = default)
@@ -63,23 +75,36 @@ internal class PackageContentProvider(
             if (_packages.ContainsKey(dependency))
                 return false;
 
-            PoolingFactory poolingFactory = new([typeof(SumPooling).Assembly]);
-
-            List<FunctionBlockDesign> functionBlockDesigns = [];
-
-            foreach (var type in types)
+            try
             {
-                var functionBlockDesignInfo = RuntimeFunctionBlockAssemblyAnalyzer.GetFunctionBlockDesign(type);
-                var coreDesign = FunctionBlockDesignGenerator.GenerateFunctionBlockDesign(functionBlockDesignInfo, poolingFactory);
+                PoolingFactory poolingFactory = new([typeof(SumPooling).Assembly]);
 
-                functionBlockDesigns.Add(coreDesign);
+                List<FunctionBlockDesign> functionBlockDesigns = [];
+
+                foreach (var type in types)
+                {
+                    var functionBlockDesignInfo = RuntimeFunctionBlockAssemblyAnalyzer.GetFunctionBlockDesign(type);
+                    var coreDesign = FunctionBlockDesignGenerator.GenerateFunctionBlockDesign(functionBlockDesignInfo, poolingFactory);
+
+                    functionBlockDesigns.Add(coreDesign);
+                }
+
+                if (functionBlockDesigns.Count == 0 && rulesets.Count == 0)
+                    throw new InvalidOperationException($"No valid designs or rulesets were found in the provided package '{dependency.Name}' version '{dependency.Version}'.");
+
+                _packages[dependency] = new(
+                    functionBlockDesigns.ToDictionary(d => d.Id),
+                    rulesets.Where(r => r.Root is not null).ToDictionary(r => r.Root!.Id),
+                    hide);
+
+                return true;
             }
-
-            _packages[dependency] = new(
-                functionBlockDesigns.ToDictionary(d => d.Id),
-                rulesets.Where(r => r.Root is not null).ToDictionary(r => r.Root!.Id),
-                hide);
-            return true;
+            catch (Exception ex)
+            {
+                _packages[dependency] = new PackageContent(new Dictionary<Guid, FunctionBlockDesign>(), new Dictionary<string, Ruleset>(), true) { Error = ex };
+            }
         }
+
+        return false;
     }
 }

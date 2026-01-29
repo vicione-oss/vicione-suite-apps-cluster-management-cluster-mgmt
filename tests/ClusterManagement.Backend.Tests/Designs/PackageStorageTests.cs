@@ -1,6 +1,7 @@
 ﻿using System.IO.Abstractions;
 using AwesomeAssertions;
 using ClusterManagement.Backend.Designs;
+using ClusterManagement.Backend.Designs.Extensions;
 using ClusterManagement.Internal;
 using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Tests.Tools.Factories;
@@ -43,11 +44,9 @@ public class PackageStorageTests
             using var services = CreateServices();
             using var tempDirectory = new TemporaryDirectory();
             var fileSystem = services.GetRequiredService<IFileSystem>();
-            var destinationPath = Path.Combine(tempDirectory.Path, "ViciOne.Suite-ClusterManagement");
-            var packageName = "ViciOne.Test.Package";
-            var packageVersion = "0.46.4";
-
-            var sourceZipBytes = PackageFactory.CreatePackageZipArchiveBytes(packageName, packageVersion);
+            var destinationPath = Path.Combine(tempDirectory.Path, "ViciOne.Suite.ClusterManagement");
+            var dependency = PackageFactory.ConstantPackageDependency;
+            var sourceZipBytes = PackageFactory.CreatePackageArchiveFromDependency(dependency.Name);
             var store = services.GetRequiredService<IPackageStore>();
 
             _workspaceService.Cache.Returns(destinationPath);
@@ -56,9 +55,9 @@ public class PackageStorageTests
             await store.StorePackage(sourceZipBytes, true, CancellationToken.None);
 
             // Assert
-            var expectedFbPath = fileSystem.Path.Combine(destinationPath, "Dependencies", packageName);
+            var expectedFbPath = fileSystem.Path.Combine(destinationPath, IFileSystemExtensions.DependenciesDirectory, dependency.Name);
             fileSystem.Directory.Exists(expectedFbPath).Should().BeTrue();
-            fileSystem.Directory.Exists(fileSystem.Path.Combine(expectedFbPath, packageVersion)).Should().BeTrue();
+            fileSystem.Directory.Exists(fileSystem.Path.Combine(expectedFbPath, dependency.Version.ToString())).Should().BeTrue();
         }
 
         [Fact]
@@ -67,11 +66,9 @@ public class PackageStorageTests
             // Arrange
             using var services = CreateServices();
             using var tempDirectory = new TemporaryDirectory();
-            var destinationPath = Path.Combine(tempDirectory.Path, "ViciOne.Suite-ClusterManagement");
-            var packageName = "ViciOne.Test.Package";
-            var packageVersion = "0.46.4";
-
-            var sourceZipBytes = PackageFactory.CreatePackageZipArchiveBytes(packageName, packageVersion);
+            var destinationPath = Path.Combine(tempDirectory.Path, "ViciOne.Suite.ClusterManagement");
+            var constantPackage = PackageFactory.ConstantPackageDependency;
+            var sourceZipBytes = PackageFactory.CreatePackageArchiveFromDependency(constantPackage.Name);
             var store = services.GetRequiredService<IPackageStore>();
 
             _workspaceService.Cache.Returns(destinationPath);
@@ -80,14 +77,63 @@ public class PackageStorageTests
             var dependency = await store.StorePackage(sourceZipBytes, true, CancellationToken.None);
 
             // Assert
-            dependency.Name.Should().Be(packageName);
-            dependency.Version.Should().Be(Version.Parse(packageVersion));
+            dependency.Name.Should().Be(dependency.Name);
+            dependency.Version.Should().Be(constantPackage.Version);
 
             await _dependencyStore.Received(1).EnqueueOperations(
-                Arg.Is<List<ClusterDependencyOperation>>(d => d[0].Dependency.Name == packageName
-                && d[0].Dependency.Version == Version.Parse(packageVersion)
+                Arg.Is<List<ClusterDependencyOperation>>(d => d[0].Dependency.Name == constantPackage.Name
+                && d[0].Dependency.Version == constantPackage.Version
                 && d[0].Operation == ClusterDependencyOperationKind.Install),
                 Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Should_validate_header()
+        {
+            // Arrange
+            using var services = CreateServices();
+            using var tempDirectory = new TemporaryDirectory();
+            var destinationPath = Path.Combine(tempDirectory.Path, "ViciOne.Suite.ClusterManagement");
+            var constantPackage = PackageFactory.ConstantPackageDependency;
+
+            var sourceZipBytes = PackageFactory.CreatePackageArchiveFromDependency(constantPackage.Name);
+            var store = services.GetRequiredService<IPackageStore>();
+
+            _workspaceService.Cache.Returns(destinationPath);
+
+            // Act
+            var dependency = await store.StorePackage(sourceZipBytes, true, CancellationToken.None);
+
+            // Assert
+            dependency.Name.Should().Be(constantPackage.Name);
+            dependency.Version.Should().Be(constantPackage.Version);
+
+            await _dependencyStore.Received(1).EnqueueOperations(
+                Arg.Is<List<ClusterDependencyOperation>>(d => d[0].Dependency.Name == constantPackage.Name
+                && d[0].Dependency.Version == constantPackage.Version
+                && d[0].Operation == ClusterDependencyOperationKind.Install),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Should_throw_if_assembly_metadata_is_invalid()
+        {
+            // Arrange
+            using var services = CreateServices();
+            using var tempDirectory = new TemporaryDirectory();
+            var destinationPath = Path.Combine(tempDirectory.Path, "ViciOne.Suite.ClusterManagement");
+            var constantPackage = PackageFactory.ConstantPackageDependency;
+            var sourceZipBytes = PackageFactory.CreatePackageZipArchiveBytes(constantPackage.Name, constantPackage.Version.ToString());
+            var store = services.GetRequiredService<IPackageStore>();
+
+            _workspaceService.Cache.Returns(destinationPath);
+
+            // Act
+            var act = () => store.StorePackage(sourceZipBytes, true, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<BadImageFormatException>()
+                .WithMessage("Image is either too small or contains an invalid byte offset or count.");
         }
 
         [Fact]

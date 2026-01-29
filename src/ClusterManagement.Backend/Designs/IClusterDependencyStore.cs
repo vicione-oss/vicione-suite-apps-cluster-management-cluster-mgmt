@@ -27,4 +27,14 @@ public interface IClusterDependencyStore
     /// Updates cluster dependencies in storage by merging queued operations with existing dependencies.    
     /// </summary>
     Task ProcessQueuedOperations(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Returns the currently enqueued operations.
+    /// </summary>
+    Task<IReadOnlyCollection<ClusterDependencyOperation>> GetEnqueuedOperations(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Returns a map of packages and their versions stored in the dependency store.
+    /// </summary>
+    Dictionary<string, IEnumerable<Version>> BuildStoredPackageVersionMap();
 }

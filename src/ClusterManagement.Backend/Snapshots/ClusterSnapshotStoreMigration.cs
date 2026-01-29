@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ClusterManagement.Backend.Designs;
+using ClusterManagement.Backend.Snapshots.Extensions;
 using ClusterManagement.Public;
 using Microsoft.Extensions.Logging;
 using ViciOne.Cluster.Model;
@@ -46,28 +46,19 @@ internal class ClusterSnapshotStoreMigration(
 
     private async Task ReplaceDependenciesInCluster(Dictionary<string, ClusterDependency> dependencies, Public.Requests.ClusterInfo clusterInfo, CancellationToken cancellationToken)
     {
-        var cluster = await clusterSnapshotStore.Load(clusterInfo.Id, clusterInfo.Version, Read, cancellationToken);
-        if (cluster is null)
-            return;
-
         var replacedSomething = false;
-        var clusterDependencies = GetClusterDependencyNodes(cluster).ToArray();
 
-        foreach (var clusterDependencyNode in clusterDependencies)
+        var cluster = await clusterSnapshotStore.HandleClusterDependencies(clusterInfo, async (dependencyNode, name, version) =>
         {
-            if (!GetNameAndVersion(clusterDependencyNode, out var name, out var version))
-                continue;
-
             if (!dependencies.TryGetValue(name, out var dependency))
-                continue;
+                return;
 
-            if (ReplaceDependencyIfNewer(dependency, version, clusterDependencyNode))
+            if (ReplaceDependencyIfNewer(dependency, version, dependencyNode))
             {
                 logger.LogInformation("Replaced dependency '{Name}' with version '{Version}' in cluster '{ClusterId}' {ClusterVersion}.", name, dependency.Version, clusterInfo.Id, clusterInfo.Version);
                 replacedSomething = true;
-                continue;
             }
-        }
+        }, cancellationToken);
 
         if (replacedSomething)
         {
@@ -80,29 +71,6 @@ internal class ClusterSnapshotStoreMigration(
             };
             await clusterSnapshotStore.Store(clusterInfo.Id, clusterInfo.Version, info, cluster, Write, true, cancellationToken);
         }
-
-        static IEnumerable<JsonObject> GetClusterDependencyNodes(JsonNode cluster)
-            => cluster[nameof(Cluster.Dependencies)]?.AsArray().OfType<JsonObject>() ?? [];
-    }
-
-    private static bool GetNameAndVersion(JsonObject clusterDependencyToken, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out Version? version)
-    {
-        var nameNode = clusterDependencyToken[nameof(ClusterDependency.Name)];
-        var versionNode = clusterDependencyToken[nameof(ClusterDependency.Version)];
-
-        if (nameNode is not JsonValue nameToken || versionNode is not JsonValue versionToken)
-        {
-            name = null;
-            version = null;
-            return false;
-        }
-
-        name = nameToken.GetValue<string>();
-
-        if (!Version.TryParse(versionToken.GetValue<string>(), out version))
-            return false;
-
-        return true;
     }
 
     private static bool ReplaceDependencyIfNewer(ClusterDependency dependency, Version version, JsonObject clusterDependencyNode)
@@ -114,9 +82,6 @@ internal class ClusterSnapshotStoreMigration(
         }
         return false;
     }
-
-    private static async Task<JsonNode?> Read(Stream stream, CancellationToken cancellationToken)
-        => await JsonSerializer.DeserializeAsync<JsonNode>(stream, ClusterSerializer.TypedSerializerOptions ?? ClusterSerializer.UntypedSerializerOptions, cancellationToken);
 
     private static async Task Write<T>(Stream stream, T value, CancellationToken cancellationToken)
         => await JsonSerializer.SerializeAsync(stream, value, ClusterSerializer.TypedSerializerOptions ?? ClusterSerializer.UntypedSerializerOptions, cancellationToken);

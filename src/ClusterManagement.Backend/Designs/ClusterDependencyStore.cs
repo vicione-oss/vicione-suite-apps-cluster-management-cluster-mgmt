@@ -2,6 +2,7 @@
 using System.IO.Abstractions;
 using System.Reflection;
 using System.Text.Json;
+using ClusterManagement.Backend.Designs.Extensions;
 using ClusterManagement.Internal;
 using ClusterManagement.Internal.Contracts;
 using Microsoft.Extensions.Logging;
@@ -85,10 +86,34 @@ internal sealed class ClusterDependencyStore(
 
         // Keep previous updates if no restart was performed meanwhile
         var previousUpdates = await DeserializeQueuedUpdates(cancellationToken);
+        var currentDependencies = await LoadDependencies(cancellationToken);
 
         // Overwrite already queued packages with new versions
         var updatedPackages = operations
                 .UnionBy(previousUpdates, cp => cp.Dependency.Name)
+                .Where(updatedPackages =>
+                {
+                    // It might happen that a package gets uninstalled and afterwards installed again with
+                    // same version that is already in the packages file. In this case we can remove the operation
+                    var currentDependency = currentDependencies.FirstOrDefault(cd => cd.Name == updatedPackages.Dependency.Name);
+                    if (updatedPackages.Operation == ClusterDependencyOperationKind.Uninstall && currentDependency is not null
+                        && currentDependency.Version != updatedPackages.Dependency.Version)
+                    {
+                        logger.LogDebug("Removing uninstall operation from queue because '{PackageName}' version '{PackageVersion}' it's not installed yet",
+                            updatedPackages.Dependency.Name, updatedPackages.Dependency.Version);
+
+                        return false;
+                    }
+
+                    if (updatedPackages.Operation == ClusterDependencyOperationKind.Install && currentDependency?.Version == updatedPackages.Dependency.Version)
+                    {
+                        logger.LogDebug("Removing install operation from queue because '{PackageName}' version '{PackageVersion}' is already installed",
+                            updatedPackages.Dependency.Name, updatedPackages.Dependency.Version);
+                        return false;
+                    }
+
+                    return true;
+                })
                 .OrderBy(p => p.Dependency.Name)
                 .ToList();
 
@@ -179,5 +204,44 @@ internal sealed class ClusterDependencyStore(
         });
         return await JsonSerializer.DeserializeAsync<ClusterDependency[]>(fileStream, serializerOptions, cancellationToken)
             ?? throw new InvalidOperationException($"Failed to deserialize {PackagesFileName} file '{filename}'.");
+    }
+
+    public async Task<IReadOnlyCollection<ClusterDependencyOperation>> GetEnqueuedOperations(CancellationToken cancellationToken)
+        => await DeserializeQueuedUpdates(cancellationToken);
+
+
+    public Dictionary<string, IEnumerable<Version>> BuildStoredPackageVersionMap()
+    {
+        var dependenciesFolder = fileSystem.GetDependenciesPath(workspaceProvider);
+        if (!fileSystem.Directory.Exists(dependenciesFolder))
+            throw new DirectoryNotFoundException($"Dependencies folder '{dependenciesFolder}' does not exist.");
+
+        var result = new Dictionary<string, IEnumerable<Version>>();
+
+        // dependencies/<package_name>/<version>/..
+        foreach (var packageDirectory in fileSystem.Directory.EnumerateDirectories(dependenciesFolder))
+        {
+            // our package key from folder
+            var packageName = Path.GetFileName(packageDirectory);
+            if (string.IsNullOrEmpty(packageName))
+                continue;
+
+            // our package versions
+            var versions = fileSystem.Directory.EnumerateDirectories(packageDirectory)
+                .Select(fileSystem.Path.GetFileName)
+                .Where(v => !string.IsNullOrEmpty(v))
+                .Distinct()
+                .Select(v => Version.Parse(v!))
+                .OrderBy(v => v)
+                .ToList();
+
+            // no versions found for this package
+            if (versions.Count == 0)
+                continue;
+
+            result[packageName] = versions;
+        }
+
+        return result;
     }
 }

@@ -27,7 +27,7 @@ public sealed class GetEngineHostPackageInfoConsumer(IEngineHostArtifactReposito
         var engineHosts = await repository.QueryMetadataArtifacts(SemVersion.FromVersion(coreVersion), context.CancellationToken);
 
         // We could now load the zip artifacts but just for the version we spare the requests and extract it from name
-        var packageInfo = ClusterPackageInfo(installedVersion, coreVersion);
+        var packageInfo = ClusterPackageInfo(installedVersion);
         var emptyVersion = new SemVersion(0, 0, 0);
         packageInfo.Versions = engineHosts
             .Select(k => MetadataArtifactNameRegex.ParseVersion(k.Name, out var packageVersion) ? packageVersion : emptyVersion)
@@ -44,7 +44,7 @@ public sealed class GetEngineHostPackageInfoConsumer(IEngineHostArtifactReposito
 
         var coreVersion = ClusterAssembliesResolver.GetViciOneCoreAssemblyVersion();
         var installedVersion = _options.GetEngineHostVersion();
-        var info = ClusterPackageInfo(installedVersion, coreVersion);
+        var info = ClusterPackageInfo(installedVersion);
 
         return Task.FromResult(new GetEngineHostPackageInfoResponse(info)
         {
@@ -52,11 +52,10 @@ public sealed class GetEngineHostPackageInfoConsumer(IEngineHostArtifactReposito
         });
     }
 
-    private static ClusterPackageInfo ClusterPackageInfo(SemVersion installedVersion, Version coreVersion)
+    private static ClusterPackageInfo ClusterPackageInfo(SemVersion installedVersion)
         => new()
         {
             Name = PackageName,
-            InstalledVersion = installedVersion.ToString(),
-            MinCoreVersion = coreVersion.ToString()
+            InstalledVersion = installedVersion.ToString()
         };
 }

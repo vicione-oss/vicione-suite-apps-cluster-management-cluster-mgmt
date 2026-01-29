@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.Loader;
 using AwesomeAssertions;
 using ClusterManagement.Backend.Designs;
+using ClusterManagement.Backend.Designs.Extensions;
 using ClusterManagement.Tests.Tools.Factories;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
@@ -22,6 +23,7 @@ public class PackageContentProviderTests
 
     private readonly ClusterDependency _constantDependency = new() { Name = "ViciOne.Constant", Version = new Version(0, 34, 0) };
     private readonly ClusterDependency _logicDependency = new() { Name = "ViciOne.Logic", Version = new Version(0, 34, 0) };
+    private readonly Type _systemDataPortType = typeof(ViciOne.Suite.System.DataPort);
 
     public PackageContentProviderTests()
     {
@@ -48,7 +50,7 @@ public class PackageContentProviderTests
             SetupClusterManagementAssemblyContext();
 
             // Act
-            var result = await provider.TryAddPackage(_constantDependency, [], [], false);
+            var result = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], false);
 
             // Assert
             result.Should().BeTrue();
@@ -63,7 +65,7 @@ public class PackageContentProviderTests
             // Arrange
             var provider = _services.GetRequiredService<PackageContentProvider>();
             var fbPath = _fileSystem.Path.Combine(_workspaceProvider.Cache,
-                "Dependencies",
+                IFileSystemExtensions.DependenciesDirectory,
                 _constantDependency.Name,
                 _constantDependency.Version.ToString());
 
@@ -152,6 +154,26 @@ public class PackageContentProviderTests
             result.Keys.Should().Contain(_constantDependency);
             result.Keys.Should().Contain(_logicDependency);
         }
+
+        [Fact]
+        public async Task Should_return_packages_with_error_on_failure()
+        {
+            // Arrange
+            var provider = _services.GetRequiredService<PackageContentProvider>();
+            var failureDependency = new ClusterDependency { Name = "ViciOne.Failure", Version = new Version(0, 2, 0) };
+
+            SetupClusterManagementAssemblyContext();
+
+            await provider.TryAddPackage(failureDependency, [], [], false);
+
+            // Act
+            var result = provider.GetPackageContents();
+
+            // Assert
+            result.Should().HaveCount(1);
+            result.Keys.Should().Contain(failureDependency);
+            result.Values.Should().Contain(p => p.Error != null);
+        }
     }
 
     public sealed class TryAddPackageFromDirectory : PackageContentProviderTests
@@ -181,7 +203,7 @@ public class PackageContentProviderTests
             SetupClusterManagementAssemblyContext();
 
             // Act
-            var result = await provider.TryAddPackage(_constantDependency, [], [], false);
+            var result = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], false);
 
             // Assert
             result.Should().BeTrue();
@@ -198,7 +220,7 @@ public class PackageContentProviderTests
             SetupClusterManagementAssemblyContext();
 
             // Act
-            var result = await provider.TryAddPackage(_constantDependency, [], [], true);
+            var result = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], true);
 
             // Assert
             result.Should().BeTrue();
@@ -236,10 +258,11 @@ public class PackageContentProviderTests
             var result = await provider.TryAddPackage(_constantDependency, [], [], false);
 
             // Assert
-            result.Should().BeTrue();
+            result.Should().BeFalse();
             var contents = provider.GetPackageContents();
             contents[_constantDependency].Designs.Should().BeEmpty();
             contents[_constantDependency].Rulesets.Should().BeEmpty();
+            contents[_constantDependency].Error.Should().NotBeNull();
         }
 
         [Fact]
@@ -251,7 +274,7 @@ public class PackageContentProviderTests
             SetupClusterManagementAssemblyContext();
 
             // Act
-            var result = await provider.TryAddPackage(_constantDependency, [], [], false);
+            var result = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], false);
 
             // Assert
             result.Should().BeTrue();
@@ -268,7 +291,7 @@ public class PackageContentProviderTests
             SetupClusterManagementAssemblyContext();
 
             // Act
-            var result = await provider.TryAddPackage(_constantDependency, [], [], true);
+            var result = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], true);
 
             // Assert
             result.Should().BeTrue();
@@ -306,12 +329,12 @@ public class PackageContentProviderTests
             SetupClusterManagementAssemblyContext();
 
             // Act
-            var result1 = await provider.TryAddPackage(_constantDependency, [], [], false);
+            var result1 = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], false);
             var result2 = await provider.TryAddPackage(_logicDependency, [], [], false);
 
             // Assert
             result1.Should().BeTrue();
-            result2.Should().BeTrue();
+            result2.Should().BeFalse();
             var contents = provider.GetPackageContents();
             contents.Should().HaveCount(2);
         }
@@ -330,7 +353,7 @@ public class PackageContentProviderTests
 
             // Act
             var tasks = dependencies.Select(dep =>
-                Task.Run(() => provider.TryAddPackage(dep, [], [], false))
+                Task.Run(() => provider.TryAddPackage(dep, [_systemDataPortType], [], false))
             ).ToArray();
 
             await Task.WhenAll(tasks);
@@ -351,7 +374,7 @@ public class PackageContentProviderTests
 
             // Act
             var tasks = Enumerable.Range(0, 10)
-                .Select(_ => Task.Run(() => provider.TryAddPackage(_constantDependency, [], [], false)))
+                .Select(_ => Task.Run(() => provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], false)))
                 .ToArray();
 
             await Task.WhenAll(tasks);
