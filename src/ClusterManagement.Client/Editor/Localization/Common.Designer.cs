@@ -61,20 +61,20 @@ namespace ClusterManagement.Client.Editor.Localization {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Installed Version.
+        ///   Looks up a localized string similar to The installed package is active in the cluster. This package cannot be uninstalled or updated..
         /// </summary>
-        internal static string InstalledVersion {
+        internal static string ActiveInCluster {
             get {
-                return ResourceManager.GetString("InstalledVersion", resourceCulture);
+                return ResourceManager.GetString("ActiveInCluster", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Min. Core Version.
+        ///   Looks up a localized string similar to Installed version.
         /// </summary>
-        internal static string MinCoreVersion {
+        internal static string InstalledVersion {
             get {
-                return ResourceManager.GetString("MinCoreVersion", resourceCulture);
+                return ResourceManager.GetString("InstalledVersion", resourceCulture);
             }
         }
         
@@ -106,11 +106,29 @@ namespace ClusterManagement.Client.Editor.Localization {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to pending uninstall.
+        /// </summary>
+        internal static string PendingUninstall {
+            get {
+                return ResourceManager.GetString("PendingUninstall", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Packages.
         /// </summary>
         internal static string Title {
             get {
                 return ResourceManager.GetString("Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to update to version {0} available.
+        /// </summary>
+        internal static string UpdateToVersionAvailible {
+            get {
+                return ResourceManager.GetString("UpdateToVersionAvailible", resourceCulture);
             }
         }
     }

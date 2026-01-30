@@ -4,5 +4,9 @@ internal enum SvgIcon
 {
     CollapseAllRows,
     ExpandAllRows,
+    InstallPending,
     Search,
+    Uninstall,
+    UninstallPending,
+    UpdateAvailable,
 }

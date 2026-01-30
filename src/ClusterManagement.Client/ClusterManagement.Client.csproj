@@ -222,8 +222,10 @@
     <ItemGroup>
       <MonochromeIcon Include="import" Size="24" />
       <MonochromeIcon Include="export" Size="24" />
+      <MonochromeIcon Include="error-full" Size="16;24" />
       <MonochromeIcon Include="delete" Size="24" />
       <MonochromeIcon Include="folder" Size="24" />
+      <MonochromeIcon Include="lock" Size="16;24" />
     </ItemGroup>
 
     <PropertyGroup>

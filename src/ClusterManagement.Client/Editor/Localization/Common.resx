@@ -127,12 +127,18 @@
     <value>Package Details</value>
   </data>
   <data name="InstalledVersion" xml:space="preserve">
-    <value>Installed Version</value>
-  </data>
-  <data name="MinCoreVersion" xml:space="preserve">
-    <value>Min. Core Version</value>
+    <value>Installed version</value>
   </data>
   <data name="NeedRestart" xml:space="preserve">
     <value>The packages have been modified. To apply these changes, please restart the application.</value>
+  </data>
+  <data name="PendingUninstall" xml:space="preserve">
+    <value>pending uninstall</value>
+  </data>
+  <data name="UpdateToVersionAvailible" xml:space="preserve">
+    <value>update to version {0} available</value>
+  </data>
+  <data name="ActiveInCluster" xml:space="preserve">
+    <value>The installed package is active in the cluster. This package cannot be uninstalled or updated.</value>
   </data>
 </root>

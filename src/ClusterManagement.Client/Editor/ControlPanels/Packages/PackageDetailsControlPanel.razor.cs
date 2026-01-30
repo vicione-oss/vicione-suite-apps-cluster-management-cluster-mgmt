@@ -1,4 +1,5 @@
-﻿using ClusterManagement.Internal.Contracts;
+﻿using ClusterManagement.Client.Editor.Services;
+using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Internal.Events;
 using Microsoft.AspNetCore.Components;
 using Sdk.Authorization;
@@ -18,6 +19,7 @@ public partial class PackageDetailsControlPanel : IEventConsumer<ClusterDependen
 
     [Inject] private IMessageBannerService MessageBannerService { get; set; } = default!;
     [Inject] private IUiMediator Mediator { get; set; } = default!;
+    [Inject] private IPackageService PackageService { get; set; } = default!;
 
     private string? AdminPolicy { get; }
         = ModulePolicyProvider.GetPolicy<ClusterManagementClientModule>(AccessLevel.Full);
@@ -38,9 +40,25 @@ public partial class PackageDetailsControlPanel : IEventConsumer<ClusterDependen
             return;
 
         if (operation.Operation is ClusterDependencyOperationKind.Install)
+        {
             State.VersionToInstall = operation.Dependency.Version.ToString();
+
+            var refreshed = (await PackageService.GetPackages([operation.Dependency.Name])).FirstOrDefault();
+            if (refreshed is null || State.PackageInfo is null)
+                return;
+
+            State.PackageInfo = refreshed;
+        }
         else if (operation.Operation is ClusterDependencyOperationKind.Uninstall)
+        {
             State.VersionToInstall = string.Empty;
+
+            var refreshed = (await PackageService.GetPackages([operation.Dependency.Name])).FirstOrDefault();
+            if (refreshed is null || State.PackageInfo is null)
+                return;
+
+            State.PackageInfo = refreshed;
+        }
 
         await InvokeAsync(StateHasChanged);
     }

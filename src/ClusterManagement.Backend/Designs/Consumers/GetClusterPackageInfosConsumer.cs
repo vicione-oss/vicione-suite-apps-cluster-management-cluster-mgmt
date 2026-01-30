@@ -175,15 +175,15 @@ public sealed class GetClusterPackageInfosConsumer(
                     packageInfo = new ClusterPackageInfo
                     {
                         Name = name,
-                        ActiveClusterVersion = SemVersion.FromVersion(version).ToString()
+                        RunningClusterVersion = SemVersion.FromVersion(version).ToString()
                     };
                     packageInfos.Add(packageInfo);
 
-                    logger.LogDebug("Add active cluster package {Package} with version {Versions}", packageInfo.Name, packageInfo.ActiveClusterVersion);
+                    logger.LogDebug("Add active cluster package {Package} with version {Versions}", packageInfo.Name, packageInfo.RunningClusterVersion);
                     return;
                 }
 
-                packageInfo.ActiveClusterVersion = SemVersion.FromVersion(version).ToString();
+                packageInfo.RunningClusterVersion = SemVersion.FromVersion(version).ToString();
 
             }, cancellationToken);
         }

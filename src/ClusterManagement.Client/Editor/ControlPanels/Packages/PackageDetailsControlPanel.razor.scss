@@ -1,11 +1,33 @@
-﻿.package-detail-control-panel-page {
-    ::deep .installed-version-wrapper {
+﻿@use "./../../../Styles/icons/monochrome-icons" with (
+    $svg-base-url: "./icons/monochrome-icons",
+    $base-selector: "::deep"
+);
+
+.package-detail-control-panel-page {
+    ::deep .installed-version-wrapper, .active-cluster-version-wrapper {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    ::deep .install-version-wrapper {
         display: contents;
 
-        &:has(.combo-box) {
+        .combo-box-wrapper {
+            display: flex;
+            width: 100%;
+            gap: 8px;
+        }
+
+        &:has(.combo-box-wrapper) {
             .version {
                 display: none;
             }
         }
+    }
+
+    ::deep img {
+        width: 24px;
+        height: 24px;
     }
 }

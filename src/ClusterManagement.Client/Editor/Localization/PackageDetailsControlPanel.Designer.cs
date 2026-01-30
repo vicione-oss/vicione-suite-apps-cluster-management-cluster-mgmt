@@ -70,11 +70,20 @@ namespace ClusterManagement.Client.Editor.Localization {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Install Version.
+        ///   Looks up a localized string similar to Install version.
         /// </summary>
         internal static string InstallVersion {
             get {
                 return ResourceManager.GetString("InstallVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Minimum core version.
+        /// </summary>
+        internal static string MinCoreVersion {
+            get {
+                return ResourceManager.GetString("MinCoreVersion", resourceCulture);
             }
         }
         
@@ -84,6 +93,33 @@ namespace ClusterManagement.Client.Editor.Localization {
         internal static string PackageDetails {
             get {
                 return ResourceManager.GetString("PackageDetails", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pending install of version.
+        /// </summary>
+        internal static string PendingInstall {
+            get {
+                return ResourceManager.GetString("PendingInstall", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pending update to version.
+        /// </summary>
+        internal static string PendingUpdate {
+            get {
+                return ResourceManager.GetString("PendingUpdate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Running cluster version.
+        /// </summary>
+        internal static string RunningClusterVersion {
+            get {
+                return ResourceManager.GetString("RunningClusterVersion", resourceCulture);
             }
         }
     }

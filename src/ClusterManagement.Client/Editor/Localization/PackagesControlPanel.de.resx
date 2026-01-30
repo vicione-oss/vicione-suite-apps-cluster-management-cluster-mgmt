@@ -124,10 +124,16 @@
     <value>Pakete löschen</value>
   </data>
   <data name="DescriptionBannerDescription" xml:space="preserve">
-    <value>Verwaltung von Paketen, welche innerhalb des Cluster Editors verwendet werden.</value>
+    <value>Verwaltung von Paketen, welche innerhalb des Cluster Editors verwendet werden. Die Core Version muss mindestens {0} sein.</value>
   </data>
   <data name="DescriptionBannerTitle" xml:space="preserve">
     <value>Pakete verwalten</value>
+  </data>
+  <data name="PendingInstallOfVersion" xml:space="preserve">
+    <value>ausstehende Installation von Version {0}</value>
+  </data>
+  <data name="PendingUpdateToVersion" xml:space="preserve">
+    <value>ausstehende Aktualisierung auf Version {0}</value>
   </data>
   <data name="Uninstall" xml:space="preserve">
     <value>Deinstallieren</value>

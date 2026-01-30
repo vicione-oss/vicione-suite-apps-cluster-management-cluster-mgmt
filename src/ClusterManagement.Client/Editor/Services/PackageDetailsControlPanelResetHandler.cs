@@ -7,7 +7,13 @@ public sealed class PackageDetailsControlPanelResetHandler : IControlPanelResetH
 {
     public Task Reset(PackageDetailsControlPanelState state, CancellationToken cancellationToken)
     {
-        state.VersionToInstall = state.PackageInfo?.InstalledVersion ?? string.Empty;
+        if (state.PackageInfo is null)
+            return Task.CompletedTask;
+
+        state.VersionToInstall = state.PackageInfo.PendingOperation?.Dependency.Version.ToString() ?? state.PackageInfo.InstalledVersion ?? string.Empty;
+
+        if (state.PackageInfo.PendingOperation?.Operation is Internal.Contracts.ClusterDependencyOperationKind.Uninstall)
+            state.VersionToInstall = string.Empty;
 
         return Task.CompletedTask;
     }

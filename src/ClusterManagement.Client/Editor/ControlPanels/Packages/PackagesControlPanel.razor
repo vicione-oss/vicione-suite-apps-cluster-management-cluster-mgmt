@@ -1,4 +1,6 @@
-﻿@using ClusterManagement.Client.Editor.Extensions
+﻿@using ClusterManagement.Client.Editor.Enums
+@using ClusterManagement.Client.Editor.Extensions
+@using ClusterManagement.Client.Extensions
 @using ClusterManagement.Client.Localization
 @using ClusterManagement.Internal.Contracts
 @using Microsoft.AspNetCore.Components.Authorization
@@ -12,6 +14,7 @@
 @using ViciOne.Ui.Blazor.Components.Grid.Components.Footers
 @using ViciOne.Ui.Blazor.Components.Grid.Components.Panes
 @using ViciOne.Ui.Localization.Resources
+@using ViciOne.Ui.MonochromeIcons.Components
 @using ViciOne.Ui.MonochromeIcons.Core.Enums
 @using ViciOne.Ui.MonochromeIcons.Core.Extensions
 @using ViciOne.Ui.Shared.Dx.Components
@@ -21,7 +24,7 @@
 <ControlPanelPage Title="@Localization.Common.Title">
     <div class="packages-control-panel-page">
         <DescriptionBanner Title="@Localization.PackagesControlPanel.DescriptionBannerTitle">
-            @Localization.PackagesControlPanel.DescriptionBannerDescription
+            @(string.Format(Localization.PackagesControlPanel.DescriptionBannerDescription, PackageService.MinCoreVersion))
         </DescriptionBanner>
         <div class="input">
 
@@ -48,8 +51,8 @@
                                           IconCssClass="@MonochromeIconName.Export.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()" />
                         <GridActionButton Text="@Localization.PackagesControlPanel.Uninstall"
                                           OnClick="@OnPackageDeleteClickAsync"
-                                          Enabled="@(ItemSelection.Any() && ItemSelection.All(i => !string.IsNullOrEmpty(i.InstalledVersion)))"
-                                          IconCssClass="@MonochromeIconName.Delete.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()" />
+                                          IconData="@SvgIcon.Uninstall.GetPath()"
+                                          Enabled="@(ItemSelection.Count != 0 && ItemSelection.All(i => !string.IsNullOrEmpty(i.InstalledVersion) && string.IsNullOrEmpty(i.RunningClusterVersion)))" />
                     </AuthorizeView>
                 </div>
             </ActionButtons>
@@ -73,10 +76,60 @@
                     }
                 </TemplateColumn>
 
-                <PropertyColumn Property="@(item => item.InstalledVersion)"
-                                Title="@Localization.Common.InstalledVersion" />
+                <TemplateColumn Title="@Localization.Common.InstalledVersion">
+                    <div class="version-wrapper">
+                        <div class="version" title="@context.InstalledVersion">
+                            @context.InstalledVersion
+                        </div>
 
-                 <NavigationColumn NavigationButtonTitle="@Common.ShowDetails"
+                        @if (context.PendingOperation is not null)
+                        {
+                            @if (context.PendingOperation.Operation is ClusterDependencyOperationKind.Install)
+                            {
+                                var tooltipText = context.InstalledVersion is null ?
+                                    string.Format(Localization.PackagesControlPanel.PendingInstallOfVersion, context.PendingOperation.Dependency.Version.ToString()) :
+                                    string.Format(Localization.PackagesControlPanel.PendingUpdateToVersion, context.PendingOperation.Dependency.Version.ToString());
+
+                                <div title="@tooltipText" class="icon-wrapper">
+                                    <img src="@SvgIcon.InstallPending.GetPath()" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div title="@Localization.Common.PendingUninstall" class="icon-wrapper">
+                                    <img src="@SvgIcon.UninstallPending.GetPath()" />
+                                </div>
+                            }
+                        }
+
+                        @{
+                            var highestVersion = context.GetHighestAvailableVersion();
+                        }
+
+                        @if (highestVersion is not null)
+                        {
+                            <div title="@string.Format(Localization.Common.UpdateToVersionAvailible, highestVersion)" class="icon-wrapper">
+                                <img src="@SvgIcon.UpdateAvailable.GetPath()" />
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(context.RunningClusterVersion))
+                        {
+                            <div title="@Localization.Common.ActiveInCluster" class="icon-wrapper">
+                                <MonochromeIcon Name="MonochromeIconName.Lock" Size="MonochromeIconSize.Small" />
+                            </div>
+                        }
+
+                        @if (context.Error is not null)
+                        {
+                            <div title="@context.Error.Message" class="icon-wrapper">
+                                <MonochromeIcon Name="MonochromeIconName.ErrorFull" Size="MonochromeIconSize.Small" />
+                            </div>
+                        }
+                    </div>
+                </TemplateColumn>
+
+                <NavigationColumn NavigationButtonTitle="@Common.ShowDetails"
                                   Navigate="@((ClusterPackageInfo item) => ShowDetailsAsync(item))" />
             </ChildContent>
 

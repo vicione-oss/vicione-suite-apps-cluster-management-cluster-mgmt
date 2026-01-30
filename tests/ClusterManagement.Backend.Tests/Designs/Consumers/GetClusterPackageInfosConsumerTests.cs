@@ -367,10 +367,10 @@ public class GetClusterPackageInfosConsumerTests
         response.RequestError.Should().BeNull();
         response.PackageInfos.Should().HaveCount(2);
         response.PackageInfos.Should().Contain(k => k.Name == _chocolate.Name
-            && k.ActiveClusterVersion == _chocolate.Version.ToString());
+            && k.RunningClusterVersion == _chocolate.Version.ToString());
 
         response.PackageInfos.Should().Contain(k => k.Name == _cheese.Name
-            && k.ActiveClusterVersion == _cheese.Version.ToString());
+            && k.RunningClusterVersion == _cheese.Version.ToString());
     }
 
     [Fact]
@@ -393,15 +393,15 @@ public class GetClusterPackageInfosConsumerTests
         response.PackageInfos.Should().HaveCount(3);
         response.PackageInfos.Should().Contain(k => k.Name == _chocolate.Name
             && k.InstalledVersion == _chocolate.Version.ToString()
-            && k.ActiveClusterVersion == _chocolate.Version.ToString());
+            && k.RunningClusterVersion == _chocolate.Version.ToString());
 
         response.PackageInfos.Should().Contain(k => k.Name == _cheese.Name
             && k.InstalledVersion == _cheese.Version.ToString()
-            && k.ActiveClusterVersion == _cheese.Version.ToString());
+            && k.RunningClusterVersion == _cheese.Version.ToString());
 
         response.PackageInfos.Should().Contain(k => k.Name == _cake.Name
             && k.InstalledVersion == _cake.Version.ToString()
-            && k.ActiveClusterVersion == null);
+            && k.RunningClusterVersion == null);
     }
 
     [Fact]
