@@ -8,12 +8,18 @@ namespace ClusterManagement.Client.Editor.Services;
 
 internal class PackageService(IUiMediator mediator) : IPackageService
 {
+    private string _minCoreVersion = string.Empty;
+
+    public string MinCoreVersion => _minCoreVersion;
+
     public async Task DeletePackage(string name, string version)
         => await mediator.Send(new DeleteClusterPackage(name, version));
 
-    public async Task<IEnumerable<ClusterPackageInfo>> GetPackages()
+    public async Task<IEnumerable<ClusterPackageInfo>> GetPackages(List<string>? names = null)
     {
-        var response = await mediator.Request<GetClusterPackageInfosRequest, GetClusterPackageInfosResponse>(new GetClusterPackageInfosRequest());
+        var response = await mediator.Request<GetClusterPackageInfosRequest, GetClusterPackageInfosResponse>(new GetClusterPackageInfosRequest(names));
+
+        _minCoreVersion = response.MinCoreVersion;
 
         return response.PackageInfos;
     }

@@ -1,8 +1,14 @@
-﻿@using ClusterManagement.Client.Localization
+﻿@using ClusterManagement.Client.Editor.Enums
+@using ClusterManagement.Client.Editor.Extensions
+@using ClusterManagement.Client.Extensions
+@using ClusterManagement.Client.Localization
+@using ClusterManagement.Internal.Contracts
 @using Microsoft.AspNetCore.Components.Authorization
 @using Sdk.Client.Components.Settings
 @using Sdk.Client.ControlPanels.Components
 @using ViciOne.Ui.Localization.Resources
+@using ViciOne.Ui.MonochromeIcons.Components
+@using ViciOne.Ui.MonochromeIcons.Core.Enums
 
 @inherits ControlPanelBase<PackageDetailsControlPanelState>
 
@@ -20,17 +26,80 @@
 
                 <SettingsField Label="@CommonVocabulary.Description">
                     @State.PackageInfo.Description
-                </SettingsField>                
+                </SettingsField>
+                
+                @if (!string.IsNullOrEmpty(State.PackageInfo.RunningClusterVersion))
+                {
+                    <SettingsField Label="@Localization.PackageDetailsControlPanel.RunningClusterVersion">
+                        <div class="active-cluster-version-wrapper">
+                            @State.PackageInfo.RunningClusterVersion
+
+                            <div title="@Localization.Common.ActiveInCluster" class="icon-wrapper">
+                                <MonochromeIcon Name="MonochromeIconName.Lock" Size="MonochromeIconSize.SmallMedium" />
+                            </div>
+                        </div>
+                    </SettingsField>
+                }
 
                 <SettingsField Label="@Localization.Common.InstalledVersion">
                     <div class="installed-version-wrapper">
-                        <AuthorizeView Policy="@AdminPolicy">
-                            <SettingsFieldComboBox Items="@State.PackageInfo.Versions"
-                                                   ValueSelector="@(item => item)"
-                                                   TextSelector="@(item => item)"
-                                                   Enabled="@State.PackageInfo.Versions!.Any()"
-                                                   @bind-Value="@State.VersionToInstall"
-                                                   @bind-Value:after="(async () => await BeginEdit())" />
+                        @State.PackageInfo.InstalledVersion
+                    
+                        @if (State.PackageInfo.PendingOperation?.Operation is ClusterDependencyOperationKind.Uninstall)
+                        {
+                            <div title="@Localization.Common.PendingUninstall" class="icon-wrapper">
+                                <img src="@SvgIcon.UninstallPending.GetPath()" />
+                            </div>
+                        }
+                        else if (State.PackageInfo.Error is not null)
+                        {
+                            <div title="@State.PackageInfo.Error.Message" class="icon-wrapper">
+                                <MonochromeIcon Name="MonochromeIconName.ErrorFull" Size="MonochromeIconSize.SmallMedium" />
+                            </div>
+                        }
+                    </div>
+                </SettingsField>
+
+                @if (State.PackageInfo.PendingOperation is not null)
+                {
+                    if (State.PackageInfo.PendingOperation.Operation is ClusterDependencyOperationKind.Install)
+                    {
+                        var labelText = State.PackageInfo.InstalledVersion is null ?
+                            Localization.PackageDetailsControlPanel.PendingInstall :
+                            Localization.PackageDetailsControlPanel.PendingUpdate;
+
+                        <SettingsField Label="@labelText">
+                            @State.PackageInfo.PendingOperation.Dependency.Version.ToString()
+                        </SettingsField>
+                    }
+                }
+
+                @if (string.IsNullOrEmpty(State.PackageInfo.RunningClusterVersion) &&
+                    ((State.PackageInfo.Versions ?? []).Count > 1 ||
+                    (string.IsNullOrEmpty(State.PackageInfo.InstalledVersion) && State.PackageInfo.PendingOperation?.Operation is not ClusterDependencyOperationKind.Install) ||
+                    State.PackageInfo.PendingOperation?.Operation is ClusterDependencyOperationKind.Uninstall))
+                {
+                    <SettingsField Label="@Localization.PackageDetailsControlPanel.InstallVersion">
+                        <div class="install-version-wrapper">
+                            <AuthorizeView Policy="@AdminPolicy">
+                                <div class="combo-box-wrapper">
+                                    <SettingsFieldComboBox Items="@State.PackageInfo.Versions"
+                                                           ValueSelector="@(item => item)"
+                                                           TextSelector="@(item => item)"
+                                                           @bind-Value="@State.VersionToInstall"
+                                                           @bind-Value:after="(async () => await BeginEdit())" />
+
+                                    @{
+                                        var highestVersion = State.PackageInfo.GetHighestAvailableVersion();
+                                    }
+
+                                    @if (highestVersion is not null)
+                                    {
+                                        <div title="@string.Format(Localization.Common.UpdateToVersionAvailible, highestVersion)" class="icon-wrapper">
+                                            <img src="@SvgIcon.UpdateAvailable.GetPath()" />
+                                        </div>
+                                    }
+                                </div>
                         </AuthorizeView>
 
                         <div class="version">
@@ -38,6 +107,7 @@
                         </div>
                     </div>
                 </SettingsField>
+            }
             </SettingsGroup>
         </SettingsLayout>
     </div>

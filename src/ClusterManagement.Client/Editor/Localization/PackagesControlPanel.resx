@@ -124,10 +124,16 @@
     <value>Delete Packages</value>
   </data>
   <data name="DescriptionBannerDescription" xml:space="preserve">
-    <value>Manage packages, that are used inside of the Cluster Editor.</value>
+    <value>Manage packages, that are used inside of the Cluster Editor. The minimum core version must be: {0}.</value>
   </data>
   <data name="DescriptionBannerTitle" xml:space="preserve">
     <value>Manage Packages</value>
+  </data>
+  <data name="PendingInstallOfVersion" xml:space="preserve">
+    <value>pending installation of version {0}</value>
+  </data>
+  <data name="PendingUpdateToVersion" xml:space="preserve">
+    <value>pending update to version {0}</value>
   </data>
   <data name="Uninstall" xml:space="preserve">
     <value>Uninstall</value>

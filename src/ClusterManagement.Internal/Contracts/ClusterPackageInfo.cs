@@ -24,10 +24,10 @@ public class ClusterPackageInfo
     public ClusterDependencyOperation? PendingOperation { get; set; }
 
     /// <summary>
-    /// Filled if the package is part of the active cluster with the version deployed there
+    /// Filled if the package is part of the running cluster with the version deployed there
     /// If installed version does not match we have a deployment issue! User should know about
     /// </summary>
-    public string? ActiveClusterVersion { get; set; }
+    public string? RunningClusterVersion { get; set; }
 
     /// <summary>
     /// Is not <see langword="null"/> if there occured an error on e.g. loading the package

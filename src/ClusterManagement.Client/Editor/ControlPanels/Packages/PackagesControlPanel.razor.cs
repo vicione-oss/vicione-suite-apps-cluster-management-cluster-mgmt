@@ -82,7 +82,6 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
         }
     }
 
-
     private async Task OnPackageUploadClickAsync()
         => await JavaScript.InvokeVoidAsync("triggerUploadClick");
 
@@ -99,7 +98,7 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
 
         foreach (var item in items)
         {
-            if (string.IsNullOrEmpty(item.InstalledVersion))
+            if (string.IsNullOrEmpty(item.InstalledVersion) || string.IsNullOrEmpty(item.RunningClusterVersion))
                 continue;
 
             operations.Add(new ClusterDependencyOperation(new ClusterDependency
@@ -149,25 +148,11 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
 
         if (context.Message.Change is ClusterPackageChange.Add or ClusterPackageChange.Update)
         {
-            var packages = await PackageService.GetPackages();
-            var packagesList = new List<ClusterPackageInfo>(packages)
-            {
-                new()
-                {
-                    Name = name,
-                    Description = "N/A",
-                    InstalledVersion = string.Empty,
-                    Versions = []
-                }
-            };
-
-            _packageInfosQueryable = packagesList.AsQueryable();
+            await RefreshPackageAsync(name);
         }
         else if (context.Message.Change == ClusterPackageChange.Delete)
         {
-            var packages = (await PackageService.GetPackages()).Where(p => p.Name != name);
-            _packageInfosQueryable = packages.AsQueryable();
-
+            await RefreshPackageAsync(name);
             ItemSelection.Remove(p => p.Name == name);
         }
 
@@ -185,16 +170,17 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
     {
         foreach (var operation in context.Message.Operations)
         {
+            var name = operation.Dependency.Name;
+
             if (operation.Operation is ClusterDependencyOperationKind.Install)
             {
-                var packages = await PackageService.GetPackages();
-                packages.First(p => p.Name == operation.Dependency.Name).InstalledVersion = operation.Dependency.Version.ToString();
+                await RefreshPackageAsync(name);
             }
             else if (operation.Operation is ClusterDependencyOperationKind.Uninstall)
             {
-                _packageInfosQueryable.First(p => p.Name == operation.Dependency.Name).InstalledVersion = string.Empty;
+                await RefreshPackageAsync(name);
 
-                ItemSelection.Remove(p => p.Name == operation.Dependency.Name);
+                ItemSelection.Remove(p => p.Name == name);
             }
         }
 
@@ -206,5 +192,20 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
         MessageBannerService.ShowMessageBanner(MessageType.Error, context.Message.Error.Message);
 
         return Task.CompletedTask;
+    }
+
+    private async Task RefreshPackageAsync(string packageName)
+    {
+        var refreshed = (await PackageService.GetPackages([packageName])).FirstOrDefault();
+        if (refreshed is null)
+            return;
+
+        var updated = _packageInfosQueryable
+            .Where(p => p.Name != packageName)
+            .Append(refreshed)
+            .OrderBy(p => p.Name)
+            .AsQueryable();
+
+        _packageInfosQueryable = updated;
     }
 }
