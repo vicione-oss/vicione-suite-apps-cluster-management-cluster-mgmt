@@ -56,26 +56,28 @@ internal sealed partial class PackageStore(
 
     private async Task VerifyPackageDll(ZipArchive packageArchive, string packageName, CancellationToken cancellationToken)
     {
-        var dllEntry = packageArchive.Entries.FirstOrDefault(e => e.Name.Equals($"{packageName}.dll", StringComparison.OrdinalIgnoreCase))
+        try
+        {
+            var dllEntry = packageArchive.Entries.FirstOrDefault(e => e.Name.Equals($"{packageName}.dll", StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException($"The provided package archive does not contain the required '{packageName}.dll' file.");
 
-        using var depsJsonStream = dllEntry.Open();
-        using var memoryStream = new MemoryStream();
+            using var depsJsonStream = dllEntry.Open();
+            using var memoryStream = new MemoryStream();
 
-        await depsJsonStream.CopyToAsync(memoryStream, cancellationToken);
-        memoryStream.Position = 0;
+            await depsJsonStream.CopyToAsync(memoryStream, cancellationToken);
+            memoryStream.Position = 0;
 
-        var (targetFramework, runtimeVersion, platformTarget) = AssemblyMetadataProvider.GetAssemblyInfo(memoryStream);
-        if (targetFramework is null)
-            throw new InvalidOperationException("The provided package DLL does not contain target framework information.");
+            var (targetFramework, runtimeVersion, platformTarget) = AssemblyMetadataProvider.GetAssemblyInfo(memoryStream);
 
-        if (runtimeVersion is null)
-            throw new InvalidOperationException("The provided package DLL does not contain runtime version information.");
+            logger.LogInformation("Package {Name} supports Framework: {TargetFramework}, Runtime Version: {RuntimeVersion}, Platform Target: {PlatformTarget}",
+            dllEntry.Name, targetFramework, runtimeVersion, platformTarget);
 
-        logger.LogInformation("Package {Name} supports Framework: {TargetFramework}, Runtime Version: {RuntimeVersion}, Platform Target: {PlatformTarget}",
-        dllEntry.Name, targetFramework, runtimeVersion, platformTarget);
-
-        // We could check here if the package is compatible with our system in more detail
+            // We could check here if the package is compatible with our system in more detail
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to verify upload package assembly for '{PackageName}'", packageName);
+        }
     }
 
     private void ExtractPackageArchive(ZipArchive packageArchive, string packageName, string packageVersion)

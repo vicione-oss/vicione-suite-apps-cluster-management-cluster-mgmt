@@ -2,16 +2,15 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ClusterManagement.Public;
-using ClusterManagement.Public.Requests;
 using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Snapshots.Extensions;
 
 internal static class IClusterSnapshotStoreExtensions
 {
-    public static async Task<JsonNode?> HandleClusterDependencies(this IClusterSnapshotStore clusterSnapshotStore, ClusterInfo clusterInfo, Action<JsonObject, string, Version> dependencyCallback, CancellationToken cancellationToken)
+    public static async Task<JsonNode?> HandleClusterDependencies(this IClusterSnapshotStore clusterSnapshotStore, Guid clusterId, Version clusterVersion, Action<JsonObject, string, Version> dependencyCallback, CancellationToken cancellationToken)
     {
-        var cluster = await clusterSnapshotStore.Load(clusterInfo.Id, clusterInfo.Version, Read, cancellationToken);
+        var cluster = await clusterSnapshotStore.Load(clusterId, clusterVersion, Read, cancellationToken);
         if (cluster is null)
             return null;
 

@@ -23,7 +23,7 @@ public sealed class GetClusterInfosConsumer(IClusterDbContext dbContext, ICluste
             context.CorrelationId,
             context.Message.ClusterId);
 
-        var activeInfos = await _dbContext.ActiveClusters.AsNoTracking().ToListAsync();
+        var activeInfos = await _dbContext.ActiveClusters.AsNoTracking().ToListAsync(context.CancellationToken);
         var fileInfos = (await _snapshotStore.GetClusterInfos(context.Message.ClusterId, context.CancellationToken))
             .Select(k => ClusterInfoFactory.CreateInfo(k, activeInfos.Any(active => active.Id == k.Id && active.Version == k.Version)))
             .ToList();

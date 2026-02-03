@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using AngleSharp.Common;
 using AwesomeAssertions;
+using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.Designs.Consumers;
 using ClusterManagement.Backend.Snapshots;
@@ -10,6 +11,7 @@ using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Internal.Requests;
 using ClusterManagement.Public;
 using ClusterManagement.Public.Requests;
+using ClusterManagement.Tests.Tools;
 using ClusterManagement.Tests.Tools.Factories;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,7 +27,7 @@ using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Designs.Consumers;
 
-public class GetClusterPackageInfosConsumerTests
+public class GetClusterPackageInfosConsumerTests : TestWithDbContextSqlite<ClusterDbContextSqlite>
 {
     private readonly Action<IBusRegistrationConfigurator> _configureServices;
     private readonly IClusterDependencyStore _dependencyStore = Substitute.For<IClusterDependencyStore>();
@@ -60,6 +62,7 @@ public class GetClusterPackageInfosConsumerTests
         _configureServices = cfg =>
         {
             cfg.AddConsumer<GetClusterPackageInfosConsumer>();
+            cfg.AddSingleton<IClusterDbContext>(_ => TestDbContext);
             cfg.AddSingleton(_dependencyStore);
             cfg.AddSingleton(_packageContentProvider);
             cfg.AddSingleton(_repository);
@@ -210,17 +213,17 @@ public class GetClusterPackageInfosConsumerTests
         response.PackageInfos.Should().Contain(k => k.Name == "New.Block"
             && k.PendingOperation != null
             && k.PendingOperation.Dependency.Version == new Version(1, 0, 0)
-            && k.PendingOperation.Operation == ClusterDependencyOperationKind.Install);
+            && k.PendingOperation.OperationKind == ClusterDependencyOperationKind.Install);
 
         response.PackageInfos.Should().Contain(k => k.Name == _chocolate.Name
             && k.PendingOperation != null
             && k.PendingOperation.Dependency.Version == new Version(1, 1, 0)
-            && k.PendingOperation.Operation == ClusterDependencyOperationKind.Install);
+            && k.PendingOperation.OperationKind == ClusterDependencyOperationKind.Install);
 
         response.PackageInfos.Should().Contain(k => k.Name == _cheese.Name
             && k.PendingOperation != null
             && k.PendingOperation.Dependency.Version == _cheese.Version
-            && k.PendingOperation.Operation == ClusterDependencyOperationKind.Uninstall);
+            && k.PendingOperation.OperationKind == ClusterDependencyOperationKind.Uninstall);
     }
 
     [Fact]
@@ -341,24 +344,7 @@ public class GetClusterPackageInfosConsumerTests
         var activeClusterInfo = new ClusterInfo(Guid.NewGuid(), new Version(1, 1, 0), "Default Cluster", true);
         var inactiveClusterInfo = new ClusterInfo(activeClusterInfo.Id, new Version(0, 5, 0), "Old Default Cluster", false);
 
-        using var activeClusterBuilder = ClusterFactory.CreateComplexCluster();
-        activeClusterBuilder.Cluster.Id = activeClusterInfo.Id;
-        activeClusterBuilder.Cluster.Version = activeClusterInfo.Version;
-        activeClusterBuilder.Cluster.Dependencies = [_chocolate, _cheese];
-
-        var activeClusterJson = ClusterSerializer.Serialize(activeClusterBuilder.Cluster);
-        var jsonNode = JsonSerializer.Deserialize<JsonNode>(activeClusterJson, ClusterSerializer.TypedSerializerOptions ?? ClusterSerializer.UntypedSerializerOptions);
-
-        _snapshotStore.GetClusterInfos(null, Arg.Any<CancellationToken>())
-            .Returns(
-            [
-                inactiveClusterInfo,
-                activeClusterInfo,
-                new(Guid.NewGuid(), new Version(0,1,1), "Other Cluster")
-            ]);
-
-        _snapshotStore.Load(activeClusterInfo.Id, activeClusterInfo.Version, Arg.Any<Func<Stream, CancellationToken, Task<JsonNode>>>(), Arg.Any<CancellationToken>())
-            .Returns(jsonNode);
+        SetupActiveClusters(tester.Services.GetRequiredService<IClusterDbContext>(), activeClusterInfo, _chocolate, _cheese);
 
         // Act
         var response = await tester.TestRequest<GetClusterPackageInfosResponse, GetClusterPackageInfosRequest>(request);
@@ -378,10 +364,13 @@ public class GetClusterPackageInfosConsumerTests
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
+        using var builder = ClusterFactory.CreateComplexCluster(ClusterComplexity.Complex);
         var request = new GetClusterPackageInfosRequest();
-        var activeClusterInfo = new ClusterInfo(Guid.NewGuid(), new Version(1, 1, 0), "Default Cluster", true);
+        var activeClusterInfo = new ClusterInfo(builder.Cluster.Id, builder.Cluster.Version, "Default Cluster", true);
 
-        SetupActiveClusters(activeClusterInfo, _chocolate, _cheese);
+        var dbContext = tester.Services.GetRequiredService<IClusterDbContext>();
+
+        SetupActiveClusters(dbContext, activeClusterInfo, _chocolate, _cheese);
 
         SetupPackageContents([_chocolate, _cheese, _cake]);
 
@@ -482,7 +471,7 @@ public class GetClusterPackageInfosConsumerTests
         return artifact;
     }
 
-    private void SetupActiveClusters(ClusterInfo activeClusterInfo, params ClusterDependency[] dependencies)
+    private void SetupActiveClusters(IClusterDbContext dbContext, ClusterInfo activeClusterInfo, params ClusterDependency[] dependencies)
     {
         using var activeClusterBuilder = ClusterFactory.CreateComplexCluster();
         activeClusterBuilder.Cluster.Id = activeClusterInfo.Id;
@@ -501,6 +490,8 @@ public class GetClusterPackageInfosConsumerTests
                 activeClusterInfo,
                 inactiveClusterInfo
             ]);
+
+        dbContext.SaveActiveClusterVersion(activeClusterBuilder.Cluster);
 
         _snapshotStore.Load(activeClusterInfo.Id, activeClusterInfo.Version, Arg.Any<Func<Stream, CancellationToken, Task<JsonNode>>>(), Arg.Any<CancellationToken>())
             .Returns(jsonNode);

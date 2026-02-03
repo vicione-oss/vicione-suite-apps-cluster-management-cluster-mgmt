@@ -13,11 +13,6 @@ public sealed class ClusterManagementOptions
     public string? PackageSet { get; set; }
 
     /// <summary>
-    /// optional - if true, the packages file in the workspace will be overwritten with the embedded default one on startup
-    /// </summary>
-    public bool OverwritePackagesFiles { get; set; } = true;
-
-    /// <summary>
     /// optional - version of the engine host that should be downloaded and used
     /// </summary>
     public string? EngineHostVersion { get; set; }

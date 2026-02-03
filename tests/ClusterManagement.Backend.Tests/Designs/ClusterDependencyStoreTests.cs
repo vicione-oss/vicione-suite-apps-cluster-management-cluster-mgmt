@@ -173,7 +173,7 @@ public class ClusterDependencyStoreTests
             };
 
             // Act
-            await store.EnqueueOperations(operations, CancellationToken.None);
+            _ = await store.EnqueueOperations(operations, CancellationToken.None);
 
             // Assert
             var updateFile = _fileSystem.Path.Combine(HomePath, QueueFileName);
@@ -182,7 +182,7 @@ public class ClusterDependencyStoreTests
             var queued = await DeserializeClusterDependencyOperations(updateFile);
 
             queued.Should().HaveCount(1);
-            queued.Should().Contain(d => d.Dependency == dependency && d.Operation == ClusterDependencyOperationKind.Install);
+            queued.Should().Contain(d => d.Dependency == dependency && d.OperationKind == ClusterDependencyOperationKind.Install);
         }
 
         [Fact]
@@ -207,15 +207,17 @@ public class ClusterDependencyStoreTests
             };
 
             // Act
-            await store.EnqueueOperations(operations, CancellationToken.None);
+            var changes = await store.EnqueueOperations(operations, CancellationToken.None);
 
             // Assert
+            changes.Should().HaveCount(2).And.AllSatisfy(k => k.Action.Should().Be(CrudAction.Created));
+
             var queued = await DeserializeClusterDependencyOperations(updateFile);
 
             queued.Should().HaveCount(3);
-            queued.Should().Contain(d => d.Dependency == queuedDependency && d.Operation == ClusterDependencyOperationKind.Install);
-            queued.Should().Contain(d => d.Dependency == newDependency && d.Operation == ClusterDependencyOperationKind.Install);
-            queued.Should().Contain(d => d.Dependency == otherDependency && d.Operation == ClusterDependencyOperationKind.Install);
+            queued.Should().Contain(d => d.Dependency == queuedDependency && d.OperationKind == ClusterDependencyOperationKind.Install);
+            queued.Should().Contain(d => d.Dependency == newDependency && d.OperationKind == ClusterDependencyOperationKind.Install);
+            queued.Should().Contain(d => d.Dependency == otherDependency && d.OperationKind == ClusterDependencyOperationKind.Install);
         }
 
         [Fact]
@@ -238,13 +240,14 @@ public class ClusterDependencyStoreTests
             };
 
             // Act
-            await store.EnqueueOperations(operations, CancellationToken.None);
+            var changes = await store.EnqueueOperations(operations, CancellationToken.None);
 
             // Assert
             var queued = await DeserializeClusterDependencyOperations(updateFile);
 
-            queued.Should().HaveCount(1);
-            queued.Should().Contain(d => d.Dependency == overwriteDependency && d.Operation == ClusterDependencyOperationKind.Install);
+            changes.Should().HaveCount(1);
+            changes.Should().Contain(d => d.Operation.Dependency == overwriteDependency
+                && d.Operation.OperationKind == ClusterDependencyOperationKind.Install);
         }
 
         [Fact]
@@ -255,9 +258,10 @@ public class ClusterDependencyStoreTests
             var operations = new List<ClusterDependencyOperation>();
 
             // Act
-            await store.EnqueueOperations(operations, CancellationToken.None);
+            var changes = await store.EnqueueOperations(operations, CancellationToken.None);
 
             // Assert
+            changes.Should().BeEmpty();
             var updateFile = _fileSystem.Path.Combine(HomePath, QueueFileName);
             _fileSystem.File.Exists(updateFile).Should().BeFalse();
         }
@@ -277,11 +281,15 @@ public class ClusterDependencyStoreTests
             };
 
             // Act
-            await store.EnqueueOperations(operations, CancellationToken.None);
+            var changes = await store.EnqueueOperations(operations, CancellationToken.None);
 
-            // Assert
+            // Assert            
             var updateFile = _fileSystem.Path.Combine(HomePath, QueueFileName);
             _fileSystem.File.Exists(updateFile).Should().BeFalse();
+
+            changes.Should().Contain(k => k.Action == CrudAction.Deleted
+                && k.Operation.Dependency.Name == installedDependency.Name
+                && k.Operation.OperationKind == ClusterDependencyOperationKind.Install);
         }
 
         [Fact]
@@ -300,9 +308,12 @@ public class ClusterDependencyStoreTests
             };
 
             // Act
-            await store.EnqueueOperations(operations, CancellationToken.None);
+            var changes = await store.EnqueueOperations(operations, CancellationToken.None);
 
             // Assert
+            changes.Should().Contain(k => k.Action == CrudAction.Deleted
+                && k.Operation.Dependency == deleteDependency);
+
             var updateFile = _fileSystem.Path.Combine(HomePath, QueueFileName);
             _fileSystem.File.Exists(updateFile).Should().BeFalse();
         }

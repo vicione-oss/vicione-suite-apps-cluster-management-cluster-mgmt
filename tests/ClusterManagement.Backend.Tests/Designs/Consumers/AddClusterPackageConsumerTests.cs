@@ -4,6 +4,7 @@ using ClusterManagement.Internal.Commands;
 using ClusterManagement.Internal.Events;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sdk.Testing.Backend;
@@ -25,6 +26,7 @@ public class AddClusterPackageConsumerTests
             // consumer needs
             cfg.AddConsumer<AddClusterPackageConsumer>();
             cfg.AddSingleton(_packageStore);
+            cfg.AddSingleton(Substitute.For<ILogger<AddClusterPackageConsumer>>());
         };
     }
 

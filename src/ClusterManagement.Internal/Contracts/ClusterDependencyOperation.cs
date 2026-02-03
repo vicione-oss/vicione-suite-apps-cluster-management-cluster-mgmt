@@ -2,4 +2,4 @@
 
 namespace ClusterManagement.Internal.Contracts;
 
-public record ClusterDependencyOperation(ClusterDependency Dependency, ClusterDependencyOperationKind Operation);
+public record ClusterDependencyOperation(ClusterDependency Dependency, ClusterDependencyOperationKind OperationKind);

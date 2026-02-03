@@ -21,8 +21,8 @@ public class PackageContentProviderTests
     private readonly IWorkspaceProvider<ClusterManagementBackendModule> _workspaceProvider = Substitute.For<IWorkspaceProvider<ClusterManagementBackendModule>>();
     private readonly IServiceProvider _services;
 
-    private readonly ClusterDependency _constantDependency = new() { Name = "ViciOne.Constant", Version = new Version(0, 34, 0) };
-    private readonly ClusterDependency _logicDependency = new() { Name = "ViciOne.Logic", Version = new Version(0, 34, 0) };
+    private readonly ClusterDependency _constantDependency = PackageFactory.ConstantPackageDependency;
+    private readonly ClusterDependency _logicDependency = PackageFactory.LogicPackageDependency;
     private readonly Type _systemDataPortType = typeof(ViciOne.Suite.System.DataPort);
 
     public PackageContentProviderTests()

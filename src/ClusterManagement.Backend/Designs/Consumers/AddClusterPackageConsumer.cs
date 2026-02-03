@@ -1,11 +1,12 @@
 ﻿using ClusterManagement.Internal.Commands;
 using ClusterManagement.Internal.Events;
 using MassTransit;
+using Microsoft.Extensions.Logging;
 using Sdk.Messaging;
 
 namespace ClusterManagement.Backend.Designs.Consumers;
 
-public sealed class AddClusterPackageConsumer(IPackageStore packageStorage) :
+public sealed class AddClusterPackageConsumer(IPackageStore packageStorage, ILogger<AddClusterPackageConsumer> logger) :
     IConsumer<AddClusterPackage>
 {
     public async Task Consume(ConsumeContext<AddClusterPackage> context)
@@ -19,6 +20,8 @@ public sealed class AddClusterPackageConsumer(IPackageStore packageStorage) :
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "Failed to add cluster package: {Error}", ex.Message);
+
             var error = new ErrorInfo(200, ex.Message);
 
             await context.Publish(new ClusterPackageChangeFailed(context.Message.CorrelationId, error, ClusterPackageChange.Add));

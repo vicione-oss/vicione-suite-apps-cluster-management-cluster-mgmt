@@ -84,7 +84,7 @@
 
                         @if (context.PendingOperation is not null)
                         {
-                            @if (context.PendingOperation.Operation is ClusterDependencyOperationKind.Install)
+                            @if (context.PendingOperation.OperationKind is ClusterDependencyOperationKind.Install)
                             {
                                 var tooltipText = context.InstalledVersion is null ?
                                     string.Format(Localization.PackagesControlPanel.PendingInstallOfVersion, context.PendingOperation.Dependency.Version.ToString()) :
@@ -102,13 +102,9 @@
                             }
                         }
 
-                        @{
-                            var highestVersion = context.GetHighestAvailableVersion();
-                        }
-
-                        @if (highestVersion is not null)
+                        @if (context.LatestUpdateVersion is not null)
                         {
-                            <div title="@string.Format(Localization.Common.UpdateToVersionAvailible, highestVersion)" class="icon-wrapper">
+                            <div title="@string.Format(Localization.Common.UpdateToVersionAvailible, context.LatestUpdateVersion)" class="icon-wrapper">
                                 <img src="@SvgIcon.UpdateAvailable.GetPath()" />
                             </div>
                         }
