@@ -12,9 +12,9 @@ public sealed class UpdateClusterDependenciesConsumer(IClusterDependencyStore de
     {
         try
         {
-            await dependencyStore.EnqueueOperations(context.Message.Operations, context.CancellationToken);
+            var changes = await dependencyStore.EnqueueOperations(context.Message.Operations, context.CancellationToken);
 
-            await context.Publish(new ClusterDependenciesUpdated(context.Message.Operations));
+            await context.Publish(new ClusterDependenciesChanged(changes));
         }
         catch (Exception ex)
         {

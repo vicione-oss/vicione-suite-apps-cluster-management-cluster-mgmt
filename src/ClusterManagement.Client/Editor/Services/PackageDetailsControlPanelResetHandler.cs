@@ -12,7 +12,7 @@ public sealed class PackageDetailsControlPanelResetHandler : IControlPanelResetH
 
         state.VersionToInstall = state.PackageInfo.PendingOperation?.Dependency.Version.ToString() ?? state.PackageInfo.InstalledVersion ?? string.Empty;
 
-        if (state.PackageInfo.PendingOperation?.Operation is Internal.Contracts.ClusterDependencyOperationKind.Uninstall)
+        if (state.PackageInfo.PendingOperation?.OperationKind is Internal.Contracts.ClusterDependencyOperationKind.Uninstall)
             state.VersionToInstall = string.Empty;
 
         return Task.CompletedTask;

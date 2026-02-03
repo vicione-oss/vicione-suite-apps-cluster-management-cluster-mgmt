@@ -19,7 +19,7 @@ public sealed class PackageDetailsControlPanelSaveHandler(IPackageService packag
 
             await packageService.UpdatePackages([
                 new(new() { Name = state.PackageInfo.Name, Version = Version.Parse(state.VersionToInstall)}, ClusterDependencyOperationKind.Install)
-            ]);
+            ], cancellationToken);
 
             messageBannerService.ShowMessageBanner(MessageType.Warning, Common.NeedRestart);
 

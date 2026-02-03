@@ -5,6 +5,7 @@ using System.Text.Json;
 using ClusterManagement.Backend.Designs.Extensions;
 using ClusterManagement.Internal;
 using ClusterManagement.Internal.Contracts;
+using ClusterManagement.Internal.Events;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Sdk.Backend.Modules;
@@ -43,13 +44,13 @@ internal sealed class ClusterDependencyStore(
         => fileSystem.Path.Combine(workspaceProvider.Home, PackagesUpdateFileName);
 
     /// <summary>
-    /// If <see cref="ClusterManagementOptions.OverwritePackagesFiles"/> is set to true or the packages file does not exist,
+    /// If the packages file set configured by <see cref="ClusterManagementOptions.PackageSet"/> does not exist,
     /// the initial packages file is copied from the embedded resources to the workspace.
     /// </summary>
     public async Task Initialize(CancellationToken stoppingToken)
     {
         var destination = GetPackagesFilepath(workspaceProvider.Home, options.Value.PackageSet, fileSystem);
-        if (fileSystem.File.Exists(destination) && !options.Value.OverwritePackagesFiles)
+        if (fileSystem.File.Exists(destination))
             return;
 
         var name = string.Join('.', typeof(ClusterManagementBackendModule).Namespace, PackagesRessourceFolder, GetPackagesFilename(options.Value.PackageSet));
@@ -57,10 +58,10 @@ internal sealed class ClusterDependencyStore(
         if (stream is null)
             return;
 
-        logger.LogInformation("Use cluster packages from embedded resources");
-
         await using var destinationStream = fileSystem.FileStream.New(destination, FileMode.Create);
         await stream.CopyToAsync(destinationStream, stoppingToken);
+
+        logger.LogInformation("Initialized cluster packages from embedded resources");
     }
 
     /// <summary>
@@ -76,39 +77,43 @@ internal sealed class ClusterDependencyStore(
     /// Enqueues the specified cluster dependency operations to be applied on next restart. Multiple calls will modify
     /// the list of queued operations, overwriting already queued packages with new versions or remove them on uninstall.
     /// </summary>    
-    public async Task EnqueueOperations(List<ClusterDependencyOperation> operations, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ClusterDependencyChange>> EnqueueOperations(List<ClusterDependencyOperation> operations, CancellationToken cancellationToken)
     {
         if (operations.Count == 0)
         {
             logger.LogInformation("No package updates to queue");
-            return;
+            return [];
         }
 
         // Keep previous updates if no restart was performed meanwhile
         var previousUpdates = await DeserializeQueuedUpdates(cancellationToken);
         var currentDependencies = await LoadDependencies(cancellationToken);
+        var changes = new List<ClusterDependencyChange>();
 
         // Overwrite already queued packages with new versions
         var updatedPackages = operations
                 .UnionBy(previousUpdates, cp => cp.Dependency.Name)
-                .Where(updatedPackages =>
+                .Where(updatedPackage =>
                 {
                     // It might happen that a package gets uninstalled and afterwards installed again with
                     // same version that is already in the packages file. In this case we can remove the operation
-                    var currentDependency = currentDependencies.FirstOrDefault(cd => cd.Name == updatedPackages.Dependency.Name);
-                    if (updatedPackages.Operation == ClusterDependencyOperationKind.Uninstall && currentDependency is not null
-                        && currentDependency.Version != updatedPackages.Dependency.Version)
+                    var currentDependency = currentDependencies.FirstOrDefault(cd => cd.Name == updatedPackage.Dependency.Name);
+                    if (updatedPackage.OperationKind == ClusterDependencyOperationKind.Uninstall && currentDependency is not null
+                        && currentDependency.Version != updatedPackage.Dependency.Version)
                     {
                         logger.LogDebug("Removing uninstall operation from queue because '{PackageName}' version '{PackageVersion}' it's not installed yet",
-                            updatedPackages.Dependency.Name, updatedPackages.Dependency.Version);
+                            updatedPackage.Dependency.Name, updatedPackage.Dependency.Version);
 
+                        changes.Add(new ClusterDependencyChange(CrudAction.Deleted, updatedPackage));
                         return false;
                     }
 
-                    if (updatedPackages.Operation == ClusterDependencyOperationKind.Install && currentDependency?.Version == updatedPackages.Dependency.Version)
+                    if (updatedPackage.OperationKind == ClusterDependencyOperationKind.Install && currentDependency?.Version == updatedPackage.Dependency.Version)
                     {
                         logger.LogDebug("Removing install operation from queue because '{PackageName}' version '{PackageVersion}' is already installed",
-                            updatedPackages.Dependency.Name, updatedPackages.Dependency.Version);
+                            updatedPackage.Dependency.Name, updatedPackage.Dependency.Version);
+
+                        changes.Add(new ClusterDependencyChange(CrudAction.Deleted, updatedPackage));
                         return false;
                     }
 
@@ -118,12 +123,13 @@ internal sealed class ClusterDependencyStore(
                 .ToList();
 
         var updateFile = GetUpdateFilePath();
+        changes.AddRange(GetClusterDependencyChanges(previousUpdates, updatedPackages));
 
         if (updatedPackages.Count == 0)
         {
             logger.LogInformation("No package operations to queue, deleting existing operations file '{UpdateFile}'", updateFile);
             fileSystem.File.Delete(updateFile);
-            return;
+            return changes;
         }
 
         logger.LogInformation("Enqueued {Count} package operations to '{UpdateFile}'", updatedPackages.Count, updateFile);
@@ -131,6 +137,32 @@ internal sealed class ClusterDependencyStore(
         // Rewrite file containing queued updates
         using var fileStream = fileSystem.FileStream.New(updateFile, FileMode.Create, FileAccess.Write, FileShare.None);
         await JsonSerializer.SerializeAsync(fileStream, updatedPackages, DefaultJsonSerializerSettings.Default, cancellationToken);
+        return changes;
+    }
+
+    private static IEnumerable<ClusterDependencyChange> GetClusterDependencyChanges(List<ClusterDependencyOperation> previous, List<ClusterDependencyOperation> next)
+    {
+        var result = new List<ClusterDependencyChange>();
+
+        foreach (var prev in previous)
+        {
+            var nextOp = next.FirstOrDefault(n => n.Dependency.Name == prev.Dependency.Name);
+            if (nextOp is null)
+            {
+                result.Add(new ClusterDependencyChange(CrudAction.Deleted, prev));
+                continue;
+            }
+
+            if (nextOp.OperationKind != prev.OperationKind || nextOp.Dependency.Version != prev.Dependency.Version)
+            {
+                result.Add(new ClusterDependencyChange(CrudAction.Updated, nextOp));
+            }
+        }
+
+        var added = next.Where(n => !previous.Any(p => p.Dependency.Name == n.Dependency.Name))
+            .Select(n => new ClusterDependencyChange(CrudAction.Created, n));
+
+        return result.Concat(added);
     }
 
     /// <summary>
@@ -150,13 +182,13 @@ internal sealed class ClusterDependencyStore(
 
         // Get the packages to be removed
         var packagesToRemove = packageUpdates
-            .Where(k => k.Operation == ClusterDependencyOperationKind.Uninstall)
+            .Where(k => k.OperationKind == ClusterDependencyOperationKind.Uninstall)
             .Select(k => k.Dependency.Name)
             .ToHashSet();
 
         // Overwrite already queued packages with new versions
         var updatedPackages = packageUpdates
-            .Where(k => k.Operation == ClusterDependencyOperationKind.Install)
+            .Where(k => k.OperationKind == ClusterDependencyOperationKind.Install)
             .Select(k => k.Dependency)
             .UnionBy(existingPackages, cp => cp.Name)
             .Where(p => !packagesToRemove.Contains(p.Name))

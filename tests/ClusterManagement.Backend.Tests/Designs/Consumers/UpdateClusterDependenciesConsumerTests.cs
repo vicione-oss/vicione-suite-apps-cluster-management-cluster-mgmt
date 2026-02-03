@@ -7,6 +7,7 @@ using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
+using Sdk.Messaging;
 using Sdk.Testing.Backend;
 using ViciOne.Cluster.Model;
 using Xunit;
@@ -41,7 +42,7 @@ public class UpdateClusterDependenciesConsumerTests
         var command = new UpdateClusterDependencies(operations);
 
         _dependencyStore.EnqueueOperations(Arg.Any<List<ClusterDependencyOperation>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
+            .Returns([]);
 
         // Act
         await tester.TestCommand<UpdateClusterDependencies, UpdateClusterDependenciesConsumer>(command);
@@ -56,23 +57,35 @@ public class UpdateClusterDependenciesConsumerTests
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
-        var operations = new List<ClusterDependencyOperation>
+
+        var installOperation = new ClusterDependencyOperation(new ClusterDependency
         {
-            new(new ClusterDependency { Name = "Package1", Version = new Version(1, 0, 0) }, ClusterDependencyOperationKind.Install),
-            new(new ClusterDependency { Name = "Package2", Version = new Version(2, 1, 0) }, ClusterDependencyOperationKind.Uninstall)
+            Name = "Package1",
+            Version = new Version(1, 0, 0)
+        }, ClusterDependencyOperationKind.Install);
+
+        var uninstallOperation = new ClusterDependencyOperation(new ClusterDependency
+        {
+            Name = "Package2",
+            Version = new Version(2, 1, 0)
+        }, ClusterDependencyOperationKind.Uninstall);
+
+        var changes = new List<ClusterDependencyChange>
+        {
+            new(CrudAction.Created, installOperation),
+            new(CrudAction.Deleted, uninstallOperation)
         };
-        var command = new UpdateClusterDependencies(operations);
+        var command = new UpdateClusterDependencies([installOperation, uninstallOperation]);
 
         _dependencyStore.EnqueueOperations(Arg.Any<List<ClusterDependencyOperation>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
+            .Returns(changes);
 
         // Act
         await tester.TestCommand<UpdateClusterDependencies, UpdateClusterDependenciesConsumer>(command);
 
         // Assert: Dependencies updated event published with correct operations
-        Assert.True(await tester.Harness.Published.Any<ClusterDependenciesUpdated>(k
-            => k.Context.Message.Operations.Count == operations.Count
-            && k.Context.Message.Operations.SequenceEqual(operations)));
+        Assert.True(await tester.Harness.Published.Any<ClusterDependenciesChanged>(k
+            => k.Context.Message.Changes.Count == changes.Count));
     }
 
     [Fact]
@@ -87,7 +100,7 @@ public class UpdateClusterDependenciesConsumerTests
         var command = new UpdateClusterDependencies(operations);
 
         _dependencyStore.EnqueueOperations(Arg.Any<List<ClusterDependencyOperation>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
+            .Returns([]);
 
         // Act
         await tester.TestCommand<UpdateClusterDependencies, UpdateClusterDependenciesConsumer>(command);
@@ -130,14 +143,14 @@ public class UpdateClusterDependenciesConsumerTests
         var command = new UpdateClusterDependencies(operations);
 
         _dependencyStore.EnqueueOperations(Arg.Any<List<ClusterDependencyOperation>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
+            .Returns([]);
 
         // Act
         await tester.TestCommand<UpdateClusterDependencies, UpdateClusterDependenciesConsumer>(command);
 
         // Assert: Empty operations should still succeed
-        Assert.True(await tester.Harness.Published.Any<ClusterDependenciesUpdated>(k
-            => k.Context.Message.Operations.Count == 0));
+        Assert.True(await tester.Harness.Published.Any<ClusterDependenciesChanged>(k
+            => k.Context.Message.Changes.Count == 0));
 
         await _dependencyStore.Received(1).EnqueueOperations(
             Arg.Is<List<ClusterDependencyOperation>>(ops => ops.Count == 0),
@@ -149,23 +162,43 @@ public class UpdateClusterDependenciesConsumerTests
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
-        var operations = new List<ClusterDependencyOperation>
+
+        var installOperation1 = new ClusterDependencyOperation(new ClusterDependency
         {
-            new(new ClusterDependency { Name = "Package1", Version = new Version(1, 0, 0) }, ClusterDependencyOperationKind.Install),
-            new(new ClusterDependency { Name = "Package2", Version = new Version(2, 0, 0) }, ClusterDependencyOperationKind.Install),
-            new(new ClusterDependency { Name = "Package3", Version = new Version(3, 0, 0) }, ClusterDependencyOperationKind.Install)
+            Name = "Package1",
+            Version = new Version(1, 0, 0)
+        }, ClusterDependencyOperationKind.Install);
+
+        var installOperation2 = new ClusterDependencyOperation(new ClusterDependency
+        {
+            Name = "Package2",
+            Version = new Version(2, 1, 0)
+        }, ClusterDependencyOperationKind.Install);
+
+        var installOperation3 = new ClusterDependencyOperation(new ClusterDependency
+        {
+            Name = "Package3",
+            Version = new Version(3, 4, 80)
+        }, ClusterDependencyOperationKind.Install);
+
+        var changes = new List<ClusterDependencyChange>
+        {
+            new(CrudAction.Created, installOperation1),
+            new(CrudAction.Created, installOperation2),
+            new(CrudAction.Created, installOperation3)
         };
-        var command = new UpdateClusterDependencies(operations);
+
+        var command = new UpdateClusterDependencies([installOperation1, installOperation2, installOperation3]);
 
         _dependencyStore.EnqueueOperations(Arg.Any<List<ClusterDependencyOperation>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
+            .Returns(changes);
 
         // Act
         await tester.TestCommand<UpdateClusterDependencies, UpdateClusterDependenciesConsumer>(command);
 
         // Assert: All operations should be queued
         await _dependencyStore.Received(1).EnqueueOperations(
-            Arg.Is<List<ClusterDependencyOperation>>(ops => ops.Count == 3),
+            Arg.Is<List<ClusterDependencyOperation>>(ops => ops.Count == changes.Count),
             Arg.Any<CancellationToken>());
     }
 
@@ -174,25 +207,43 @@ public class UpdateClusterDependenciesConsumerTests
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
-        var operations = new List<ClusterDependencyOperation>
+        var installOperationA = new ClusterDependencyOperation(new ClusterDependency
         {
-            new(new ClusterDependency { Name = "PackageA", Version = new Version(1, 0, 0) }, ClusterDependencyOperationKind.Install),
-            new(new ClusterDependency { Name = "PackageB", Version = new Version(2, 0, 0) }, ClusterDependencyOperationKind.Uninstall),
-            new(new ClusterDependency { Name = "PackageC", Version = new Version(3, 0, 0) }, ClusterDependencyOperationKind.Install)
+            Name = "PackageA",
+            Version = new Version(1, 0, 0)
+        }, ClusterDependencyOperationKind.Install);
+
+        var uninstallOperationB = new ClusterDependencyOperation(new ClusterDependency
+        {
+            Name = "PackageB",
+            Version = new Version(2, 1, 0)
+        }, ClusterDependencyOperationKind.Uninstall);
+
+        var installOperationC = new ClusterDependencyOperation(new ClusterDependency
+        {
+            Name = "PackageC",
+            Version = new Version(3, 4, 80)
+        }, ClusterDependencyOperationKind.Install);
+
+        var changes = new List<ClusterDependencyChange>
+        {
+            new(CrudAction.Created, installOperationA),
+            new(CrudAction.Created, uninstallOperationB),
+            new(CrudAction.Created, installOperationC)
         };
-        var command = new UpdateClusterDependencies(operations);
+        var command = new UpdateClusterDependencies([installOperationA, uninstallOperationB, installOperationC]);
 
         _dependencyStore.EnqueueOperations(Arg.Any<List<ClusterDependencyOperation>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
+            .Returns(changes);
 
         // Act
         await tester.TestCommand<UpdateClusterDependencies, UpdateClusterDependenciesConsumer>(command);
 
         // Assert: Mixed operations should be handled correctly
-        Assert.True(await tester.Harness.Published.Any<ClusterDependenciesUpdated>(k
-            => k.Context.Message.Operations.Count == 3
-            && k.Context.Message.Operations[0].Operation == ClusterDependencyOperationKind.Install
-            && k.Context.Message.Operations[1].Operation == ClusterDependencyOperationKind.Uninstall
-            && k.Context.Message.Operations[2].Operation == ClusterDependencyOperationKind.Install));
+        Assert.True(await tester.Harness.Published.Any<ClusterDependenciesChanged>(k
+            => k.Context.Message.Changes.Count == 3
+            && k.Context.Message.Changes[0].Operation.OperationKind == ClusterDependencyOperationKind.Install
+            && k.Context.Message.Changes[1].Operation.OperationKind == ClusterDependencyOperationKind.Uninstall
+            && k.Context.Message.Changes[2].Operation.OperationKind == ClusterDependencyOperationKind.Install));
     }
 }

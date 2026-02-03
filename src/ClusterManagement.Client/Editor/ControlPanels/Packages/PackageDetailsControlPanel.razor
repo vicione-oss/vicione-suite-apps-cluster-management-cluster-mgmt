@@ -45,7 +45,7 @@
                     <div class="installed-version-wrapper">
                         @State.PackageInfo.InstalledVersion
                     
-                        @if (State.PackageInfo.PendingOperation?.Operation is ClusterDependencyOperationKind.Uninstall)
+                        @if (State.PackageInfo.PendingOperation?.OperationKind is ClusterDependencyOperationKind.Uninstall)
                         {
                             <div title="@Localization.Common.PendingUninstall" class="icon-wrapper">
                                 <img src="@SvgIcon.UninstallPending.GetPath()" />
@@ -62,7 +62,7 @@
 
                 @if (State.PackageInfo.PendingOperation is not null)
                 {
-                    if (State.PackageInfo.PendingOperation.Operation is ClusterDependencyOperationKind.Install)
+                    if (State.PackageInfo.PendingOperation.OperationKind is ClusterDependencyOperationKind.Install)
                     {
                         var labelText = State.PackageInfo.InstalledVersion is null ?
                             Localization.PackageDetailsControlPanel.PendingInstall :
@@ -76,8 +76,8 @@
 
                 @if (string.IsNullOrEmpty(State.PackageInfo.RunningClusterVersion) &&
                     ((State.PackageInfo.Versions ?? []).Count > 1 ||
-                    (string.IsNullOrEmpty(State.PackageInfo.InstalledVersion) && State.PackageInfo.PendingOperation?.Operation is not ClusterDependencyOperationKind.Install) ||
-                    State.PackageInfo.PendingOperation?.Operation is ClusterDependencyOperationKind.Uninstall))
+                    (string.IsNullOrEmpty(State.PackageInfo.InstalledVersion) && State.PackageInfo.PendingOperation?.OperationKind is not ClusterDependencyOperationKind.Install) ||
+                    State.PackageInfo.PendingOperation?.OperationKind is ClusterDependencyOperationKind.Uninstall))
                 {
                     <SettingsField Label="@Localization.PackageDetailsControlPanel.InstallVersion">
                         <div class="install-version-wrapper">
@@ -89,13 +89,9 @@
                                                            @bind-Value="@State.VersionToInstall"
                                                            @bind-Value:after="(async () => await BeginEdit())" />
 
-                                    @{
-                                        var highestVersion = State.PackageInfo.GetHighestAvailableVersion();
-                                    }
-
-                                    @if (highestVersion is not null)
+                                    @if (State.PackageInfo.LatestUpdateVersion is not null)
                                     {
-                                        <div title="@string.Format(Localization.Common.UpdateToVersionAvailible, highestVersion)" class="icon-wrapper">
+                                        <div title="@string.Format(Localization.Common.UpdateToVersionAvailible, State.PackageInfo.LatestUpdateVersion)" class="icon-wrapper">
                                             <img src="@SvgIcon.UpdateAvailable.GetPath()" />
                                         </div>
                                     }

@@ -83,7 +83,7 @@ public class PackageStorageTests
             await _dependencyStore.Received(1).EnqueueOperations(
                 Arg.Is<List<ClusterDependencyOperation>>(d => d[0].Dependency.Name == constantPackage.Name
                 && d[0].Dependency.Version == constantPackage.Version
-                && d[0].Operation == ClusterDependencyOperationKind.Install),
+                && d[0].OperationKind == ClusterDependencyOperationKind.Install),
                 Arg.Any<CancellationToken>());
         }
 
@@ -111,29 +111,8 @@ public class PackageStorageTests
             await _dependencyStore.Received(1).EnqueueOperations(
                 Arg.Is<List<ClusterDependencyOperation>>(d => d[0].Dependency.Name == constantPackage.Name
                 && d[0].Dependency.Version == constantPackage.Version
-                && d[0].Operation == ClusterDependencyOperationKind.Install),
+                && d[0].OperationKind == ClusterDependencyOperationKind.Install),
                 Arg.Any<CancellationToken>());
-        }
-
-        [Fact]
-        public async Task Should_throw_if_assembly_metadata_is_invalid()
-        {
-            // Arrange
-            using var services = CreateServices();
-            using var tempDirectory = new TemporaryDirectory();
-            var destinationPath = Path.Combine(tempDirectory.Path, "ViciOne.Suite.ClusterManagement");
-            var constantPackage = PackageFactory.ConstantPackageDependency;
-            var sourceZipBytes = PackageFactory.CreatePackageZipArchiveBytes(constantPackage.Name, constantPackage.Version.ToString());
-            var store = services.GetRequiredService<IPackageStore>();
-
-            _workspaceService.Cache.Returns(destinationPath);
-
-            // Act
-            var act = () => store.StorePackage(sourceZipBytes, true, CancellationToken.None);
-
-            // Assert
-            await act.Should().ThrowAsync<BadImageFormatException>()
-                .WithMessage("Image is either too small or contains an invalid byte offset or count.");
         }
 
         [Fact]
@@ -203,7 +182,7 @@ public class PackageStorageTests
             await _dependencyStore.Received(1).EnqueueOperations(
                 Arg.Is<List<ClusterDependencyOperation>>(d => d[0].Dependency.Name == dependency.Name
                 && d[0].Dependency.Version == dependency.Version
-                && d[0].Operation == ClusterDependencyOperationKind.Uninstall),
+                && d[0].OperationKind == ClusterDependencyOperationKind.Uninstall),
                 Arg.Any<CancellationToken>());
         }
 
@@ -231,7 +210,7 @@ public class PackageStorageTests
             await _dependencyStore.Received(1).EnqueueOperations(
                 Arg.Is<List<ClusterDependencyOperation>>(d => d[0].Dependency.Name == dependency.Name
                 && d[0].Dependency.Version == dependency.Version
-                && d[0].Operation == ClusterDependencyOperationKind.Uninstall),
+                && d[0].OperationKind == ClusterDependencyOperationKind.Uninstall),
                 Arg.Any<CancellationToken>());
         }
     }

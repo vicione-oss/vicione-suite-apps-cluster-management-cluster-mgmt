@@ -22,9 +22,10 @@ namespace ClusterManagement.Client.Editor.ControlPanels.Packages;
 [ControlPanelCategory<ControlPanelCategoryDescriptor>]
 public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged>,
     IEventConsumer<ClusterPackageChangeFailed>,
-    IEventConsumer<ClusterDependenciesUpdated>,
+    IEventConsumer<ClusterDependenciesChanged>,
     IEventConsumer<ClusterDependenciesUpdateFailed>
 {
+    private readonly CancellationTokenSource _tokenSource = new();
     private IQueryable<ClusterPackageInfo> _packageInfosQueryable = Enumerable.Empty<ClusterPackageInfo>().AsQueryable();
     private string _filterText = string.Empty;
     private DxDialog? _refDeletePackagesDialog;
@@ -49,10 +50,10 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
 
         _subscriptionHandles.Add(Mediator.Register<ClusterPackageChanged>(this));
         _subscriptionHandles.Add(Mediator.Register<ClusterPackageChangeFailed>(this));
-        _subscriptionHandles.Add(Mediator.Register<ClusterDependenciesUpdated>(this));
+        _subscriptionHandles.Add(Mediator.Register<ClusterDependenciesChanged>(this));
         _subscriptionHandles.Add(Mediator.Register<ClusterDependenciesUpdateFailed>(this));
 
-        _packageInfosQueryable = (await PackageService.GetPackages()).AsQueryable();
+        _packageInfosQueryable = (await PackageService.GetPackages(null, _tokenSource.Token)).AsQueryable();
     }
 
     private async void OnItemSelectionChanged(GridItemSelectionChangedEventArgs<ClusterPackageInfo> args)
@@ -73,7 +74,7 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
                 data = ms.ToArray();
             }
 
-            await PackageService.UploadPackage(data);
+            await PackageService.UploadPackage(data, _tokenSource.Token);
             MessageBannerService.ShowMessageBanner(MessageType.Warning, Localization.Common.NeedRestart);
         }
         catch (Exception ex)
@@ -98,7 +99,7 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
 
         foreach (var item in items)
         {
-            if (string.IsNullOrEmpty(item.InstalledVersion) || string.IsNullOrEmpty(item.RunningClusterVersion))
+            if (string.IsNullOrEmpty(item.InstalledVersion) || !string.IsNullOrEmpty(item.RunningClusterVersion))
                 continue;
 
             operations.Add(new ClusterDependencyOperation(new ClusterDependency
@@ -109,10 +110,14 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
             ClusterDependencyOperationKind.Uninstall));
         }
 
-        await PackageService.UpdatePackages(operations);
+        if (operations.Count > 0)
+        {
+            await PackageService.UpdatePackages(operations, _tokenSource.Token);
 
-        MessageBannerService.ShowMessageBanner(MessageType.Warning, Localization.Common.NeedRestart);
+            MessageBannerService.ShowMessageBanner(MessageType.Warning, Localization.Common.NeedRestart);
+        }
 
+        // maybe give user some feedback if nothing to uninstall?        
         await _refDeletePackagesDialog!.CloseAsync();
     }
 
@@ -132,6 +137,7 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
     protected override async ValueTask DisposeAsyncCore()
     {
         _subscriptionHandles.Dispose();
+        _tokenSource.Dispose();
 
         if (ItemSelection is not null)
         {
@@ -152,7 +158,10 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
         }
         else if (context.Message.Change == ClusterPackageChange.Delete)
         {
-            await RefreshPackageAsync(name);
+            _packageInfosQueryable = _packageInfosQueryable
+                .Where(p => p.Name != name)
+                .AsQueryable();
+
             ItemSelection.Remove(p => p.Name == name);
         }
 
@@ -166,22 +175,22 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
         return Task.CompletedTask;
     }
 
-    public async Task Consume(ClientContext<ClusterDependenciesUpdated> context, CancellationToken cancellationToken)
+    public async Task Consume(ClientContext<ClusterDependenciesChanged> context, CancellationToken cancellationToken)
     {
-        foreach (var operation in context.Message.Operations)
+        foreach (var operation in context.Message.Changes)
         {
-            var name = operation.Dependency.Name;
+            var name = operation.Operation.Dependency.Name;
+            var packageInfo = _packageInfosQueryable.FirstOrDefault(p => p.Name == name);
+            if (packageInfo is null)
+                continue;
 
-            if (operation.Operation is ClusterDependencyOperationKind.Install)
+            if (operation.Action is Sdk.Messaging.CrudAction.Deleted)
             {
-                await RefreshPackageAsync(name);
+                packageInfo.PendingOperation = null;
+                continue;
             }
-            else if (operation.Operation is ClusterDependencyOperationKind.Uninstall)
-            {
-                await RefreshPackageAsync(name);
 
-                ItemSelection.Remove(p => p.Name == name);
-            }
+            packageInfo.PendingOperation = operation.Operation;
         }
 
         await InvokeAsync(StateHasChanged);
@@ -196,7 +205,7 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
 
     private async Task RefreshPackageAsync(string packageName)
     {
-        var refreshed = (await PackageService.GetPackages([packageName])).FirstOrDefault();
+        var refreshed = (await PackageService.GetPackages([packageName], _tokenSource.Token)).FirstOrDefault();
         if (refreshed is null)
             return;
 

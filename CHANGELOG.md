@@ -17,6 +17,7 @@
 
 - Ignore dataflow events without content
 - Log missing UserProperties in dataflow event instead of throwing
+- Remove option `OverwritePackagesFiles`
 
 ## 1.3.0 - 2026-01-09
 

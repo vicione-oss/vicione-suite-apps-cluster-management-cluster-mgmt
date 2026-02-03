@@ -6,8 +6,8 @@ public interface IPackageService
 {
     string MinCoreVersion { get; }
 
-    Task DeletePackage(string name, string version);
-    Task<IEnumerable<ClusterPackageInfo>> GetPackages(List<string>? names = null);
-    Task UploadPackage(byte[] data);
-    Task UpdatePackages(List<ClusterDependencyOperation> operations);
+    Task DeletePackage(string name, string version, CancellationToken cancellationToken = default);
+    Task<IEnumerable<ClusterPackageInfo>> GetPackages(List<string>? names = null, CancellationToken cancellationToken = default);
+    Task UploadPackage(byte[] data, CancellationToken cancellationToken = default);
+    Task UpdatePackages(List<ClusterDependencyOperation> operations, CancellationToken cancellationToken = default);
 }

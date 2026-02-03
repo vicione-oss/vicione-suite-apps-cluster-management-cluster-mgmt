@@ -1,10 +1,14 @@
-﻿using ClusterManagement.Backend.EngineHosts.Consumers;
+﻿using ClusterManagement.Backend.DbContext;
+using ClusterManagement.Backend.Designs.Extensions;
+using ClusterManagement.Backend.EngineHosts.Consumers;
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Backend.Snapshots.Extensions;
 using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Internal.Requests;
 using ClusterManagement.Public.Events;
+using ClusterManagement.Public.Requests;
 using MassTransit;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Sdk.Backend.Artifacts;
 using Sdk.Messaging;
@@ -15,6 +19,7 @@ namespace ClusterManagement.Backend.Designs.Consumers;
 public sealed class GetClusterPackageInfosConsumer(
     IClusterDependencyStore clusterDependencyStore,
     IClusterSnapshotStore clusterSnapshotStore,
+    IClusterDbContext dbContext,
     IPackageContentProvider packageContentProvider,
     IPackageArtifactRepository repository,
     ILogger<GetEngineHostPackageInfoConsumer> logger) :
@@ -40,6 +45,9 @@ public sealed class GetClusterPackageInfosConsumer(
 
         // There might be manual uploaded packages that are not installed and not available        
         AddLocallyStoredPackages(packageInfos, packagesOfInterest);
+
+        // Provide information of available updates
+        UpdateLatestVersion(packageInfos);
 
         // Sort package infos by name
         packageInfos.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.Ordinal));
@@ -147,7 +155,7 @@ public sealed class GetClusterPackageInfosConsumer(
                 packageInfos.Add(packageInfo);
 
                 logger.LogDebug("Add package {Package} from pending operation {Op} version {Version}",
-                    packageInfo.Name, packageInfo.PendingOperation?.Operation, packageInfo.PendingOperation?.Dependency.Version);
+                    packageInfo.Name, operation.OperationKind, operation.Dependency.Version);
             }
 
             // Apply pending operation
@@ -157,13 +165,13 @@ public sealed class GetClusterPackageInfosConsumer(
 
     private async Task AddActiveClusterDependencies(List<ClusterPackageInfo> packageInfos, List<string>? packagesOfInterest, CancellationToken cancellationToken)
     {
-        var clusterInfos = await clusterSnapshotStore.GetClusterInfos(null, cancellationToken);
-        var activeClusterInfos = clusterInfos.Where(c => c.IsActive);
+        var request = new GetClusterInfosRequest();
+        var activeClusterInfos = await dbContext.ActiveClusters.AsNoTracking().ToListAsync(cancellationToken);
 
         foreach (var clusterInfo in activeClusterInfos)
         {
             // We don't deserialize the whole cluster but just read the relevant nodes to be faster
-            await clusterSnapshotStore.HandleClusterDependencies(clusterInfo, (_, name, version) =>
+            await clusterSnapshotStore.HandleClusterDependencies(clusterInfo.Id, clusterInfo.Version, (_, name, version) =>
             {
                 if (packagesOfInterest is not null && !packagesOfInterest.Contains(name))
                     return;
@@ -212,6 +220,15 @@ public sealed class GetClusterPackageInfosConsumer(
             packageInfos.Add(packageInfo);
 
             logger.LogDebug("Add local package {Package} with versions: {Versions}", packageInfo.Name, string.Join(",", packageInfo.Versions));
+        }
+    }
+
+    private static void UpdateLatestVersion(List<ClusterPackageInfo> packageInfos)
+    {
+        // Installed version is always the highest installed one
+        foreach (var packageInfo in packageInfos)
+        {
+            packageInfo.LatestUpdateVersion = packageInfo.GetHighestAvailableVersion();
         }
     }
 }

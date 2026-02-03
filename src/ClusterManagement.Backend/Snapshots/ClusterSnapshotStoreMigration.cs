@@ -48,7 +48,7 @@ internal class ClusterSnapshotStoreMigration(
     {
         var replacedSomething = false;
 
-        var cluster = await clusterSnapshotStore.HandleClusterDependencies(clusterInfo, async (dependencyNode, name, version) =>
+        var cluster = await clusterSnapshotStore.HandleClusterDependencies(clusterInfo.Id, clusterInfo.Version, async (dependencyNode, name, version) =>
         {
             if (!dependencies.TryGetValue(name, out var dependency))
                 return;

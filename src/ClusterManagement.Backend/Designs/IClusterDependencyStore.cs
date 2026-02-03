@@ -1,4 +1,5 @@
 ﻿using ClusterManagement.Internal.Contracts;
+using ClusterManagement.Internal.Events;
 using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Designs;
@@ -21,7 +22,7 @@ public interface IClusterDependencyStore
     /// <summary>
     /// Queues cluster dependency operations that will be merged into storage on the next call of <see cref="ProcessQueuedOperations(CancellationToken)"/>.
     /// </summary>
-    Task EnqueueOperations(List<ClusterDependencyOperation> operations, CancellationToken cancellationToken);
+    Task<IReadOnlyList<ClusterDependencyChange>> EnqueueOperations(List<ClusterDependencyOperation> operations, CancellationToken cancellationToken);
 
     /// <summary>
     /// Updates cluster dependencies in storage by merging queued operations with existing dependencies.    

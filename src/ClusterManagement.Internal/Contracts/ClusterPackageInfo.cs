@@ -1,7 +1,9 @@
-﻿using Sdk.Messaging;
+﻿using System.Diagnostics;
+using Sdk.Messaging;
 
 namespace ClusterManagement.Internal.Contracts;
 
+[DebuggerDisplay("{Name} installed:{InstalledVersion}, cluster-ref:{RunningClusterVersion} update: {LatestUpdateVersion}")]
 public class ClusterPackageInfo
 {
     public required string Name { get; set; }
@@ -12,6 +14,8 @@ public class ClusterPackageInfo
     /// Contains the version that is already installed on the system otherwise <see langword="null"/>
     /// </summary>
     public string? InstalledVersion { get; set; }
+
+    public string? LatestUpdateVersion { get; set; }
 
     /// <summary>
     /// All available versions for this package if any otherwise <see langword="null"/>

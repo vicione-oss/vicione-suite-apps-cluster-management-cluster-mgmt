@@ -19,13 +19,7 @@
             "Key": "PackageSet",
             "IsRequired": false,
             "OptionType": "Text"
-        },
-        {
-            "Key": "OverwritePackagesFiles",
-            "IsRequired": false,
-            "OptionType": "Boolean",
-            "DefaultValue": "true"
-        },
+        },        
         {
             "Key": "EngineHostVersion",
             "DefaultValue": null,
