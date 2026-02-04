@@ -1,21 +1,20 @@
-﻿using ClusterManagement.Backend.Consumers;
+﻿using AwesomeAssertions;
+using ClusterManagement.Backend.Consumers;
 using ClusterManagement.Backend.Mqtt;
 using ClusterManagement.Backend.Snapshots;
+using ClusterManagement.Backend.Tests.TestUtils;
 using ClusterManagement.Internal.Designs;
 using ClusterManagement.Public;
 using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Events;
 using ClusterManagement.Tests.Tools;
-using AwesomeAssertions;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using Sdk.Instance;
+using NSubstitute.ExceptionExtensions;
 using Sdk.Testing.Backend;
-using ViciOne.Cluster.Builder;
 using ViciOne.Cluster.Model;
 using Xunit;
-using ClusterManagement.Backend.Tests.TestUtils;
 
 namespace ClusterManagement.Backend.Tests.Consumers;
 
@@ -23,7 +22,6 @@ public class CommitClusterChangeConsumerTests
 {
     private readonly Action<IBusRegistrationConfigurator> _configureServices;
     private readonly IClusterSnapshotStore _storage = Substitute.For<IClusterSnapshotStore>();
-    private readonly IDependencyResolver _resolver = Substitute.For<IDependencyResolver>();
     private readonly ISuiteRulesetProvider _rulesetProvider = Substitute.For<ISuiteRulesetProvider>();
 
     public CommitClusterChangeConsumerTests()
@@ -33,11 +31,8 @@ public class CommitClusterChangeConsumerTests
             // consumer needs
             cfg.AddConsumer<CommitClusterChangeConsumer>();
             cfg.AddSingleton(_ => _storage);
-            cfg.AddSingleton(_ => _resolver);
             cfg.AddSingleton(_ => _rulesetProvider);
             cfg.AddTransient(_ => TestDataFactory.SetupMqttDataPortDesignProvider());
-            cfg.AddTransient(_ => Substitute.For<IInstanceInformationProvider>());
-            cfg.AddTransient(_ => Substitute.For<IMqttBrokerConnectionCache>());
         };
     }
 
@@ -74,7 +69,7 @@ public class CommitClusterChangeConsumerTests
             Assert.True(await tester.Harness.Published.Any<ClusterChanged>(r =>
                 r.Context.Message.ClusterId == cluster.Id));
 
-            await _storage.Received(1).Store(Arg.Any<byte[]>(), Arg.Any<ClusterSnapshotInfo>(), Arg.Any<CancellationToken>());
+            await _storage.Received(1).Store(Arg.Any<Cluster>(), Arg.Any<CancellationToken>());
         }
 
         [Fact]
@@ -97,6 +92,97 @@ public class CommitClusterChangeConsumerTests
                 r.Context.Message.ClusterId == cluster.Id));
 
             await _storage.Received(1).Store(Arg.Any<Cluster>(), Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Should_publish_commit_failed_event_on_failure()
+        {
+            // Arrange
+            await using var tester = new MassTransitTester(_configureServices);
+            var cluster = ClusterDbContextTools.CreateCluster();
+            var command = new CommitClusterChange(
+                ClusterSerializer.Compress(cluster),
+                new CommitClusterMetaInfo(cluster),
+                null);
+
+            _storage.Store(Arg.Any<Cluster>(), Arg.Any<CancellationToken>())
+                .Throws(new InvalidOperationException("Storage failed"));
+
+            // Act
+            var act = async () => await tester.TestCommandFault<CommitClusterChange, CommitClusterChangeConsumer>(command);
+
+            // Assert
+            await act.Should().ThrowAsync<InvalidOperationException>();
+            Assert.True(await tester.Harness.Published.Any<CommitClusterChangeFailed>());
+        }
+
+        [Fact]
+        public async Task Should_sync_metaversion_to_cluster_when_higher()
+        {
+            // Arrange
+            await using var tester = new MassTransitTester(_configureServices);
+            var cluster = ClusterDbContextTools.CreateCluster();
+
+            // Cluster has version 1.0.1
+            cluster.Version = new Version(1, 0, 1);
+
+            // MetaInfo has higher version 1.0.5
+            var metaInfo = new CommitClusterMetaInfo(cluster)
+            {
+                ClusterVersion = new Version(1, 0, 5)
+            };
+
+            var command = new CommitClusterChange(
+                ClusterSerializer.Compress(cluster),
+                metaInfo,
+                null); // Options is null to trigger version sync logic
+
+            // Act
+            var changeEvent = await tester.TestCommand<CommitClusterChange, CommitClusterChangeConsumer, ClusterChanged>(command);
+
+            // Assert
+            await _storage.Received(1).Store(
+                Arg.Is<Cluster>(c =>
+                    c.Version == new Version(1, 0, 5) &&
+                    c.VersionCreated > DateTime.UtcNow.AddSeconds(-5)),
+                Arg.Any<CancellationToken>());
+
+            changeEvent.Version.Should().Be(new Version(1, 0, 5));
+            Assert.False(await tester.Harness.Published.Any<ClusterError>());
+        }
+
+        [Fact]
+        public async Task Should_not_sync_metaversion_when_cluster_version_is_higher()
+        {
+            // Arrange
+            await using var tester = new MassTransitTester(_configureServices);
+            var cluster = ClusterDbContextTools.CreateCluster();
+
+            // Cluster has version 2.0.0
+            cluster.Version = new Version(2, 0, 0);
+            var originalVersionCreated = cluster.VersionCreated;
+
+            // MetaInfo has lower version 1.5.0
+            var metaInfo = new CommitClusterMetaInfo(cluster)
+            {
+                ClusterVersion = new Version(1, 5, 0)
+            };
+
+            var command = new CommitClusterChange(
+                ClusterSerializer.Compress(cluster),
+                metaInfo,
+                null);
+
+            // Act
+            var changeEvent = await tester.TestCommand<CommitClusterChange, CommitClusterChangeConsumer, ClusterChanged>(command);
+
+            // Assert
+            await _storage.Received(1).Store(
+                Arg.Is<Cluster>(c =>
+                    c.Version == new Version(2, 0, 0)), // Version should remain unchanged
+                Arg.Any<CancellationToken>());
+
+            changeEvent.Version.Should().Be(new Version(1, 5, 0)); // Event uses metaVersion
         }
     }
 

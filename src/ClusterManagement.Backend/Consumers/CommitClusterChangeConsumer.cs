@@ -23,37 +23,39 @@ public sealed class CommitClusterChangeConsumer(
 {
     public async Task Consume(ConsumeContext<CommitClusterChange> context)
     {
-        logger.LogDebug("Consume {Command} CorrelationId:{CorrelationId} Id:{Id} Version:{Version}",
+        logger.LogConsumeCommand(
             nameof(CommitClusterChange),
             context.CorrelationId,
             context.Message.MetaInfo.ClusterId,
             context.Message.MetaInfo.ClusterVersion);
 
         var metaInfo = context.Message.MetaInfo;
-        var version = metaInfo.ClusterVersion;
+        var metaVersion = metaInfo.ClusterVersion;
+
+        var cluster = await ClusterSerializer.Decompress(context.Message.CompressedCluster) ??
+                throw new InvalidOperationException($"Failed to deserialize cluster {metaInfo.ClusterId} v{metaInfo.ClusterVersion}");
 
         if (context.Message.Options is not null)
         {
-            var cluster = await ClusterSerializer.Decompress(context.Message.CompressedCluster) ??
-                throw new InvalidOperationException($"Failed to deserialize cluster {metaInfo.ClusterId} v{metaInfo.ClusterVersion}");
-
             var modified = await ApplyClusterOptions(cluster, context.Message.Options, context.CancellationToken);
-            version = modified.Version;
+            metaVersion = modified.Version;
 
             await snapshotStore.Store(modified, context.CancellationToken);
         }
         else
         {
-            var storedInfo = new ClusterSnapshotInfo(metaInfo.ClusterId, metaInfo.ClusterVersion, metaInfo.Name)
+            if (metaVersion > cluster.Version)
             {
-                Description = metaInfo.Description
-            };
+                cluster.Version = metaVersion;
+                cluster.VersionCreated = DateTime.UtcNow;
+                logger.LogSetClusterVersion(cluster.Id, cluster.Version);
+            }
 
-            await snapshotStore.Store(context.Message.CompressedCluster, storedInfo, context.CancellationToken);
+            await snapshotStore.Store(cluster, context.CancellationToken);
         }
 
         await context.Publish(
-            new ClusterChanged(context.Message.CorrelationId, metaInfo.ClusterId, CrudAction.Created, version),
+            new ClusterChanged(context.Message.CorrelationId, metaInfo.ClusterId, CrudAction.Created, metaVersion),
             context.CancellationToken);
     }
 
@@ -63,9 +65,7 @@ public sealed class CommitClusterChangeConsumer(
         {
             cluster.Version = await snapshotStore.GetLatestVersionIncrement(cluster.Id, options.IncrementType ?? VersionIncrementKind.Patch, cancellationToken);
             cluster.VersionCreated = DateTime.UtcNow;
-            logger.LogDebug("Increased cluster {Id} version to v{Version}",
-                cluster.Id,
-                cluster.Version);
+            logger.LogIncreasedClusterVersion(cluster.Id, cluster.Version);
         }
 
         if (!options.CleanupDependencies)
@@ -103,7 +103,7 @@ public sealed class CommitClusterChangeConsumer(
     /// <returns></returns>
     public async Task Consume(ConsumeContext<Fault<CommitClusterChange>> context)
     {
-        logger.LogError("{Command} faulted with errors: {Errors}",
+        logger.LogCommandFaulted(
             nameof(CommitClusterChange),
             string.Join(" | ", context.Message.Exceptions.Select(e => e.Message)));
 
