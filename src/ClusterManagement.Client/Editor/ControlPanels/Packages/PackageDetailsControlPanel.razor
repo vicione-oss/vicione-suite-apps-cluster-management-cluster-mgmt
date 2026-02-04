@@ -35,7 +35,7 @@
                             @State.PackageInfo.RunningClusterVersion
 
                             <div title="@Localization.Common.ActiveInCluster" class="icon-wrapper">
-                                <MonochromeIcon Name="MonochromeIconName.Lock" Size="MonochromeIconSize.SmallMedium" />
+                                <MonochromeIcon Name="MonochromeIconName.LockActive" Size="MonochromeIconSize.SmallMedium" />
                             </div>
                         </div>
                     </SettingsField>
@@ -84,14 +84,14 @@
                             <AuthorizeView Policy="@AdminPolicy">
                                 <div class="combo-box-wrapper">
                                     <SettingsFieldComboBox Items="@State.PackageInfo.Versions"
-                                                           ValueSelector="@(item => item)"
-                                                           TextSelector="@(item => item)"
+                                                           ValueSelector="@(item => item.Version)"
+                                                           TextSelector="@(item => item.Version)"
                                                            @bind-Value="@State.VersionToInstall"
                                                            @bind-Value:after="(async () => await BeginEdit())" />
 
-                                    @if (State.PackageInfo.LatestUpdateVersion is not null)
+                                    @if (State.PackageInfo.AvailableUpdateVersion is not null)
                                     {
-                                        <div title="@string.Format(Localization.Common.UpdateToVersionAvailible, State.PackageInfo.LatestUpdateVersion)" class="icon-wrapper">
+                                        <div title="@string.Format(Localization.Common.UpdateToVersionAvailible, State.PackageInfo.AvailableUpdateVersion)" class="icon-wrapper">
                                             <img src="@SvgIcon.UpdateAvailable.GetPath()" />
                                         </div>
                                     }

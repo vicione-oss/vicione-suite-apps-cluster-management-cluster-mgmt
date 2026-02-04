@@ -26,9 +26,11 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
     IEventConsumer<ClusterDependenciesUpdateFailed>
 {
     private readonly CancellationTokenSource _tokenSource = new();
-    private IQueryable<ClusterPackageInfo> _packageInfosQueryable = Enumerable.Empty<ClusterPackageInfo>().AsQueryable();
-    private string _filterText = string.Empty;
-    private DxDialog? _refDeletePackagesDialog;
+    private IQueryable<ClusterPackageInfo> _installedQueryable = Enumerable.Empty<ClusterPackageInfo>().AsQueryable();
+    private IQueryable<ClusterPackageInfo> _availableQueryable = Enumerable.Empty<ClusterPackageInfo>().AsQueryable();
+    private string _installedFilterText = string.Empty;
+    private string _availableFilterText = string.Empty;
+    private DxDialog? _refUninstalllPackagesDialog;
     private readonly AutoDisposeList<IDisposable> _subscriptionHandles = [];
 
     [Inject] private IControlPanelRequest ControlPanelRequest { get; set; } = default!;
@@ -37,7 +39,9 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
     [Inject] private IMessageBannerService MessageBannerService { get; set; } = default!;
     [Inject] private IJSRuntime JavaScript { get; set; } = default!;
 
-    private GridItemSelection<ClusterPackageInfo> ItemSelection { get; } = [];
+    private GridItemSelection<ClusterPackageInfo> InstalledItemSelection { get; } = [];
+
+    private GridItemSelection<ClusterPackageInfo> AvailableItemSelection { get; } = [];
 
     private string? AdminPolicy { get; }
         = ModulePolicyProvider.GetPolicy<ClusterManagementClientModule>(AccessLevel.Full);
@@ -46,14 +50,18 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
     {
         await base.OnInitializedAsync();
 
-        ItemSelection.Changed += OnItemSelectionChanged;
+        InstalledItemSelection.Changed += OnItemSelectionChanged;
+        AvailableItemSelection.Changed += OnItemSelectionChanged;
 
         _subscriptionHandles.Add(Mediator.Register<ClusterPackageChanged>(this));
         _subscriptionHandles.Add(Mediator.Register<ClusterPackageChangeFailed>(this));
         _subscriptionHandles.Add(Mediator.Register<ClusterDependenciesChanged>(this));
         _subscriptionHandles.Add(Mediator.Register<ClusterDependenciesUpdateFailed>(this));
 
-        _packageInfosQueryable = (await PackageService.GetPackages(null, _tokenSource.Token)).AsQueryable();
+        var allPackages = await PackageService.GetPackages(null, _tokenSource.Token);
+
+        _installedQueryable = allPackages.Where(k => k.InstalledVersion != null || k.RunningClusterVersion != null).AsQueryable();
+        _availableQueryable = allPackages.Where(k => string.IsNullOrEmpty(k.InstalledVersion) && string.IsNullOrEmpty(k.RunningClusterVersion)).AsQueryable();
     }
 
     private async void OnItemSelectionChanged(GridItemSelectionChangedEventArgs<ClusterPackageInfo> args)
@@ -86,15 +94,60 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
     private async Task OnPackageUploadClickAsync()
         => await JavaScript.InvokeVoidAsync("triggerUploadClick");
 
-    private async Task OnPackageDeleteClickAsync()
-        => await _refDeletePackagesDialog!.OpenAsync();
+    private async Task OnPackageUninstallClickAsync()
+        => await _refUninstalllPackagesDialog!.OpenAsync();
 
-    private async Task OnDeletePackagesCloseAsync()
-        => await _refDeletePackagesDialog!.CloseAsync();
-
-    private async Task OnDeletePackagesOkAsync()
+    private async Task OnPackageInstallClickAsync()
     {
-        var items = ItemSelection.Distinct();
+        var operations = AvailableItemSelection
+            .Distinct()
+            .Where(item => string.IsNullOrEmpty(item.InstalledVersion) && string.IsNullOrEmpty(item.RunningClusterVersion) && item.Versions?.Count > 0)
+            .Select(item => new ClusterDependencyOperation(new ClusterDependency
+            {
+                Name = item.Name,
+                Version = Version.Parse(item.Versions!.First().Version),
+            },
+            ClusterDependencyOperationKind.Install))
+            .ToList();
+
+        if (operations.Count > 0)
+        {
+            await PackageService.UpdatePackages(operations, _tokenSource.Token);
+
+            MessageBannerService.ShowMessageBanner(MessageType.Warning, Localization.Common.NeedRestart);
+        }
+    }
+
+    private async Task OnPackageDeleteClickAsync()
+    {
+        var packagesToDelete = AvailableItemSelection
+            .Distinct()
+            .Where(item => string.IsNullOrEmpty(item.InstalledVersion) && string.IsNullOrEmpty(item.RunningClusterVersion))
+            .ToList();
+
+        foreach (var package in packagesToDelete)
+        {
+            if (package.Versions is null)
+                continue;
+
+            foreach (var version in package.Versions)
+            {
+                // we don't have it locally so nothing to delete
+                if (!version.IsLocal)
+                    continue;
+
+                // maybe give user some feedback if nothing to uninstall?        
+                await PackageService.DeletePackage(package.Name, version.Version, _tokenSource.Token);
+            }
+        }
+    }
+
+    private async Task OnUninstallPackagesCloseAsync()
+        => await _refUninstalllPackagesDialog!.CloseAsync();
+
+    private async Task OnUninstallPackagesOkAsync()
+    {
+        var items = InstalledItemSelection.Distinct();
         List<ClusterDependencyOperation> operations = [];
 
         foreach (var item in items)
@@ -118,7 +171,7 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
         }
 
         // maybe give user some feedback if nothing to uninstall?        
-        await _refDeletePackagesDialog!.CloseAsync();
+        await _refUninstalllPackagesDialog!.CloseAsync();
     }
 
     private async Task ShowDetailsAsync(ClusterPackageInfo item)
@@ -129,20 +182,44 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
         });
     }
 
-    private IQueryable<ClusterPackageInfo> FilterItems(IQueryable<ClusterPackageInfo> devices)
-        => devices
-            .Where(i => i.Name.Contains(_filterText, StringComparison.OrdinalIgnoreCase))
+    private IQueryable<ClusterPackageInfo> FilterInstalledItems(IQueryable<ClusterPackageInfo> packages)
+        => packages
+            .Where(i => i.Name.Contains(_installedFilterText, StringComparison.OrdinalIgnoreCase))
             .OrderBy(d => d.Name);
+
+    private IQueryable<ClusterPackageInfo> FilterAvailableItems(IQueryable<ClusterPackageInfo> packages)
+        => packages
+            .Where(i => i.Name.Contains(_availableFilterText, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(d => d.Name);
+
+    private bool CanInstallAvailablePackages()
+        => AvailableItemSelection.Count != 0
+        && AvailableItemSelection.All(i => string.IsNullOrEmpty(i.InstalledVersion) && string.IsNullOrEmpty(i.RunningClusterVersion));
+
+    private bool CanDeleteAvailablePackages()
+        => AvailableItemSelection.Count != 0
+        && AvailableItemSelection.All(i => string.IsNullOrEmpty(i.InstalledVersion)
+            && string.IsNullOrEmpty(i.RunningClusterVersion)
+            && i.Versions?.Any(v => v.IsLocal) == true);
+
+    private static string GetLatestVersion(ClusterPackageInfo? package)
+        => package?.Versions?.FirstOrDefault()?.Version ?? string.Empty;
 
     protected override async ValueTask DisposeAsyncCore()
     {
         _subscriptionHandles.Dispose();
         _tokenSource.Dispose();
 
-        if (ItemSelection is not null)
+        if (InstalledItemSelection is not null)
         {
-            ItemSelection.Changed -= OnItemSelectionChanged;
-            ItemSelection.Clear();
+            InstalledItemSelection.Changed -= OnItemSelectionChanged;
+            InstalledItemSelection.Clear();
+        }
+
+        if (AvailableItemSelection is not null)
+        {
+            AvailableItemSelection.Changed -= OnItemSelectionChanged;
+            AvailableItemSelection.Clear();
         }
 
         await base.DisposeAsyncCore();
@@ -158,11 +235,27 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
         }
         else if (context.Message.Change == ClusterPackageChange.Delete)
         {
-            _packageInfosQueryable = _packageInfosQueryable
+            var package = _availableQueryable.FirstOrDefault(p => p.Name == name);
+            if (package is null)
+                return;
+
+            // the package version might be deleted but there mmight be other versions
+            // only if was a package that was only installed locally we can remove here
+            var deletedVersion = package.Versions?.FirstOrDefault(v => v.Version == context.Message.Version);
+            if (deletedVersion is null)
+                return;
+
+            // we have to update the readonly collection to remove the version
+            package.Versions = package.Versions!.Where(v => v.Version != deletedVersion.Version).ToList();
+            if (package.Versions.Count > 0)
+                return;
+
+            // now we have no versions left and can remove the package entry
+            _availableQueryable = _availableQueryable
                 .Where(p => p.Name != name)
                 .AsQueryable();
 
-            ItemSelection.Remove(p => p.Name == name);
+            AvailableItemSelection.Remove(p => p.Name == name);
         }
 
         await InvokeAsync(StateHasChanged);
@@ -177,23 +270,32 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
 
     public async Task Consume(ClientContext<ClusterDependenciesChanged> context, CancellationToken cancellationToken)
     {
+        var hasChanges = false;
+
         foreach (var operation in context.Message.Changes)
         {
             var name = operation.Operation.Dependency.Name;
-            var packageInfo = _packageInfosQueryable.FirstOrDefault(p => p.Name == name);
-            if (packageInfo is null)
-                continue;
-
-            if (operation.Action is Sdk.Messaging.CrudAction.Deleted)
+            var installed = _installedQueryable.FirstOrDefault(p => p.Name == name);
+            if (installed is not null)
             {
-                packageInfo.PendingOperation = null;
-                continue;
+                installed.PendingOperation = operation.Action is Sdk.Messaging.CrudAction.Deleted
+                    ? null
+                    : operation.Operation;
+                hasChanges = true;
             }
 
-            packageInfo.PendingOperation = operation.Operation;
+            var available = _availableQueryable.FirstOrDefault(p => p.Name == name);
+            if (available is not null)
+            {
+                available.PendingOperation = operation.Action is Sdk.Messaging.CrudAction.Deleted
+                    ? null
+                    : operation.Operation;
+                hasChanges = true;
+            }
         }
 
-        await InvokeAsync(StateHasChanged);
+        if (hasChanges)
+            await InvokeAsync(StateHasChanged);
     }
 
     public Task Consume(ClientContext<ClusterDependenciesUpdateFailed> context, CancellationToken cancellationToken)
@@ -209,12 +311,25 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
         if (refreshed is null)
             return;
 
-        var updated = _packageInfosQueryable
+        if (!string.IsNullOrEmpty(refreshed.InstalledVersion))
+        {
+            var updated = _installedQueryable
             .Where(p => p.Name != packageName)
             .Append(refreshed)
             .OrderBy(p => p.Name)
             .AsQueryable();
 
-        _packageInfosQueryable = updated;
+            _installedQueryable = updated;
+        }
+        else
+        {
+            var updated = _availableQueryable
+            .Where(p => p.Name != packageName)
+            .Append(refreshed)
+            .OrderBy(p => p.Name)
+            .AsQueryable();
+
+            _availableQueryable = updated;
+        }
     }
 }

@@ -15,12 +15,12 @@ public class ClusterPackageInfo
     /// </summary>
     public string? InstalledVersion { get; set; }
 
-    public string? LatestUpdateVersion { get; set; }
+    public string? AvailableUpdateVersion { get; set; }
 
     /// <summary>
     /// All available versions for this package if any otherwise <see langword="null"/>
     /// </summary>
-    public IReadOnlyCollection<string>? Versions { get; set; }
+    public IReadOnlyCollection<ClusterPackageVersion>? Versions { get; set; }
 
     /// <summary>
     /// Contains the pending operation for this package if any otherwise <see langword="null"/>
@@ -37,4 +37,9 @@ public class ClusterPackageInfo
     /// Is not <see langword="null"/> if there occured an error on e.g. loading the package
     /// </summary>
     public ErrorInfo? Error { get; set; }
+}
+
+public record ClusterPackageVersion(string Version)
+{
+    public bool IsLocal { get; set; }
 }

@@ -18,11 +18,23 @@
             gap: 8px;
 
             .version {
-                width: 90px;
+                width: 70px;
                 text-overflow: ellipsis;
                 overflow: hidden;
             }
 
+            .icon-wrapper {
+                display: flex;
+                align-items: center;
+
+                img {
+                    width: 16px;
+                    height: 16px;
+                }
+            }
+        }
+
+        .status-wrapper {
             .icon-wrapper {
                 display: flex;
                 align-items: center;

@@ -32,7 +32,7 @@ public sealed class GetEngineHostPackageInfoConsumer(IEngineHostArtifactReposito
         packageInfo.Versions = engineHosts
             .Select(k => MetadataArtifactNameRegex.ParseVersion(k.Name, out var packageVersion) ? packageVersion : emptyVersion)
             .Where(v => v != emptyVersion)
-            .Select(v => v.ToString()!)
+            .Select(v => new ClusterPackageVersion(v.ToString()!))
             .ToHashSet();
 
         return new GetEngineHostPackageInfoResponse(packageInfo);

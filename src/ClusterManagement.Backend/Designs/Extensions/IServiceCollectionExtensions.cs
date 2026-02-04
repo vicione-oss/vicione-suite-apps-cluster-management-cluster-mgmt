@@ -9,13 +9,14 @@ internal static class IServiceCollectionExtensions
     internal static IServiceCollection AddDesignsSupport(this IServiceCollection services)
     {
         services
-            .AddTransient<IPackageArtifactRepository, PackageArtifactRepository>()
-            .AddHostedService<DesignLoader>()
             .AddTransient<IClusterDependencyStore, ClusterDependencyStore>()
             .AddTransient<IDesignProvider, DesignProvider>()
-            .AddTransient<IPackageStore, PackageStore>()
+            .AddTransient<IPackageArtifactRepository, PackageArtifactRepository>()
             .AddSingleton<IPackageContentProvider, PackageContentProvider>()
-            .AddSingleton<ISuiteRulesetProvider, RulesetProvider>();
+            .AddTransient<IPackageInfoProvider, PackageInfoProvider>()
+            .AddTransient<IPackageStore, PackageStore>()
+            .AddSingleton<ISuiteRulesetProvider, RulesetProvider>()
+            .AddHostedService<DesignLoader>();
 
         return services;
     }

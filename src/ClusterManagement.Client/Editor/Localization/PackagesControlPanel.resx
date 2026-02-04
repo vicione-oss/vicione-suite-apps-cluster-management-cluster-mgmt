@@ -123,11 +123,17 @@
   <data name="DeletePackagesHeader" xml:space="preserve">
     <value>Delete Packages</value>
   </data>
-  <data name="DescriptionBannerDescription" xml:space="preserve">
+  <data name="InstalledBannerDescription" xml:space="preserve">
     <value>Manage packages, that are used inside of the Cluster Editor. The minimum core version must be: {0}.</value>
   </data>
-  <data name="DescriptionBannerTitle" xml:space="preserve">
-    <value>Manage Packages</value>
+  <data name="AvailableBannerDescription" xml:space="preserve">
+    <value>Manage available packages, that can be used inside of Cluster Editor and provide additional functionality, sensors etc. The minimum core version is '{0}'.</value>
+  </data>
+  <data name="InstalledBannerTitle" xml:space="preserve">
+    <value>Installed Packages</value>
+  </data>
+  <data name="AvailableBannerTitle" xml:space="preserve">
+    <value>Available Packages</value>
   </data>
   <data name="PendingInstallOfVersion" xml:space="preserve">
     <value>pending installation of version {0}</value>
@@ -137,5 +143,11 @@
   </data>
   <data name="Uninstall" xml:space="preserve">
     <value>Uninstall</value>
+  </data>
+  <data name="LatestVersion" xml:space="preserve">
+    <value>Latest version</value>
+  </data>
+  <data name="LocalAvailable" xml:space="preserve">
+    <value>This package is locally available</value>
   </data>
 </root>

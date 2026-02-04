@@ -20,7 +20,7 @@ public class ClusterPackageInfoExtensionsTests
             {
                 Name = "TestPackage",
                 InstalledVersion = value,
-                Versions = ["1.0.0", "2.0.0"]
+                Versions = [new ClusterPackageVersion("1.0.0"), new ClusterPackageVersion("2.0.0")]
             };
 
             // Act
@@ -74,7 +74,7 @@ public class ClusterPackageInfoExtensionsTests
             {
                 Name = "TestPackage",
                 InstalledVersion = "invalid-version",
-                Versions = ["1.0.0", "2.0.0"]
+                Versions = [new ClusterPackageVersion("1.0.0"), new ClusterPackageVersion("2.0.0")]
             };
 
             // Act
@@ -92,7 +92,7 @@ public class ClusterPackageInfoExtensionsTests
             {
                 Name = "TestPackage",
                 InstalledVersion = "2.0.0",
-                Versions = ["1.0.0", "2.0.0"]
+                Versions = [new ClusterPackageVersion("1.0.0"), new ClusterPackageVersion("2.0.0")]
             };
 
             // Act
@@ -110,7 +110,12 @@ public class ClusterPackageInfoExtensionsTests
             {
                 Name = "TestPackage",
                 InstalledVersion = "1.0.0",
-                Versions = ["1.0.0", "2.0.0", "1.5.0", "3.1.0", "2.9.9"]
+                Versions = [
+                    new ClusterPackageVersion("1.0.0"),
+                    new ClusterPackageVersion("2.0.0"),
+                    new ClusterPackageVersion("1.5.0"),
+                    new ClusterPackageVersion("3.1.0"),
+                    new ClusterPackageVersion("2.9.9")]
             };
 
             // Act
@@ -128,7 +133,7 @@ public class ClusterPackageInfoExtensionsTests
             {
                 Name = "TestPackage",
                 InstalledVersion = "1.0.0",
-                Versions = ["1.0.0", "invalid", "2.0.0", "not-a-version"]
+                Versions = [new ClusterPackageVersion("1.0.0"), new ClusterPackageVersion("2.0.0"), new ClusterPackageVersion("not-a-version")]
             };
 
             // Act
@@ -146,7 +151,7 @@ public class ClusterPackageInfoExtensionsTests
             {
                 Name = "TestPackage",
                 InstalledVersion = "1.0.0",
-                Versions = ["invalid", "not-a-version", "bad-semver"]
+                Versions = [new ClusterPackageVersion("invalid"), new ClusterPackageVersion("not-a-version"), new ClusterPackageVersion("bad-semver")]
             };
 
             // Act
