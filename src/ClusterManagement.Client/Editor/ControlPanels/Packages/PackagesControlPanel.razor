@@ -21,10 +21,107 @@
 
 @inherits ControlPanelBase<ControlPanelState>
 
-<ControlPanelPage Title="@Localization.Common.Title">
+<ControlPanelPage Title="@CommonVocabulary.Installed">
     <div class="packages-control-panel-page">
-        <DescriptionBanner Title="@Localization.PackagesControlPanel.DescriptionBannerTitle">
-            @(string.Format(Localization.PackagesControlPanel.DescriptionBannerDescription, PackageService.MinCoreVersion))
+        <DescriptionBanner Title="@Localization.PackagesControlPanel.InstalledBannerTitle">
+            @(string.Format(Localization.PackagesControlPanel.InstalledBannerDescription, PackageService.MinCoreVersion))
+        </DescriptionBanner>
+
+
+        <Grid Items="@FilterInstalledItems(_installedQueryable)" Virtualize="true" CssClass="packages-grid">
+            <ActionButtons>
+                <div style="display:contents;">
+                    <AuthorizeView Policy="@AdminPolicy">
+
+                        <GridActionButton Text="@Localization.PackagesControlPanel.Uninstall"
+                                          OnClick="@OnPackageUninstallClickAsync"
+                                          IconData="@SvgIcon.Uninstall.GetPath()"
+                                          Enabled="@(InstalledItemSelection.Count != 0 && InstalledItemSelection.All(i => !string.IsNullOrEmpty(i.InstalledVersion) && string.IsNullOrEmpty(i.RunningClusterVersion)))" />
+
+                    </AuthorizeView>
+                </div>
+            </ActionButtons>
+
+            <Filter>
+                <GridFilterControl @bind-Text="@_installedFilterText" @bind-Text:after="@(() => InvokeAsync(StateHasChanged))" />
+            </Filter>
+
+            <ChildContent>
+                <ItemSelectColumn KeySelector="@(item => item)"
+                                  Selection="@InstalledItemSelection" />
+
+                <TemplateColumn Title="@CommonVocabulary.Name">
+                    @{
+                        var key = new MarkupString(context.Name);
+
+                        if (!string.IsNullOrEmpty(_installedFilterText))
+                            key = key.WithHighlightedText(_installedFilterText);
+
+                        @key
+                    }
+                </TemplateColumn>
+
+                <TemplateColumn Title="@Localization.Common.InstalledVersion">
+                    <div class="version-wrapper">
+                        <div class="version" title="@context.InstalledVersion">
+                            @context.InstalledVersion
+                        </div>
+                    </div>
+                </TemplateColumn>
+
+                <TemplateColumn Title="@CommonVocabulary.Status">
+                    <div class="status-wrapper">
+                        @if (context.PendingOperation is not null)
+                        {
+                            @if (context.PendingOperation.OperationKind is ClusterDependencyOperationKind.Install)
+                            {
+                                var tooltipText = context.InstalledVersion is null ?
+                                string.Format(Localization.PackagesControlPanel.PendingInstallOfVersion, context.PendingOperation.Dependency.Version.ToString()) :
+                                string.Format(Localization.PackagesControlPanel.PendingUpdateToVersion, context.PendingOperation.Dependency.Version.ToString());
+
+                                <div title="@tooltipText" class="icon-wrapper">
+                                    <img src="@SvgIcon.InstallPending.GetPath()" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div title="@Localization.Common.PendingUninstall" class="icon-wrapper">
+                                    <img src="@SvgIcon.UninstallPending.GetPath()" />
+                                </div>
+                            }
+                        }
+
+                        @if (!string.IsNullOrEmpty(context.RunningClusterVersion))
+                        {
+                            <div title="@Localization.Common.ActiveInCluster" class="icon-wrapper">
+                                <MonochromeIcon Name="MonochromeIconName.LockActive" Size="MonochromeIconSize.Small" />
+                            </div>
+                        }
+
+                        @if (context.Error is not null)
+                        {
+                            <div title="@context.Error.Message" class="icon-wrapper">
+                                <MonochromeIcon Name="MonochromeIconName.ErrorFull" Size="MonochromeIconSize.Medium" />
+                            </div>
+                        }
+                    </div>
+                </TemplateColumn>
+
+                <NavigationColumn NavigationButtonTitle="@Common.ShowDetails"
+                                  Navigate="@((ClusterPackageInfo item) => ShowDetailsAsync(item))" />
+            </ChildContent>
+
+            <Footer>
+                <SelectionFooter GridSelection="@InstalledItemSelection" />
+            </Footer>
+        </Grid>
+    </div>
+</ControlPanelPage>
+
+<ControlPanelPage Title="@CommonVocabulary.BrowseVerb">
+    <div class="packages-control-panel-page">
+        <DescriptionBanner Title="@Localization.PackagesControlPanel.AvailableBannerTitle">
+            @(string.Format(Localization.PackagesControlPanel.AvailableBannerDescription, PackageService.MinCoreVersion))
         </DescriptionBanner>
         <div class="input">
 
@@ -42,44 +139,50 @@
                        OnChange="OnFileChange" />
         </div>
 
-        <Grid Items="@FilterItems(_packageInfosQueryable)" Virtualize="true" CssClass="packages-grid">
+        <Grid Items="@FilterAvailableItems(_availableQueryable)" Virtualize="true" CssClass="packages-grid">
             <ActionButtons>
                 <div style="display:contents;">
                     <AuthorizeView Policy="@AdminPolicy">
-                        <GridActionButton Text="@Common.Upload" 
+                        <GridActionButton Text="@Common.Upload"
                                           OnClick="OnPackageUploadClickAsync"
                                           IconCssClass="@MonochromeIconName.Export.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()" />
-                        <GridActionButton Text="@Localization.PackagesControlPanel.Uninstall"
+
+                        <GridActionButton Text="@CommonVocabulary.InstallVerb"
+                                          OnClick="OnPackageInstallClickAsync"
+                                          IconCssClass="@MonochromeIconName.Import.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()"
+                                          Enabled="@CanInstallAvailablePackages()" />
+
+                        <GridActionButton Text="@CommonVocabulary.Delete"
                                           OnClick="@OnPackageDeleteClickAsync"
-                                          IconData="@SvgIcon.Uninstall.GetPath()"
-                                          Enabled="@(ItemSelection.Count != 0 && ItemSelection.All(i => !string.IsNullOrEmpty(i.InstalledVersion) && string.IsNullOrEmpty(i.RunningClusterVersion)))" />
+                                          IconCssClass="@(MonochromeIconName.Delete.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated())"
+                                          Enabled="@CanDeleteAvailablePackages()" />
                     </AuthorizeView>
                 </div>
             </ActionButtons>
 
             <Filter>
-                <GridFilterControl @bind-Text="@_filterText" @bind-Text:after="@(() => InvokeAsync(StateHasChanged))" />
+                <GridFilterControl @bind-Text="@_availableFilterText" @bind-Text:after="@(() => InvokeAsync(StateHasChanged))" />
             </Filter>
 
             <ChildContent>
                 <ItemSelectColumn KeySelector="@(item => item)"
-                                  Selection="@ItemSelection" />
+                                  Selection="@AvailableItemSelection" />
 
                 <TemplateColumn Title="@CommonVocabulary.Name">
                     @{
                         var key = new MarkupString(context.Name);
 
-                        if (!string.IsNullOrEmpty(_filterText))
-                            key = key.WithHighlightedText(_filterText);
+                        if (!string.IsNullOrEmpty(_availableFilterText))
+                            key = key.WithHighlightedText(_availableFilterText);
 
                         @key
                     }
                 </TemplateColumn>
 
-                <TemplateColumn Title="@Localization.Common.InstalledVersion">
+                <TemplateColumn Title="@Localization.PackagesControlPanel.LatestVersion">
                     <div class="version-wrapper">
-                        <div class="version" title="@context.InstalledVersion">
-                            @context.InstalledVersion
+                        <div class="version">
+                            @GetLatestVersion(context)
                         </div>
 
                         @if (context.PendingOperation is not null)
@@ -87,8 +190,8 @@
                             @if (context.PendingOperation.OperationKind is ClusterDependencyOperationKind.Install)
                             {
                                 var tooltipText = context.InstalledVersion is null ?
-                                    string.Format(Localization.PackagesControlPanel.PendingInstallOfVersion, context.PendingOperation.Dependency.Version.ToString()) :
-                                    string.Format(Localization.PackagesControlPanel.PendingUpdateToVersion, context.PendingOperation.Dependency.Version.ToString());
+                                string.Format(Localization.PackagesControlPanel.PendingInstallOfVersion, context.PendingOperation.Dependency.Version.ToString()) :
+                                string.Format(Localization.PackagesControlPanel.PendingUpdateToVersion, context.PendingOperation.Dependency.Version.ToString());
 
                                 <div title="@tooltipText" class="icon-wrapper">
                                     <img src="@SvgIcon.InstallPending.GetPath()" />
@@ -102,26 +205,17 @@
                             }
                         }
 
-                        @if (context.LatestUpdateVersion is not null)
-                        {
-                            <div title="@string.Format(Localization.Common.UpdateToVersionAvailible, context.LatestUpdateVersion)" class="icon-wrapper">
-                                <img src="@SvgIcon.UpdateAvailable.GetPath()" />
-                            </div>
-                        }
+                    </div>
+                </TemplateColumn>
 
-                        @if (!string.IsNullOrEmpty(context.RunningClusterVersion))
+                <TemplateColumn Title="@CommonVocabulary.Status">
+                    <div class="status-wrapper">
+                        @if (context.Versions?.Any(k => k.IsLocal) == true)
                         {
-                            <div title="@Localization.Common.ActiveInCluster" class="icon-wrapper">
-                                <MonochromeIcon Name="MonochromeIconName.Lock" Size="MonochromeIconSize.Small" />
+                            <div title="@Localization.PackagesControlPanel.LocalAvailable" class="icon-wrapper">
+                                <MonochromeIcon Name="MonochromeIconName.Folder" Size="MonochromeIconSize.Small" />
                             </div>
-                        }
-
-                        @if (context.Error is not null)
-                        {
-                            <div title="@context.Error.Message" class="icon-wrapper">
-                                <MonochromeIcon Name="MonochromeIconName.ErrorFull" Size="MonochromeIconSize.Small" />
-                            </div>
-                        }
+                        }                        
                     </div>
                 </TemplateColumn>
 
@@ -130,13 +224,13 @@
             </ChildContent>
 
             <Footer>
-                <SelectionFooter GridSelection="@ItemSelection" />
+                <SelectionFooter GridSelection="@AvailableItemSelection" />
             </Footer>
         </Grid>
     </div>
 </ControlPanelPage>
 
-<DxDialog @ref="@_refDeletePackagesDialog"
+<DxDialog @ref="@_refUninstalllPackagesDialog"
           CloseOnEscape="true"
           CloseOnOutsideClick="false"
           Header="@Localization.PackagesControlPanel.DeletePackagesHeader"
@@ -149,10 +243,10 @@
     </Body>
 
     <Footer>
-        <DxDialogFooterButton OnClick="@OnDeletePackagesOkAsync"
+        <DxDialogFooterButton OnClick="@OnUninstallPackagesOkAsync"
                               Text="@CommonVocabulary.Ok" />
 
-        <DxDialogFooterButton OnClick="@OnDeletePackagesCloseAsync"
+        <DxDialogFooterButton OnClick="@OnUninstallPackagesCloseAsync"
                               Text="@CommonVocabulary.Cancel" />
     </Footer>
 </DxDialog>

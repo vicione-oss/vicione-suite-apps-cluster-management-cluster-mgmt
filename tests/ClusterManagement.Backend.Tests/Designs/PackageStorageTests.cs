@@ -179,15 +179,10 @@ public class PackageStorageTests
 
             // Assert
             fileSystem.Directory.Received(0).Delete(path: Arg.Is<string>(packagePath), Arg.Any<bool>());
-            await _dependencyStore.Received(1).EnqueueOperations(
-                Arg.Is<List<ClusterDependencyOperation>>(d => d[0].Dependency.Name == dependency.Name
-                && d[0].Dependency.Version == dependency.Version
-                && d[0].OperationKind == ClusterDependencyOperationKind.Uninstall),
-                Arg.Any<CancellationToken>());
         }
 
         [Fact]
-        public async Task Should_not_delete_package_from_file_system_if_dependency_exists()
+        public async Task Should_enqueue_uninstall_operation_if_dependency_exists()
         {
             // Arrange            
             var fileSystem = Substitute.For<IFileSystem>();

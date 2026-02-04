@@ -20,7 +20,7 @@ internal static class ClusterPackageInfoExtensions
         var versions = new List<SemVersion>();
         foreach (var version in packageInfo.Versions)
         {
-            if (SemVersion.TryParse(version, SemVersionStyles.Any, out var parsed))
+            if (SemVersion.TryParse(version.Version, SemVersionStyles.Any, out var parsed))
                 versions.Add(parsed);
         }
 

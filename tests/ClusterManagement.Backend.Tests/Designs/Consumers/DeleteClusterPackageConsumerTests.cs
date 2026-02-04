@@ -4,6 +4,7 @@ using ClusterManagement.Internal.Events;
 using ClusterManagement.Public.Iodds.Commands;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sdk.Testing.Backend;
@@ -24,6 +25,7 @@ public class DeleteClusterPackageConsumerTests
         {
             // consumer needs
             cfg.AddConsumer<DeleteClusterPackageConsumer>();
+            cfg.AddSingleton(Substitute.For<ILogger<DeleteClusterPackageConsumer>>());
             cfg.AddSingleton(_packageStore);
         };
     }

@@ -49,7 +49,7 @@ public interface IClusterSnapshotStore
     /// </summary>
     /// <remarks></remarks>
     /// If <paramref name="clusterId"/> is specified, only snapshots for that cluster will be returned.
-    /// To ensure <see cref="ClusterInfo.IsActive"/> is accurate, check <see cref="Backend.DbContext.IClusterDbContext.ActiveClusters"/>.
+    /// To ensure <see cref="ClusterInfo.IsActive"/> is accurate, check <see cref="DbContext.IClusterDbContext.ActiveClusters"/>.
     /// </remarks>
     Task<IEnumerable<ClusterInfo>> GetClusterInfos(Guid? clusterId, CancellationToken cancellationToken = default);
 

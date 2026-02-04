@@ -123,11 +123,17 @@
   <data name="DeletePackagesHeader" xml:space="preserve">
     <value>Pakete löschen</value>
   </data>
-  <data name="DescriptionBannerDescription" xml:space="preserve">
+  <data name="InstalledBannerDescription" xml:space="preserve">
     <value>Verwaltung von Paketen, welche innerhalb des Cluster Editors verwendet werden. Die Core Version muss mindestens {0} sein.</value>
   </data>
-  <data name="DescriptionBannerTitle" xml:space="preserve">
-    <value>Pakete verwalten</value>
+  <data name="AvailableBannerDescription" xml:space="preserve">
+    <value>Verwaltung von verfügbaren Paketen, die innerhalb des Cluster Editors verwendet werden, um zusätzliche Funktionalität, Sensoren etc. verwenden zu können. Die Core Version der Pakete ist '{0}'.</value>
+  </data>
+  <data name="InstalledBannerTitle" xml:space="preserve">
+    <value>Installierte Pakete</value>
+  </data>
+  <data name="AvailableBannerTitle" xml:space="preserve">
+    <value>Installierte Pakete</value>
   </data>
   <data name="PendingInstallOfVersion" xml:space="preserve">
     <value>ausstehende Installation von Version {0}</value>
@@ -137,5 +143,11 @@
   </data>
   <data name="Uninstall" xml:space="preserve">
     <value>Deinstallieren</value>
+  </data>
+  <data name="LatestVersion" xml:space="preserve">
+    <value>Aktuellste Version</value>
+  </data>
+  <data name="LocalAvailable" xml:space="preserve">
+    <value>Das Paket ist lokal verfügbar</value>
   </data>
 </root>

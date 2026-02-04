@@ -56,11 +56,11 @@ internal sealed partial class PackageStore(
 
     private async Task VerifyPackageDll(ZipArchive packageArchive, string packageName, CancellationToken cancellationToken)
     {
-        try
-        {
-            var dllEntry = packageArchive.Entries.FirstOrDefault(e => e.Name.Equals($"{packageName}.dll", StringComparison.OrdinalIgnoreCase))
+        var dllEntry = packageArchive.Entries.FirstOrDefault(e => e.Name.Equals($"{packageName}.dll", StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException($"The provided package archive does not contain the required '{packageName}.dll' file.");
 
+        try
+        {
             using var depsJsonStream = dllEntry.Open();
             using var memoryStream = new MemoryStream();
 
@@ -74,9 +74,9 @@ internal sealed partial class PackageStore(
 
             // We could check here if the package is compatible with our system in more detail
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            logger.LogError(ex, "Failed to verify upload package assembly for '{PackageName}'", packageName);
+            logger.LogWarning("Failed to verify upload package assembly for '{PackageName}'", packageName);
         }
     }
 
@@ -129,13 +129,24 @@ internal sealed partial class PackageStore(
         if (!inUse)
         {
             var dependenciesPath = fileSystem.GetDependenciesPath(workspaceProvider);
-            var packageDestinationPath = fileSystem.Path.Combine(dependenciesPath, dependency.Name, dependency.Version.ToString());
+            var packageVersionPath = fileSystem.Path.Combine(dependenciesPath, dependency.Name, dependency.Version.ToString());
 
-            if (fileSystem.Directory.Exists(packageDestinationPath))
+            if (!fileSystem.Directory.Exists(packageVersionPath))
             {
-                logger?.LogInformation("Deleting package '{PackageName}' with path '{Name}'", dependency.Name, packageDestinationPath);
-                fileSystem.Directory.Delete(packageDestinationPath, true);
+                logger?.LogWarning("Failed to delete missing package '{PackageName}' with path '{Name}'", dependency.Name, packageVersionPath);
+                return;
             }
+
+            logger?.LogInformation("Deleting package '{PackageName}' version '{PackageVersion}' with path '{Name}'", dependency.Name, dependency.Version, packageVersionPath);
+            fileSystem.Directory.Delete(packageVersionPath, true);
+
+            var packagePath = fileSystem.Path.Combine(dependenciesPath, dependency.Name);
+            if (fileSystem.Directory.GetFileSystemEntries(packagePath).Length == 0)
+            {
+                logger?.LogInformation("Deleting empty package folder '{PackageName}' with path '{Name}'", dependency.Name, packagePath);
+                fileSystem.Directory.Delete(packagePath, true);
+            }
+            return;
         }
 
         // Queue the package for uninstall on next restart - it might have been uploaded but not used yet

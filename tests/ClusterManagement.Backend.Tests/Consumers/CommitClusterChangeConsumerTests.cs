@@ -1,6 +1,5 @@
 ﻿using AwesomeAssertions;
 using ClusterManagement.Backend.Consumers;
-using ClusterManagement.Backend.Mqtt;
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Backend.Tests.TestUtils;
 using ClusterManagement.Internal.Designs;
