@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="AspNetCore.SassCompiler" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
     <PackageReference Include="MQTTnet" />
     <PackageReference Include="ViciOne.Suite.Sdk.Client" />
     <PackageReference Include="ViciOne.Ui.ClusterEditor" />

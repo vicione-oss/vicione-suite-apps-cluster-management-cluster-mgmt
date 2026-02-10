@@ -1,12 +1,13 @@
-﻿using ClusterManagement.Client.Extensions;
-using ClusterManagement.Client.Management.Models;
+﻿using ClusterManagement.Client.Management.Models;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Events;
+using ClusterManagement.Public.Iodds.Commands;
+using ClusterManagement.Public.Requests;
 using Microsoft.Extensions.Logging;
 using Sdk.Client.Infrastructure;
-using Sdk.Client.Services;
 using Sdk.Utils;
+using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Client.Management.Services;
 
@@ -19,7 +20,6 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
 {
     private readonly IUiMediator _mediator;
     private readonly IClusterService _clusterService;
-    private readonly IJsInterop _jsInterop;
     private readonly ILogger<ClusterManagementPageService> _logger;
     private readonly AutoDisposeList<IDisposable> _subscriptionHandle = [];
 
@@ -30,11 +30,10 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
     public event EventHandler<ClusterUpdateFailed>? OnClusterUpdateFailed;
     public event EventHandler<ClusterUpdateStarted>? OnClusterUpdateStarted;
 
-    public ClusterManagementPageService(IUiMediator mediator, IClusterService clusterService, IJsInterop jsInterop, ILogger<ClusterManagementPageService> logger)
+    public ClusterManagementPageService(IUiMediator mediator, IClusterService clusterService, ILogger<ClusterManagementPageService> logger)
     {
         _mediator = mediator;
         _clusterService = clusterService;
-        _jsInterop = jsInterop;
         _logger = logger;
 
         _subscriptionHandle.Add(_mediator.Register<ClusterUpdateStarted>(this));
@@ -144,18 +143,23 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
         return Task.CompletedTask;
     }
 
-    public async Task DownloadClusterJson(Guid clusterId, Version version, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var cluster = await _clusterService.Query(clusterId, version, cancellationToken) ??
-                throw new InvalidOperationException($"Failed to query cluster {clusterId} v{version}");
+    public Task<Cluster> QueryCluster(Guid clusterId, Version version, CancellationToken cancellationToken = default)
+        => _clusterService.Query(clusterId, version, cancellationToken)
+        ?? throw new InvalidOperationException($"Failed to query cluster {clusterId} v{version}");
 
-            await _jsInterop.DownloadClusterJson(cluster);
-        }
-        catch (Exception e)
+    public Task ResetSagaState(Guid clusterId, CancellationToken token)
+        => _mediator.Send(new ResetSagaState(clusterId), token);
+
+    public async Task<DeploymentState?> QueryClusterDeploymentState(Guid clusterId, CancellationToken cancellationToken = default)
+    {
+        var response = await _mediator.Request<GetDeployClusterStateRequest, GetDeployClusterStateResponse>(new(clusterId), cancellationToken);
+        if (response.RequestError is not null)
         {
-            _logger.LogError(e, nameof(DownloadClusterJson));
+            _logger.LogError("Failed to query deployment state for cluster {ClusterId}: {Error}", clusterId, response.RequestError);
+            return null;
         }
+
+        return response.State;
     }
+
 }

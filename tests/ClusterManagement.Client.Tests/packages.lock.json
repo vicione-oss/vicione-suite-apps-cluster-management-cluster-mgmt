@@ -1396,6 +1396,7 @@
         "type": "Project",
         "dependencies": {
           "MQTTnet": "[5.0.1.1416, )",
+          "Microsoft.Extensions.Http": "[9.0.11, )",
           "ViciOne.Suite.ClusterManagement.Internal": "[1.4.0, )",
           "ViciOne.Suite.Sdk.Client": "[1.1.0, )",
           "ViciOne.Ui.ClusterEditor": "[0.17.0, )",
@@ -1460,6 +1461,20 @@
         "dependencies": {
           "Microsoft.AspNetCore.Authorization": "9.0.11",
           "Microsoft.AspNetCore.Components": "9.0.11"
+        }
+      },
+      "Microsoft.Extensions.Http": {
+        "type": "CentralTransitive",
+        "requested": "[9.0.11, )",
+        "resolved": "9.0.11",
+        "contentHash": "QEa12ESaPAKR3M40N8dawVd+LPOgxCrGsUmC7Myfhn44AQiWh7X9PiTAagrAnJSaGqsb+yx+KRNSjrm8wx1TVQ==",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "9.0.11",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.11",
+          "Microsoft.Extensions.Diagnostics": "9.0.11",
+          "Microsoft.Extensions.Logging": "9.0.11",
+          "Microsoft.Extensions.Logging.Abstractions": "9.0.11",
+          "Microsoft.Extensions.Options": "9.0.11"
         }
       },
       "MQTTnet": {

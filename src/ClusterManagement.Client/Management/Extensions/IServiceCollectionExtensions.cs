@@ -8,8 +8,7 @@ internal static class IServiceCollectionExtensions
     internal static IServiceCollection AddClusterManagement(this IServiceCollection services)
     {
         services
-            .AddScoped<IClusterManagementService, ClusterManagementPageService>()
-            .AddScoped<IClusterSagaHttpClient, ClusterSagaHttpClient>();
+            .AddScoped<IClusterManagementService, ClusterManagementPageService>();
 
         return services;
     }

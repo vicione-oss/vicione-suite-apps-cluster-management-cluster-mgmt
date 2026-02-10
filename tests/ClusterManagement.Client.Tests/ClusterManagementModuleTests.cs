@@ -2,6 +2,8 @@
 using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Client.Editor.Wizards.Services;
+using ClusterManagement.Client.IoddManagement.IoddTree;
+using ClusterManagement.Client.IoddManagement.Services;
 using ClusterManagement.Client.Management.Services;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Internal.Designs;
@@ -29,7 +31,6 @@ public class ClusterManagementModuleTests
         // Act
         await using var serviceProvider = module.TestModuleInitialization(setup =>
         {
-            setup.Services.AddTransient(_ => new HttpClient());
             setup.Services.AddClusterEditor(s => Substitute.For<IRulesetProvider>());
             setup.Services.AddSingleton(Substitute.For<ISuiteRulesetProvider>());
             setup.Services.AddSingleton(Substitute.For<IDesignProvider>()); //Registered via Backend
@@ -49,7 +50,6 @@ public class ClusterManagementModuleTests
 
         // Assert - Management
         Assert.NotNull(serviceProvider.GetRequiredService<IClusterManagementService>());
-        Assert.NotNull(serviceProvider.GetRequiredService<IClusterSagaHttpClient>());
 
         // Assert - EventBroker
         Assert.NotNull(serviceProvider.GetRequiredService<DataflowEventPageService>());
@@ -57,6 +57,11 @@ public class ClusterManagementModuleTests
         Assert.NotNull(serviceProvider.GetRequiredService<IDataflowEventMqttHandler>());
         Assert.NotNull(serviceProvider.GetRequiredService<IDataflowEventBroker>());
         Assert.NotNull(serviceProvider.GetRequiredService<IEventBroker>());
+
+        // Assert - Iodd
+        Assert.NotNull(serviceProvider.GetRequiredService<MonochromeIconHttpClient>());
+        Assert.NotNull(serviceProvider.GetRequiredService<IIoddService>());
+        Assert.NotNull(serviceProvider.GetRequiredService<IoddTreeAdapter>());
     }
 
     [Fact]
