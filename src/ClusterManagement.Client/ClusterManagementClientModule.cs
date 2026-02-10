@@ -2,7 +2,6 @@
 using ClusterManagement.Client.Editor.Extensions;
 using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Client.IoddManagement.Extensions;
-using ClusterManagement.Client.IoddManagement.Services;
 using ClusterManagement.Client.Localization;
 using ClusterManagement.Client.Management.Extensions;
 using ClusterManagement.Internal;
@@ -22,9 +21,7 @@ public sealed class ClusterManagementClientModule : ClientModule
     public override Action<IServiceCollection> Configure => services =>
     {
         services.AddLocalization<ClusterManagementClientModule, ClusterManagementClientLocalizer>();
-        services.AddNavTiles<ClusterManagementClientModule>();
-
-        services.AddScoped<IIoddService, IoddService>();
+        services.AddNavTiles<ClusterManagementClientModule>();        
         services.AddScoped<IPackageService, PackageService>();
 
         services

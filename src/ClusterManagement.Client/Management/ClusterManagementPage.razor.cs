@@ -3,7 +3,6 @@ using ClusterManagement.Client.Management.Localization;
 using ClusterManagement.Client.Management.Models;
 using ClusterManagement.Client.Management.Services;
 using ClusterManagement.Public.Events;
-using ClusterManagement.Public.Requests;
 using DevExpress.Blazor.Internal;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
@@ -23,8 +22,6 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
     [Inject] private IUiMediator Mediator { get; set; } = default!;
 
     [Inject] private IClusterManagementService ManagementService { get; set; } = default!;
-
-    [Inject] private IClusterSagaHttpClient SagaHttpService { get; set; } = default!;
 
     [Inject] private NavigationManager NavManager { get; set; } = default!;
 
@@ -82,17 +79,17 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
 
         foreach (var clusterId in clusterIds)
         {
-            var response = await Mediator.Request<GetDeployClusterStateRequest, GetDeployClusterStateResponse>(new(clusterId), _tokenSource.Token);
-            if (response.State is null)
+            var state = await ManagementService.QueryClusterDeploymentState(clusterId, _tokenSource.Token);
+            if (state is null)
                 continue;
 
             // If we have already a running state we don't override it
-            var model = Clusters.FirstOrDefault(k => k.IsMatch(response.State.ClusterId, response.State.TargetVersion));
+            var model = Clusters.FirstOrDefault(k => k.IsMatch(state.ClusterId, state.TargetVersion));
             if (model is null || !string.IsNullOrEmpty(model.Status))
                 return;
 
             // We just display the saga state as status because there'll be a redesign soon
-            model.Status = response.State.CurrentState;
+            model.Status = state.CurrentState;
             model.IsExecuting = true;
         }
 
@@ -229,30 +226,80 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
         NavManager.NavigateToEditor(model);
     }
 
-    private async Task ResetSagaState()
-    {
-        await SagaHttpService.ResetSaga();
 
-        Clusters
-            .Where(k => !k.IsActive)
-            .ForEach(k =>
+
+    private async Task ResetSagaStates()
+    {
+        try
+        {
+            var clusterIds = Clusters.GroupBy(k => k.Id).Select(k => k.Key);
+            if (clusterIds is null)
+                return;
+
+            foreach (var clusterId in clusterIds)
             {
-                k.Status = string.Empty;
-                k.IsExecuting = false;
-            });
+                await ManagementService.ResetSagaState(clusterId, _tokenSource.Token);
+            }
+
+            Clusters
+                .Where(k => !k.IsActive)
+                .ForEach(k =>
+                {
+                    k.Status = string.Empty;
+                    k.IsExecuting = false;
+                });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to reset saga state");
+            _sagaState = ex.Message;
+        }
 
         await InvokeAsync(StateHasChanged);
     }
 
     private async Task GetSagaState()
     {
-        _sagaState = await SagaHttpService.GetSagaState();
+        try
+        {
+            _sagaState = null;
+
+            var clusterIds = Clusters.GroupBy(k => k.Id).Select(k => k.Key);
+            if (clusterIds is null)
+                return;
+
+            foreach (var clusterId in clusterIds)
+            {
+                var state = await ManagementService.QueryClusterDeploymentState(clusterId, _tokenSource.Token);
+                if (state is null)
+                    continue;
+
+                _sagaState += $"Cluster {clusterId} - State: {state.CurrentState}, ActiveVersion: {state.ActiveVersion}, TargetVersion: {state.TargetVersion}\n";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to get saga state");
+            _sagaState = ex.Message;
+        }
+
         await InvokeAsync(StateHasChanged);
     }
 
     private void NavigateToEvents()
         => NavManager.NavigateToManagementEvents();
 
-    private Task DownloadClusterJson(ClusterInfoModel model)
-        => ManagementService.DownloadClusterJson(model.Id, model.Version, _tokenSource.Token);
+    private async Task DownloadClusterJson(ClusterInfoModel model)
+    {
+        try
+        {
+            var cluster = await ManagementService.QueryCluster(model.Id, model.Version, _tokenSource.Token);
+
+            await JsInterop.DownloadClusterJson(cluster);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Failed to download cluster {Name} version '{Version}'", model.DisplayName, model.Version);
+        }
+    }
 }

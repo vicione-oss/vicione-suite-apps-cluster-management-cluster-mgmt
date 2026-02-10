@@ -28,7 +28,6 @@ public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEve
 {
 
     private string _filterText = string.Empty;
-    private readonly IoddTreeAdapter _ioddTreeAdapter = new();
     private IQueryable<DeviceView> _itemsQueryable = Enumerable.Empty<DeviceView>().AsQueryable();
     private readonly AutoDisposeList<IDisposable> _subscriptionHandles = [];
     private readonly TreeBuilder _treeBuilder = new();
@@ -40,8 +39,7 @@ public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEve
     [Inject] private IJSRuntime JavaScript { get; set; } = default!;
     [Inject] private IJsInterop JavaScriptInterop { get; set; } = default!;
     [Inject] private IIoddService IoddService { get; set; } = default!;
-    [Inject] private HttpClient HttpClient { get; set; } = default!;
-    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+    [Inject] private IoddTreeAdapter TreeAdapter { get; set; } = default!;
     [Inject] private IMessageBannerService MessageBannerService { get; set; } = default!;
 
     private GridItemSelection<IoddId> ItemSelection { get; } = [];
@@ -63,17 +61,14 @@ public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEve
         var deviceId = context.Message.Iodd.DeviceId;
         var vendorId = context.Message.Iodd.VendorId;
 
-        if (_ioddTreeAdapter is null)
-            return;
-
         if (context.Message.Action == CrudAction.Deleted)
         {
-            _ioddTreeAdapter.DeleteDevice(vendorId, deviceId);
+            TreeAdapter.DeleteDevice(vendorId, deviceId);
 
-            if (!_ioddTreeAdapter.SetSelection(State.SelectedTreeNodeKey))
+            if (!TreeAdapter.SetSelection(State.SelectedTreeNodeKey))
             {
-                State.SelectedTreeNodeKey = _ioddTreeAdapter.GetDefaultSelectioNode();
-                _ioddTreeAdapter.SetSelection(State.SelectedTreeNodeKey);
+                State.SelectedTreeNodeKey = TreeAdapter.GetDefaultSelectioNode();
+                TreeAdapter.SetSelection(State.SelectedTreeNodeKey);
             }
         }
         // Todo: event is currently only thrown if the user uploads an iodd file, it should be sent when one is automatically uploaded too
@@ -85,9 +80,9 @@ public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEve
             foreach (var deviceVariant in context.Message.DeviceInfo.DeviceDescription.DeviceIdentity.Variants)
             {
                 var deviceView = context.Message.DeviceInfo.Create(deviceVariant);
-                _ioddTreeAdapter.AddDevice(deviceView);
+                TreeAdapter.AddDevice(deviceView);
             }
-            _ioddTreeAdapter.SetSelection(State.SelectedTreeNodeKey);
+            TreeAdapter.SetSelection(State.SelectedTreeNodeKey);
         }
 
         await InvokeAsync(StateHasChanged);
@@ -151,12 +146,12 @@ public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEve
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        await _ioddTreeAdapter.InitialiseTreeIcons(HttpClient, NavigationManager);
+        await TreeAdapter.InitializeTreeIconsFromHttp();
 
-        _ioddTreeAdapter.SelectionChanged += OnIoddTreeAdapterSelectionChanged;
+        TreeAdapter.SelectionChanged += OnIoddTreeAdapterSelectionChanged;
 
-        _treeBuilder.SetAdapter(_ioddTreeAdapter);
-        _ioddTreeAdapter.CoupleTreeBuilderEvents();
+        _treeBuilder.SetAdapter(TreeAdapter);
+        TreeAdapter.CoupleTreeBuilderEvents();
 
         ItemSelection.Changed += OnItemSelectionChanged;
 
@@ -168,15 +163,15 @@ public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEve
         _subscriptionHandles.Add(Mediator.Register<IoddError>(this));
         _subscriptionHandles.Add(Mediator.Register<AutoIoddDownloadChanged>(this));
 
-        State.SelectedTreeNodeKey ??= _ioddTreeAdapter.GetDefaultSelectioNode();
+        State.SelectedTreeNodeKey ??= TreeAdapter.GetDefaultSelectioNode();
 
         if (State.SelectedTreeNodeKey is not null)
-            _ioddTreeAdapter.SetSelection(State.SelectedTreeNodeKey);
+            TreeAdapter.SetSelection(State.SelectedTreeNodeKey);
     }
 
     private async Task AddInitialDevices()
     {
-        if (_ioddTreeAdapter is null)
+        if (TreeAdapter is null)
             throw new InvalidOperationException("Device tree must be initialized");
 
         var devices = await IoddService.GetIODevices();
@@ -186,11 +181,11 @@ public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEve
             foreach (var deviceVariant in device.DeviceDescription.DeviceIdentity.Variants)
             {
                 var deviceView = device.Create(deviceVariant);
-                _ioddTreeAdapter.AddDevice(deviceView, false);
+                TreeAdapter.AddDevice(deviceView, false);
             }
         }
 
-        _ioddTreeAdapter.ExpandFirstVendor();
+        TreeAdapter.ExpandFirstVendor();
     }
 
     private void OnItemSelectionChanged(ViciOne.Ui.Blazor.Components.Grid.Services.GridItemSelectionChangedEventArgs<IoddId> obj)
@@ -198,7 +193,7 @@ public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEve
 
     private void OnIoddTreeAdapterSelectionChanged(IEnumerable<DeviceView> selection)
     {
-        State.SelectedTreeNodeKey = _ioddTreeAdapter.SelectedNodeKey;
+        State.SelectedTreeNodeKey = TreeAdapter.SelectedNodeKey;
         _itemsQueryable = selection.AsQueryable();
 
         ItemSelection.Clear();
@@ -253,10 +248,10 @@ public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEve
     {
         _subscriptionHandles.Dispose();
 
-        if (_ioddTreeAdapter is not null)
+        if (TreeAdapter is not null)
         {
-            _ioddTreeAdapter.SelectionChanged -= OnIoddTreeAdapterSelectionChanged;
-            _ioddTreeAdapter.Dispose();
+            TreeAdapter.SelectionChanged -= OnIoddTreeAdapterSelectionChanged;
+            TreeAdapter.Dispose();
         }
 
         if (ItemSelection is not null)

@@ -16,7 +16,6 @@ namespace ClusterManagement.Client.Tests.Management;
 public sealed class ClusterManagementPageTests
 {
     private readonly IClusterManagementService _managementService = Substitute.For<IClusterManagementService>();
-    private readonly IClusterSagaHttpClient _sagaHttp = Substitute.For<IClusterSagaHttpClient>();
 
     [Fact]
     public void PageGetsRendered()
@@ -34,7 +33,6 @@ public sealed class ClusterManagementPageTests
         });
         ctx.SetupDevExpressBlazor();
         ctx.Services.AddSingleton(_managementService);
-        ctx.Services.AddSingleton(_sagaHttp);
         ctx.Services.AddSingleton(Substitute.For<IClusterService>());
         ctx.Services.AddSingleton(Substitute.For<IDesignProvider>());
 

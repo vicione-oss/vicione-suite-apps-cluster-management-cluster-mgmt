@@ -1,5 +1,7 @@
 ﻿using ClusterManagement.Client.Management.Models;
 using ClusterManagement.Public.Events;
+using ClusterManagement.Public.Requests;
+using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Client.Management.Services;
 
@@ -16,5 +18,9 @@ public interface IClusterManagementService
 
     Task RemoveCluster(Guid clusterId, Version version, CancellationToken cancellationToken = default);
 
-    Task DownloadClusterJson(Guid clusterId, Version version, CancellationToken cancellationToken = default);
+    Task<Cluster> QueryCluster(Guid clusterId, Version version, CancellationToken cancellationToken = default);
+
+    Task ResetSagaState(Guid clusterId, CancellationToken token);
+
+    Task<DeploymentState?> QueryClusterDeploymentState(Guid clusterId, CancellationToken cancellationToken = default);
 }

@@ -1,5 +1,4 @@
 ﻿using ClusterManagement.Client.IoddManagement.Models;
-using Microsoft.AspNetCore.Components;
 using ViciOne.Ui.MonochromeIcons.Core.Enums;
 using ViciOne.Ui.TreeEditor.Builder.Interface;
 using ViciOne.Ui.TreeEditor.Builder.Interface.Icons;
@@ -7,7 +6,7 @@ using ViciOne.Ui.TreeEditor.Builder.Interface.Nodes;
 
 namespace ClusterManagement.Client.IoddManagement.IoddTree;
 
-internal class IoddTreeAdapter : TreeAdapter, IDisposable
+internal class IoddTreeAdapter(MonochromeIconHttpClient iconService) : TreeAdapter, IDisposable
 {
     private readonly Dictionary<MonochromeIconName, string> _treeIconCache = [];
 
@@ -226,25 +225,14 @@ internal class IoddTreeAdapter : TreeAdapter, IDisposable
             _ => false
         };
 
-    public async Task InitialiseTreeIcons(HttpClient httpClient, NavigationManager navigationManager)
+    public async Task InitializeTreeIconsFromHttp()
     {
-        var contentIconBasePath = $"_content/{typeof(IoddTreeAdapter).Assembly.GetName().Name}/icons/monochrome-icons/32x32/";
-#pragma warning disable CA1308 // Normalize strings to uppercase - no normalisation but a filename!
-        var iconPath = $"{navigationManager.BaseUri}{contentIconBasePath}{MonochromeIconName.Folder.GetName().ToLowerInvariant()}.svg";
-#pragma warning restore CA1308 // Normalize strings to uppercase
+        if (_treeIconCache.ContainsKey(MonochromeIconName.Folder))
+            return;
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, iconPath);
-        try
-        {
-            var response = await httpClient.SendAsync(request);
-
-            if (!response.IsSuccessStatusCode)
-                return;
-
-            _treeIconCache[MonochromeIconName.Folder] = await response.Content.ReadAsStringAsync();
-        }
-        catch
-        { }
+        var icon = await iconService.GetIconSvgAsync(MonochromeIconName.Folder);
+        if (!string.IsNullOrEmpty(icon))
+            _treeIconCache[MonochromeIconName.Folder] = icon;
     }
 
     private RepositoryNode GetDefaultRepositoryNode()

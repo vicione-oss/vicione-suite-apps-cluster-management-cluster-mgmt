@@ -4,11 +4,9 @@ using ClusterManagement.Client.Management.Services;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Public.Enums;
 using ClusterManagement.Public.Events;
-using ClusterManagement.Tests.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Sdk.Client.Infrastructure;
-using Sdk.Client.Services;
 using Sdk.Testing.Client;
 using Xunit;
 
@@ -102,27 +100,5 @@ public class ClusterManagementPageServiceTests
         monitor.Should()
             .Raise(nameof(ClusterManagementPageService.OnClusterUpdateFailed))
             .WithArgs<ClusterUpdateFailed>(ev => ev == statusEvent);
-    }
-
-    [Fact]
-    public async Task Download_cluster_json_should_call_js_interop_download_as()
-    {
-        // Arrange
-        using var ctx = new TestContext();
-        ctx.SetupSuiteServices();
-        ctx.Services.AddSingleton(_clusterService);
-        ctx.Services.AddSingleton<ClusterManagementPageService>();
-
-        var service = ctx.Services.GetRequiredService<ClusterManagementPageService>();
-        var interop = ctx.Services.GetRequiredService<IJsInterop>();
-
-        var cluster = ClusterDbContextTools.CreateCluster();
-        _clusterService.Query(cluster.Id, cluster.Version).Returns(cluster);
-
-        // Act
-        await service.DownloadClusterJson(cluster.Id, cluster.Version);
-
-        // Assert
-        await interop.Received().DownloadAs(Arg.Any<string>(), Arg.Any<string>());
     }
 }
