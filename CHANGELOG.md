@@ -12,6 +12,7 @@
 - Moved commands `AddIodd`, `DeleteIodd` to namespace `Iodds.Commands`
 - Moved events `IoddChanged`, `IoddError` and `AutoIoddDownloadChanged` to namespace `Iodds.Events`
 - Moved all Iodd related requests to namespace `Iodds.Requests`
+- `ViciOne.Driver.IoTCore`, updated to version `1.21.1`
 
 ### Fixed
 
