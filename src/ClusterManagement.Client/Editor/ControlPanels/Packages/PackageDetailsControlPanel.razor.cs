@@ -40,14 +40,12 @@ public partial class PackageDetailsControlPanel : IEventConsumer<ClusterDependen
         if (State.PackageInfo is null)
             return;
 
-        if (change.Action is not CrudAction.Deleted)
+        if (change.Action is CrudAction.Deleted)
         {
             State.PackageInfo.PendingOperation = null;
-            await InvokeAsync(StateHasChanged);
-            return;
+            State.VersionToInstall = string.Empty;
         }
-
-        if (change.Operation.OperationKind is ClusterDependencyOperationKind.Install)
+        else if (change.Operation.OperationKind is ClusterDependencyOperationKind.Install)
         {
             State.VersionToInstall = change.Operation.Dependency.Version.ToString();
             State.PackageInfo.PendingOperation = change.Operation;
