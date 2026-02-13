@@ -184,6 +184,17 @@
                         <div class="version">
                             @GetLatestVersion(context)
                         </div>
+                    </div>
+                </TemplateColumn>
+
+                <TemplateColumn Title="@CommonVocabulary.Status">
+                    <div class="status-wrapper">
+                        @if (context.Versions?.Any(k => k.IsLocal) == true)
+                        {
+                            <div title="@Localization.PackagesControlPanel.LocalAvailable" class="icon-wrapper">
+                                <MonochromeIcon Name="MonochromeIconName.Folder" Size="MonochromeIconSize.Small" />
+                            </div>
+                        }
 
                         @if (context.PendingOperation is not null)
                         {
@@ -205,17 +216,6 @@
                             }
                         }
 
-                    </div>
-                </TemplateColumn>
-
-                <TemplateColumn Title="@CommonVocabulary.Status">
-                    <div class="status-wrapper">
-                        @if (context.Versions?.Any(k => k.IsLocal) == true)
-                        {
-                            <div title="@Localization.PackagesControlPanel.LocalAvailable" class="icon-wrapper">
-                                <MonochromeIcon Name="MonochromeIconName.Folder" Size="MonochromeIconSize.Small" />
-                            </div>
-                        }                        
                     </div>
                 </TemplateColumn>
 
