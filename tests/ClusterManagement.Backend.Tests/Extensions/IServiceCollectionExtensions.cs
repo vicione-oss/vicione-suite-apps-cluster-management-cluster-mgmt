@@ -5,7 +5,6 @@ using ClusterManagement.Internal;
 using MassTransit;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Sdk.Backend.Modules;
 using Sdk.Modules;
 using Sdk.Testing.Backend;

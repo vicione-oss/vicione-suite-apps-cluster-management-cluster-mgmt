@@ -2,14 +2,11 @@
 using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Public.Designs;
 using ClusterManagement.Public.Requests;
-using AwesomeAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Sdk.Testing.Client;
 using ViciOne.Cluster.Builder;
 using ViciOne.Cluster.Model;
 using ViciOne.Ui.ClusterEditor.Services;
-using Xunit;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Tests.Tools.Factories;
 using ClusterManagement.Tests.Tools.Extensions;
@@ -22,18 +19,18 @@ public class LoadClusterServiceTests
     private readonly IClusterService _clusterService = Substitute.For<IClusterService>();
     private readonly IDesignProvider _designProvider = Substitute.For<IDesignProvider>();
 
-    private LoadClusterService SetupService(TestContext ctx, List<Cluster> clusters)
+    private LoadClusterService SetupService(BunitContext ctx, List<Cluster> clusters)
     {
-        _clusterService.QueryClusterInfos()
+        _clusterService.QueryClusterInfos(Arg.Any<Guid?>(), Arg.Any<CancellationToken>())
             .Returns([.. clusters.Select(c => new ClusterInfo(c.Id, c.Version, c.Name))]);
 
-        _clusterService.QueryVersions()
+        _clusterService.QueryVersions(Arg.Any<CancellationToken>())
             .Returns(clusters.GroupBy(c => c.Id, c => c.Version)
                 .ToDictionary(c => c.Key, c => c.ToList()));
 
         foreach (var cluster in clusters)
         {
-            _clusterService.Query(cluster.Id, cluster.Version)
+            _clusterService.Query(cluster.Id, cluster.Version, Arg.Any<CancellationToken>())
                 .Returns(cluster);
         }
 
@@ -63,15 +60,15 @@ public class LoadClusterServiceTests
 
         _designProvider.CreateResolver().Returns(builder.DependencyResolver);
         _designProvider.GetFunctionBlockDesignIds(Arg.Any<ClusterDependency[]>()).Returns(fbDesignIds);
-        _clusterService.Query(builder.Cluster.Id, builder.Cluster.Version)
+        _clusterService.Query(builder.Cluster.Id, builder.Cluster.Version, Arg.Any<CancellationToken>())
             .Returns(builder.Cluster);
 
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         var service = SetupService(ctx, seeds);
         var loadMonitor = service.Monitor();
 
         // Act
-        await service.TryLoad(seeds[0].Id, seeds[0].Version);
+        await service.TryLoad(seeds[0].Id, seeds[0].Version, Xunit.TestContext.Current.CancellationToken);
 
         // Assert
         loadMonitor.Should().Raise(nameof(LoadClusterService.ClusterLoaded));
@@ -98,12 +95,12 @@ public class LoadClusterServiceTests
         _designProvider.CreateResolver().Returns(builder.DependencyResolver);
         _designProvider.GetFunctionBlockDesignIds(Arg.Any<ClusterDependency[]>()).Returns(fbDesignIds);
 
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         var service = SetupService(ctx, seeds);
         var loadMonitor = service.Monitor();
 
         // Act
-        await service.TryLoadLatestVersion();
+        await service.TryLoadLatestVersion(Xunit.TestContext.Current.CancellationToken);
 
         // Assert
         loadMonitor.Should().Raise(nameof(LoadClusterService.ClusterLoaded));

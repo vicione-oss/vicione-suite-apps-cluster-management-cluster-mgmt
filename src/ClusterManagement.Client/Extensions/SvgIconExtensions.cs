@@ -8,8 +8,8 @@ internal static class SvgIconExtensions
 {
     internal static string GetPath(this SvgIcon icon)
     {
-        var iconPath = ModuleAssetHelper.GetModuleIconPath<ClusterManagementClientModule>($"{icon.ToString().ToHyphenSeparated()}.svg");
+        var iconPath = ModuleAssetHelper.GetModuleIconUrl<ClusterManagementClientModule>($"{icon.ToString().ToHyphenSeparated()}.svg");
 
-        return iconPath;
+        return iconPath.OriginalString;
     }
 }

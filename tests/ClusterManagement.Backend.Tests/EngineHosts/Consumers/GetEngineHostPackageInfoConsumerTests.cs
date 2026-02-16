@@ -1,16 +1,13 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Backend.EngineHosts;
+﻿using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Backend.EngineHosts.Consumers;
 using ClusterManagement.Internal;
 using ClusterManagement.Internal.Requests;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using NSubstitute;
 using Sdk.Backend.Artifacts;
 using Sdk.Testing.Backend;
 using Semver;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.EngineHosts.Consumers;
 

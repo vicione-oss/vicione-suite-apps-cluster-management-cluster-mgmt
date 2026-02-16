@@ -1,6 +1,4 @@
-﻿using Xunit;
-
-namespace ClusterManagement.Client.Tests.Editor;
+﻿namespace ClusterManagement.Client.Tests.Editor;
 
 public class FunctionBlockDesignDeserializerTests
 {

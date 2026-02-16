@@ -1,7 +1,5 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Backend.Designs.Extensions;
+﻿using ClusterManagement.Backend.Designs.Extensions;
 using ClusterManagement.Internal.Contracts;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Designs.Extensions;
 

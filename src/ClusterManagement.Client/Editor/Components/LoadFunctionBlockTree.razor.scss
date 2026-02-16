@@ -13,7 +13,7 @@
     }
 
     &.block-layer {
-        background-color: colors.$color-background-darker;
+        background-color: colors.$background-darker;
 
         > .orientation-guide {
             grid-column: 1;
@@ -34,7 +34,7 @@
     }
 
     &.sub-layer {
-        background-color: colors.$color-background-darker;
+        background-color: colors.$background-darker;
         overflow: hidden;
     }
 
@@ -43,12 +43,12 @@
         grid-template-rows: 40px max-content;
 
         &:not(.hidden) {
-            border-top: 1px solid colors.$color-border;
+            border-top: 1px solid colors.$border;
         }
 
         &.last-sibling {
             &:not(.hidden) {
-                border-bottom: 1px solid colors.$color-border;
+                border-bottom: 1px solid colors.$border;
             }
         }
 
@@ -93,7 +93,7 @@
             width: 9px;
 
             > path {
-                fill: colors.$color-font;
+                fill: colors.$font;
             }
         }
     }
@@ -152,7 +152,7 @@
         }
 
         > span {
-            background-color: colors.$color-border;
+            background-color: colors.$border;
         }
     }
 

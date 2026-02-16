@@ -8,10 +8,8 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using Sdk.Messaging;
 using Sdk.Testing.Backend;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Consumers;
 
@@ -55,12 +53,12 @@ public sealed class AddOrUpdateClusterEditorSettingsConsumerTests : TestWithDbCo
         await tester.TestCommand<AddOrUpdateClusterEditorSettings, AddOrUpdateClusterEditorSettingsConsumer>(command);
 
         // Assert
-        Assert.False(await tester.Harness.Published.Any<ErrorInfo>());
+        Assert.False(await tester.Harness.Published.Any<ErrorInfo>(TestContext.Current.CancellationToken));
         Assert.True(await tester.Harness.Published.Any<ClusterEditorSettingsChanged>(r =>
             r.Context.Message.CrudAction == CrudAction.Created &&
             r.Context.Message.Settings?.GridMode == settings.GridMode &&
             r.Context.Message.Settings?.PanBehavior == settings.PanBehavior &&
-            r.Context.Message.Settings?.UserId == settings.UserId));
+            r.Context.Message.Settings?.UserId == settings.UserId, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -76,11 +74,11 @@ public sealed class AddOrUpdateClusterEditorSettingsConsumerTests : TestWithDbCo
         await tester.TestCommand<AddOrUpdateClusterEditorSettings, AddOrUpdateClusterEditorSettingsConsumer>(command);
 
         // Assert
-        Assert.False(await tester.Harness.Published.Any<ErrorInfo>());
+        Assert.False(await tester.Harness.Published.Any<ErrorInfo>(TestContext.Current.CancellationToken));
         Assert.True(await tester.Harness.Published.Any<ClusterEditorSettingsChanged>(r =>
             r.Context.Message.CrudAction == CrudAction.Updated &&
             r.Context.Message.Settings?.MinimapNodeColoring == settings.MinimapNodeColoring &&
-            r.Context.Message.Settings?.UserId == settings.UserId));
+            r.Context.Message.Settings?.UserId == settings.UserId, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -100,6 +98,6 @@ public sealed class AddOrUpdateClusterEditorSettingsConsumerTests : TestWithDbCo
         await Assert.ThrowsAsync<DbUpdateException>(() => tester.TestCommandFault<AddOrUpdateClusterEditorSettings, AddOrUpdateClusterEditorSettingsConsumer>(command));
 
         // Assert
-        Assert.True(await tester.Harness.Published.Any<ErrorInfo>());
+        Assert.True(await tester.Harness.Published.Any<ErrorInfo>(TestContext.Current.CancellationToken));
     }
 }

@@ -21,7 +21,7 @@
                         <div class="content">
                             @if (string.IsNullOrEmpty(State.DeviceImage))
                             {
-                                <img src="@(ModuleAssetHelper.GetModuleIconPath<ClusterManagementClientModule>("no-picture.svg"))"
+                                <img src="@(ModuleAssetHelper.GetModuleIconUrl<ClusterManagementClientModule>("no-picture.svg").OriginalString)"
                                         alt="device image"
                                         width="88"
                                         height="88" />

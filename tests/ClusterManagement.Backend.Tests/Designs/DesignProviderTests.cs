@@ -1,14 +1,11 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Backend.Designs;
+﻿using ClusterManagement.Backend.Designs;
 using ClusterManagement.Public.Designs;
 using ClusterManagement.Tests.Tools;
 using ClusterManagement.Tests.Tools.Factories;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using ViciOne.Cluster.Model;
 using ViciOne.Core.Dataflow.DataModel;
 using ViciOne.TreeBuilder.Rules;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Designs;
 

@@ -1,5 +1,4 @@
 ﻿using System.IO.Abstractions;
-using AwesomeAssertions;
 using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.DeployCluster.Consumers;
 using ClusterManagement.Backend.DeployCluster.Contracts;
@@ -11,10 +10,8 @@ using ClusterManagement.Public.Designs;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using Sdk.Backend.Modules;
 using Sdk.Instance;
-using Xunit;
 using static ClusterManagement.Backend.Tests.DeployCluster.Consumers.UpdateDeploymentsConsumerFacts;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster.Consumers;

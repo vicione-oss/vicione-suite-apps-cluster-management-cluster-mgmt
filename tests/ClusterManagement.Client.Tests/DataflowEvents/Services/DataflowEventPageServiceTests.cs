@@ -2,11 +2,8 @@
 using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Public.DataflowEvents;
 using ClusterManagement.Public.Requests;
-using AwesomeAssertions;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using Sdk.Client.Services;
-using Xunit;
 
 namespace ClusterManagement.Client.Tests.DataflowEvents.Services;
 
@@ -71,7 +68,7 @@ public class DataflowEventPageServiceTests
             await service.SetValue(model, value);
 
             // Assert
-            await _eventBroker.Received(1).SetValue(Arg.Is(_inputEvent.EventId), Arg.Is(value));
+            await _eventBroker.Received(1).SetValue(Arg.Is(_inputEvent.EventId), Arg.Is(value), Arg.Any<CancellationToken>());
         }
     }
 

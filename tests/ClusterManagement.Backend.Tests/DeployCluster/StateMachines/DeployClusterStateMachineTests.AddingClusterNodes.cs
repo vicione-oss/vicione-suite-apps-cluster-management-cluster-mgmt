@@ -1,6 +1,5 @@
 ﻿using ClusterManagement.Backend.Tests.Extensions;
 using MassTransit.Testing;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster.StateMachines;
 

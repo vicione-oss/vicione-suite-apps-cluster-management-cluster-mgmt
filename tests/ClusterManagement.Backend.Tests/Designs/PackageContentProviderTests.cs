@@ -1,16 +1,14 @@
 ﻿using System.IO.Abstractions;
 using System.Reflection;
 using System.Runtime.Loader;
-using AwesomeAssertions;
 using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.Designs.Extensions;
+using ClusterManagement.Tests.Tools;
 using ClusterManagement.Tests.Tools.Factories;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Sdk.Backend.Modules;
 using ViciOne.Cluster.Model;
 using ViciOne.TreeBuilder.Rules;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Designs;
 
@@ -50,7 +48,7 @@ public class PackageContentProviderTests
             SetupClusterManagementAssemblyContext();
 
             // Act
-            var result = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], false);
+            var result = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], false, TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().BeTrue();
@@ -71,11 +69,11 @@ public class PackageContentProviderTests
 
             SetupClusterManagementAssemblyContext();
 
-            _dependencyStore.LoadDependencies(default)
+            _dependencyStore.LoadDependencies(TestContext.Current.CancellationToken)
                 .Returns([_constantDependency]);
 
             // Act
-            var result = await provider.TryAddPackage(_constantDependency, fbPath, false);
+            var result = await provider.TryAddPackage(_constantDependency, fbPath, false, TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().BeTrue();
@@ -143,8 +141,8 @@ public class PackageContentProviderTests
 
             SetupClusterManagementAssemblyContext();
 
-            await provider.TryAddPackage(_constantDependency, [], [], false);
-            await provider.TryAddPackage(_logicDependency, [], [], false);
+            await provider.TryAddPackage(_constantDependency, [], [], false, TestContext.Current.CancellationToken);
+            await provider.TryAddPackage(_logicDependency, [], [], false, TestContext.Current.CancellationToken);
 
             // Act
             var result = provider.GetPackageContents();
@@ -164,7 +162,7 @@ public class PackageContentProviderTests
 
             SetupClusterManagementAssemblyContext();
 
-            await provider.TryAddPackage(failureDependency, [], [], false);
+            await provider.TryAddPackage(failureDependency, [], [], false, TestContext.Current.CancellationToken);
 
             // Act
             var result = provider.GetPackageContents();
@@ -176,6 +174,7 @@ public class PackageContentProviderTests
         }
     }
 
+    [Collection(NonParallelCollectionDefinitionClass.NonParallelCollection)]
     public sealed class TryAddPackageFromDirectory : PackageContentProviderTests
     {
         [Fact]
@@ -185,10 +184,10 @@ public class PackageContentProviderTests
             var provider = _services.GetRequiredService<PackageContentProvider>();
             var dependency = new ClusterDependency { Name = "TestPackage", Version = new Version(1, 0, 0) };
 
-            await provider.TryAddPackage(dependency, [], [], false);
+            await provider.TryAddPackage(dependency, [], [], false, TestContext.Current.CancellationToken);
 
             // Act
-            var result = await provider.TryAddPackage(dependency, "TODO", false);
+            var result = await provider.TryAddPackage(dependency, "TODO", false, TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().BeFalse();
@@ -203,7 +202,7 @@ public class PackageContentProviderTests
             SetupClusterManagementAssemblyContext();
 
             // Act
-            var result = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], false);
+            var result = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], false, TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().BeTrue();
@@ -220,7 +219,7 @@ public class PackageContentProviderTests
             SetupClusterManagementAssemblyContext();
 
             // Act
-            var result = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], true);
+            var result = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], true, TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().BeTrue();
@@ -239,10 +238,10 @@ public class PackageContentProviderTests
 
             SetupClusterManagementAssemblyContext();
 
-            await provider.TryAddPackage(_constantDependency, [], [], false);
+            await provider.TryAddPackage(_constantDependency, [], [], false, TestContext.Current.CancellationToken);
 
             // Act
-            var result = await provider.TryAddPackage(_constantDependency, [], [], false);
+            var result = await provider.TryAddPackage(_constantDependency, [], [], false, TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().BeFalse();
@@ -255,7 +254,7 @@ public class PackageContentProviderTests
             var provider = _services.GetRequiredService<PackageContentProvider>();
 
             // Act
-            var result = await provider.TryAddPackage(_constantDependency, [], [], false);
+            var result = await provider.TryAddPackage(_constantDependency, [], [], false, TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().BeFalse();
@@ -274,7 +273,7 @@ public class PackageContentProviderTests
             SetupClusterManagementAssemblyContext();
 
             // Act
-            var result = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], false);
+            var result = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], false, TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().BeTrue();
@@ -291,7 +290,7 @@ public class PackageContentProviderTests
             SetupClusterManagementAssemblyContext();
 
             // Act
-            var result = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], true);
+            var result = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], true, TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().BeTrue();
@@ -311,7 +310,7 @@ public class PackageContentProviderTests
             SetupClusterManagementAssemblyContext();
 
             // Act
-            var result = await provider.TryAddPackage(_constantDependency, [], rulesets, false);
+            var result = await provider.TryAddPackage(_constantDependency, [], rulesets, false, TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().BeTrue();
@@ -329,8 +328,8 @@ public class PackageContentProviderTests
             SetupClusterManagementAssemblyContext();
 
             // Act
-            var result1 = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], false);
-            var result2 = await provider.TryAddPackage(_logicDependency, [], [], false);
+            var result1 = await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], false, TestContext.Current.CancellationToken);
+            var result2 = await provider.TryAddPackage(_logicDependency, [], [], false, TestContext.Current.CancellationToken);
 
             // Assert
             result1.Should().BeTrue();
@@ -353,7 +352,7 @@ public class PackageContentProviderTests
 
             // Act
             var tasks = dependencies.Select(dep =>
-                Task.Run(() => provider.TryAddPackage(dep, [_systemDataPortType], [], false))
+                Task.Run(() => provider.TryAddPackage(dep, [_systemDataPortType], [], false, TestContext.Current.CancellationToken))
             ).ToArray();
 
             await Task.WhenAll(tasks);
@@ -374,7 +373,7 @@ public class PackageContentProviderTests
 
             // Act
             var tasks = Enumerable.Range(0, 10)
-                .Select(_ => Task.Run(() => provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], false)))
+                .Select(_ => Task.Run(() => provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], false, TestContext.Current.CancellationToken)))
                 .ToArray();
 
             await Task.WhenAll(tasks);

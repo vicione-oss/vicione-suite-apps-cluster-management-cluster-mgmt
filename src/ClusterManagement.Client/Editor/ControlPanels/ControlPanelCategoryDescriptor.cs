@@ -8,6 +8,6 @@ public sealed class ControlPanelCategoryDescriptor : IControlPanelCategoryDescri
 {
     public string Title => ClusterEditor.ModuleTitle;
     public string? IconCssClass => null;
-    public Uri? IconUrl => new(ModuleAssetHelper.GetModuleIconPath<ClusterManagementClientModule>("cluster-editor.svg"), UriKind.Relative);
+    public Uri? IconUrl => ModuleAssetHelper.GetModuleIconUrl<ClusterManagementClientModule>("cluster-editor.svg");
     public int? Position => 0;
 }

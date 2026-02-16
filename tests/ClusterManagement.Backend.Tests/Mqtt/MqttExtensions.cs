@@ -1,5 +1,4 @@
 ﻿using MQTTnet;
-using NSubstitute;
 using NSubstitute.Core;
 
 namespace ClusterManagement.Backend.Tests.Mqtt;

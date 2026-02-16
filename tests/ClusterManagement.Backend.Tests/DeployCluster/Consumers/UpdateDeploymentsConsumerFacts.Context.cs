@@ -1,5 +1,4 @@
 ﻿using System.IO.Abstractions.TestingHelpers;
-using AwesomeAssertions;
 using AwesomeAssertions.Execution;
 using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.DeployCluster.Consumers;
@@ -18,7 +17,6 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
-using NSubstitute;
 using Sdk.Backend.Modules;
 using Sdk.Instance;
 using Sdk.Testing.Backend;
@@ -126,7 +124,7 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
         _instanceInformation.Id.Returns(application.Id);
     }
 
-    internal async Task When_updating_deployments(string? version = default, CancellationToken cancellationToken = default)
+    internal async Task When_updating_deployments(string? version = default)
     {
         _events.Clear();
 
@@ -134,6 +132,7 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
         var clusterCompressed = ClusterSerializer.Compress(_clusterBuilder.Cluster);
         var clusterInfo = new ClusterSnapshotInfo(_clusterBuilder.Cluster.Id, clusterVersion, _clusterBuilder.Cluster.Name);
 
+        var cancellationToken = TestContext.Current.CancellationToken;
         var consumeContext = Substitute.For<ConsumeContext<UpdateDeployments>>();
         consumeContext.Message.Returns(new UpdateDeployments(clusterCompressed, _correlationId, _clusterBuilder.Cluster.Id));
         consumeContext.CorrelationId.Returns(_correlationId);

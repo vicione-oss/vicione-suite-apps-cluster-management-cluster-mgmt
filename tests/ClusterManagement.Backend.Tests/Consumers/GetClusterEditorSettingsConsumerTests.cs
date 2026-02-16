@@ -1,13 +1,10 @@
 ﻿using ClusterManagement.Backend.Consumers;
 using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Tests.Tools;
-using AwesomeAssertions;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using Sdk.Testing.Backend;
-using Xunit;
 using ClusterManagement.Internal.Requests;
 
 namespace ClusterManagement.Backend.Tests.Consumers;

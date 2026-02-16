@@ -1,5 +1,4 @@
 ﻿using System.IO.Abstractions;
-using AwesomeAssertions;
 using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.Designs.Extensions;
 using ClusterManagement.Internal;
@@ -8,10 +7,8 @@ using ClusterManagement.Public.Designs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using NSubstitute;
 using Sdk.Backend.Artifacts;
 using Sdk.Backend.Modules;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Designs.Extensions;
 

@@ -5,11 +5,9 @@ using ClusterManagement.Public.Iodds.Commands;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sdk.Testing.Backend;
 using ViciOne.Cluster.Model;
-using Xunit;
 using Assert = Xunit.Assert;
 
 namespace ClusterManagement.Backend.Tests.Designs.Consumers;
@@ -45,7 +43,7 @@ public class DeleteClusterPackageConsumerTests
 
         // Assert
         Assert.True(await tester.Harness.Consumed.Any<DeleteClusterPackage>(k
-            => k.Context.Message.CorrelationId == command.CorrelationId));
+            => k.Context.Message.CorrelationId == command.CorrelationId, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -65,7 +63,7 @@ public class DeleteClusterPackageConsumerTests
         Assert.True(await tester.Harness.Published.Any<ClusterPackageChanged>(k
             => k.Context.Message.PackageName == command.PackageName
             && k.Context.Message.Version == command.Version
-            && k.Context.Message.Change == ClusterPackageChange.Delete));
+            && k.Context.Message.Change == ClusterPackageChange.Delete, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -104,7 +102,7 @@ public class DeleteClusterPackageConsumerTests
         Assert.True(await tester.Harness.Published.Any<ClusterPackageChangeFailed>(k
             => k.Context.Message.CorrelationId == command.CorrelationId
             && k.Context.Message.Error.ErrorCode == 200
-            && k.Context.Message.Change == ClusterPackageChange.Delete));
+            && k.Context.Message.Change == ClusterPackageChange.Delete, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -122,6 +120,6 @@ public class DeleteClusterPackageConsumerTests
 
         // Assert: Verify correlation ID is preserved
         Assert.True(await tester.Harness.Published.Any<ClusterPackageChanged>(k
-            => k.Context.Message.CorrelationId == command.CorrelationId));
+            => k.Context.Message.CorrelationId == command.CorrelationId, TestContext.Current.CancellationToken));
     }
 }

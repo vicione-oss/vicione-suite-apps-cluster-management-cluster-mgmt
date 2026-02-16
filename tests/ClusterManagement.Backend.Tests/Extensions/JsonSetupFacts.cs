@@ -1,7 +1,5 @@
 ﻿using System.Text.Json.Serialization;
 using ClusterManagement.Backend.Extensions;
-using AwesomeAssertions;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Extensions;
 

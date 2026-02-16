@@ -1,11 +1,8 @@
 ﻿using System.IO.Abstractions.TestingHelpers;
-using AwesomeAssertions;
 using ClusterManagement.Backend.EngineHosts.Extensions;
 using ClusterManagement.Backend.Extensions;
 using ClusterManagement.Internal;
-using NSubstitute;
 using Sdk.Backend.Modules;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.EngineHosts.Extensions;
 

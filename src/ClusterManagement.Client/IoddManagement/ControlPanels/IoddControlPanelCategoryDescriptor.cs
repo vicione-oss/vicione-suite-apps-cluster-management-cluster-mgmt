@@ -8,6 +8,6 @@ public sealed class IoddControlPanelCategoryDescriptor : IControlPanelCategoryDe
 {
     public string Title => Common.DeviceDescription;
     public string? IconCssClass => null;
-    public Uri? IconUrl => new(ModuleAssetHelper.GetModuleIconPath<ClusterManagementClientModule>("device-outline.svg"), UriKind.Relative);
+    public Uri? IconUrl => ModuleAssetHelper.GetModuleIconUrl<ClusterManagementClientModule>("device-outline.svg");
     public int? Position => 5;
 }

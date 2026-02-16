@@ -1,9 +1,7 @@
 ﻿using Bunit;
 using ClusterManagement.Client.Editor.Components;
 using ClusterManagement.Client.Editor.Models;
-using AwesomeAssertions;
 using Sdk.Testing.Client;
-using Xunit;
 
 namespace ClusterManagement.Client.Tests.Editor.Dialogs;
 
@@ -13,12 +11,12 @@ public class LoadFunctionBlockTreeTests
     public void ComponentGetsRendered()
     {
         // Arrange
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         ctx.SetupSuiteServices();
         ctx.SetupDevExpressBlazor();
 
         // Act
-        var sut = ctx.RenderComponent<LoadFunctionBlockTree>(p =>
+        var sut = ctx.Render<LoadFunctionBlockTree>(p =>
         {
             p.Add(a => a.Parent, null);
             p.Add(a => a.FunctionBlockModel, new());
@@ -34,13 +32,13 @@ public class LoadFunctionBlockTreeTests
         [Fact]
         public void Checks_all_sub_function_blocks()
         {
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             ctx.SetupSuiteServices();
             ctx.SetupDevExpressBlazor();
             var invoked = false;
             var model = CreateFunctionBlockModel();
 
-            var component = ctx.RenderComponent<LoadFunctionBlockTree>(p =>
+            var component = ctx.Render<LoadFunctionBlockTree>(p =>
             {
                 p.Add(a => a.Parent, null);
                 p.Add(a => a.FunctionBlockModel, model);
@@ -72,13 +70,13 @@ public class LoadFunctionBlockTreeTests
         [Fact]
         public void Unchecks_all_sub_function_blocks()
         {
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             ctx.SetupSuiteServices();
             ctx.SetupDevExpressBlazor();
             var invoked = false;
             var model = CreateFunctionBlockModel(true);
 
-            var component = ctx.RenderComponent<LoadFunctionBlockTree>(p =>
+            var component = ctx.Render<LoadFunctionBlockTree>(p =>
             {
                 p.Add(a => a.Parent, null);
                 p.Add(a => a.FunctionBlockModel, model);
@@ -113,12 +111,12 @@ public class LoadFunctionBlockTreeTests
         [Fact]
         public void Does_not_show_collapsed_section()
         {
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             ctx.SetupSuiteServices();
             ctx.SetupDevExpressBlazor();
             var model = CreateFunctionBlockModel();
 
-            var component = ctx.RenderComponent<LoadFunctionBlockTree>(p =>
+            var component = ctx.Render<LoadFunctionBlockTree>(p =>
             {
                 p.Add(a => a.Parent, null);
                 p.Add(a => a.FunctionBlockModelTemplate, f => f.Name);

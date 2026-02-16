@@ -1,7 +1,5 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Backend.Extensions;
+﻿using ClusterManagement.Backend.Extensions;
 using ClusterManagement.Public.Enums;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Extensions;
 

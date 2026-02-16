@@ -1,12 +1,9 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Client.DataflowEvents.Services;
+﻿using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Client.Management.Extensions;
 using ClusterManagement.Public.DataflowEvents;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Packets;
-using NSubstitute;
-using Xunit;
 using static ClusterManagement.Client.DataflowEvents.Services.DataflowEventMqttHandler;
 
 namespace ClusterManagement.Client.Tests.DataflowEvents.Services;
@@ -25,7 +22,7 @@ public class DataflowEventMqttHandlerTests
         _mqttClientProvider.CreateMqttClient().Returns(_mqttClient);
 
         if (isMqttGood)
-            _mqttClient.ConnectAsync(Arg.Any<MqttClientOptions>()).Returns(Task.FromResult(new MqttClientConnectResult()));
+            _mqttClient.ConnectAsync(Arg.Any<MqttClientOptions>(), Arg.Any<CancellationToken>()).Returns(Task.FromResult(new MqttClientConnectResult()));
 
         return new DataflowEventMqttHandler(_mqttClientProvider, _logger);
     }
@@ -50,10 +47,10 @@ public class DataflowEventMqttHandlerTests
             await using var handler = CreateHandler();
 
             // Act
-            await handler.Subscribe(_outputEvent);
+            await handler.Subscribe(_outputEvent, TestContext.Current.CancellationToken);
 
             // Assert
-            await _mqttClient.Received().ConnectAsync(Arg.Any<MqttClientOptions>());
+            await _mqttClient.Received().ConnectAsync(Arg.Any<MqttClientOptions>(), Arg.Any<CancellationToken>());
         }
 
         [Fact]
@@ -64,10 +61,10 @@ public class DataflowEventMqttHandlerTests
             _mqttClient.IsConnected.Returns(true);
 
             // Act
-            await handler.Subscribe(_outputEvent);
+            await handler.Subscribe(_outputEvent, TestContext.Current.CancellationToken);
 
             // Assert
-            await _mqttClient.DidNotReceive().ConnectAsync(Arg.Any<MqttClientOptions>());
+            await _mqttClient.DidNotReceive().ConnectAsync(Arg.Any<MqttClientOptions>(), Arg.Any<CancellationToken>());
         }
 
         [Fact]
@@ -77,10 +74,10 @@ public class DataflowEventMqttHandlerTests
             await using var handler = CreateHandler();
 
             // Act
-            await handler.Subscribe(_outputEvent);
+            await handler.Subscribe(_outputEvent, TestContext.Current.CancellationToken);
 
-            // Assert            
-            await _mqttClient.Received().SubscribeAsync(Arg.Any<MqttClientSubscribeOptions>());
+            // Assert
+            await _mqttClient.Received().SubscribeAsync(Arg.Any<MqttClientSubscribeOptions>(), Arg.Any<CancellationToken>());
         }
     }
 
@@ -104,10 +101,10 @@ public class DataflowEventMqttHandlerTests
             await using var handler = CreateHandler();
 
             // Act
-            await handler.Subscribe(_outputEvent);
+            await handler.Subscribe(_outputEvent, TestContext.Current.CancellationToken);
 
             // Assert
-            await _mqttClient.Received().ConnectAsync(Arg.Any<MqttClientOptions>());
+            await _mqttClient.Received().ConnectAsync(Arg.Any<MqttClientOptions>(), Arg.Any<CancellationToken>());
         }
 
         [Fact]
@@ -117,10 +114,10 @@ public class DataflowEventMqttHandlerTests
             await using var handler = CreateHandler();
 
             // Act
-            await handler.Unsubscribe(_outputEvent);
+            await handler.Unsubscribe(_outputEvent, TestContext.Current.CancellationToken);
 
             // Assert            
-            await _mqttClient.Received().UnsubscribeAsync(Arg.Any<MqttClientUnsubscribeOptions>());
+            await _mqttClient.Received().UnsubscribeAsync(Arg.Any<MqttClientUnsubscribeOptions>(), Arg.Any<CancellationToken>());
         }
     }
 
@@ -144,10 +141,10 @@ public class DataflowEventMqttHandlerTests
             await using var handler = CreateHandler();
 
             // Act
-            await handler.Subscribe(_outputEvent);
+            await handler.Subscribe(_outputEvent, TestContext.Current.CancellationToken);
 
             // Assert
-            await _mqttClient.Received().ConnectAsync(Arg.Any<MqttClientOptions>());
+            await _mqttClient.Received().ConnectAsync(Arg.Any<MqttClientOptions>(), Arg.Any<CancellationToken>());
         }
 
         [Fact]
@@ -157,10 +154,10 @@ public class DataflowEventMqttHandlerTests
             await using var handler = CreateHandler();
 
             // Act
-            await handler.PublishValue(_inputEvent.EventId, "Test", typeof(string).AssemblyQualifiedName!);
+            await handler.PublishValue(_inputEvent.EventId, "Test", typeof(string).AssemblyQualifiedName!, TestContext.Current.CancellationToken);
 
             // Assert
-            await _mqttClient.Received().PublishAsync(Arg.Any<MqttApplicationMessage>(), default);
+            await _mqttClient.Received().PublishAsync(Arg.Any<MqttApplicationMessage>(), Arg.Any<CancellationToken>());
         }
 
         [Fact]
@@ -170,10 +167,10 @@ public class DataflowEventMqttHandlerTests
             await using var handler = CreateHandler();
 
             // Act
-            await handler.PublishValue(_inputEvent.EventId, "Test", "Some.Invalid.Type");
+            await handler.PublishValue(_inputEvent.EventId, "Test", "Some.Invalid.Type", TestContext.Current.CancellationToken);
 
             // Assert
-            await _mqttClient.DidNotReceive().PublishAsync(Arg.Any<MqttApplicationMessage>(), default);
+            await _mqttClient.DidNotReceive().PublishAsync(Arg.Any<MqttApplicationMessage>(), Arg.Any<CancellationToken>());
         }
     }
 
@@ -188,7 +185,7 @@ public class DataflowEventMqttHandlerTests
             var receivedEvent = false;
 
             handler.EventReceivedAsync += (args) => { receivedEvent = true; return Task.CompletedTask; };
-            await handler.Subscribe(_outputEvent);
+            await handler.Subscribe(_outputEvent, TestContext.Current.CancellationToken);
 
             // Act
             _mqttClient.ApplicationMessageReceivedAsync += Raise.Event<Func<MqttApplicationMessageReceivedEventArgs, Task>>(receivedArgs);
@@ -206,7 +203,7 @@ public class DataflowEventMqttHandlerTests
             var receivedEvent = false;
 
             handler.EventReceivedAsync += (args) => { receivedEvent = true; return Task.CompletedTask; };
-            await handler.Subscribe(_outputEvent);
+            await handler.Subscribe(_outputEvent, TestContext.Current.CancellationToken);
 
             // Act
             _mqttClient.ApplicationMessageReceivedAsync += Raise.Event<Func<MqttApplicationMessageReceivedEventArgs, Task>>(receivedArgs);
@@ -227,7 +224,7 @@ public class DataflowEventMqttHandlerTests
             var receivedEvent = false;
 
             handler.EventReceivedAsync += (args) => { receivedEvent = true; return Task.CompletedTask; };
-            await handler.Subscribe(_outputEvent);
+            await handler.Subscribe(_outputEvent, TestContext.Current.CancellationToken);
 
             // Act
             _mqttClient.ApplicationMessageReceivedAsync += Raise.Event<Func<MqttApplicationMessageReceivedEventArgs, Task>>(receivedArgs);

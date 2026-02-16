@@ -35,7 +35,7 @@ $padding-top: 16px;
         padding-right: 24px;
         padding-top: $padding-top;
         position: inherit;
-        color: color.adjust(colors.$color-font-light, $alpha: -0.4);
+        color: color.adjust(colors.$font-light, $alpha: -0.4);
     }
 
     .content {

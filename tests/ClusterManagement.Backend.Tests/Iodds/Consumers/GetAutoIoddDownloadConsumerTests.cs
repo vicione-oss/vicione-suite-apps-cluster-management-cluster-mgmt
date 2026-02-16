@@ -1,12 +1,9 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Backend.Iodds.Consumers;
+﻿using ClusterManagement.Backend.Iodds.Consumers;
 using ClusterManagement.Internal.Requests;
 using ClusterManagement.Public.Iodds;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Sdk.Testing.Backend;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Iodds.Consumers;
 

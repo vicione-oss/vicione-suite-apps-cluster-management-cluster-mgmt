@@ -4,7 +4,6 @@ using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Backend.Engines;
 using ClusterManagement.Backend.Mqtt;
 using ClusterManagement.Public.Events;
-using AwesomeAssertions;
 using ClusterManagement.Backend.Designs.Extensions;
 using ClusterManagement.Backend.Engines.Extensions;
 using Microsoft.EntityFrameworkCore;

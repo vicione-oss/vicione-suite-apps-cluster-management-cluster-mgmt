@@ -1,6 +1,5 @@
 ﻿using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Public.Designs;
-using AwesomeAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ViciOne.Cluster.Builder;

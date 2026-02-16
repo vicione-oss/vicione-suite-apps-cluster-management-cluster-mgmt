@@ -4,7 +4,6 @@ using ClusterManagement.Tests.Tools.Factories;
 using ViciOne.Cluster.Builder;
 using ViciOne.Cluster.Model;
 using ViciOne.Cluster.Model.Extensions;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests;
 

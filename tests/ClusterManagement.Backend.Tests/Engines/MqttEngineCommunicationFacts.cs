@@ -2,10 +2,7 @@
 using System.Text;
 using ClusterManagement.Backend.Engines;
 using ClusterManagement.Backend.Mqtt;
-using AwesomeAssertions;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
-using Xunit;
 using ClusterManagement.Backend.Tests.TestUtils;
 
 namespace ClusterManagement.Backend.Tests.Engines;
@@ -27,7 +24,7 @@ public class MqttEngineCommunicationFacts
         [Fact]
         public async Task Sends_request_with_correct_topics_and_data()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok"));
 
             await _communication.ChangeLogLevel(_engineId, LogLevel.Warning, CancellationToken.None);
@@ -45,7 +42,7 @@ public class MqttEngineCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_response_indicates_failure()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("fail", new(Encoding.UTF8.GetBytes("not possible")), MediaTypeNames.Text.Plain));
 
             var act = FluentActions.Awaiting(() => _communication.ChangeLogLevel(_engineId, LogLevel.Critical, CancellationToken.None));
@@ -59,7 +56,7 @@ public class MqttEngineCommunicationFacts
         [Fact]
         public async Task Sends_request_with_correct_topics_and_data()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok"));
             var settingsId = Guid.NewGuid();
 
@@ -79,7 +76,7 @@ public class MqttEngineCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_response_indicates_failure()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("fail", new(Encoding.UTF8.GetBytes("not possible")), MediaTypeNames.Text.Plain));
 
             var act = FluentActions.Awaiting(() => _communication.LoadSettings(_engineId, DateTime.MinValue, [], CancellationToken.None));
@@ -93,7 +90,7 @@ public class MqttEngineCommunicationFacts
         [Fact]
         public async Task Sends_request_with_correct_topics_and_data()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok"));
             var variableId = Guid.NewGuid();
 
@@ -113,7 +110,7 @@ public class MqttEngineCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_response_indicates_failure()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("fail", new(Encoding.UTF8.GetBytes("not possible")), MediaTypeNames.Text.Plain));
 
             var act = FluentActions.Awaiting(() => _communication.LoadPersistentVariables(_engineId, DateTime.MinValue, [], CancellationToken.None));

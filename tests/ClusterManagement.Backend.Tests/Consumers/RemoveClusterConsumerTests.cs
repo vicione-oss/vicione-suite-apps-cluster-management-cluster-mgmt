@@ -1,5 +1,4 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Backend.Consumers;
+﻿using ClusterManagement.Backend.Consumers;
 using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Public.Commands;
@@ -9,9 +8,7 @@ using ClusterManagement.Tests.Tools.Factories;
 using MassTransit;
 using MassTransit.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Sdk.Testing.Backend;
-using Xunit;
 using Assert = Xunit.Assert;
 
 namespace ClusterManagement.Backend.Tests.Consumers;
@@ -50,7 +47,7 @@ public class RemoveClusterConsumerTests : TestWithDbContextSqlite<ClusterDbConte
         // did the actual consumer consume the message
         Assert.True(await consumerHarness.Consumed.Any<RemoveCluster>(k
             => k.Context.Message.ClusterId == command.ClusterId
-            && k.Context.Message.Version == command.Version));
+            && k.Context.Message.Version == command.Version, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -69,7 +66,7 @@ public class RemoveClusterConsumerTests : TestWithDbContextSqlite<ClusterDbConte
         Assert.True(await tester.Harness.Published.Any<ClusterChanged>(k
             => k.Context.Message.ClusterId == command.ClusterId
             && k.Context.Message.Version == command.Version
-            && k.Context.Message.Action == Sdk.Messaging.CrudAction.Deleted));
+            && k.Context.Message.Action == Sdk.Messaging.CrudAction.Deleted, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -95,7 +92,7 @@ public class RemoveClusterConsumerTests : TestWithDbContextSqlite<ClusterDbConte
 
         Assert.True(await tester.Harness.Published.Any<ClusterError>(k
             => k.Context.Message.ClusterId == command.ClusterId
-            && k.Context.Message.Version == command.Version));
+            && k.Context.Message.Version == command.Version, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -121,7 +118,7 @@ public class RemoveClusterConsumerTests : TestWithDbContextSqlite<ClusterDbConte
 
         Assert.True(await tester.Harness.Published.Any<ClusterError>(k
             => k.Context.Message.ClusterId == command.ClusterId
-            && k.Context.Message.Version == command.Version));
+            && k.Context.Message.Version == command.Version, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -139,6 +136,6 @@ public class RemoveClusterConsumerTests : TestWithDbContextSqlite<ClusterDbConte
 
         Assert.True(await tester.Harness.Published.Any<ClusterError>(k
             => k.Context.Message.ClusterId == command.ClusterId
-            && k.Context.Message.Version == command.Version));
+            && k.Context.Message.Version == command.Version, TestContext.Current.CancellationToken));
     }
 }

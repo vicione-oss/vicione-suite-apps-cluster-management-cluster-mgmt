@@ -233,7 +233,7 @@ public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEve
 
     private string GetFooterString()
     {
-        var elements = CommonVocabulary.Elements;
+        var elements = CommonVocabulary.ElementPlural;
 
         if (_itemsQueryable.Count() is 1)
             elements = CommonVocabulary.Element;

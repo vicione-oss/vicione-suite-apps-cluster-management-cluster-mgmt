@@ -1,11 +1,8 @@
 ﻿using ClusterManagement.Client.DataflowEvents.Services;
-using AwesomeAssertions;
-using NSubstitute;
 using Sdk.Client.Infrastructure;
 using Sdk.Connections.Requests;
 using Sdk.Testing.Client;
 using Sdk.Testing.Factories;
-using Xunit;
 
 namespace ClusterManagement.Client.Tests.DataflowEvents.Services;
 
@@ -45,7 +42,7 @@ public class DataflowEventMqttClientProviderTests
 
             // Assert
             options.Should().NotBeNull();
-            await _mediator.Received().Request<GetConnections, GetConnectionsResponse>(Arg.Any<GetConnections>());
+            await _mediator.Received().Request<GetConnections, GetConnectionsResponse>(Arg.Any<GetConnections>(), Arg.Any<CancellationToken>());
         }
     }
 }

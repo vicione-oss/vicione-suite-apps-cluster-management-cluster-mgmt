@@ -3,18 +3,15 @@ using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Backend.Engines;
 using ClusterManagement.Internal;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using NSubstitute;
 using Sdk.Backend.Artifacts;
 using Sdk.Backend.Messaging;
 using Sdk.Instance;
 using Sdk.Modules;
 using Sdk.SystemConfiguration;
 using Sdk.Testing.Backend;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests;
 

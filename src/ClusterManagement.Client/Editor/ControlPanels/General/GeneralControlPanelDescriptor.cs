@@ -7,5 +7,5 @@ namespace ClusterManagement.Client.Editor.ControlPanels.General;
 public sealed class GeneralControlPanelDescriptor : IControlPanelDescriptor<GeneralControlPanel>
 {
     public string Title => CommonVocabulary.General;
-    public string IconPath => ModuleAssetHelper.GetModuleIconPath<ClusterManagementClientModule>("cluster-editor.svg");
+    public Uri? IconUrl => ModuleAssetHelper.GetModuleIconUrl<ClusterManagementClientModule>("cluster-editor.svg");
 }

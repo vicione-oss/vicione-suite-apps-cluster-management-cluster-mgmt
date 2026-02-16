@@ -5,7 +5,6 @@ using ClusterManagement.Public.Events;
 using MassTransit;
 using MassTransit.Testing;
 using Sdk.Messaging;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Extensions;
 
@@ -51,17 +50,17 @@ internal static class ITestHarnessExtensions
 
     public static async Task AssertDeployClusterRejected(this ITestHarness harness, Guid correlationId, Version rejectedVersion)
         => Assert.True(await harness.Published.Any<ClusterUpdateRejected>(k => k.Context.CorrelationId == correlationId
-        && k.Context.Message.RejectedVersion == rejectedVersion),
+        && k.Context.Message.RejectedVersion == rejectedVersion, TestContext.Current.CancellationToken),
             $"Reject deploy cluster version {rejectedVersion} event not published");
 
     public static async Task AssertClusterUpdateCompleted(this ITestHarness harness, Guid correlationId, Version? targetVersion)
         => Assert.True(await harness.Published.Any<ClusterUpdateCompleted>(k => k.Context.CorrelationId == correlationId
-        && (targetVersion is null || k.Context.Message.NewVersion == targetVersion)),
+        && (targetVersion is null || k.Context.Message.NewVersion == targetVersion), TestContext.Current.CancellationToken),
             $"Deploy cluster version '{targetVersion}' completed event not published");
 
     public static async Task AssertClusterUpdateFailed(this ITestHarness harness, Guid correlationId, Version? targetVersion)
         => Assert.True(await harness.Published.Any<ClusterUpdateFailed>(k => k.Context.CorrelationId == correlationId
-        && (targetVersion is null || k.Context.Message.Version == targetVersion)),
+        && (targetVersion is null || k.Context.Message.Version == targetVersion), TestContext.Current.CancellationToken),
             $"Deploy cluster version '{targetVersion}' failed event not published");
 
     public static Task AssertDeployClusterState(this ITestHarness harness, Guid correlationId, Func<DeployClusterStateMachine, State?> stateSelector)

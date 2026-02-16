@@ -1,7 +1,6 @@
 ﻿using System.IO.Abstractions.TestingHelpers;
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using AwesomeAssertions;
 using ClusterManagement.Backend.Contracts;
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Backend.EngineHosts.Extensions;
@@ -12,11 +11,9 @@ using ClusterManagement.Internal;
 using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Tests.Tools;
 using Microsoft.Extensions.Options;
-using NSubstitute;
 using Sdk.Backend.Artifacts;
 using Sdk.Backend.Modules;
 using Semver;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.EngineHosts;
 
@@ -121,7 +118,7 @@ public class EngineHostArtifactRepositoryTests
             var engineHostRepo = SetupEngineHostArtifactRepository();
             var query = "items.find({\"repo\":\"vicione-suite\",\"$and\":[{\"path\":{\"$match\":\"enginehost\"}},{\"name\":{\"$match\":\"*-win-x64_*.json\"}}]}).sort({\"$desc\":[\"updated\"]})";
 
-            var queryResult = await ResourceUtils.GetEmbeddedEngineHostMetadataQueryResult();
+            var queryResult = await ResourceUtils.GetEmbeddedEngineHostMetadataQueryResult(TestContext.Current.CancellationToken);
             _repository.SetupExecuteQuery(query, queryResult);
 
             // Act

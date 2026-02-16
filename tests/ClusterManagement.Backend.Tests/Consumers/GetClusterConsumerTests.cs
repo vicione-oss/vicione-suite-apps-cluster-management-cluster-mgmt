@@ -4,13 +4,10 @@ using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Public;
 using ClusterManagement.Public.Requests;
 using ClusterManagement.Tests.Tools.Factories;
-using AwesomeAssertions;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using Sdk.Testing.Backend;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Consumers;
 public class GetClusterConsumerTests : TestWithDbContextSqlite<ClusterDbContextSqlite>

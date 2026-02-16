@@ -1,7 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
-using AwesomeAssertions;
 using ClusterManagement.Backend.DeployCluster;
 using ClusterManagement.Backend.Engines;
 using ClusterManagement.Public.Designs;
@@ -18,7 +17,6 @@ using ViciOne.Core.Dataflow.DataModel;
 using ViciOne.Engine.DefaultPoolings;
 using ViciOne.Engine.DefaultValidators;
 using ViciOne.Suite.DataPort;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster;
 
@@ -305,7 +303,7 @@ public class ClusterToWorkflowTranslatorFacts
                                 DesignId = ourVariableDesign,
                                 Timestamp = myVariable.ValueChangedTime,
                                 Id = myVariable.Id,
-                                Value = new(typeof(byte[]).AssemblyQualifiedName!, """{"$id":"1","$values":[{"$id":"2","Type":"System.Byte, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e","Value":"10"}]}"""),
+                                Value = new(typeof(byte[]).AssemblyQualifiedName!, """{"$id":"1","$values":[{"$id":"2","Type":"System.Byte, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e","Value":"10"}]}"""),
                             },
                         ],
                     },

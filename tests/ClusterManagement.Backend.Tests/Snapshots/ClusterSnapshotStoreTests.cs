@@ -5,14 +5,11 @@ using ClusterManagement.Internal;
 using ClusterManagement.Public;
 using ClusterManagement.Public.Requests;
 using ClusterManagement.Tests.Tools.Factories;
-using AwesomeAssertions;
 using ClusterManagement.Backend.Snapshots.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using NSubstitute;
 using Sdk.Backend.Modules;
 using ViciOne.Cluster.Model;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Snapshots;
 
@@ -101,7 +98,7 @@ public class ClusterSnapshotStoreTests
             using var builder = ClusterFactory.CreateComplexCluster();
             var clusterFilePath = GetClusterFilePath(builder.Cluster.Id, builder.Cluster.Version);
             await using var fileStream = _fileSystem.FileStream.New(clusterFilePath, FileMode.Create);
-            await fileStream.WriteAsync(ClusterSerializer.Compress(builder.Cluster));
+            await fileStream.WriteAsync(ClusterSerializer.Compress(builder.Cluster), TestContext.Current.CancellationToken);
             fileStream.Close();
 
             // Act
@@ -123,7 +120,7 @@ public class ClusterSnapshotStoreTests
             var clusterCompressed = ClusterSerializer.Compress(builder.Cluster);
 
             await using var fileStream = _fileSystem.FileStream.New(clusterFilePath, FileMode.Create);
-            await fileStream.WriteAsync(clusterCompressed);
+            await fileStream.WriteAsync(clusterCompressed, TestContext.Current.CancellationToken);
             fileStream.Close();
 
             // Act

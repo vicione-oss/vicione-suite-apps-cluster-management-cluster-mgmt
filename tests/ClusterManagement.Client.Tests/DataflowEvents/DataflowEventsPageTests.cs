@@ -3,10 +3,8 @@ using ClusterManagement.Client.DataflowEvents;
 using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Public.DataflowEvents;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Sdk.Client.Modules.Localization.Extensions;
 using Sdk.Testing.Client;
-using Xunit;
 
 namespace ClusterManagement.Client.Tests.DataflowEvents;
 
@@ -17,10 +15,10 @@ public sealed class DataflowEventsPageTests
     private readonly IDataflowEvent _outputEvent = DataflowEventTestUtils.CreateOutputEvent();
 
     [Fact]
-    public void Page_should_render()
+    public async Task Page_should_render()
     {
         // Arrange
-        using var ctx = new TestContext();
+        await using var ctx = new BunitContext();
         ctx.SetupSuiteServices(setup =>
         {
             setup.ClientMediator.SetupDataflowEventRequest(_inputEvent, _outputEvent);
@@ -31,7 +29,7 @@ public sealed class DataflowEventsPageTests
         ctx.Services.AddSingleton<DataflowEventPageService>();
 
         // Act
-        var sut = ctx.RenderComponent<DataflowEventsPage>();
+        var sut = ctx.Render<DataflowEventsPage>();
 
         // Assert
         Assert.NotNull(sut);

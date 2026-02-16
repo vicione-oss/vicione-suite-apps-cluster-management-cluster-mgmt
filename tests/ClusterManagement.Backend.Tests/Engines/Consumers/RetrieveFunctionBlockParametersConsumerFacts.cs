@@ -1,6 +1,5 @@
 ﻿using System.Net.Mime;
 using System.Text.Json;
-using AwesomeAssertions;
 using AwesomeAssertions.Extensions;
 using ClusterManagement.Backend.Engines.Consumers;
 using ClusterManagement.Backend.Tests.Mqtt;
@@ -9,8 +8,6 @@ using ClusterManagement.Public;
 using MassTransit;
 using MQTTnet;
 using MQTTnet.Protocol;
-using NSubstitute;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Engines.Consumers;
 

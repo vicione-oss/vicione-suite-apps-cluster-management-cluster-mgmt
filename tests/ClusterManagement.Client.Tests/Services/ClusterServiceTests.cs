@@ -1,13 +1,10 @@
 ﻿using Bunit;
 using ClusterManagement.Public;
 using ClusterManagement.Public.Requests;
-using AwesomeAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Sdk.Client.Infrastructure;
 using Sdk.Testing.Client;
 using ViciOne.Cluster.Model;
-using Xunit;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Tests.Tools;
 
@@ -15,7 +12,7 @@ namespace ClusterManagement.Client.Tests.Services;
 
 public class ClusterServiceTests
 {
-    private static ClusterService SetupService(TestContext ctx, List<Cluster> clusters, Action<IUiMediator>? mediatorMockCallback = null)
+    private static ClusterService SetupService(BunitContext ctx, List<Cluster> clusters, Action<IUiMediator>? mediatorMockCallback = null)
     {
         ctx.SetupSuiteServices(setup =>
         {
@@ -37,22 +34,22 @@ public class ClusterServiceTests
     public async Task Remove_cluster_should_not_fail()
     {
         // Arrange
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         var service = SetupService(ctx, []);
 
         // Act + Assert
-        await service.Remove(Guid.NewGuid(), new Version(1, 0, 0));
+        await service.Remove(Guid.NewGuid(), new Version(1, 0, 0), Xunit.TestContext.Current.CancellationToken);
     }
 
     [Fact]
     public async Task Query_cluster_versions_should_return_empty_list_for_empty_storage()
     {
         // Arrange
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         var service = SetupService(ctx, []);
 
         // Act
-        var clusters = await service.QueryVersions();
+        var clusters = await service.QueryVersions(Xunit.TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Empty(clusters);
@@ -62,7 +59,7 @@ public class ClusterServiceTests
     public async Task Query_cluster_versions_should_return_existing_versions()
     {
         // Arrange
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         var service = SetupService(ctx,
         [
             ClusterDbContextTools.CreateCluster(),
@@ -70,7 +67,7 @@ public class ClusterServiceTests
         ]);
 
         // Act
-        var clusters = await service.QueryVersions();
+        var clusters = await service.QueryVersions(Xunit.TestContext.Current.CancellationToken);
 
         // Assert
         clusters.Should().HaveCount(2);
@@ -86,7 +83,7 @@ public class ClusterServiceTests
             ClusterDbContextTools.CreateCluster(),
         };
 
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         var service = SetupService(ctx, clusters,
             mediatorMock =>
             {
@@ -99,7 +96,7 @@ public class ClusterServiceTests
             });
 
         // Act
-        var cluster = await service.Query(clusters[0].Id, clusters[0].Version);
+        var cluster = await service.Query(clusters[0].Id, clusters[0].Version, Xunit.TestContext.Current.CancellationToken);
 
         // Assert
         cluster.Should().NotBeNull().And.BeEquivalentTo(clusters[0]);

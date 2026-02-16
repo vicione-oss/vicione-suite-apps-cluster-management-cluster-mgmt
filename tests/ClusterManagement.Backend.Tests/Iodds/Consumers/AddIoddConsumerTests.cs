@@ -1,15 +1,12 @@
 ﻿using System.IO.Compression;
-using AwesomeAssertions;
 using ClusterManagement.Backend.Iodds.Consumers;
 using ClusterManagement.Public.Iodds;
 using ClusterManagement.Public.Iodds.Commands;
 using ClusterManagement.Public.Iodds.Events;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Sdk.Messaging;
 using Sdk.Testing.Backend;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Iodds.Consumers;
 
@@ -97,7 +94,7 @@ public class AddIoddConsumerTests
             => k.Context.Message.Iodd.VendorId == expectedId.VendorId
             && k.Context.Message.Iodd.DeviceId == expectedId.DeviceId
             && k.Context.Message.Action == CrudAction.Created
-            && k.Context.Message.DeviceInfo == deviceInfo)).Should().BeTrue();
+            && k.Context.Message.DeviceInfo == deviceInfo, TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
     [Fact]
@@ -166,9 +163,9 @@ public class AddIoddConsumerTests
 
         // Assert
         await act.Should().ThrowAsync<InvalidDataException>();
-        (await tester.Harness.Published.Any<IoddError>(k 
+        (await tester.Harness.Published.Any<IoddError>(k
             => k.Context.Message.Error.ErrorCode == IoddError.ExtractZipError
-            && k.Context.Message.Name == "Could not add IODD.")).Should().BeTrue();
+            && k.Context.Message.Name == "Could not add IODD.", TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
     [Fact]
@@ -227,7 +224,7 @@ public class AddIoddConsumerTests
         await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
 
         // Assert
-        (await tester.Harness.Published.Any<IoddChanged>(k => k.Context.Message.DeviceInfo == deviceInfo1)).Should().BeTrue();
+        (await tester.Harness.Published.Any<IoddChanged>(k => k.Context.Message.DeviceInfo == deviceInfo1, TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
     [Fact]

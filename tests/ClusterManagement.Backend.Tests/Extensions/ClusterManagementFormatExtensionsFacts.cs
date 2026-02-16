@@ -1,6 +1,4 @@
 ﻿using ClusterManagement.Public.Extensions;
-using AwesomeAssertions;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Extensions;
 

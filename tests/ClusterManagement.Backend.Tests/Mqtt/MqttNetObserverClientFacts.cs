@@ -1,10 +1,7 @@
 ﻿using ClusterManagement.Backend.Mqtt;
-using AwesomeAssertions;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Protocol;
-using NSubstitute;
-using Xunit;
 using ClusterManagement.Backend.Tests.TestUtils;
 
 namespace ClusterManagement.Backend.Tests.Mqtt;
@@ -40,7 +37,7 @@ public class MqttNetObserverClientFacts
         {
             using MqttNetObserverClient client = new(Options, Substitute.For<IMqttClient>());
             var action = Substitute.For<Func<CancellationToken, Task>>();
-            action(default).ReturnsForAnyArgs(Task.CompletedTask);
+            action(TestContext.Current.CancellationToken).ReturnsForAnyArgs(Task.CompletedTask);
 
             using var cancellationTokenSource = new CancellationTokenSource(TestTimeout);
             try

@@ -7,21 +7,16 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
-using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
-using AwesomeAssertions;
 using AwesomeAssertions.Extensions;
 using ClusterManagement.Backend.Diagnostics;
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Backend.Mqtt;
 using ClusterManagement.Backend.Tests.TestUtils;
 using Microsoft.Extensions.Configuration;
-using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sdk.SystemConfiguration;
 using Sdk.Testing;
 using Semver;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.EngineHosts;
 
@@ -161,7 +156,7 @@ public class ProcessEngineHostPoolCommunicationFacts
 
             await _context.Communication.DeployHost(_context.HostId, CancellationToken.None);
 
-            var content = await _context.FileSystem.File.ReadAllTextAsync(executable);
+            var content = await _context.FileSystem.File.ReadAllTextAsync(executable, TestContext.Current.CancellationToken);
             content.Should().Be("bytes");
         }
 
@@ -204,7 +199,7 @@ public class ProcessEngineHostPoolCommunicationFacts
             _context.FileSystem.Directory.GetDirectories(_context.FileSystem.Directory.GetCurrentDirectory()).Should().BeEmpty();
         }
 
-        [SkippableFact, SupportedOSPlatform(nameof(OSPlatform.Linux))]
+        [Fact(Skip = "LinuxOnly", SkipWhen = nameof(PlatformSkip.IfNotLinux), SkipType = typeof(PlatformSkip))]
         public async Task Resets_engine_host_permissions_if_file_access_is_unauthorized()
         {
             EngineHostContext context = new(hostManagementAvailable: true);
@@ -217,7 +212,7 @@ public class ProcessEngineHostPoolCommunicationFacts
 
             await context.Communication.TearDownHost(context.HostId, CancellationToken.None);
 
-            await context.ServiceManagement.Received(1).ControlService(
+            await context.ServiceManagement.Received(1).TryControlService(
                 Arg.Is(ServiceCommand.Start),
                 Arg.Is($"enginehost-reset@{context.HostId}.service"),
                 Arg.Any<CancellationToken>());
@@ -266,7 +261,7 @@ public class ProcessEngineHostPoolCommunicationFacts
             _context.MqttObserverClient.ReceivedCalls().Should().BeEmpty();
         }
 
-        [SkippableFact, SupportedOSPlatform(nameof(OSPlatform.Windows))]
+        [Fact(Skip = "WindowsOnly", SkipWhen = nameof(PlatformSkip.IfNotWindows), SkipType = typeof(PlatformSkip))]
         public async Task Throws_for_unconfigured_executable_path()
         {
             EngineHostContext context = new();
@@ -277,7 +272,7 @@ public class ProcessEngineHostPoolCommunicationFacts
             await act.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage($"*executable*path*not*configured*");
         }
 
-        [SkippableFact, SupportedOSPlatform(nameof(OSPlatform.Windows))]
+        [Fact(Skip = "WindowsOnly", SkipWhen = nameof(PlatformSkip.IfNotWindows), SkipType = typeof(PlatformSkip))]
         public async Task Throws_for_empty_configured_executable_path()
         {
             EngineHostContext context = new(osProcessManager: true);
@@ -289,7 +284,7 @@ public class ProcessEngineHostPoolCommunicationFacts
             await act.Should().ThrowExactlyAsync<Win32Exception>().WithMessage($"*try*start*'   '*");
         }
 
-        [SkippableFact, SupportedOSPlatform(nameof(OSPlatform.Windows))]
+        [Fact(Skip = "WindowsOnly", SkipWhen = nameof(PlatformSkip.IfNotWindows), SkipType = typeof(PlatformSkip))]
         public async Task Throws_for_missing_executable()
         {
             EngineHostContext context = new(osProcessManager: true);
@@ -301,7 +296,7 @@ public class ProcessEngineHostPoolCommunicationFacts
             await act.Should().ThrowExactlyAsync<Win32Exception>().WithMessage($"*try*start*'ViciOne.ManagedEngine.Host.exe'*");
         }
 
-        [SkippableTheory, SupportedOSPlatform(nameof(OSPlatform.Windows))]
+        [Theory(Skip = "WindowsOnly", SkipWhen = nameof(PlatformSkip.IfNotWindows), SkipType = typeof(PlatformSkip))]
         [InlineData(false)]
         [InlineData(true)]
         public async Task Starts_the_executable_on_windows(bool hostManagementAvailable)
@@ -347,7 +342,7 @@ public class ProcessEngineHostPoolCommunicationFacts
             context.ServiceManagement.ReceivedCalls().Should().BeEmpty();
         }
 
-        [SkippableFact, SupportedOSPlatform(nameof(OSPlatform.Linux))]
+        [Fact(Skip = "LinuxOnly", SkipWhen = nameof(PlatformSkip.IfNotLinux), SkipType = typeof(PlatformSkip))]
         public async Task Resets_engine_host_permissions_if_file_access_is_unauthorized()
         {
             EngineHostContext context = new(hostManagementAvailable: true);
@@ -359,13 +354,13 @@ public class ProcessEngineHostPoolCommunicationFacts
 
             await context.Communication.StartHost(context.HostId, false, CancellationToken.None);
 
-            await context.ServiceManagement.Received(1).ControlService(
+            await context.ServiceManagement.Received(1).TryControlService(
                 Arg.Is(ServiceCommand.Start),
                 Arg.Is($"enginehost-reset@{context.HostId}.service"),
                 Arg.Any<CancellationToken>());
         }
 
-        [SkippableTheory, SupportedOSPlatform(nameof(OSPlatform.Linux))]
+        [Theory(Skip = "LinuxOnly", SkipWhen = nameof(PlatformSkip.IfNotLinux), SkipType = typeof(PlatformSkip))]
         [InlineData(false)]
         [InlineData(true)]
         public async Task Starts_the_service_if_host_management_is_available(bool elevatedPrivileges)
@@ -377,7 +372,7 @@ public class ProcessEngineHostPoolCommunicationFacts
 
             context.FileSystem.FileExists(context.WorkingDirectory.ProcessIdFile).Should().BeFalse();
             context.ProcessManager.DidNotReceive().StartProcess(Arg.Any<ProcessStartInfo>());
-            await context.ServiceManagement.Received(1).ControlService(
+            await context.ServiceManagement.Received(1).TryControlService(
                 Arg.Is(ServiceCommand.Start),
                 Arg.Is($"enginehost{(elevatedPrivileges ? "-privileged" : string.Empty)}@{context.HostId}.service"),
                 Arg.Any<CancellationToken>());
@@ -438,7 +433,7 @@ public class ProcessEngineHostPoolCommunicationFacts
             _context.FileSystem.FileExists(_context.WorkingDirectory.TerminateFile).Should().BeFalse();
         }
 
-        [SkippableFact, SupportedOSPlatform(nameof(OSPlatform.Windows))]
+        [Fact(Skip = "WindowsOnly", SkipWhen = nameof(PlatformSkip.IfNotWindows), SkipType = typeof(PlatformSkip))]
         public async Task Creates_terminate_file_if_process_is_running_on_windows()
         {
             EngineHostContext context = new(hostManagementAvailable: true);
@@ -472,7 +467,7 @@ public class ProcessEngineHostPoolCommunicationFacts
             context.ServiceManagement.ReceivedCalls().Should().BeEmpty();
         }
 
-        [SkippableTheory, SupportedOSPlatform(nameof(OSPlatform.Linux))]
+        [Theory(Skip = "LinuxOnly", SkipWhen = nameof(PlatformSkip.IfNotLinux), SkipType = typeof(PlatformSkip))]
         [InlineData(false)]
         [InlineData(true)]
         public async Task Stops_the_service_if_host_management_is_available(bool elevatedPrivileges)
@@ -504,10 +499,10 @@ public class ProcessEngineHostPoolCommunicationFacts
             context.FileSystem.FileExists(context.WorkingDirectory.TerminateFile).Should().BeFalse();
             context.FileSystem.FileExists(context.WorkingDirectory.ProcessIdFile).Should().BeTrue();
             await engineHost.Received(1).WaitForExit(Arg.Any<CancellationToken>());
-            await context.ServiceManagement.Received(1).ControlService(Arg.Is(ServiceCommand.Stop), Arg.Is(serviceName), Arg.Any<CancellationToken>());
+            await context.ServiceManagement.Received(1).TryControlService(Arg.Is(ServiceCommand.Stop), Arg.Is(serviceName), Arg.Any<CancellationToken>());
         }
 
-        [SkippableFact, SupportedOSPlatform(nameof(OSPlatform.Linux))]
+        [Fact(Skip = "LinuxOnly", SkipWhen = nameof(PlatformSkip.IfNotLinux), SkipType = typeof(PlatformSkip))]
         public async Task Does_not_stop_the_service_if_the_service_is_missing()
         {
             EngineHostContext context = new(hostManagementAvailable: true);
@@ -531,7 +526,7 @@ public class ProcessEngineHostPoolCommunicationFacts
             context.FileSystem.FileExists(context.WorkingDirectory.TerminateFile).Should().BeFalse();
             context.FileSystem.FileExists(context.WorkingDirectory.ProcessIdFile).Should().BeTrue();
             await engineHost.Received(1).WaitForExit(Arg.Any<CancellationToken>());
-            await context.ServiceManagement.DidNotReceiveWithAnyArgs().ControlService(default, default!, default);
+            await context.ServiceManagement.DidNotReceiveWithAnyArgs().TryControlService(default, default!, TestContext.Current.CancellationToken);
         }
 
         [Fact]

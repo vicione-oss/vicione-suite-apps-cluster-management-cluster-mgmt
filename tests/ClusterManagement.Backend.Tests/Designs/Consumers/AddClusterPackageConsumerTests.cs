@@ -5,11 +5,9 @@ using ClusterManagement.Internal.Events;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sdk.Testing.Backend;
 using ViciOne.Cluster.Model;
-using Xunit;
 using Assert = Xunit.Assert;
 
 namespace ClusterManagement.Backend.Tests.Designs.Consumers;
@@ -47,7 +45,7 @@ public class AddClusterPackageConsumerTests
 
         // Assert
         Assert.True(await tester.Harness.Consumed.Any<AddClusterPackage>(k
-            => k.Context.Message.CorrelationId == command.CorrelationId));
+            => k.Context.Message.CorrelationId == command.CorrelationId, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -68,7 +66,7 @@ public class AddClusterPackageConsumerTests
         // Assert: Package added event published with correct details
         Assert.True(await tester.Harness.Published.Any<ClusterPackageChanged>(k
             => k.Context.Message.PackageName == dependency.Name
-            && k.Context.Message.Version == dependency.Version.ToString()));
+            && k.Context.Message.Version == dependency.Version.ToString(), TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -110,6 +108,6 @@ public class AddClusterPackageConsumerTests
         // Assert
         Assert.True(await tester.Harness.Published.Any<ClusterPackageChangeFailed>(k
             => k.Context.Message.CorrelationId == command.CorrelationId
-            && k.Context.Message.Error.ErrorCode == 200));
+            && k.Context.Message.Error.ErrorCode == 200, TestContext.Current.CancellationToken));
     }
 }

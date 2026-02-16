@@ -1,11 +1,8 @@
 ﻿using System.IO.Abstractions;
-using AwesomeAssertions;
 using ClusterManagement.Backend.Iodds;
 using ClusterManagement.Public.Iodds;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using Sdk.Backend.Modules;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Iodds;
 
@@ -126,7 +123,7 @@ public class IoddServiceTests
 
             // Act
             await service.StopAsync(CancellationToken.None);
-            await Task.Delay(100);
+            await Task.Delay(100, TestContext.Current.CancellationToken);
 
             // Assert
             _ioddStore.DidNotReceive().Refresh();
@@ -186,7 +183,7 @@ public class IoddServiceTests
 
             // Act
             service.Dispose();
-            await Task.Delay(100);
+            await Task.Delay(100, TestContext.Current.CancellationToken);
 
             // Assert
             _ioddStore.DidNotReceive().Refresh();
@@ -230,7 +227,7 @@ public class IoddServiceTests
             await service.StartAsync(CancellationToken.None);
 
             // Act - Simulate file system watcher continuing after error
-            await Task.Delay(50);
+            await Task.Delay(50, TestContext.Current.CancellationToken);
 
             // Assert - Service should remain operational
             await service.StopAsync(CancellationToken.None);

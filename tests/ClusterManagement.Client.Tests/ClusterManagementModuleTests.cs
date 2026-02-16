@@ -1,5 +1,4 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Client.DataflowEvents.Services;
+﻿using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Client.Editor.Wizards.Services;
 using ClusterManagement.Client.IoddManagement.IoddTree;
@@ -11,12 +10,10 @@ using ClusterManagement.Public.DataflowEvents;
 using ClusterManagement.Public.Designs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
-using NSubstitute;
 using Sdk.Client.Modules.Localization;
 using Sdk.Testing.Client;
 using ViciOne.Ui.ClusterEditor.Extensions;
 using ViciOne.Ui.ClusterEditor.Services;
-using Xunit;
 
 namespace ClusterManagement.Client.Tests;
 

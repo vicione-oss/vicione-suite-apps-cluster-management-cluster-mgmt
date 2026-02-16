@@ -2,7 +2,6 @@
 using ClusterManagement.Backend.DeployCluster.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Testing.Backend;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.DbContext;
 

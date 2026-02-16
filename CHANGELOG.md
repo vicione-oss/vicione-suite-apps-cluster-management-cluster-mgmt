@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.0 - Unreleased
+
+### Changed
+
+- Updated .NET to version `10.0.3`
+- `ViciOne.Suite.Sdk` packages, update to version `2.0.0-ci2328417675`
+- `ViciOne.Ui.ClusterEditor` package, update to `0.18.0-ci2308279749`
+- `ViciOne.Ui.Design`, update to `2.0.3`
+- `ViciOne.Ui.Localization` package, update version to `3.1.0`
+- `ViciOne.Ui.MonochromeIcons.Assets` package, update version to `4.2.0`
+
 ## 1.4.1 - 2026-02-16
 
 ### Added

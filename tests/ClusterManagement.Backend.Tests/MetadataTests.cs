@@ -1,5 +1,4 @@
 ﻿using Sdk.Testing;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests;
 

@@ -1,17 +1,13 @@
-﻿using AwesomeAssertions;
-using Bunit;
-using Bunit.TestDoubles;
+﻿using Bunit;
 using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Designs;
 using ClusterManagement.Public.Events;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Sdk.Messaging;
 using Sdk.Testing.Client;
 using ViciOne.Cluster.Builder;
-using Xunit;
 
 namespace ClusterManagement.Client.Tests.Editor.Services;
 
@@ -21,9 +17,9 @@ public class SaveClusterServiceTests
     private readonly IDependencyResolver _dependencyResolverMock = Substitute.For<IDependencyResolver>();
     private readonly IDesignProvider _designProviderMock = Substitute.For<IDesignProvider>();
 
-    private SaveClusterService SetupService(TestContext ctx)
+    private SaveClusterService SetupService(BunitContext ctx)
     {
-        ctx.AddTestAuthorization();
+        ctx.AddAuthorization();
         ctx.SetupSuiteServices();
 
         ctx.Services.AddSingleton(_clusterServiceMock);
@@ -38,7 +34,7 @@ public class SaveClusterServiceTests
         // Arrange
         using var builder = new ClusterBuilder(_dependencyResolverMock);
 
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         var service = SetupService(ctx);
 
         // Act
@@ -55,7 +51,7 @@ public class SaveClusterServiceTests
         // Arrange
         using var builder = new ClusterBuilder(_dependencyResolverMock);
 
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         var service = SetupService(ctx);
         await service.SaveRequested(builder);
 
@@ -77,7 +73,7 @@ public class SaveClusterServiceTests
         // Arrange
         using var builder = new ClusterBuilder(_dependencyResolverMock);
 
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         var service = SetupService(ctx);
         await service.SaveRequested(builder);
         await service.Save();
@@ -96,7 +92,7 @@ public class SaveClusterServiceTests
     public void Cluster_changed_event_not_correlated_should_be_ignored()
     {
         // Arrange
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         var service = SetupService(ctx);
         service.DisplayDialog = true;
 
@@ -118,7 +114,7 @@ public class SaveClusterServiceTests
         var clusterVersion = new Version(0, 1, 1);
         var errorInfo = CreateErrorInfo(ClusterError.PublishFailed, clusterId, clusterVersion);
 
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         var service = SetupService(ctx);
         await service.SaveRequested(builder);
         await service.Save();
@@ -136,7 +132,7 @@ public class SaveClusterServiceTests
     public async Task Cluster_error_event_not_correlated_should_be_ignored()
     {
         // Arrange
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         var service = SetupService(ctx);
         var clusterId = Guid.NewGuid();
         var clusterVersion = new Version(0, 1, 1);

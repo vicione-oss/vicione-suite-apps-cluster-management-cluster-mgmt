@@ -1,7 +1,6 @@
 ﻿using ClusterManagement.Backend.Tests.Extensions;
 using ClusterManagement.Public.Commands;
 using MassTransit.Testing;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster.StateMachines;
 
@@ -78,7 +77,7 @@ public partial class DeployClusterStateMachineTests
 
             Assert.True(await harness.Sent.Any<RemoveCluster>(k
                 => k.Context.Message.ClusterId == _clusterId
-                && k.Context.Message.Version == prepared.Item1.Version));
+                && k.Context.Message.Version == prepared.Item1.Version, TestContext.Current.CancellationToken));
         }
     }
 }

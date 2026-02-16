@@ -1,10 +1,7 @@
 ﻿using System.IO.Abstractions.TestingHelpers;
-using AwesomeAssertions;
 using Semver;
-using Xunit;
 using ClusterManagement.Backend.Designs.Extensions;
 using Sdk.Backend.Modules;
-using NSubstitute;
 
 namespace ClusterManagement.Backend.Tests.Designs.Extensions;
 

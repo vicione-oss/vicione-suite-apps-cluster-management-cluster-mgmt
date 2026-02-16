@@ -1,5 +1,4 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Backend.Designs;
+﻿using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.Designs.Consumers;
 using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Internal.Requests;
@@ -7,11 +6,9 @@ using ClusterManagement.Public.Events;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sdk.Testing.Backend;
 using Semver;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Designs.Consumers;
 

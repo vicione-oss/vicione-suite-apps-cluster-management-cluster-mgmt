@@ -2,8 +2,8 @@
   "profiles": {
     "ClusterManagement.SuiteDebug": {
         "commandName": "Executable",
-        "executablePath": "\\suite\\src\\Core.OS\\bin\\Debug\\net9.0\\ViciOne.Suite.Core.OS.exe",
-        "workingDirectory": "\\suite\\src\\Core.OS\\bin\\Debug\\net9.0",
+        "executablePath": "\\suite\\src\\Core.OS\\bin\\Debug\\net10.0\\ViciOne.Suite.Core.OS.exe",
+        "workingDirectory": "\\suite\\src\\Core.OS\\bin\\Debug\\net10.0",
         "environmentVariables": {
             "ASPNETCORE_ENVIRONMENT": "Development"
         }

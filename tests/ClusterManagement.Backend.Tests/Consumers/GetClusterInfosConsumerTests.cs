@@ -3,14 +3,11 @@ using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Public.Requests;
 using ClusterManagement.Tests.Tools;
-using AwesomeAssertions;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using Sdk.Testing.Backend;
 using ViciOne.Cluster.Model;
-using Xunit;
 
 
 namespace ClusterManagement.Backend.Tests.Consumers;

@@ -5,12 +5,10 @@ using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Internal.Events;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sdk.Messaging;
 using Sdk.Testing.Backend;
 using ViciOne.Cluster.Model;
-using Xunit;
 using Assert = Xunit.Assert;
 
 namespace ClusterManagement.Backend.Tests.Designs.Consumers;
@@ -49,7 +47,7 @@ public class UpdateClusterDependenciesConsumerTests
 
         // Assert
         Assert.True(await tester.Harness.Consumed.Any<UpdateClusterDependencies>(k
-            => k.Context.Message.CorrelationId == command.CorrelationId));
+            => k.Context.Message.CorrelationId == command.CorrelationId, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -85,7 +83,7 @@ public class UpdateClusterDependenciesConsumerTests
 
         // Assert: Dependencies updated event published with correct operations
         Assert.True(await tester.Harness.Published.Any<ClusterDependenciesChanged>(k
-            => k.Context.Message.Changes.Count == changes.Count));
+            => k.Context.Message.Changes.Count == changes.Count, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -131,7 +129,7 @@ public class UpdateClusterDependenciesConsumerTests
         // Assert        
         Assert.True(await tester.Harness.Published.Any<ClusterDependenciesUpdateFailed>(k
             => k.Context.Message.CorrelationId == command.CorrelationId
-            && k.Context.Message.Error.ErrorCode == 230));
+            && k.Context.Message.Error.ErrorCode == 230, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -150,7 +148,7 @@ public class UpdateClusterDependenciesConsumerTests
 
         // Assert: Empty operations should still succeed
         Assert.True(await tester.Harness.Published.Any<ClusterDependenciesChanged>(k
-            => k.Context.Message.Changes.Count == 0));
+            => k.Context.Message.Changes.Count == 0, TestContext.Current.CancellationToken));
 
         await _dependencyStore.Received(1).EnqueueOperations(
             Arg.Is<List<ClusterDependencyOperation>>(ops => ops.Count == 0),
@@ -244,6 +242,6 @@ public class UpdateClusterDependenciesConsumerTests
             => k.Context.Message.Changes.Count == 3
             && k.Context.Message.Changes[0].Operation.OperationKind == ClusterDependencyOperationKind.Install
             && k.Context.Message.Changes[1].Operation.OperationKind == ClusterDependencyOperationKind.Uninstall
-            && k.Context.Message.Changes[2].Operation.OperationKind == ClusterDependencyOperationKind.Install));
+            && k.Context.Message.Changes[2].Operation.OperationKind == ClusterDependencyOperationKind.Install, TestContext.Current.CancellationToken));
     }
 }

@@ -1,5 +1,4 @@
 ﻿using ClusterManagement.Public.Designs;
-using NSubstitute;
 
 namespace ClusterManagement.Backend.Tests.TestUtils;
 
