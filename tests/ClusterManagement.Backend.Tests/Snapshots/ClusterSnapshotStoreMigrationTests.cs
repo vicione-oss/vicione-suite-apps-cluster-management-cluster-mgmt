@@ -1,11 +1,8 @@
 ﻿using System.Text.Json.Nodes;
 using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.Snapshots;
-using AwesomeAssertions;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using ViciOne.Cluster.Model;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Snapshots;
 
@@ -17,13 +14,13 @@ public class ClusterSnapshotStoreMigration_Migrate
         var snapshotStore = Substitute.For<IClusterSnapshotStore>();
         var dependencyStore = Substitute.For<IClusterDependencyStore>();
         var logger = Substitute.For<ILogger<ClusterSnapshotStoreMigration>>();
-        snapshotStore.GetClusterInfos(default, default).ReturnsForAnyArgs([]);
+        snapshotStore.GetClusterInfos(default, TestContext.Current.CancellationToken).ReturnsForAnyArgs([]);
         ClusterSnapshotStoreMigration migration = new(snapshotStore, dependencyStore, logger);
 
         var act = FluentActions.Invoking(async () => await migration.Migrate(CancellationToken.None));
 
         await act.Should().NotThrowAsync();
-        await snapshotStore.DidNotReceiveWithAnyArgs().Load<JsonNode?>(default, default!, default!, default);
+        await snapshotStore.DidNotReceiveWithAnyArgs().Load<JsonNode?>(default, default!, default!, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -38,7 +35,7 @@ public class ClusterSnapshotStoreMigration_Migrate
             new Public.Requests.ClusterInfo(clusterId, new(1, 0, 0), "default"),
             new Public.Requests.ClusterInfo(clusterId, new(1, 1, 0), "default"),
         };
-        snapshotStore.GetClusterInfos(default, default).ReturnsForAnyArgs(clusterInfos);
+        snapshotStore.GetClusterInfos(default, TestContext.Current.CancellationToken).ReturnsForAnyArgs(clusterInfos);
         JsonObject clusterOne = new()
         {
             {
@@ -79,8 +76,7 @@ public class ClusterSnapshotStoreMigration_Migrate
         };
         snapshotStore.Load(clusterId, new(1, 0, 0), Arg.Any<Func<Stream, CancellationToken, Task<JsonNode?>>>(), Arg.Any<CancellationToken>()).Returns(clusterOne);
         snapshotStore.Load(clusterId, new(1, 1, 0), Arg.Any<Func<Stream, CancellationToken, Task<JsonNode?>>>(), Arg.Any<CancellationToken>()).Returns(clusterTwo);
-        dependencyStore.LoadDependencies(default)
-            .ReturnsForAnyArgs(
+        dependencyStore.LoadDependencies(TestContext.Current.CancellationToken).ReturnsForAnyArgs(
             [
                 new ClusterDependency { Name = "Test1", Version = new(0, 2, 0), },
                 new ClusterDependency { Name = "Test2", Version = new(0, 2, 0), },
@@ -140,7 +136,7 @@ public class ClusterSnapshotStoreMigration_GetDependenciesFromFile
             new ClusterDependency { Name = "Test2", Version = new(0, 2, 0), },
             new ClusterDependency { Name = "Test3", Version = new(1, 0, 0), },
         };
-        dependencyStore.LoadDependencies(default).ReturnsForAnyArgs(functionBlockDependencies);
+        dependencyStore.LoadDependencies(TestContext.Current.CancellationToken).ReturnsForAnyArgs(functionBlockDependencies);
         ClusterSnapshotStoreMigration migration = new(snapshotStore, dependencyStore, logger);
 
         var result = await migration.GetDependenciesFromFile(CancellationToken.None);
@@ -167,7 +163,7 @@ public class ClusterSnapshotStoreMigration_GetDependenciesFromFile
             new ClusterDependency { Name = "Test2", Version = new(0, 1, 0), },
             new ClusterDependency { Name = "Test3", Version = new(1, 0, 0), },
         };
-        dependencyStore.LoadDependencies(default).ReturnsForAnyArgs(functionBlockDependencies);
+        dependencyStore.LoadDependencies(TestContext.Current.CancellationToken).ReturnsForAnyArgs(functionBlockDependencies);
         ClusterSnapshotStoreMigration migration = new(snapshotStore, dependencyStore, logger);
 
         var act = FluentActions.Invoking(async () => await migration.GetDependenciesFromFile(CancellationToken.None));

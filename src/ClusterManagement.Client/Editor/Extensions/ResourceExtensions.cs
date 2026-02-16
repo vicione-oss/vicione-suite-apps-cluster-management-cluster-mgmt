@@ -20,10 +20,15 @@ internal static class ResourceExtensions
         // jquery and dx.all.js come with AddDxSharedResources
         resources.AddComponentScript(Bundle, "scripts/vicione.cluster-editor.min.js", editorAssembly);
 
-        resources.AddScript(Bundle, "/_content/Z.Blazor.Diagrams/script.min.js");
-        resources.AddStylesheet(Bundle, "/_content/Z.Blazor.Diagrams/style.min.css");
-        resources.AddStylesheet(Bundle, "/_content/ViciOne.Ui.ClusterEditor/css/cluster-editor.css");
-        resources.AddStylesheet(Bundle, "/_content/ViciOne.Ui.ClusterEditor/css/easymde.min.css");
+        var zblazorJs = new UriBuilder().WithPath("/_content/Z.Blazor.Diagrams/script.min.js").Uri;
+        var zblazorCss = new UriBuilder().WithPath("/_content/Z.Blazor.Diagrams/style.min.css").Uri;
+        resources.AddScript(Bundle, zblazorJs);
+        resources.AddStylesheet(Bundle, zblazorCss);
+
+        var editorCss = new UriBuilder().WithPath("/_content/ViciOne.Ui.ClusterEditor/css/cluster-editor.css").Uri;
+        var editorMdeCss = new UriBuilder().WithPath("/_content/ViciOne.Ui.ClusterEditor/css/easymde.min.css").Uri;
+        resources.AddStylesheet(Bundle, editorCss);
+        resources.AddStylesheet(Bundle, editorMdeCss);
 
         return resources;
     }

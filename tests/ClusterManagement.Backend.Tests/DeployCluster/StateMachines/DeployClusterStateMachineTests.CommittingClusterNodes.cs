@@ -4,10 +4,8 @@ using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Enums;
 using ClusterManagement.Tests.Tools;
 using MassTransit.Testing;
-using NSubstitute;
 using NSubstitute.ReceivedExtensions;
 using ViciOne.Cluster.Model;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster.StateMachines;
 
@@ -33,7 +31,7 @@ public partial class DeployClusterStateMachineTests
 
             // Assert            
             _snapshotStore.Received(0).Delete(_clusterId, commitVersion);
-            await harness.Sent.Any<CommitClusterChange>(k => k.Context.Message.MetaInfo.ClusterId == _clusterId);
+            await harness.Sent.Any<CommitClusterChange>(k => k.Context.Message.MetaInfo.ClusterId == _clusterId, TestContext.Current.CancellationToken);
         }
 
         [Fact]

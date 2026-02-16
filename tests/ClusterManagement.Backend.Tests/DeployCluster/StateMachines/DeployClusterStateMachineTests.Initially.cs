@@ -4,7 +4,6 @@ using ClusterManagement.Public.Requests;
 using ClusterManagement.Tests.Tools;
 using MassTransit.Testing;
 using ViciOne.Cluster.Model;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster.StateMachines;
 
@@ -195,7 +194,7 @@ public partial class DeployClusterStateMachineTests
             await harness.DeployCluster(_correlationId, _clusterId, null, options);
 
             // Assert
-            Assert.True(await harness.Sent.Any<CommitClusterChange>(k => k.Context.Message.MetaInfo.ClusterVersion == expectedVersion));
+            Assert.True(await harness.Sent.Any<CommitClusterChange>(k => k.Context.Message.MetaInfo.ClusterVersion == expectedVersion, TestContext.Current.CancellationToken));
         }
 
         [Fact]

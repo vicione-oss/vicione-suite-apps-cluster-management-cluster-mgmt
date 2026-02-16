@@ -1,5 +1,4 @@
 ﻿using AngleSharp.Dom;
-using AwesomeAssertions;
 using Bunit;
 using ClusterManagement.Client.Editor.Dialogs;
 using ClusterManagement.Client.Editor.Enums;
@@ -9,12 +8,10 @@ using ClusterManagement.Public.Designs;
 using DevExpress.Blazor.Internal.Editors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using Sdk.Testing.Client;
 using ViciOne.Cluster.Model;
 using ViciOne.Ui.ClusterEditor.Services;
 using ViciOne.Ui.Localization.Resources;
-using Xunit;
 
 namespace ClusterManagement.Client.Tests.Editor.Dialogs;
 
@@ -49,7 +46,7 @@ public class LoadFunctionBlockDialogTests
         Version = new Version(1, 0, 0)
     };
 
-    private LoadFunctionBlocksService SetupServices(TestContext ctx)
+    private LoadFunctionBlocksService SetupServices(BunitContext ctx)
     {
         var service = new LoadFunctionBlocksService(
             _designProvider,
@@ -85,11 +82,11 @@ public class LoadFunctionBlockDialogTests
         public void ComponentGetsRendered()
         {
             // Arrange
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             SetupServices(ctx);
 
             // Act
-            var sut = ctx.RenderComponent<LoadFunctionBlockDialog>();
+            var sut = ctx.Render<LoadFunctionBlockDialog>();
 
             // Assert
             Assert.NotNull(sut);
@@ -102,7 +99,7 @@ public class LoadFunctionBlockDialogTests
         public async Task Generates_tree()
         {
             // Arrange
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             var service = SetupServices(ctx);
 
             _designProvider.GetClusterDependencies().Returns(
@@ -114,7 +111,7 @@ public class LoadFunctionBlockDialogTests
             await service.LoadPackageReferences();
 
             // Act
-            var component = ctx.RenderComponent<LoadFunctionBlockDialog>();
+            var component = ctx.Render<LoadFunctionBlockDialog>();
 
             // Assert
             component.WaitForAssertion(() =>
@@ -136,7 +133,7 @@ public class LoadFunctionBlockDialogTests
         [Fact(Skip = SkipMessage)]
         public async Task Shows_message_when_dependencies_are_empty()
         {
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             var service = SetupServices(ctx);
 
             _designProvider.GetClusterDependencies().Returns([]);
@@ -144,7 +141,7 @@ public class LoadFunctionBlockDialogTests
             await service.LoadPackageReferences();
 
             // Act
-            var component = ctx.RenderComponent<LoadFunctionBlockDialog>();
+            var component = ctx.Render<LoadFunctionBlockDialog>();
 
             // Assert
             component.WaitForAssertion(() =>
@@ -160,14 +157,14 @@ public class LoadFunctionBlockDialogTests
         public async Task Closes_popup()
         {
             // Arrange
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             var service = SetupServices(ctx);
 
             _designProvider.GetClusterDependencies().Returns([]);
 
             await service.LoadPackageReferences();
 
-            var component = ctx.RenderComponent<LoadFunctionBlockDialog>();
+            var component = ctx.Render<LoadFunctionBlockDialog>();
 
             component.WaitForAssertion(() =>
             {
@@ -186,7 +183,7 @@ public class LoadFunctionBlockDialogTests
         public async Task All_nodes_get_collapsed()
         {
             // Arrange
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             var service = SetupServices(ctx);
 
             _designProvider.GetClusterDependencies().Returns(
@@ -196,7 +193,7 @@ public class LoadFunctionBlockDialogTests
 
             await service.LoadPackageReferences();
 
-            var component = ctx.RenderComponent<LoadFunctionBlockDialog>();
+            var component = ctx.Render<LoadFunctionBlockDialog>();
 
             // DX Toolbar is rendered async isn't available after rendering
             component.WaitForAssertion(() =>
@@ -217,7 +214,7 @@ public class LoadFunctionBlockDialogTests
         public async Task Checks_all_function_blocks()
         {
             // Arrange
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             var service = SetupServices(ctx);
 
             _designProvider.GetClusterDependencies().Returns(
@@ -228,7 +225,7 @@ public class LoadFunctionBlockDialogTests
 
             await service.LoadPackageReferences();
 
-            var component = ctx.RenderComponent<LoadFunctionBlockDialog>();
+            var component = ctx.Render<LoadFunctionBlockDialog>();
 
             component.WaitForAssertion(() =>
             {
@@ -244,7 +241,7 @@ public class LoadFunctionBlockDialogTests
         public async Task Unchecks_all_function_blocks()
         {
             // Arrange
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             var service = SetupServices(ctx);
 
             _designProvider.GetClusterDependencies().Returns(
@@ -255,7 +252,7 @@ public class LoadFunctionBlockDialogTests
 
             await service.LoadPackageReferences();
 
-            var component = ctx.RenderComponent<LoadFunctionBlockDialog>();
+            var component = ctx.Render<LoadFunctionBlockDialog>();
 
             component.WaitForAssertion(() =>
             {
@@ -276,7 +273,7 @@ public class LoadFunctionBlockDialogTests
         public async Task All_nodes_get_expanded()
         {
             // Arrange
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             var service = SetupServices(ctx);
 
             _designProvider.GetClusterDependencies().Returns(
@@ -286,7 +283,7 @@ public class LoadFunctionBlockDialogTests
 
             await service.LoadPackageReferences();
 
-            var component = ctx.RenderComponent<LoadFunctionBlockDialog>();
+            var component = ctx.Render<LoadFunctionBlockDialog>();
 
             component.WaitForAssertion(() =>
             {
@@ -309,7 +306,7 @@ public class LoadFunctionBlockDialogTests
         public async Task Loads_only_checked_function_blocks()
         {
             // Arrange
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             var service = SetupServices(ctx);
 
             _designProvider.GetClusterDependencies().Returns(
@@ -320,7 +317,7 @@ public class LoadFunctionBlockDialogTests
 
             await service.LoadPackageReferences();
 
-            var component = ctx.RenderComponent<LoadFunctionBlockDialog>();
+            var component = ctx.Render<LoadFunctionBlockDialog>();
 
             component.WaitForAssertion(() =>
             {
@@ -337,7 +334,7 @@ public class LoadFunctionBlockDialogTests
         public async Task Loads_checked_functionblock_even_if_not_shown_in_current_filter()
         {
             // Arrange
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             var service = SetupServices(ctx);
 
             _designProvider.GetClusterDependencies().Returns(
@@ -349,7 +346,7 @@ public class LoadFunctionBlockDialogTests
             await service.LoadPackageReferences();
             service.SelectedDependencies = [];
 
-            var component = ctx.RenderComponent<LoadFunctionBlockDialog>();
+            var component = ctx.Render<LoadFunctionBlockDialog>();
 
             component.WaitForAssertion(() =>
             {
@@ -370,7 +367,7 @@ public class LoadFunctionBlockDialogTests
         public async Task Checks_all_functionblocks_when_filtering()
         {
             // Arrange
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             var service = SetupServices(ctx);
 
             _designProvider.GetClusterDependencies().Returns(
@@ -384,7 +381,7 @@ public class LoadFunctionBlockDialogTests
             await service.LoadPackageReferences();
             service.SelectedDependencies = [];
 
-            var component = ctx.RenderComponent<LoadFunctionBlockDialog>();
+            var component = ctx.Render<LoadFunctionBlockDialog>();
 
             component.WaitForAssertion(() =>
             {
@@ -402,7 +399,7 @@ public class LoadFunctionBlockDialogTests
         public async Task Checks_indeterminate_when_filtering()
         {
             // Arrange
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             var service = SetupServices(ctx);
 
             _designProvider.GetClusterDependencies().Returns(
@@ -414,7 +411,7 @@ public class LoadFunctionBlockDialogTests
             await service.LoadPackageReferences();
             service.SelectedDependencies = [];
 
-            var component = ctx.RenderComponent<LoadFunctionBlockDialog>();
+            var component = ctx.Render<LoadFunctionBlockDialog>();
 
             component.WaitForAssertion(() =>
             {
@@ -432,7 +429,7 @@ public class LoadFunctionBlockDialogTests
         public async Task Keeps_check_value_when_filtering()
         {
             // Arrange
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             var service = SetupServices(ctx);
 
             _designProvider.GetClusterDependencies().Returns(
@@ -442,7 +439,7 @@ public class LoadFunctionBlockDialogTests
 
             await service.LoadPackageReferences();
 
-            var component = ctx.RenderComponent<LoadFunctionBlockDialog>();
+            var component = ctx.Render<LoadFunctionBlockDialog>();
 
             component.WaitForAssertion(() =>
             {
@@ -459,7 +456,7 @@ public class LoadFunctionBlockDialogTests
         public async Task Unchecks_all_functionblocks_when_filtering()
         {
             // Arrange
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             var service = SetupServices(ctx);
 
             _designProvider.GetClusterDependencies().Returns(
@@ -473,7 +470,7 @@ public class LoadFunctionBlockDialogTests
             await service.LoadPackageReferences();
             service.SelectedDependencies = [];
 
-            var component = ctx.RenderComponent<LoadFunctionBlockDialog>();
+            var component = ctx.Render<LoadFunctionBlockDialog>();
 
             component.WaitForAssertion(() =>
             {
@@ -492,7 +489,7 @@ public class LoadFunctionBlockDialogTests
         public async Task Only_shows_filtered_functionblocks()
         {
             // Arrange
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             var service = SetupServices(ctx);
 
             _designProvider.GetClusterDependencies().Returns(
@@ -503,7 +500,7 @@ public class LoadFunctionBlockDialogTests
 
             await service.LoadPackageReferences();
 
-            var component = ctx.RenderComponent<LoadFunctionBlockDialog>();
+            var component = ctx.Render<LoadFunctionBlockDialog>();
             service.SelectedDependencies = [];
 
             component.WaitForAssertion(() =>
@@ -523,7 +520,7 @@ public class LoadFunctionBlockDialogTests
         public async Task Resets_check_states()
         {
             // Arrange
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             var service = SetupServices(ctx);
 
             _designProvider.GetClusterDependencies().Returns(
@@ -534,7 +531,7 @@ public class LoadFunctionBlockDialogTests
 
             await service.LoadPackageReferences();
 
-            var component = ctx.RenderComponent<LoadFunctionBlockDialog>();
+            var component = ctx.Render<LoadFunctionBlockDialog>();
 
             component.WaitForAssertion(() =>
             {
@@ -554,7 +551,7 @@ public class LoadFunctionBlockDialogTests
         public async Task Resets_filter_and_highlighting()
         {
             // Arrange
-            using var ctx = new TestContext();
+            using var ctx = new BunitContext();
             var service = SetupServices(ctx);
 
             _designProvider.GetClusterDependencies().Returns(
@@ -565,7 +562,7 @@ public class LoadFunctionBlockDialogTests
 
             await service.LoadPackageReferences();
 
-            var component = ctx.RenderComponent<LoadFunctionBlockDialog>();
+            var component = ctx.Render<LoadFunctionBlockDialog>();
 
             component.WaitForAssertion(() =>
             {

@@ -2,7 +2,6 @@
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Tests.Tools;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using ViciOne.Cluster.Model;
 
 

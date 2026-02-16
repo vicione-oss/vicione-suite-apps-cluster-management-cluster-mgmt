@@ -9,7 +9,6 @@ using ClusterManagement.Public.Requests;
 using ClusterManagement.Tests.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster.StateMachines;

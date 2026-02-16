@@ -1,9 +1,7 @@
 ﻿using System.IO.Abstractions.TestingHelpers;
-using AwesomeAssertions;
 using ClusterManagement.Backend.Designs;
 using Semver;
 using ViciOne.Cluster.Model;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Designs;
 

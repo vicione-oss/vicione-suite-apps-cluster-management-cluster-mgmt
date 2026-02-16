@@ -30,7 +30,7 @@ public class ResetSagaStateConsumerTests : TestWithDbContextSqlite<ClusterSagaDb
         var clusterId = Guid.NewGuid();
         var state = new DeployClusterState { ClusterId = clusterId, CurrentState = 2 };
         TestDbContext.DeployClusterState.Add(state);
-        await TestDbContext.SaveChangesAsync();
+        await TestDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var command = new ResetSagaState(clusterId);
 
@@ -39,7 +39,7 @@ public class ResetSagaStateConsumerTests : TestWithDbContextSqlite<ClusterSagaDb
 
         // Assert
         var remainingState = await TestDbContext.DeployClusterState
-            .FirstOrDefaultAsync(k => k.ClusterId == clusterId);
+            .FirstOrDefaultAsync(k => k.ClusterId == clusterId, TestContext.Current.CancellationToken);
         remainingState.Should().BeNull();
     }
 
@@ -54,7 +54,7 @@ public class ResetSagaStateConsumerTests : TestWithDbContextSqlite<ClusterSagaDb
         await tester.TestCommand<ResetSagaState, ResetSagaStateConsumer>(command);
 
         // Assert
-        var remainingState = await TestDbContext.DeployClusterState.ToListAsync();
+        var remainingState = await TestDbContext.DeployClusterState.ToListAsync(TestContext.Current.CancellationToken);
         remainingState.Should().BeEmpty();
     }
 }

@@ -21,7 +21,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
         <!-- General -->
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <RuntimeIdentifiers Condition="$(MSBuildProjectDirectory.Contains('src'))">linux-x64;linux-arm64;win-x64</RuntimeIdentifiers>
         <Description>-</Description>
         <Product>ViciOne</Product>
@@ -55,6 +55,31 @@
         <IsPublishable>false</IsPublishable>
         <RunSettingsFilePath>$(MsBuildThisFileDirectory)\tests.runsettings</RunSettingsFilePath>
     </PropertyGroup>
+
+    <ItemGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">
+        <PackageReference Include="Microsoft.Testing.Platform" />
+        <PackageReference Include="coverlet.collector">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="System.IO.Abstractions.TestingHelpers" />
+        <PackageReference Include="ViciOne.Suite.Sdk.Testing" />
+        <PackageReference Include="xunit.v3" />
+        <PackageReference Include="xunit.analyzers">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.runner.visualstudio">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        
+        <!-- Global usings for all test projects -->
+        <Using Include="Xunit" />        
+        <Using Include="NSubstitute" />
+        <Using Include="AwesomeAssertions" />
+    </ItemGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('Backend')) Or $(MSBuildProjectName.EndsWith('Client'))">
         <EnableDynamicLoading>true</EnableDynamicLoading>

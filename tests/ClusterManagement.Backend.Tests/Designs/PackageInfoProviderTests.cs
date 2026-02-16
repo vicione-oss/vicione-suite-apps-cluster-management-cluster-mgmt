@@ -1,7 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using AwesomeAssertions;
 using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.Snapshots;
@@ -11,14 +10,12 @@ using ClusterManagement.Public.Requests;
 using ClusterManagement.Tests.Tools;
 using ClusterManagement.Tests.Tools.Factories;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using Sdk.Backend.Artifacts;
 using Sdk.Testing.Backend;
 using Semver;
 using ViciOne.Cluster.Model;
 using ViciOne.Core.Dataflow.DataModel;
 using ViciOne.TreeBuilder.Rules;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Designs;
 

@@ -1,11 +1,11 @@
 ﻿<Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <ViciOneSuiteSdkVersion>1.1.0</ViciOneSuiteSdkVersion>
-    <DotNetVersion>9.0.11</DotNetVersion>
+    <ViciOneSuiteSdkVersion>2.0.0-ci2328417675</ViciOneSuiteSdkVersion>
+    <DotNetVersion>10.0.3</DotNetVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="AspNetCore.SassCompiler" Version="1.94.2" />
+    <PackageVersion Include="AspNetCore.SassCompiler" Version="1.97.1" />
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageVersion Include="MassTransit.EntityFrameworkCore" Version="8.5.7" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.Authorization" Version="$(DotNetVersion)" />
@@ -28,22 +28,22 @@
     <PackageVersion Include="ViciOne.Suite.Sdk.Client" Version="$(ViciOneSuiteSdkVersion)" />
     <PackageVersion Include="ViciOne.Suite.System.DataPort" Version="0.15.0" />
     <PackageVersion Include="ViciOne.TreeBuilder" Version="0.6.0" />
-    <PackageVersion Include="ViciOne.Ui.ClusterEditor" Version="0.17.0" />
-    <PackageVersion Include="ViciOne.Ui.Design" Version="1.1.1" />
-    <PackageVersion Include="ViciOne.Ui.Localization" Version="2.35.0" />
-    <PackageVersion Include="ViciOne.Ui.MonochromeIcons.Assets" Version="3.10.0" />
+    <PackageVersion Include="ViciOne.Ui.ClusterEditor" Version="0.18.0-ci2308279749" />
+    <PackageVersion Include="ViciOne.Ui.Design" Version="2.0.3" />
+    <PackageVersion Include="ViciOne.Ui.Localization" Version="3.1.0" />
+    <PackageVersion Include="ViciOne.Ui.MonochromeIcons.Assets" Version="4.2.0" />
     <PackageVersion Include="ViciOne.Ui.TreeEditor" Version="0.12.0" />
     <!--Used for tests only:-->
     <PackageVersion Include="AwesomeAssertions" Version="9.3.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageVersion Include="Microsoft.Testing.Platform" Version="2.0.2" />
     <PackageVersion Include="NSubstitute" Version="5.3.0" />
     <PackageVersion Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" />
     <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="22.1.0" />
     <PackageVersion Include="ViciOne.Suite.Sdk.Testing" Version="$(ViciOneSuiteSdkVersion)" />
-    <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.analyzers" Version="1.23.0" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.3" />
-    <PackageVersion Include="Xunit.SkippableFact" Version="1.5.23" />
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="xunit.analyzers" Version="1.27.0" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
   </ItemGroup>
 </Project>

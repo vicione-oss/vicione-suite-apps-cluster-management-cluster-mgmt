@@ -217,7 +217,7 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
             }
             catch (UnauthorizedAccessException)
             {
-                await _serviceManagement.ControlService(ServiceCommand.Start, $"enginehost-reset@{id}.service", cancellationToken);
+                await _serviceManagement.TryControlService(ServiceCommand.Start, $"enginehost-reset@{id}.service", cancellationToken);
             }
         }
     }
@@ -225,7 +225,7 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
     private async Task StartService(Guid id, bool elevatedPrivileges, CancellationToken cancellationToken)
     {
         var privileged = elevatedPrivileges ? PrivilegeIndicator : string.Empty;
-        await _serviceManagement.ControlService(ServiceCommand.Start, $"enginehost{privileged}@{id}.service", cancellationToken);
+        await _serviceManagement.TryControlService(ServiceCommand.Start, $"enginehost{privileged}@{id}.service", cancellationToken);
     }
 
     private async Task WriteFile(string directory, string fileName, string content, CancellationToken cancellationToken)
@@ -272,9 +272,9 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
         if (service is not null)
         {
             if (service.Contains(PrivilegeIndicator, StringComparison.OrdinalIgnoreCase))
-                await _serviceManagement.ControlService(ServiceCommand.Stop, $"enginehost{PrivilegeIndicator}@{id}.service", cancellationToken);
+                await _serviceManagement.TryControlService(ServiceCommand.Stop, $"enginehost{PrivilegeIndicator}@{id}.service", cancellationToken);
             else
-                await _serviceManagement.ControlService(ServiceCommand.Stop, $"enginehost@{id}.service", cancellationToken);
+                await _serviceManagement.TryControlService(ServiceCommand.Stop, $"enginehost@{id}.service", cancellationToken);
         }
     }
 

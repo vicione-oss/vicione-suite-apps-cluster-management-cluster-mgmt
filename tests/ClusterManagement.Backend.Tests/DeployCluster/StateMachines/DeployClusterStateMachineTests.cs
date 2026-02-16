@@ -3,7 +3,6 @@ using ClusterManagement.Public.Enums;
 using ClusterManagement.Tests.Tools;
 using MassTransit.Testing;
 using ViciOne.Cluster.Model;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster.StateMachines;
 

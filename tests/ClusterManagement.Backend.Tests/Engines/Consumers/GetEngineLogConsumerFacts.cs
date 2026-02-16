@@ -1,6 +1,5 @@
 ﻿using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
-using AwesomeAssertions;
 using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.Engines.Consumers;
 using ClusterManagement.Backend.Snapshots;
@@ -10,16 +9,13 @@ using ClusterManagement.Tests.Tools;
 using ClusterManagement.Tests.Tools.Extensions;
 using ClusterManagement.Tests.Tools.Factories;
 using MassTransit;
-using MassTransit.Internals;
 using MassTransit.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using Sdk.Backend.Modules;
 using Sdk.Messaging;
 using Sdk.Testing.Backend;
 using ViciOne.Cluster.Builder;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Engines.Consumers;
 

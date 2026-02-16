@@ -1,14 +1,11 @@
-﻿using AwesomeAssertions;
-using Bunit;
+﻿using Bunit;
 using ClusterManagement.Client.Management.Services;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Public.Enums;
 using ClusterManagement.Public.Events;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Sdk.Client.Infrastructure;
 using Sdk.Testing.Client;
-using Xunit;
 
 namespace ClusterManagement.Client.Tests.Management;
 
@@ -21,7 +18,7 @@ public class ClusterManagementPageServiceTests
     public async Task Query_cluster_versions_should_()
     {
         // Arrange
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         ctx.SetupSuiteServices();
         ctx.Services.AddSingleton(_clusterService);
         ctx.Services.AddSingleton<ClusterManagementPageService>();
@@ -30,7 +27,7 @@ public class ClusterManagementPageServiceTests
         var service = ctx.Services.GetRequiredService<ClusterManagementPageService>();
 
         // Act
-        await service.QueryClusterVersions(Guid.NewGuid());
+        await service.QueryClusterVersions(Guid.NewGuid(), Xunit.TestContext.Current.CancellationToken);
 
         // Assert
         //service.Builder.Should().NotBeNull();
@@ -40,7 +37,7 @@ public class ClusterManagementPageServiceTests
     public async Task Consume_event_should_trigger_cluster_update_changed()
     {
         // Arrange
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         ctx.SetupSuiteServices();
         ctx.Services.AddSingleton(_clusterService);
         ctx.Services.AddSingleton<ClusterManagementPageService>();
@@ -62,7 +59,7 @@ public class ClusterManagementPageServiceTests
     public async Task Consume_event_should_trigger_cluster_completed_event()
     {
         // Arrange
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         ctx.SetupSuiteServices();
         ctx.Services.AddSingleton(_clusterService);
         ctx.Services.AddSingleton<ClusterManagementPageService>();
@@ -84,7 +81,7 @@ public class ClusterManagementPageServiceTests
     public async Task Consume_event_should_trigger_cluster_update_failed()
     {
         // Arrange
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         ctx.SetupSuiteServices();
         ctx.Services.AddSingleton(_clusterService);
         ctx.Services.AddSingleton<ClusterManagementPageService>();

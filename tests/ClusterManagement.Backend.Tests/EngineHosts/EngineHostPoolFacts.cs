@@ -1,8 +1,6 @@
 ﻿using System.IO.Abstractions.TestingHelpers;
 using System.Runtime.InteropServices;
-using AwesomeAssertions;
 using ClusterManagement.Backend.EngineHosts;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.EngineHosts;
 
@@ -28,7 +26,7 @@ public class EngineHostPool_Migrate
             Path.Combine(nameof(EngineHostPool_Migrate), nameof(Does_nothing_if_hosts_directory_does_not_exist)),
             _fileSystem);
 
-        await engineHostPool.Migrate(default);
+        await engineHostPool.Migrate(TestContext.Current.CancellationToken);
 
         _fileSystem.Directory.Exists(_engineHostWorkingDirectory.Path).Should().BeFalse();
     }
@@ -36,7 +34,7 @@ public class EngineHostPool_Migrate
     [Fact]
     public async Task Does_nothing_if_no_working_directories_exist()
     {
-        await _engineHostPool.Migrate(default);
+        await _engineHostPool.Migrate(TestContext.Current.CancellationToken);
 
         _fileSystem.Directory.Exists(_engineHostWorkingDirectory.Path).Should().BeFalse();
     }
@@ -47,7 +45,7 @@ public class EngineHostPool_Migrate
         _engineHostWorkingDirectory.CreateDirectory();
         _engineHostWorkingDirectory.WriteExecutablePath("content");
 
-        await _engineHostPool.Migrate(default);
+        await _engineHostPool.Migrate(TestContext.Current.CancellationToken);
 
         _fileSystem.GetFile(_engineHostWorkingDirectory.ExecutableFile).TextContents.Should().Be("content");
     }
@@ -57,7 +55,7 @@ public class EngineHostPool_Migrate
     {
         _engineHostWorkingDirectory.CreateDirectory();
 
-        await _engineHostPool.Migrate(default);
+        await _engineHostPool.Migrate(TestContext.Current.CancellationToken);
 
         _fileSystem.GetFile(_engineHostWorkingDirectory.ExecutableFile).TextContents.Should().Be(
             _fileSystem.Path.GetFullPath(_fileSystem.Path.Combine(

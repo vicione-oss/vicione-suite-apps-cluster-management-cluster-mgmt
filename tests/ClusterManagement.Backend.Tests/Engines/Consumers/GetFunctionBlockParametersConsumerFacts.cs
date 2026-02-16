@@ -1,5 +1,4 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Backend.DbContext;
+﻿using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.Engines.Consumers;
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Internal.Requests;
@@ -12,11 +11,9 @@ using ClusterManagement.Tests.Tools.Extensions;
 using ClusterManagement.Tests.Tools.Factories;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Sdk.Backend.Messaging;
 using Sdk.Testing.Backend;
 using ViciOne.Cluster.Builder;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Engines.Consumers;
 

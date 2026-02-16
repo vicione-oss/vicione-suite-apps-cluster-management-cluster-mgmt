@@ -1,14 +1,11 @@
-﻿using AwesomeAssertions;
-using Bunit;
+﻿using Bunit;
 using ClusterManagement.Client.Management;
 using ClusterManagement.Client.Management.Services;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Public.Designs;
 using ClusterManagement.Public.Requests;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Sdk.Testing.Client;
-using Xunit;
 using Range = System.Range;
 
 namespace ClusterManagement.Client.Tests.Management;
@@ -21,7 +18,7 @@ public sealed class ClusterManagementPageTests
     public void PageGetsRendered()
     {
         // Arrange
-        using var ctx = new TestContext();
+        using var ctx = new BunitContext();
         ctx.SetupSuiteServices(setup =>
         {
             setup.Services.AddLocalization<ClusterManagementClientModule>();
@@ -40,7 +37,7 @@ public sealed class ClusterManagementPageTests
             .Returns(TestDataFactory.CreateClusterViewModels(Guid.NewGuid()));
 
         // Act
-        var sut = ctx.RenderComponent<ClusterManagementPage>();
+        var sut = ctx.Render<ClusterManagementPage>();
 
         // Assert
         Assert.NotNull(sut);

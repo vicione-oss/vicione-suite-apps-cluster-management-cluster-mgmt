@@ -2,15 +2,12 @@
 using System.IO.Abstractions.TestingHelpers;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using AwesomeAssertions;
 using ClusterManagement.Backend.Engines;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using Sdk.Backend.Messaging;
 using Sdk.Instance;
 using Sdk.Testing.Logging;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Engines;
 

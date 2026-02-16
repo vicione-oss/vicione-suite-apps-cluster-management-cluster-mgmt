@@ -1,12 +1,9 @@
 ﻿using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Public.DataflowEvents;
 using ClusterManagement.Public.Requests;
-using AwesomeAssertions;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
-using NSubstitute;
 using Sdk.Client.Infrastructure;
-using Xunit;
 
 namespace ClusterManagement.Client.Tests.DataflowEvents.Services;
 
@@ -74,7 +71,7 @@ public class DataflowEventBrokerTests
             _ = await broker.Subscribe(_outputEvent.EventId, _handler);
 
             // Assert
-            await _mqttHandler.ReceivedWithAnyArgs(1).Subscribe(default!);
+            await _mqttHandler.ReceivedWithAnyArgs(1).Subscribe(default!, Arg.Any<CancellationToken>());
         }
 
         [Fact]
@@ -88,7 +85,7 @@ public class DataflowEventBrokerTests
             _ = await broker.Subscribe(_outputEvent.EventId, _handler);
 
             // Assert
-            await _mqttHandler.ReceivedWithAnyArgs(1).Subscribe(default!);
+            await _mqttHandler.ReceivedWithAnyArgs(1).Subscribe(default!, Arg.Any<CancellationToken>());
         }
 
         [Fact]
@@ -170,7 +167,7 @@ public class DataflowEventBrokerTests
             await subscription1.DisposeAsync();
 
             // Assert
-            await _mqttHandler.DidNotReceiveWithAnyArgs().Unsubscribe(default!);
+            await _mqttHandler.DidNotReceiveWithAnyArgs().Unsubscribe(default!, Arg.Any<CancellationToken>());
         }
 
         [Fact]
@@ -186,7 +183,7 @@ public class DataflowEventBrokerTests
             await subscription2.DisposeAsync();
 
             // Assert
-            await _mqttHandler.ReceivedWithAnyArgs(1).Unsubscribe(default!);
+            await _mqttHandler.ReceivedWithAnyArgs(1).Unsubscribe(default!, Arg.Any<CancellationToken>());
         }
     }
 
@@ -200,10 +197,10 @@ public class DataflowEventBrokerTests
             var value = "[some data]";
 
             // Act
-            await broker.SetValue(_inputEvent.EventId, value);
+            await broker.SetValue(_inputEvent.EventId, value, TestContext.Current.CancellationToken);
 
             // Assert
-            await _mqttHandler.Received().PublishValue(_inputEvent.EventId, value, _inputEvent.ValueType);
+            await _mqttHandler.Received().PublishValue(_inputEvent.EventId, value, _inputEvent.ValueType, Arg.Any<CancellationToken>());
         }
     }
 }

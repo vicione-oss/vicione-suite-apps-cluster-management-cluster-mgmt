@@ -1,13 +1,10 @@
 ﻿using System.Net.Mime;
 using System.Text;
 using ClusterManagement.Backend.Mqtt;
-using AwesomeAssertions;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Packets;
 using MQTTnet.Protocol;
-using NSubstitute;
-using Xunit;
 using ClusterManagement.Backend.Tests.TestUtils;
 
 namespace ClusterManagement.Backend.Tests.Mqtt;
@@ -109,7 +106,7 @@ public class MqttNetRpcClientFacts
                     subscription.Topic.Should().BeEquivalentTo("response");
                     subscription.QualityOfServiceLevel.Should().Be(MqttQualityOfServiceLevel.ExactlyOnce);
                 }), Arg.Is(cancellationTokenSource.Token));
-            await mqttClient.ReceivedWithAnyArgs(1).UnsubscribeAsync(default, default);
+            await mqttClient.ReceivedWithAnyArgs(1).UnsubscribeAsync(default, TestContext.Current.CancellationToken);
         }
 
         [Fact]

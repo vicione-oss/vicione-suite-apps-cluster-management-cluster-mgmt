@@ -1,12 +1,10 @@
 ﻿using System.Globalization;
 using System.Runtime.InteropServices;
-using AwesomeAssertions;
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Backend.Engines;
 using ClusterManagement.Backend.Engines.Extensions;
 using ClusterManagement.Public.Events;
 using Microsoft.EntityFrameworkCore;
-using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using ViciOne.Cluster.Model.Extensions;
 

@@ -1,5 +1,4 @@
 ﻿using System.Text.Json;
-using NSubstitute;
 using Sdk.Backend.Artifacts;
 
 namespace ClusterManagement.Backend.Tests.Extensions;

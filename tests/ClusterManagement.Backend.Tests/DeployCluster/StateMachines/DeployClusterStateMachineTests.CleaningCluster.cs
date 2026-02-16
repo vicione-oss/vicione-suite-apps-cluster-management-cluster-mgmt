@@ -2,7 +2,6 @@
 using ClusterManagement.Public.Events;
 using MassTransit.Testing;
 using Sdk.Messaging;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster.StateMachines;
 
@@ -38,7 +37,7 @@ public partial class DeployClusterStateMachineTests
             await harness.Consumed.Any<ClusterChanged>(k => k.Context.Message.CorrelationId == _correlationId
                 && k.Context.Message.ClusterId == _clusterId
                 && k.Context.Message.Action == CrudAction.Deleted
-                && k.Context.Message.Version == prepared.Item1.Version);
+                && k.Context.Message.Version == prepared.Item1.Version, TestContext.Current.CancellationToken);
 
             await harness.AssertClusterUpdateCompleted(_correlationId, prepared.Item2.Version);
         }
@@ -58,7 +57,7 @@ public partial class DeployClusterStateMachineTests
             await harness.PublishClusterChangedDeleted(Guid.NewGuid(), Guid.NewGuid(), new Version(2, 2, 2));
 
             // Assert
-            Assert.False(await harness.Consumed.Any<ClusterUpdateFailed>(k => k.Context.Message.Version == prepared.Item2.Version));
+            Assert.False(await harness.Consumed.Any<ClusterUpdateFailed>(k => k.Context.Message.Version == prepared.Item2.Version, TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -76,7 +75,7 @@ public partial class DeployClusterStateMachineTests
             await harness.PublishClusterErrorDeleteFailed(_correlationId, _clusterId);
 
             // Assert
-            await harness.Consumed.Any<ClusterError>(k => k.Context.Message.ClusterId == _clusterId);
+            await harness.Consumed.Any<ClusterError>(k => k.Context.Message.ClusterId == _clusterId, TestContext.Current.CancellationToken);
 
             await harness.AssertClusterUpdateCompleted(_correlationId, prepared.Item2.Version);
         }

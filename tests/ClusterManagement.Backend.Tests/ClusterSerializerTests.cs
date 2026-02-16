@@ -2,9 +2,7 @@
 using ClusterManagement.Public;
 using ClusterManagement.Tests.Tools.Extensions;
 using ClusterManagement.Tests.Tools.Factories;
-using AwesomeAssertions;
 using ViciOne.Cluster.Builder;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests;
 
@@ -55,7 +53,7 @@ public class ClusterSerializerTests
             var compressed = ClusterSerializer.Compress(builder.Cluster, _serializerOptions);
 
             // Act
-            var decompressed = await ClusterSerializer.Decompress(compressed, _serializerOptions);
+            var decompressed = await ClusterSerializer.Decompress(compressed, _serializerOptions, TestContext.Current.CancellationToken);
 
             // Assert
             using var compareBuilder = new ClusterBuilder(decompressed, builder.DependencyResolver);

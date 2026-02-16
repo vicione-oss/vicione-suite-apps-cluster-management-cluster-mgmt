@@ -1,14 +1,11 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Backend.Iodds.Consumers;
+﻿using ClusterManagement.Backend.Iodds.Consumers;
 using ClusterManagement.Public.Iodds;
 using ClusterManagement.Public.Iodds.Commands;
 using ClusterManagement.Public.Iodds.Events;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Sdk.Messaging;
 using Sdk.Testing.Backend;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Iodds.Consumers;
 
@@ -75,7 +72,7 @@ public class DeleteIoddConsumerTests
             => k.Context.Message.Iodd.VendorId == vendorId
             && k.Context.Message.Iodd.DeviceId == deviceId
             && k.Context.Message.Action == CrudAction.Deleted
-            && k.Context.Message.DeviceInfo == null)).Should().BeTrue();
+            && k.Context.Message.DeviceInfo == null, TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
     [Fact]
@@ -95,7 +92,7 @@ public class DeleteIoddConsumerTests
         // Assert
         (await tester.Harness.Published.Any<IoddError>(k
             => k.Context.Message.Error.ErrorCode == IoddError.DeleteIoddError
-            && k.Context.Message.Name == "Delete Failed")).Should().BeTrue();
+            && k.Context.Message.Name == "Delete Failed", TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
     [Fact]
@@ -113,7 +110,7 @@ public class DeleteIoddConsumerTests
         // Assert
         (await tester.Harness.Published.Any<IoddError>(k
             => k.Context.Message.Error.ErrorCode == IoddError.DeleteIoddError
-            && k.Context.Message.Error.Message == "Failed to delete IODD")).Should().BeTrue();
+            && k.Context.Message.Error.Message == "Failed to delete IODD", TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
     [Fact]
@@ -129,7 +126,7 @@ public class DeleteIoddConsumerTests
         await tester.TestCommand<DeleteIodd, DeleteIoddConsumer>(command);
 
         // Assert
-        (await tester.Harness.Published.Any<IoddChanged>()).Should().BeFalse();
+        (await tester.Harness.Published.Any<IoddChanged>(TestContext.Current.CancellationToken)).Should().BeFalse();
     }
 
     [Fact]
@@ -181,8 +178,8 @@ public class DeleteIoddConsumerTests
         await tester.TestCommand<DeleteIodd, DeleteIoddConsumer>(command);
 
         // Assert
-        (await tester.Harness.Published.Any<IoddChanged>()).Should().BeTrue();
-        (await tester.Harness.Published.Any<IoddError>()).Should().BeFalse();
+        (await tester.Harness.Published.Any<IoddChanged>(TestContext.Current.CancellationToken)).Should().BeTrue();
+        (await tester.Harness.Published.Any<IoddError>(TestContext.Current.CancellationToken)).Should().BeFalse();
     }
 
     [Fact]
@@ -199,7 +196,7 @@ public class DeleteIoddConsumerTests
 
         // Assert
         (await tester.Harness.Published.Any<IoddError>(k
-            => k.Context.Message.Error.ErrorCode == IoddError.DeleteIoddError)).Should().BeTrue();
+            => k.Context.Message.Error.ErrorCode == IoddError.DeleteIoddError, TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
     [Fact]

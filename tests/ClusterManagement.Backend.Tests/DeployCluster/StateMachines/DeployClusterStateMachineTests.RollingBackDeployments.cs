@@ -1,11 +1,9 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Backend.DbContext;
+﻿using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.Tests.Extensions;
 using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Enums;
 using MassTransit.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster.StateMachines;
 
@@ -92,7 +90,7 @@ public partial class DeployClusterStateMachineTests
 
             // Assert
             await harness.Sent.Any<RemoveCluster>(k => k.Context.Message.ClusterId == _clusterId
-                && k.Context.Message.Version == commitVersion);
+                && k.Context.Message.Version == commitVersion, TestContext.Current.CancellationToken);
 
             await harness.AssertDeployClusterState(_correlationId, x => x.RollingBackCommit);
 
@@ -118,7 +116,7 @@ public partial class DeployClusterStateMachineTests
 
             // Assert            
             await harness.Sent.Any<RemoveCluster>(k => k.Context.Message.ClusterId == _clusterId
-                && k.Context.Message.Version == commitVersion);
+                && k.Context.Message.Version == commitVersion, TestContext.Current.CancellationToken);
 
             await harness.AssertDeployClusterState(_correlationId, x => x.RollingBackCommit);
         }

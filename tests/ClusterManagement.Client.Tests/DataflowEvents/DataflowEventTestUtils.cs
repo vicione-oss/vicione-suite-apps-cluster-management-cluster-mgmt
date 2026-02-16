@@ -1,6 +1,5 @@
 ﻿using ClusterManagement.Public.DataflowEvents;
 using ClusterManagement.Public.Requests;
-using NSubstitute;
 using Sdk.Client.Infrastructure;
 
 namespace ClusterManagement.Client.Tests.DataflowEvents;

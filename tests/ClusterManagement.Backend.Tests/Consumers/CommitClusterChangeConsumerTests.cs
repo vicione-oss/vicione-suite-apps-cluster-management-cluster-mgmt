@@ -1,5 +1,4 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Backend.Consumers;
+﻿using ClusterManagement.Backend.Consumers;
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Backend.Tests.TestUtils;
 using ClusterManagement.Internal.Designs;
@@ -9,11 +8,9 @@ using ClusterManagement.Public.Events;
 using ClusterManagement.Tests.Tools;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sdk.Testing.Backend;
 using ViciOne.Cluster.Model;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Consumers;
 
@@ -64,9 +61,9 @@ public class CommitClusterChangeConsumerTests
             await tester.TestCommand<CommitClusterChange, CommitClusterChangeConsumer>(command);
 
             // Assert
-            Assert.False(await tester.Harness.Published.Any<ClusterError>());
+            Assert.False(await tester.Harness.Published.Any<ClusterError>(TestContext.Current.CancellationToken));
             Assert.True(await tester.Harness.Published.Any<ClusterChanged>(r =>
-                r.Context.Message.ClusterId == cluster.Id));
+                r.Context.Message.ClusterId == cluster.Id, TestContext.Current.CancellationToken));
 
             await _storage.Received(1).Store(Arg.Any<Cluster>(), Arg.Any<CancellationToken>());
         }
@@ -86,9 +83,9 @@ public class CommitClusterChangeConsumerTests
             await tester.TestCommand<CommitClusterChange, CommitClusterChangeConsumer>(command);
 
             // Assert
-            Assert.False(await tester.Harness.Published.Any<ClusterError>());
+            Assert.False(await tester.Harness.Published.Any<ClusterError>(TestContext.Current.CancellationToken));
             Assert.True(await tester.Harness.Published.Any<ClusterChanged>(r =>
-                r.Context.Message.ClusterId == cluster.Id));
+                r.Context.Message.ClusterId == cluster.Id, TestContext.Current.CancellationToken));
 
             await _storage.Received(1).Store(Arg.Any<Cluster>(), Arg.Any<CancellationToken>());
         }
@@ -112,7 +109,7 @@ public class CommitClusterChangeConsumerTests
 
             // Assert
             await act.Should().ThrowAsync<InvalidOperationException>();
-            Assert.True(await tester.Harness.Published.Any<CommitClusterChangeFailed>());
+            Assert.True(await tester.Harness.Published.Any<CommitClusterChangeFailed>(TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -147,7 +144,7 @@ public class CommitClusterChangeConsumerTests
                 Arg.Any<CancellationToken>());
 
             changeEvent.Version.Should().Be(new Version(1, 0, 5));
-            Assert.False(await tester.Harness.Published.Any<ClusterError>());
+            Assert.False(await tester.Harness.Published.Any<ClusterError>(TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -285,9 +282,9 @@ public class CommitClusterChangeConsumerTests
             await tester.TestCommand<CommitClusterChange, CommitClusterChangeConsumer>(command);
 
             // Assert
-            Assert.False(await tester.Harness.Published.Any<ClusterError>());
+            Assert.False(await tester.Harness.Published.Any<ClusterError>(TestContext.Current.CancellationToken));
             Assert.True(await tester.Harness.Published.Any<ClusterChanged>(r =>
-                r.Context.Message.ClusterId == cluster.Id));
+                r.Context.Message.ClusterId == cluster.Id, TestContext.Current.CancellationToken));
 
             await _storage.Received(1).Store(Arg.Is<Cluster>(k => k.Dependencies.Count <= 0), Arg.Any<CancellationToken>());
         }

@@ -1,14 +1,11 @@
 ﻿using AngleSharp.Common;
-using AwesomeAssertions;
 using ClusterManagement.Backend.Designs;
 using ClusterManagement.Tests.Tools;
 using ClusterManagement.Tests.Tools.Factories;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using ViciOne.Cluster.Model;
 using ViciOne.Core.Dataflow.DataModel;
 using ViciOne.TreeBuilder.Rules;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Designs;
 
@@ -31,10 +28,11 @@ public class RulesetProviderTests
                 Arg.Any<ClusterDependency>(),
                 Arg.Any<IReadOnlyCollection<Type>>(),
                 Arg.Any<IReadOnlyCollection<Ruleset>>(),
-                Arg.Any<bool>()).Returns(true);
+                Arg.Any<bool>(),
+                Arg.Any<CancellationToken>()).Returns(true);
 
             // Act
-            var result = await sut.AddSystemDataPortFunctionBlock();
+            var result = await sut.AddSystemDataPortFunctionBlock(TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().NotBeNull();
@@ -43,7 +41,8 @@ public class RulesetProviderTests
                 Arg.Is<ClusterDependency>(d => d.Name == _dataPortName),
                 Arg.Any<IReadOnlyCollection<Type>>(),
                 Arg.Any<IReadOnlyCollection<Ruleset>>(),
-                true);
+                true,
+                Arg.Any<CancellationToken>());
         }
 
         [Fact]
@@ -55,10 +54,11 @@ public class RulesetProviderTests
                 Arg.Any<ClusterDependency>(),
                 Arg.Any<IReadOnlyCollection<Type>>(),
                 Arg.Any<IReadOnlyCollection<Ruleset>>(),
-                Arg.Any<bool>()).Returns(false);
+                Arg.Any<bool>(),
+                Arg.Any<CancellationToken>()).Returns(false);
 
             // Act
-            var result = await sut.AddSystemDataPortFunctionBlock();
+            var result = await sut.AddSystemDataPortFunctionBlock(TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().NotBeNull();
@@ -74,10 +74,11 @@ public class RulesetProviderTests
                 Arg.Any<ClusterDependency>(),
                 Arg.Any<IReadOnlyCollection<Type>>(),
                 Arg.Any<IReadOnlyCollection<Ruleset>>(),
-                Arg.Any<bool>()).Returns(true);
+                Arg.Any<bool>(),
+                Arg.Any<CancellationToken>()).Returns(true);
 
             // Act
-            var addResult = await sut.AddSystemDataPortFunctionBlock();
+            var addResult = await sut.AddSystemDataPortFunctionBlock(TestContext.Current.CancellationToken);
             var getResult = sut.GetSystemDataPortDependency();
 
             // Assert
@@ -358,10 +359,11 @@ public class RulesetProviderTests
                 Arg.Any<ClusterDependency>(),
                 Arg.Any<IReadOnlyCollection<Type>>(),
                 Arg.Any<IReadOnlyCollection<Ruleset>>(),
-                Arg.Any<bool>()).Returns(true);
+                Arg.Any<bool>(),
+                Arg.Any<CancellationToken>()).Returns(true);
 
             // Act
-            var addedDependency = await sut.AddSystemDataPortFunctionBlock();
+            var addedDependency = await sut.AddSystemDataPortFunctionBlock(TestContext.Current.CancellationToken);
             var retrievedDependency = sut.GetSystemDataPortDependency();
 
             // Assert

@@ -1,13 +1,10 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Backend.Iodds.Consumers;
+﻿using ClusterManagement.Backend.Iodds.Consumers;
 using ClusterManagement.Internal.Commands;
 using ClusterManagement.Public.Iodds;
 using ClusterManagement.Public.Iodds.Events;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Sdk.Testing.Backend;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Iodds.Consumers;
 
@@ -62,6 +59,6 @@ public class SetAutoIoddDownloadConsumerTests
         await tester.TestCommand<SetAutoIoddDownload, SetAutoIoddDownloadConsumer>(command);
 
         // Assert
-        (await tester.Harness.Published.Any<AutoIoddDownloadChanged>()).Should().BeTrue();
+        (await tester.Harness.Published.Any<AutoIoddDownloadChanged>(TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 }

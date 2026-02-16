@@ -15,12 +15,9 @@ internal static partial class SeriLogReader
         await using var stream = fileSystem.FileStream.New(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
         using var reader = new StreamReader(stream);
         List<LogEntry> entries = [];
-        while (!reader.EndOfStream)
+        string? line;
+        while ((line = await reader.ReadLineAsync(cancellationToken)) is not null)
         {
-            var line = await reader.ReadLineAsync(cancellationToken);
-            if (line is null)
-                continue;
-
             var match = s_header.Match(line);
             if (!match.Success)
                 continue;

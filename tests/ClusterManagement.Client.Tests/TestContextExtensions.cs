@@ -1,13 +1,12 @@
 ﻿using Bunit;
 using DevExpress.Blazor.Internal;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 
 namespace ClusterManagement.Client.Tests;
 
 internal static class TestContextExtensions
 {
-    public static TestContext SetupDevExpressBlazor(this TestContext ctx)
+    public static BunitContext SetupDevExpressBlazor(this BunitContext ctx)
     {
         var env = Substitute.For<IEnvironmentInfo>();
         env.DeviceInfo.Returns(new DeviceInfo(false));

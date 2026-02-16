@@ -2,7 +2,6 @@
 using System.Globalization;
 using System.IO.Abstractions;
 using System.Reflection;
-using AwesomeAssertions;
 using AwesomeAssertions.Execution;
 using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.EngineHosts.Extensions;
@@ -15,7 +14,6 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using Sdk.Backend.Messaging;
 using Sdk.Backend.Modules;
 using Sdk.Connections.Contracts;

@@ -1,5 +1,4 @@
 ﻿using ClusterManagement.Public.ErrorHandling;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster.Consumers;
 

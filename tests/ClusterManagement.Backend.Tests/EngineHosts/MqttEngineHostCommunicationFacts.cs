@@ -4,7 +4,6 @@ using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using AwesomeAssertions;
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Backend.EngineHosts.CommunicationContracts;
 using ClusterManagement.Backend.Engines;
@@ -12,10 +11,8 @@ using ClusterManagement.Backend.Extensions;
 using ClusterManagement.Backend.Migrations;
 using ClusterManagement.Backend.Mqtt;
 using ClusterManagement.Backend.Tests.TestUtils;
-using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Semver;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.EngineHosts;
 
@@ -99,7 +96,7 @@ public class MqttEngineHostCommunicationFacts
             [Fact]
             public async Task Sends_request_with_correct_topics_and_data()
             {
-                _mqttClient.Request(default!, default!, default!, default)
+                _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                     .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToGzipBytes(Guid.Empty), MediaTypeNames.Application.GZip));
 
                 await _communication.DeployEngine(_engineHostId, CreateMinimalWorkflow(), CancellationToken.None);
@@ -114,13 +111,13 @@ public class MqttEngineHostCommunicationFacts
                         r.Payload.Value.Length.Should().BeInRange(790L, 804L);
                         r.ContentType.Should().Be(MediaTypeNames.Application.GZip);
                     })!,
-                    Arg.Is($"{_engineHostId}/response"), default);
+                    Arg.Is($"{_engineHostId}/response"), Arg.Any<CancellationToken>());
             }
 
             [Fact]
             public async Task Throws_InvalidOperationException_if_response_indicates_failure()
             {
-                _mqttClient.Request(default!, default!, default!, default)
+                _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                     .ReturnsForAnyArgs(new MqttRpcResponse("fail", PlainTextToBytes("not possible"), MediaTypeNames.Text.Plain));
 
                 var act = _communication.Awaiting(_ => _.DeployEngine(_engineHostId, CreateMinimalWorkflow(), CancellationToken.None));
@@ -131,7 +128,7 @@ public class MqttEngineHostCommunicationFacts
             [Fact]
             public async Task Returns_received_deployment_identifier()
             {
-                _mqttClient.Request(default!, default!, default!, default)
+                _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                     .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToGzipBytes(Guid.Empty), MediaTypeNames.Application.GZip));
 
                 var actual = await _communication.DeployEngine(_engineHostId, CreateMinimalWorkflow(), CancellationToken.None);
@@ -142,7 +139,7 @@ public class MqttEngineHostCommunicationFacts
             [Fact]
             public async Task Throws_InvalidOperationException_if_response_is_not_a_GUID()
             {
-                _mqttClient.Request(default!, default!, default!, default)
+                _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                     .ReturnsForAnyArgs(new MqttRpcResponse("ok", ReadOnlySequence<byte>.Empty, MediaTypeNames.Application.GZip));
 
                 var act = _communication.Awaiting(_ => _.DeployEngine(_engineHostId, CreateMinimalWorkflow(), CancellationToken.None));
@@ -227,7 +224,7 @@ public class MqttEngineHostCommunicationFacts
                 public async Task Does_not_migrate_to_upcoming_version()
                 {
                     _poolCommunication.GetManagedEngineVersion(Arg.Any<CancellationToken>(), Arg.Is(_engineHostId)).Returns(ChangeVersion(_latestSupportedManagedEngineVersion, +1));
-                    _mqttClient.Request(default!, default!, default!, default)
+                    _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                         .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToGzipBytes(Guid.Empty), MediaTypeNames.Application.GZip));
 
                     await _communication.DeployEngine(_engineHostId, CreateMinimalWorkflow(), CancellationToken.None);
@@ -235,14 +232,14 @@ public class MqttEngineHostCommunicationFacts
                     await _mqttClient.Received(1).Request(
                         Arg.Any<string>(),
                         FluentArg.Assert<MqttRpcRequest>(r => ShouldBe(r.Payload, CreateMinimalStartParameter()))!,
-                        Arg.Any<string>(), default);
+                        Arg.Any<string>(), Arg.Any<CancellationToken>());
                 }
 
                 [Fact]
                 public async Task Does_not_migrate_to_latest_version()
                 {
                     _poolCommunication.GetManagedEngineVersion(Arg.Any<CancellationToken>(), Arg.Is(_engineHostId)).Returns(_latestSupportedManagedEngineVersion);
-                    _mqttClient.Request(default!, default!, default!, default)
+                    _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                         .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToGzipBytes(Guid.Empty), MediaTypeNames.Application.GZip));
 
                     await _communication.DeployEngine(_engineHostId, CreateMinimalWorkflow(), CancellationToken.None);
@@ -250,14 +247,14 @@ public class MqttEngineHostCommunicationFacts
                     await _mqttClient.Received(1).Request(
                         Arg.Any<string>(),
                         FluentArg.Assert<MqttRpcRequest>(r => ShouldBe(r.Payload, CreateMinimalStartParameter()))!,
-                        Arg.Any<string>(), default);
+                        Arg.Any<string>(), Arg.Any<CancellationToken>());
                 }
 
                 [Fact]
                 public async Task Migrates_to_older_version()
                 {
                     _poolCommunication.GetManagedEngineVersion(Arg.Any<CancellationToken>(), Arg.Is(_engineHostId)).Returns(ChangeVersion(_latestSupportedManagedEngineVersion, -1));
-                    _mqttClient.Request(default!, default!, default!, default)
+                    _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                         .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToGzipBytes(Guid.Empty), MediaTypeNames.Application.GZip));
 
                     await _communication.DeployEngine(_engineHostId, CreateMinimalWorkflow(), CancellationToken.None);
@@ -265,14 +262,14 @@ public class MqttEngineHostCommunicationFacts
                     await _mqttClient.Received(1).Request(
                         Arg.Any<string>(),
                         FluentArg.Assert<MqttRpcRequest>(r => ShouldBe(r.Payload, CreateMinimalStartParameter()))!,
-                        Arg.Any<string>(), default);
+                        Arg.Any<string>(), Arg.Any<CancellationToken>());
                 }
 
                 [Fact]
                 public async Task Migrates_to_oldest_supported_version()
                 {
                     _poolCommunication.GetManagedEngineVersion(Arg.Any<CancellationToken>(), Arg.Is(_engineHostId)).Returns(_oldestSupportedManagedEngineVersion);
-                    _mqttClient.Request(default!, default!, default!, default)
+                    _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                         .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToGzipBytes(Guid.Empty), MediaTypeNames.Application.GZip));
 
                     await _communication.DeployEngine(_engineHostId, CreateMinimalWorkflow(), CancellationToken.None);
@@ -280,14 +277,14 @@ public class MqttEngineHostCommunicationFacts
                     await _mqttClient.Received(1).Request(
                         Arg.Any<string>(),
                         FluentArg.Assert<MqttRpcRequest>(r => ShouldBe(r.Payload, CreateMinimalStartParameter()))!,
-                        Arg.Any<string>(), default);
+                        Arg.Any<string>(), Arg.Any<CancellationToken>());
                 }
 
                 [Fact]
                 public async Task Migrates_until_oldest_supported_version_for_outdated_version()
                 {
                     _poolCommunication.GetManagedEngineVersion(Arg.Any<CancellationToken>(), Arg.Is(_engineHostId)).Returns(ChangeVersion(_oldestSupportedManagedEngineVersion, -1));
-                    _mqttClient.Request(default!, default!, default!, default)
+                    _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                         .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToGzipBytes(Guid.Empty), MediaTypeNames.Application.GZip));
 
                     await _communication.DeployEngine(_engineHostId, CreateMinimalWorkflow(), CancellationToken.None);
@@ -295,7 +292,7 @@ public class MqttEngineHostCommunicationFacts
                     await _mqttClient.Received(1).Request(
                         Arg.Any<string>(),
                         FluentArg.Assert<MqttRpcRequest>(r => ShouldBe(r.Payload, CreateMinimalStartParameter()))!,
-                        Arg.Any<string>(), default);
+                        Arg.Any<string>(), Arg.Any<CancellationToken>());
                 }
 
                 private static Backend.Engines.CommunicationContracts.StartParameter CreateMinimalStartParameter()
@@ -435,7 +432,7 @@ public class MqttEngineHostCommunicationFacts
                 public async Task Does_not_migrate_to_upcoming_version()
                 {
                     _poolCommunication.GetEngineHostVersion(Arg.Any<CancellationToken>(), Arg.Is(_engineHostId)).Returns(ChangeVersion(_latestSupportedEngineHostVersion, +1));
-                    _mqttClient.Request(default!, default!, default!, default)
+                    _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                         .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToGzipBytes(Guid.Empty), MediaTypeNames.Application.GZip));
 
                     await _communication.DeployEngine(_engineHostId, CreateMinimalWorkflow(), CancellationToken.None);
@@ -449,14 +446,14 @@ public class MqttEngineHostCommunicationFacts
                             EngineChainIndex = 0,
                             PackageReferences = [],
                         }, nameof(DeployRequest.StartParameter)))!,
-                        Arg.Any<string>(), default);
+                        Arg.Any<string>(), Arg.Any<CancellationToken>());
                 }
 
                 [Fact]
                 public async Task Does_not_migrate_to_latest_version()
                 {
                     _poolCommunication.GetEngineHostVersion(Arg.Any<CancellationToken>(), Arg.Is(_engineHostId)).Returns(_latestSupportedEngineHostVersion);
-                    _mqttClient.Request(default!, default!, default!, default)
+                    _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                         .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToGzipBytes(Guid.Empty), MediaTypeNames.Application.GZip));
 
                     await _communication.DeployEngine(_engineHostId, CreateMinimalWorkflow(), CancellationToken.None);
@@ -470,14 +467,14 @@ public class MqttEngineHostCommunicationFacts
                             EngineChainIndex = 0,
                             PackageReferences = [],
                         }, nameof(DeployRequest.StartParameter)))!,
-                        Arg.Any<string>(), default);
+                        Arg.Any<string>(), Arg.Any<CancellationToken>());
                 }
 
                 [Fact]
                 public async Task Migrates_to_older_version()
                 {
                     _poolCommunication.GetEngineHostVersion(Arg.Any<CancellationToken>(), Arg.Is(_engineHostId)).Returns(ChangeVersion(_latestSupportedEngineHostVersion, -1));
-                    _mqttClient.Request(default!, default!, default!, default)
+                    _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                         .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToGzipBytes(Guid.Empty), MediaTypeNames.Application.GZip));
 
                     await _communication.DeployEngine(_engineHostId, CreateMinimalWorkflow(), CancellationToken.None);
@@ -491,14 +488,14 @@ public class MqttEngineHostCommunicationFacts
                             EngineChainIndex = 0,
                             PackageReferences = [],
                         }, nameof(DeployRequest.StartParameter)))!,
-                        Arg.Any<string>(), default);
+                        Arg.Any<string>(), Arg.Any<CancellationToken>());
                 }
 
                 [Fact]
                 public async Task Migrates_to_oldest_supported_version()
                 {
                     _poolCommunication.GetEngineHostVersion(Arg.Any<CancellationToken>(), Arg.Is(_engineHostId)).Returns(_oldestSupportedEngineHostVersion);
-                    _mqttClient.Request(default!, default!, default!, default)
+                    _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                         .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToGzipBytes(Guid.Empty), MediaTypeNames.Application.GZip));
 
                     await _communication.DeployEngine(_engineHostId, CreateMinimalWorkflow(), CancellationToken.None);
@@ -512,14 +509,14 @@ public class MqttEngineHostCommunicationFacts
                             EngineChainIndex = 0,
                             PackageReferences = [],
                         }, nameof(DeployRequest.StartParameter)))!,
-                        Arg.Any<string>(), default);
+                        Arg.Any<string>(), Arg.Any<CancellationToken>());
                 }
 
                 [Fact]
                 public async Task Migrates_until_oldest_supported_version_for_outdated_version()
                 {
                     _poolCommunication.GetEngineHostVersion(Arg.Any<CancellationToken>(), Arg.Is(_engineHostId)).Returns(ChangeVersion(_oldestSupportedEngineHostVersion, -1));
-                    _mqttClient.Request(default!, default!, default!, default)
+                    _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                         .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToGzipBytes(Guid.Empty), MediaTypeNames.Application.GZip));
 
                     await _communication.DeployEngine(_engineHostId, CreateMinimalWorkflow(), CancellationToken.None);
@@ -533,7 +530,7 @@ public class MqttEngineHostCommunicationFacts
                             EngineChainIndex = 0,
                             PackageReferences = [],
                         }, nameof(DeployRequest.StartParameter)))!,
-                        Arg.Any<string>(), default);
+                        Arg.Any<string>(), Arg.Any<CancellationToken>());
                 }
 
                 private static void ShouldBe<T>(ReadOnlySequence<byte>? payload, T expectedDeployRequest, params string[] propertiesToReset)
@@ -562,7 +559,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Sends_request_with_correct_topics_and_data()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok"));
 
             await _communication.TearDownEngine(_engineHostId, _deploymentId, CancellationToken.None);
@@ -581,7 +578,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_response_indicates_failure()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("failed", PlainTextToBytes("not possible"), MediaTypeNames.Text.Plain));
 
             var act = FluentActions.Awaiting(() => _communication.TearDownEngine(_engineHostId, Guid.Empty, CancellationToken.None));
@@ -595,7 +592,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Sends_request_with_correct_topics_and_data()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToBytes(true), MediaTypeNames.Application.Json));
 
             await _communication.StartEngine(_engineHostId, _deploymentId, CancellationToken.None);
@@ -614,7 +611,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_response_indicates_failure()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("fail", PlainTextToBytes("not possible"), MediaTypeNames.Text.Plain));
 
             var act = FluentActions.Awaiting(() => _communication.StartEngine(_engineHostId, Guid.Empty, CancellationToken.None));
@@ -625,7 +622,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_received_state_is_empty()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", ReadOnlySequence<byte>.Empty, MediaTypeNames.Application.Json));
 
             var act = FluentActions.Awaiting(() => _communication.StartEngine(_engineHostId, Guid.Empty, CancellationToken.None));
@@ -636,7 +633,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_received_state_is_not_parseable()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", PlainTextToBytes("asdf"), MediaTypeNames.Application.Json));
 
             var act = FluentActions.Awaiting(() => _communication.StartEngine(_engineHostId, Guid.Empty, CancellationToken.None));
@@ -647,7 +644,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Returns_received_result()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToBytes(true), MediaTypeNames.Application.Json));
 
             var actual = await _communication.StartEngine(_engineHostId, Guid.Empty, CancellationToken.None);
@@ -661,7 +658,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Sends_request_with_correct_topics_and_data()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToBytes(true), MediaTypeNames.Application.Json));
 
             await _communication.StopEngine(_engineHostId, _deploymentId, CancellationToken.None);
@@ -680,7 +677,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_response_indicates_failure()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("fail", PlainTextToBytes("not possible"), MediaTypeNames.Text.Plain));
 
             var act = FluentActions.Awaiting(() => _communication.StopEngine(_engineHostId, Guid.Empty, CancellationToken.None));
@@ -691,7 +688,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_received_state_is_empty()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", ReadOnlySequence<byte>.Empty, MediaTypeNames.Application.Json));
 
             var act = FluentActions.Awaiting(() => _communication.StopEngine(_engineHostId, Guid.Empty, CancellationToken.None));
@@ -702,7 +699,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_received_state_is_not_parseable()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", PlainTextToBytes("asdf"), MediaTypeNames.Application.Json));
 
             var act = FluentActions.Awaiting(() => _communication.StopEngine(_engineHostId, Guid.Empty, CancellationToken.None));
@@ -713,7 +710,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Returns_received_result()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToBytes(false), MediaTypeNames.Application.Json));
 
             var actual = await _communication.StopEngine(_engineHostId, Guid.Empty, CancellationToken.None);
@@ -727,7 +724,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Sends_request_with_correct_topics_and_data()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToBytes("0"), MediaTypeNames.Application.Json));
 
             await _communication.GetEngineState(_engineHostId, _deploymentId, CancellationToken.None);
@@ -746,7 +743,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_response_indicates_failure()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("fail", PlainTextToBytes("not possible"), MediaTypeNames.Text.Plain));
 
             var act = FluentActions.Awaiting(() => _communication.GetEngineState(_engineHostId, Guid.Empty, CancellationToken.None));
@@ -757,7 +754,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_received_state_is_empty()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", ReadOnlySequence<byte>.Empty, MediaTypeNames.Application.Json));
 
             var act = FluentActions.Awaiting(() => _communication.GetEngineState(_engineHostId, Guid.Empty, CancellationToken.None));
@@ -768,7 +765,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_received_state_is_not_parseable()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToBytes("asdf"), MediaTypeNames.Application.Json));
 
             var act = FluentActions.Awaiting(() => _communication.GetEngineState(_engineHostId, Guid.Empty, CancellationToken.None));
@@ -779,7 +776,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Throws_NotSupportedException_if_received_state_is_not_translatable()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToBytes("89"), MediaTypeNames.Application.Json));
 
             var act = FluentActions.Awaiting(() => _communication.GetEngineState(_engineHostId, Guid.Empty, CancellationToken.None));
@@ -790,7 +787,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Returns_received_string_state()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToBytes("Running"), MediaTypeNames.Application.Json));
 
             var actual = await _communication.GetEngineState(_engineHostId, Guid.Empty, CancellationToken.None);
@@ -801,7 +798,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Returns_received_int_state()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToBytes(3), MediaTypeNames.Application.Json));
 
             var actual = await _communication.GetEngineState(_engineHostId, Guid.Empty, CancellationToken.None);
@@ -815,7 +812,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Sends_request_with_correct_topics_and_data()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", SerializeJsonToGzipBytes(new Dictionary<string, EngineState>() { { _deploymentId.ToString(), EngineState.Starting } }), MediaTypeNames.Application.GZip));
 
             await _communication.GetDeploymentStates(_engineHostId, CancellationToken.None);
@@ -834,7 +831,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_response_indicates_failure()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("fail", PlainTextToBytes("not possible"), MediaTypeNames.Text.Plain));
 
             var act = FluentActions.Awaiting(() => _communication.GetDeploymentStates(_engineHostId, CancellationToken.None));
@@ -845,7 +842,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_received_deployment_identifier_is_empty()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", PlainTextToGzipBytes($$"""{"":"Starting"}"""), MediaTypeNames.Application.GZip));
 
             var act = FluentActions.Awaiting(() => _communication.GetDeploymentStates(_engineHostId, CancellationToken.None));
@@ -856,7 +853,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_received_deployment_identifier_is_not_parseable()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", PlainTextToGzipBytes("""{"asdf":"Starting"}"""), MediaTypeNames.Application.GZip));
 
             var act = FluentActions.Awaiting(() => _communication.GetDeploymentStates(_engineHostId, CancellationToken.None));
@@ -867,7 +864,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_received_state_is_empty()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", PlainTextToGzipBytes($$"""{"{{_deploymentId}}":""}"""), MediaTypeNames.Application.GZip));
 
             var act = FluentActions.Awaiting(() => _communication.GetDeploymentStates(_engineHostId, CancellationToken.None));
@@ -878,7 +875,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Throws_InvalidOperationException_if_received_state_is_not_parseable()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", PlainTextToGzipBytes($$"""{"{{_deploymentId}}":"asdf"}"""), MediaTypeNames.Application.GZip));
 
             var act = FluentActions.Awaiting(() => _communication.GetDeploymentStates(_engineHostId, CancellationToken.None));
@@ -889,7 +886,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Throws_NotSupportedException_if_received_state_is_not_translatable()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", PlainTextToGzipBytes($$"""{"{{_deploymentId}}":89}"""), MediaTypeNames.Application.GZip));
 
             var act = FluentActions.Awaiting(() => _communication.GetDeploymentStates(_engineHostId, CancellationToken.None));
@@ -900,7 +897,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Returns_received_string_state()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", PlainTextToGzipBytes($$"""{"{{_deploymentId}}":"Running"}"""), MediaTypeNames.Application.GZip));
 
             var actual = await _communication.GetDeploymentStates(_engineHostId, CancellationToken.None);
@@ -911,7 +908,7 @@ public class MqttEngineHostCommunicationFacts
         [Fact]
         public async Task Returns_received_int_state()
         {
-            _mqttClient.Request(default!, default!, default!, default)
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
                 .ReturnsForAnyArgs(new MqttRpcResponse("ok", PlainTextToGzipBytes($$"""{"{{_deploymentId}}":3}"""), MediaTypeNames.Application.GZip));
 
             var actual = await _communication.GetDeploymentStates(_engineHostId, CancellationToken.None);

@@ -2,7 +2,6 @@
 using System.Text.Json.Nodes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.TestUtils;
 

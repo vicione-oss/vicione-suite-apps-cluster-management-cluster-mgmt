@@ -1,7 +1,4 @@
-﻿using AwesomeAssertions;
-using Xunit;
-
-namespace ClusterManagement.Backend.Tests;
+﻿namespace ClusterManagement.Backend.Tests;
 
 public sealed class MetadataArtifactNameRegexTests
 {

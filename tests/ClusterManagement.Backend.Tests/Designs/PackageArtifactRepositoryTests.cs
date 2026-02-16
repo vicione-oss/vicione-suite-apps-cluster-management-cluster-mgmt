@@ -1,18 +1,15 @@
 ﻿using System.IO.Abstractions.TestingHelpers;
 using System.Text.Json;
-using AwesomeAssertions;
 using ClusterManagement.Backend.Contracts;
 using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.Designs.Extensions;
 using ClusterManagement.Backend.Tests.Extensions;
 using ClusterManagement.Backend.Tests.Resources;
 using ClusterManagement.Internal.Contracts;
-using NSubstitute;
 using Sdk.Backend.Artifacts;
 using Sdk.Backend.Modules;
 using Semver;
 using ViciOne.Cluster.Model;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Designs;
 
@@ -104,7 +101,7 @@ public class PackageArtifactRepositoryTests
                 ]);
 
             // Act
-            var result = await packageRepo.QueryMetadataArtifacts(null);
+            var result = await packageRepo.QueryMetadataArtifacts(null, cancellationToken: TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().HaveCount(4);
@@ -115,12 +112,12 @@ public class PackageArtifactRepositoryTests
         {
             // Arrange
             var packageRepo = SetupPackageArtifactRepository();
-            var queryResult = await ResourceUtils.GetEmbeddedPackagesMetadataQueryResult();
+            var queryResult = await ResourceUtils.GetEmbeddedPackagesMetadataQueryResult(TestContext.Current.CancellationToken);
             _repository.SetupExecuteQuery("items.find({\"repo\":\"vicione-suite\",\"$and\":[{\"path\":{\"$match\":\"fbs/*\"}},{\"name\":{\"$match\":\"*-win-x64_*.json\"}}]}).sort({\"$desc\":[\"updated\"]})",
                 queryResult);
 
             // Act
-            var result = await packageRepo.QueryMetadataArtifacts(null);
+            var result = await packageRepo.QueryMetadataArtifacts(null, cancellationToken: TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().NotBeEmpty();
@@ -138,7 +135,7 @@ public class PackageArtifactRepositoryTests
                 ]);
 
             // Act
-            var result = await packageRepo.QueryMetadataArtifacts(_coreVersion);
+            var result = await packageRepo.QueryMetadataArtifacts(_coreVersion, cancellationToken: TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().HaveCount(3);
@@ -156,7 +153,7 @@ public class PackageArtifactRepositoryTests
                 ]);
 
             // Act
-            var result = await packageRepo.QueryMetadataArtifacts(_coreVersion, "ViciOne.Driver.IoTCore");
+            var result = await packageRepo.QueryMetadataArtifacts(_coreVersion, "ViciOne.Driver.IoTCore", TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().HaveCount(2);
@@ -176,7 +173,7 @@ public class PackageArtifactRepositoryTests
                 ]);
 
             // Act
-            var result = await packageRepo.QueryMetadataArtifacts(null, "ViciOne.Driver.IoTCore");
+            var result = await packageRepo.QueryMetadataArtifacts(null, "ViciOne.Driver.IoTCore", TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().HaveCount(3);
@@ -267,7 +264,7 @@ public class PackageArtifactRepositoryTests
             _repository.SetupExecuteQuery(query, []);
 
             // Act
-            var result = await packageRepo.QueryLatestZipArtifact(coreVersion, "SomePackage");
+            var result = await packageRepo.QueryLatestZipArtifact(coreVersion, "SomePackage", TestContext.Current.CancellationToken);
 
             // Assert            
             result.Should().BeNull();

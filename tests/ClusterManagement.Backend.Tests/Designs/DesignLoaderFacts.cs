@@ -6,11 +6,9 @@ using ClusterManagement.Internal;
 using ClusterManagement.Internal.Designs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using Sdk.Backend.Modules;
 using ViciOne.Core.Contracts.DataModel;
 using ViciOne.Core.Runtime.Attributes;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Designs;
 

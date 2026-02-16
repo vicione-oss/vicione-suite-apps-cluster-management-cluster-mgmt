@@ -1,14 +1,11 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Backend.DeployCluster.Consumers;
+﻿using ClusterManagement.Backend.DeployCluster.Consumers;
 using ClusterManagement.Backend.DeployCluster.Persistence;
 using ClusterManagement.Backend.DeployCluster.StateMachines;
 using ClusterManagement.Public.Requests;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using Sdk.Testing.Backend;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster.Consumers;
 
@@ -35,7 +32,7 @@ public class GetDeployClusterStateConsumerTests : TestWithDbContextSqlite<Cluste
 
         var state = new DeployClusterState() { ClusterId = clusterId, CurrentState = currentState, ActiveVersion = activeVersion, TargetVersion = targetVersion };
         var test = TestDbContext.DeployClusterState.Add(state);
-        await TestDbContext.SaveChangesAsync();
+        await TestDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var response = await tester.TestRequest<GetDeployClusterStateResponse, GetDeployClusterStateRequest>(request);

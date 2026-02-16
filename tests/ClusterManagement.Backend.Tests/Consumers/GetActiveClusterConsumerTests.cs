@@ -6,14 +6,11 @@ using ClusterManagement.Public.Requests;
 using ClusterManagement.Tests.Tools;
 using ClusterManagement.Tests.Tools.Extensions;
 using ClusterManagement.Tests.Tools.Factories;
-using AwesomeAssertions;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using Sdk.Testing.Backend;
 using ViciOne.Cluster.Builder;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Consumers;
 
@@ -66,7 +63,7 @@ public class GetActiveClusterConsumerTests : TestWithDbContextSqlite<ClusterDbCo
         response.CompressedCluster.Should().NotBeNullOrEmpty();
         response.RequestError.Should().BeNull();
 
-        var deserialized = await ClusterSerializer.Decompress(response.CompressedCluster!);
+        var deserialized = await ClusterSerializer.Decompress(response.CompressedCluster!, cancellationToken: TestContext.Current.CancellationToken);
         using var resultBuilder = new ClusterBuilder(deserialized, builder.DependencyResolver);
 
         builder.CacheShouldBeEquivalent(resultBuilder);

@@ -1,16 +1,13 @@
 ﻿using Blazor.Diagrams.Core.Geometry;
 using Bunit;
-using Bunit.TestDoubles;
 using ClusterManagement.Client.Editor;
 using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Public.Designs;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Sdk.Testing.Client;
 using ViciOne.Ui.ClusterEditor.Extensions;
 using ViciOne.Ui.ClusterEditor.Services;
-using Xunit;
 
 namespace ClusterManagement.Client.Tests.Editor;
 
@@ -19,12 +16,12 @@ public sealed class DataflowEditorPageTests
     private readonly IClusterService _clusterService = Substitute.For<IClusterService>();
 
     [Fact]
-    public void PageGetsRendered()
+    public async Task PageGetsRendered()
     {
         // Arrange
         var version = new { Version = "a8b21501-update-ip-addresses" };
 
-        using var ctx = new TestContext();
+        await using var ctx = new BunitContext();
         ctx.SetupSuiteServices(setup =>
         {
             setup.Services.AddLocalization<ClusterManagementClientModule>();
@@ -45,11 +42,11 @@ public sealed class DataflowEditorPageTests
         ctx.JSInterop.SetupVoid("ViciOne.Observer.observe", _ => true);
         ctx.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true);
 
-        var authContext = ctx.AddTestAuthorization();
+        var authContext = ctx.AddAuthorization();
         authContext.SetAuthorizing();
 
         // Act + Assert
-        var sut = ctx.RenderComponent<ClusterEditorPage>();
+        var sut = ctx.Render<ClusterEditorPage>();
         Assert.NotNull(sut);
     }
 }

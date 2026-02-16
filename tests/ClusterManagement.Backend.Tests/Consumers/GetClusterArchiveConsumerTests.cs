@@ -2,12 +2,9 @@
 using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Public.Requests;
-using AwesomeAssertions;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Sdk.Testing.Backend;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Consumers;
 

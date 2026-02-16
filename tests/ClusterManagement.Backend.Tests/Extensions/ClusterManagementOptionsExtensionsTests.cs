@@ -1,8 +1,6 @@
 ﻿using System.Runtime.InteropServices;
-using AwesomeAssertions;
 using ClusterManagement.Backend.Extensions;
 using ClusterManagement.Internal;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.Extensions;
 

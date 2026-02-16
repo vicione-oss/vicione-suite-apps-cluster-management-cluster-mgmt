@@ -1,12 +1,10 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Backend.DeployCluster.Extensions;
+﻿using ClusterManagement.Backend.DeployCluster.Extensions;
 using ClusterManagement.Backend.Tests.Extensions;
 using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Enums;
 using ClusterManagement.Public.Events;
 using MassTransit.Testing;
 using Sdk.Messaging;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster.StateMachines;
 
@@ -46,7 +44,7 @@ public partial class DeployClusterStateMachineTests
             // Assert
             await harness.Consumed.Any<ClusterChanged>(k => k.Context.Message.ClusterId == _clusterId
                 && k.Context.Message.Action == CrudAction.Created
-                && k.Context.Message.Version == commitVersion);
+                && k.Context.Message.Version == commitVersion, TestContext.Current.CancellationToken);
 
             await harness.AssertClusterUpdateFailed(_correlationId, commitVersion);
         }
@@ -69,8 +67,8 @@ public partial class DeployClusterStateMachineTests
             await harness.PublishClusterChangedDeleted(_correlationId, _clusterId, new Version(2, 2, 2));
 
             // Assert
-            Assert.False(await harness.Published.Any<ClusterUpdateFailed>(k => k.Context.CorrelationId == _clusterId));
-            (await harness.GetDeployClusterState()).IsCommitVersionEmpty().Should().BeFalse();
+            Assert.False(await harness.Published.Any<ClusterUpdateFailed>(k => k.Context.CorrelationId == _clusterId, TestContext.Current.CancellationToken));
+            (await harness.GetDeployClusterState(cancellationToken: TestContext.Current.CancellationToken)).IsCommitVersionEmpty().Should().BeFalse();
         }
 
         [Fact]
@@ -90,8 +88,8 @@ public partial class DeployClusterStateMachineTests
             await harness.PublishClusterErrorDeleteFailed(_correlationId, _clusterId);
 
             // Assert
-            await harness.Consumed.Any<ClusterError>(k => k.Context.Message.ClusterId == _clusterId);
-            (await harness.GetDeployClusterState()).IsCommitVersionEmpty().Should().BeTrue();
+            await harness.Consumed.Any<ClusterError>(k => k.Context.Message.ClusterId == _clusterId, TestContext.Current.CancellationToken);
+            (await harness.GetDeployClusterState(cancellationToken: TestContext.Current.CancellationToken)).IsCommitVersionEmpty().Should().BeTrue();
         }
 
         [Fact]
@@ -113,11 +111,11 @@ public partial class DeployClusterStateMachineTests
                 ClusterId = _clusterId,
                 Error = new ErrorInfo(ClusterError.UnknownError, "Failure"),
                 CorrelationId = _clusterId
-            });
+            }, TestContext.Current.CancellationToken);
 
             // Assert
-            Assert.False(await harness.Published.Any<ClusterUpdateFailed>(k => k.Context.CorrelationId == _clusterId));
-            (await harness.GetDeployClusterState()).IsCommitVersionEmpty().Should().BeFalse();
+            Assert.False(await harness.Published.Any<ClusterUpdateFailed>(k => k.Context.CorrelationId == _clusterId, TestContext.Current.CancellationToken));
+            (await harness.GetDeployClusterState(cancellationToken: TestContext.Current.CancellationToken)).IsCommitVersionEmpty().Should().BeFalse();
         }
 
         [Fact]
