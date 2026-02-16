@@ -91,6 +91,13 @@
                             }
                         }
 
+                        @if (context.AvailableUpdateVersion is not null)
+                        {
+                            <div title="@string.Format(Localization.Common.UpdateToVersionAvailible, context.AvailableUpdateVersion)" class="icon-wrapper">
+                                <img src="@SvgIcon.UpdateAvailable.GetPath()" />
+                            </div>
+                        }
+
                         @if (!string.IsNullOrEmpty(context.RunningClusterVersion))
                         {
                             <div title="@Localization.Common.ActiveInCluster" class="icon-wrapper">
