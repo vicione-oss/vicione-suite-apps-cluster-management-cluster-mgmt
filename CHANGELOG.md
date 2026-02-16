@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.1 - 2026-02-16
+
+### Added
+
+- Add update available icon to `PackagesControlPanel`
+
 ## 1.4.0 - 2026-02-13
 
 ### Added
