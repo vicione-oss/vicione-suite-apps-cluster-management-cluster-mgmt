@@ -597,9 +597,58 @@ public class DataPortTransformerFacts
                 link => ShouldRepresentExternalLink(link, output1));
 
             transformation.IncomingNodes.Should().SatisfyRespectively(
-                leafNode => ShouldRepresentExternalCommunicationNode(leafNode, leaf2, [input2,], [input2,], _valueType));
+                leaf1Node => ShouldRepresentExternalCommunicationNode(leaf1Node, leaf1, valueType: _valueType),
+                leaf2Node => ShouldRepresentExternalCommunicationNode(leaf2Node, leaf2, [input2,], [input2,], _valueType));
             transformation.OutgoingNodes.Should().SatisfyRespectively(
-                leafNode => ShouldRepresentExternalCommunicationNode(leafNode, leaf1, [output1,], [output1,], _valueType));
+                leaf1Node => ShouldRepresentExternalCommunicationNode(leaf1Node, leaf1, [output1,], [output1,], _valueType),
+                leaf2Node => ShouldRepresentExternalCommunicationNode(leaf2Node, leaf2, valueType: _valueType));
+        }
+
+        [Fact]
+        public void Creates_complete_node_structure_for_external_communication()
+        {
+            var dataPort = CreateDataPort(DataPortDirection.Out);
+            var database = AddDataPortTreeNode(dataPort, "Database");
+            var schema = AddDataPortTreeNode(dataPort, "Schema", parent: database);
+            var table = AddDataPortTreeNode(dataPort, "Table", "Set", DataPortTransferMode.Periodic, 200,
+                new AveragePooling(), schema);
+            var primaryKeyColumn = AddDataPortTreeNode(dataPort, "PrimaryKey", parent: table, valueType: _valueType);
+            var valueColumn = AddDataPortTreeNode(dataPort, "Value", parent: table, valueType: _valueType);
+            _builder.Editors.DataPortTreeNode.AssignConnector(valueColumn, _sourceConnector);
+
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+
+            var valueInput = transformation.FunctionBlock.ProcessDataInputs.Should().ContainSingle().Subject;
+            ShouldRepresentNode(valueInput, valueColumn, DataPortDirection.Out);
+            ShouldHaveLinkFrom(_sourceConnector, valueInput);
+
+            var valueOutput = transformation.FunctionBlock.ProcessDataOutputs.Should().ContainSingle().Subject;
+            ShouldRepresentNode(valueOutput, valueColumn, DataPortDirection.Out, $"{table.Name}_1_{valueColumn.Name}");
+            ShouldHaveNoLinks(valueOutput);
+
+            transformation.FunctionBlock.Settings.Should().SatisfyRespectively(
+                nodeLinks => nodeLinks.Value.Should().BeOfType<List<NodeLink>>().Which.Should().SatisfyRespectively(
+                    valueNodeLink => ShouldRepresentNodeLink(valueNodeLink, valueInput, valueOutput)),
+                outputPoolings => outputPoolings.Value.Should().BeOfType<Dictionary<Guid, OutputConfiguration>>().Which.Should().SatisfyRespectively(
+                    valueNodeLink => ShouldRepresentOutputConfiguration(valueNodeLink, valueOutput)),
+                transferModes => transferModes.Value.Should().BeOfType<Dictionary<Guid, ITransferMode>>().Which.Should().SatisfyRespectively(
+                    valueNodeLink => ShouldRepresentTransferMode<PeriodicTransferMode>(valueNodeLink, valueOutput)));
+
+            transformation.AdditionalConnectorDesigns.Should().SatisfyRespectively(
+                valueInputDesign => ShouldExtendConnector(valueInputDesign, valueInput, valueColumn),
+                valueOutputDesign => ShouldExtendConnector(valueOutputDesign, valueOutput, valueColumn));
+
+            transformation.IncomingLinks.Should().BeEmpty();
+            transformation.OutgoingLinks.Should().SatisfyRespectively(
+                valueLink => ShouldRepresentExternalLink(valueLink, valueOutput));
+
+            transformation.IncomingNodes.Should().BeEmpty();
+            transformation.OutgoingNodes.Should().SatisfyRespectively(
+                databaseNode => ShouldRepresentExternalCommunicationNode(databaseNode, database),
+                schemaNode => ShouldRepresentExternalCommunicationNode(schemaNode, schema, database),
+                tableNode => ShouldRepresentExternalCommunicationNode(tableNode, table, schema, [valueOutput,]),
+                primaryKeyNode => ShouldRepresentExternalCommunicationNode(primaryKeyNode, primaryKeyColumn, table, valueType: _valueType),
+                valueNode => ShouldRepresentExternalCommunicationNode(valueNode, valueColumn, table, default, [valueOutput,], _valueType));
         }
 
         [Fact]

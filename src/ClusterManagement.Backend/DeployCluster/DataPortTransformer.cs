@@ -86,7 +86,7 @@ internal sealed class DataPortTransformer
             var hasIncomingLinks = HasIncomingLinks(node);
             var hasOutgoingLinks = HasOutgoingLinks(node);
 
-            CreateExternalCommunicationNodes(node, path, hasIncomingLinks, hasOutgoingLinks, treeBuilder);
+            CreateExternalCommunicationNodes(node, path, _dataPort.Direction, treeBuilder);
 
             foreach (var parent in path)
             {
@@ -144,10 +144,10 @@ internal sealed class DataPortTransformer
             CommunicationId = _dataPort.RulesetId,
             CommunicationProperties = TransformProperties(_dataPort),
             ConnectionName = _dataPort.Name,
-            IncomingNodes = _externalIncomingNodes.Values,
             IncomingLinks = _externalIncomingLinks,
-            OutgoingNodes = _externalOutgoingNodes.Values,
+            IncomingNodes = _externalIncomingLinks.Count == 0 ? [] : _externalIncomingNodes.Values,
             OutgoingLinks = _externalOutgoingLinks,
+            OutgoingNodes = _externalOutgoingLinks.Count == 0 ? [] : _externalOutgoingNodes.Values,
             AdditionalConnectorDesigns = _additionalConnectorDesigns,
         };
     }
@@ -392,18 +392,17 @@ internal sealed class DataPortTransformer
     }
 
     private void CreateExternalCommunicationNodes(DataPortTreeNode node, IReadOnlyCollection<DataPortTreeNode> path,
-        bool hasIncomingLinks, bool hasOutgoingLinks, TreeBuilder treeBuilder)
+        DataPortDirection direction, TreeBuilder treeBuilder)
     {
-        var tree = path.Append(node).ToArray();
-        if (tree.Any(TransferIsPossible))
+        if (path.Any(TransferIsPossible) || TransferIsPossible(node))
         {
             Node? incomingTreeParent = default;
             Node? outgoingTreeParent = default;
-            foreach (var treeNode in tree)
+            foreach (var treeNode in path.Append(node))
             {
-                if (hasIncomingLinks)
+                if (direction is DataPortDirection.Out or DataPortDirection.InOut)
                     incomingTreeParent = CreateExternalCommunicationNodes(treeNode, incomingTreeParent, _externalOutgoingNodes, treeBuilder);
-                if (hasOutgoingLinks)
+                if (direction is DataPortDirection.In or DataPortDirection.InOut)
                     outgoingTreeParent = CreateExternalCommunicationNodes(treeNode, outgoingTreeParent, _externalIncomingNodes, treeBuilder);
             }
         }

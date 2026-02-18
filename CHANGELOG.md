@@ -11,6 +11,10 @@
 - `ViciOne.Ui.Localization` package, update version to `3.1.0`
 - `ViciOne.Ui.MonochromeIcons.Assets` package, update version to `4.2.0`
 
+### Fixed
+
+- Transfer all involved DataPort nodes to external communication
+
 ## 1.4.1 - 2026-02-16
 
 ### Added
