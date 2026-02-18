@@ -21,7 +21,7 @@ public class DataPortTransformerBenchmarks
     private readonly ClusterDependencyResolver _dependencyResolver;
     private readonly ISuiteRulesetProvider _rulesetProvider;
 
-    private DataPort _dataPort = null!;
+    private List<DataPortTreeNode> _nodes = [];
 
     [Params(1, 5, 10, 100)]
     public int Breadth { get; set; }
@@ -41,10 +41,8 @@ public class DataPortTransformerBenchmarks
     [GlobalSetup]
     public void GlobalSetup()
     {
-        _dataPort = new() { Id = Guid.NewGuid(), DesignId = DataPortTransformer.DataPortFbDesignId.ToString(), Name = "Empty", RulesetId = "TCP", };
-
         var nodes = ArrayPool<IList<DataPortTreeNode>>.Shared.Rent(Breadth);
-        Array.Fill(nodes, _dataPort.TreeNodes, 0, Breadth);
+        Array.Fill(nodes, _nodes, 0, Breadth);
         for (var d = 0; d < Depth; d++)
         {
             for (var b = 0; b < Breadth; b++)
@@ -61,13 +59,22 @@ public class DataPortTransformerBenchmarks
     public void Current()
     {
         using var builder = new ClusterBuilder(_dependencyResolver);
-        DataPortTransformer.TransformToFunctionBlock(_dataPort, builder, _rulesetProvider);
+        var dataPort = CreateDataPort(builder);
+        DataPortTransformer.TransformToFunctionBlock(dataPort, builder, _rulesetProvider);
     }
 
     [Benchmark]
     public void Experimental()
     {
         using var builder = new ClusterBuilder(_dependencyResolver);
-        DataPortTransformer.TransformToFunctionBlock(_dataPort, builder, _rulesetProvider);
+        var dataPort = CreateDataPort(builder);
+        DataPortTransformer.TransformToFunctionBlock(dataPort, builder, _rulesetProvider);
+    }
+
+    private DataPort CreateDataPort(ClusterBuilder builder)
+    {
+        var dataPort = builder.Editors.Dataflow.AddDataPort(builder.Cache.Dataflows.First(), Constants.MqttDataPortDesignId, "Empty", DataPortDirection.InOut, "TCP");
+        dataPort.TreeNodes = _nodes;
+        return dataPort;
     }
 }
