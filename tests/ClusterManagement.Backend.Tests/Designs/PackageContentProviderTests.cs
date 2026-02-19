@@ -12,6 +12,7 @@ using ViciOne.TreeBuilder.Rules;
 
 namespace ClusterManagement.Backend.Tests.Designs;
 
+[Collection(NonParallelCollectionDefinitionClass.NonParallelCollection)]
 public class PackageContentProviderTests
 {
     private readonly FileSystem _fileSystem = new();
@@ -173,8 +174,7 @@ public class PackageContentProviderTests
             result.Values.Should().Contain(p => p.Error != null);
         }
     }
-
-    [Collection(NonParallelCollectionDefinitionClass.NonParallelCollection)]
+    
     public sealed class TryAddPackageFromDirectory : PackageContentProviderTests
     {
         [Fact]

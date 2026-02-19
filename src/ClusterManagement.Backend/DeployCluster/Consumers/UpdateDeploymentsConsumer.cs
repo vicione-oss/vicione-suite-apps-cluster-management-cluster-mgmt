@@ -29,48 +29,45 @@ namespace ClusterManagement.Backend.DeployCluster.Consumers;
 
 [ReadOnlyConsumer]
 public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider instanceInfoProvider,
-    IEngineDbContext engineDbContext, IEngineHostPoolCommunication poolCommunication, IEngineHostCommunication hostCommunication,
-    IMqttBrokerConnectionCache brokerConnectionCache, IDesignProvider designProvider, IClusterDbContext clusterContext,
-    IWorkspaceProvider<ClusterManagementBackendModule> workspaceProvider, ISuiteRulesetProvider rulesetProvider,
-    IFileSystem fileSystem, ILogger<UpdateDeploymentsConsumer> logger, IMqttClient? mqttClientSubstitute = default) : IConsumer<UpdateDeployments>
+    IEngineDbContext engineDbContext,
+    IEngineHostPoolCommunication poolCommunication,
+    IEngineHostCommunication hostCommunication,
+    IMqttBrokerConnectionCache brokerConnectionCache,
+    IDesignProvider designProvider,
+    IClusterDbContext clusterContext,
+    IWorkspaceProvider<ClusterManagementBackendModule> workspaceProvider,
+    ISuiteRulesetProvider rulesetProvider,
+    IFileSystem fileSystem,
+    ILogger<UpdateDeploymentsConsumer> logger,
+    IMqttClient? mqttClientSubstitute = default) : IConsumer<UpdateDeployments>
 {
-    private readonly IInstanceInformationProvider _instanceInfoProvider = instanceInfoProvider;
-    private readonly IEngineDbContext _engineDbContext = engineDbContext;
-    private readonly IEngineHostPoolCommunication _poolCommunication = poolCommunication;
-    private readonly IEngineHostCommunication _hostCommunication = hostCommunication;
-    private readonly IMqttBrokerConnectionCache _brokerConnectionCache = brokerConnectionCache;
-    private readonly IDesignProvider _designProvider = designProvider;
-    private readonly IClusterDbContext _clusterContext = clusterContext;
-    private readonly ISuiteRulesetProvider _rulesetProvider = rulesetProvider;
-    private readonly ILogger<UpdateDeploymentsConsumer> _logger = logger;
-    private readonly IMqttClient? _mqttClientSubstitute = mqttClientSubstitute;
     private readonly string _packagesDirectory = fileSystem.Path.GetFullPath(fileSystem.GetDependenciesPath(workspaceProvider));
     private readonly string _engineLogDirectory = fileSystem.Path.GetFullPath(fileSystem.GetEnginesDirectory(workspaceProvider));
 
     /// <summary>
-    /// if something bad happens 3 retry attempts get executed. we have to ensure to cleanup on exceptions to have a fresh attempt and also
+    /// if something bad happens 3 retry attempts get executed. we have to ensure to clean up on exceptions to have a fresh attempt and also
     /// handle the Fault-Consume in case the retry attempts failed.
     /// </summary>
     /// <param name="context"></param>
     public async Task Consume(ConsumeContext<UpdateDeployments> context)
     {
-        var clusterApplicationId = _instanceInfoProvider.Local.Id;
+        var clusterApplicationId = instanceInfoProvider.Local.Id;
         IMqttClient? mqttClient = default;
         try
         {
             var targetCluster = await ClusterSerializer.Decompress(context.Message.CompressedTargetCluster);
 
-            _logger.LogInformation("UpdateDeployments on instance:{ApplicationId} for cluster {ClusterId} v{Version}",
+            logger.LogInformation("UpdateDeployments on instance:{ApplicationId} for cluster {ClusterId} v{Version}",
                 clusterApplicationId, targetCluster.Id, targetCluster.Version);
 
-            var dependencyResolver = await _designProvider.CreateResolver();
+            var dependencyResolver = await designProvider.CreateResolver();
             using var builder = new ClusterBuilder(targetCluster, dependencyResolver);
 
             MqttConnection brokerConnection;
             try
             {
-                brokerConnection = await _brokerConnectionCache.GetMqttConnection(context.CancellationToken);
-                _logger.LogInformation("Use broker {Protocol} connection address {Name}:{Port} user:{User}",
+                brokerConnection = await brokerConnectionCache.GetMqttConnection(context.CancellationToken);
+                logger.LogInformation("Use broker {Protocol} connection address {Name}:{Port} user:{User}",
                     brokerConnection.Protocol, brokerConnection.Address, brokerConnection.Port, brokerConnection.Username);
             }
             catch (Exception e)
@@ -85,9 +82,9 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
             LogDeploymentVolume(desiredEngineHosts, builder.Cache);
 
             (mqttClient, var expectedEngineHosts, var physicalEngineHosts) = await WhenAll(
-                _brokerConnectionCache.ConnectClient(_mqttClientSubstitute, default, context.CancellationToken),
-                _engineDbContext.EngineHosts.Include(eh => eh.Deployments).ToListAsync(context.CancellationToken),
-                _poolCommunication.GetStates(context.CancellationToken));
+                brokerConnectionCache.ConnectClient(mqttClientSubstitute, default, context.CancellationToken), //this default should probably be `mqttClient` instead
+                engineDbContext.EngineHosts.Include(eh => eh.Deployments).ToListAsync(context.CancellationToken),
+                poolCommunication.GetStates(context.CancellationToken));
             var expectedRetainMessages = GetExpectedRetainMessages(expectedEngineHosts);
 
             var enginesDataPorts = TransformDataPorts(builder, desiredEngineHosts);
@@ -100,9 +97,9 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
 
             await DeleteRetainMessages(mqttClient, expectedRetainMessages, context.CancellationToken);
 
-            if (_instanceInfoProvider.Local.Type == InstanceType.Slave)
+            if (instanceInfoProvider.Local.Type == InstanceType.Slave)
             {
-                await _clusterContext.UpsertActiveClusterInfo(targetCluster.Id, targetCluster.Version, DateTimeOffset.UtcNow, null, context.CancellationToken);
+                await clusterContext.UpsertActiveClusterInfo(targetCluster.Id, targetCluster.Version, DateTimeOffset.UtcNow, null, context.CancellationToken);
             }
 
             await context.Publish(
@@ -111,7 +108,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         }
         catch (ClusterUpdateException e)
         {
-            _logger.LogError(e, "Error deploying on application {ClusterApplicationId}", clusterApplicationId);
+            logger.LogError(e, "Error deploying on application {ClusterApplicationId}", clusterApplicationId);
             var errorInfo = new ErrorInfo(e.ErrorCode, e.InnerException is null ? e.Message : e.InnerException.Message);
             await context.Publish(
                 new ClusterNodeDeploymentsUpdateFailedEvent(context.Message.CorrelationId,
@@ -123,7 +120,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         catch (OperationCanceledException)
         {
             var errorInfo = ClusterErrorInfos.DeploymentCancelled(clusterApplicationId);
-            _logger.LogError("{Message}", errorInfo.Message);
+            logger.LogError("{Message}", errorInfo.Message);
             await context.Publish(
                 new ClusterNodeDeploymentsUpdateFailedEvent(context.Message.CorrelationId,
                     context.Message.ClusterId,
@@ -133,7 +130,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Unexpected error deploying on application {ClusterApplicationId}", clusterApplicationId);
+            logger.LogError(e, "Unexpected error deploying on application {ClusterApplicationId}", clusterApplicationId);
             var errorInfo = new ErrorInfo(-1, e.Message);
             await context.Publish(
                 new ClusterNodeDeploymentsUpdateFailedEvent(context.Message.CorrelationId,
@@ -145,7 +142,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         finally
         {
             if (mqttClient is not null)
-                await mqttClient.DisconnectClient(_mqttClientSubstitute, default, context.CancellationToken);
+                await mqttClient.DisconnectClient(mqttClientSubstitute, default, context.CancellationToken);
         }
     }
 
@@ -160,7 +157,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
     {
         try
         {
-            return DataPortTransformer.TransformToFunctionBlocks(builder, engineHosts, _rulesetProvider);
+            return DataPortTransformer.TransformToFunctionBlocks(builder, engineHosts, rulesetProvider);
         }
         catch (Exception e)
         {
@@ -311,65 +308,65 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         switch (engineHostProvisioning.PhysicalState)
         {
             case EngineHostState.NotFound:
-                _logger.LogDeployingEngineHost(engineHostProvisioning.Desired.Id, engineHostProvisioning.Desired.Name);
-                await _poolCommunication.DeployHost(engineHostProvisioning.Desired.Id, cancellationToken)
+                logger.LogDeployingEngineHost(engineHostProvisioning.Desired.Id, engineHostProvisioning.Desired.Name);
+                await poolCommunication.DeployHost(engineHostProvisioning.Desired.Id, cancellationToken)
                     .CatchAs(ClusterErrorInfos.CouldNotDeployEngineHost(), cancellationToken);
-                await _poolCommunication.SetHostAppSettings(engineHostProvisioning.Desired.Id, engineHostProvisioning.AppSettings, cancellationToken)
+                await poolCommunication.SetHostAppSettings(engineHostProvisioning.Desired.Id, engineHostProvisioning.AppSettings, cancellationToken)
                     .CatchAs(ClusterErrorInfos.CouldNotSetAppSettingsOfEngineHost(), cancellationToken);
                 await EnsureEngineHostInDatabase(engineHostProvisioning, cancellationToken);
-                _logger.LogStartingEngineHost(engineHostProvisioning.Desired.Id);
-                await _poolCommunication.StartHost(engineHostProvisioning.Desired.Id, engineHostProvisioning.Desired.ElevatedPrivileges, cancellationToken)
+                logger.LogStartingEngineHost(engineHostProvisioning.Desired.Id);
+                await poolCommunication.StartHost(engineHostProvisioning.Desired.Id, engineHostProvisioning.Desired.ElevatedPrivileges, cancellationToken)
                     .CatchAs(ClusterErrorInfos.CouldNotStartEngineHost(), cancellationToken);
                 break;
             case EngineHostState.Started:
                 await EnsureEngineHostInDatabase(engineHostProvisioning, cancellationToken);
-                var appSettingsChanged = await _poolCommunication.CompareHostAppSettings(engineHostProvisioning.Desired.Id, engineHostProvisioning.AppSettings, cancellationToken)
+                var appSettingsChanged = await poolCommunication.CompareHostAppSettings(engineHostProvisioning.Desired.Id, engineHostProvisioning.AppSettings, cancellationToken)
                     .CatchAs(ClusterErrorInfos.CouldNotGetAppSettingsOfEngineHost(), cancellationToken) != 0;
                 var elevatedPrivilegesChanged = false;
                 if (engineHostProvisioning.Expected is not null)
                     elevatedPrivilegesChanged = engineHostProvisioning.Expected.ElevatedPrivileges != engineHostProvisioning.Desired.ElevatedPrivileges;
                 if (appSettingsChanged || elevatedPrivilegesChanged)
                 {
-                    _logger.LogStoppingEngineHost(engineHostProvisioning.Desired.Id);
-                    await _poolCommunication.StopHost(engineHostProvisioning.Desired.Id, cancellationToken)
+                    logger.LogStoppingEngineHost(engineHostProvisioning.Desired.Id);
+                    await poolCommunication.StopHost(engineHostProvisioning.Desired.Id, cancellationToken)
                         .CatchAs(ClusterErrorInfos.CouldNotStopEngineHost(), cancellationToken);
 
                     if (appSettingsChanged)
                     {
-                        _logger.LogUpdatingEngineHost(engineHostProvisioning.Desired.Id);
-                        await _poolCommunication.SetHostAppSettings(engineHostProvisioning.Desired.Id, engineHostProvisioning.AppSettings, cancellationToken)
+                        logger.LogUpdatingEngineHost(engineHostProvisioning.Desired.Id);
+                        await poolCommunication.SetHostAppSettings(engineHostProvisioning.Desired.Id, engineHostProvisioning.AppSettings, cancellationToken)
                             .CatchAs(ClusterErrorInfos.CouldNotSetAppSettingsOfEngineHost(), cancellationToken);
                     }
                     if (elevatedPrivilegesChanged && engineHostProvisioning.Expected is not null)
                     {
                         engineHostProvisioning.Expected.ElevatedPrivileges = engineHostProvisioning.Desired.ElevatedPrivileges;
-                        await _engineDbContext.Instance.SaveChangesAsync(cancellationToken);
+                        await engineDbContext.Instance.SaveChangesAsync(cancellationToken);
                     }
 
-                    _logger.LogStartingEngineHost(engineHostProvisioning.Desired.Id);
-                    await _poolCommunication.StartHost(engineHostProvisioning.Desired.Id, engineHostProvisioning.Desired.ElevatedPrivileges, cancellationToken)
+                    logger.LogStartingEngineHost(engineHostProvisioning.Desired.Id);
+                    await poolCommunication.StartHost(engineHostProvisioning.Desired.Id, engineHostProvisioning.Desired.ElevatedPrivileges, cancellationToken)
                         .CatchAs(ClusterErrorInfos.CouldNotStartEngineHost(), cancellationToken);
                 }
                 else
                 {
-                    _logger.LogSkipEngineHostUpdate(engineHostProvisioning.Desired.Id);
+                    logger.LogSkipEngineHostUpdate(engineHostProvisioning.Desired.Id);
                 }
                 break;
             case EngineHostState.Stopped:
                 await EnsureEngineHostInDatabase(engineHostProvisioning, cancellationToken);
-                if (await _poolCommunication.CompareHostAppSettings(engineHostProvisioning.Desired.Id, engineHostProvisioning.AppSettings, cancellationToken)
+                if (await poolCommunication.CompareHostAppSettings(engineHostProvisioning.Desired.Id, engineHostProvisioning.AppSettings, cancellationToken)
                     .CatchAs(ClusterErrorInfos.CouldNotGetAppSettingsOfEngineHost(), cancellationToken) != 0)
                 {
-                    _logger.LogUpdatingEngineHost(engineHostProvisioning.Desired.Id);
-                    await _poolCommunication.SetHostAppSettings(engineHostProvisioning.Desired.Id, engineHostProvisioning.AppSettings, cancellationToken)
+                    logger.LogUpdatingEngineHost(engineHostProvisioning.Desired.Id);
+                    await poolCommunication.SetHostAppSettings(engineHostProvisioning.Desired.Id, engineHostProvisioning.AppSettings, cancellationToken)
                         .CatchAs(ClusterErrorInfos.CouldNotSetAppSettingsOfEngineHost(), cancellationToken);
                 }
                 else
                 {
-                    _logger.LogSkipEngineHostUpdate(engineHostProvisioning.Desired.Id);
+                    logger.LogSkipEngineHostUpdate(engineHostProvisioning.Desired.Id);
                 }
-                _logger.LogStartingEngineHost(engineHostProvisioning.Desired.Id);
-                await _poolCommunication.StartHost(engineHostProvisioning.Desired.Id, engineHostProvisioning.Desired.ElevatedPrivileges, cancellationToken)
+                logger.LogStartingEngineHost(engineHostProvisioning.Desired.Id);
+                await poolCommunication.StartHost(engineHostProvisioning.Desired.Id, engineHostProvisioning.Desired.ElevatedPrivileges, cancellationToken)
                     .CatchAs(ClusterErrorInfos.CouldNotStartEngineHost(), cancellationToken);
                 break;
             default:
@@ -380,12 +377,12 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         {
             if (ehProvisioning.Expected is null)
             {
-                _engineDbContext.EngineHosts.Add(new()
+                engineDbContext.EngineHosts.Add(new()
                 {
                     Id = ehProvisioning.Desired.Id,
                     ElevatedPrivileges = ehProvisioning.Desired.ElevatedPrivileges,
                 });
-                await _engineDbContext.Instance.SaveChangesAsync(cancelToken);
+                await engineDbContext.Instance.SaveChangesAsync(cancelToken);
             }
         }
     }
@@ -418,7 +415,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
 
                             if (desired.Enabled && actualState == EngineState.Running)
                             {
-                                _logger.LogSkipEngineUpdate(desired.Id, expected.EngineHostId, expected.Id);
+                                logger.LogSkipEngineUpdate(desired.Id, expected.EngineHostId, expected.Id);
                             }
                             else
                             {
@@ -430,7 +427,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
                         }
                         else
                         {
-                            _logger.LogUpdatingEngine(desired.Id, expected.EngineHostId, expected.Id);
+                            logger.LogUpdatingEngine(desired.Id, expected.EngineHostId, expected.Id);
                             actions.ShouldNotRun.Add(expected);
                             actions.Stop.Add((expected.Id, expected.EngineId, actualState == EngineState.Running, raiseStop));
                             actions.Delete.Add(expected);
@@ -440,7 +437,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
                     }
                     else
                     {
-                        _logger.LogRestoreMissingEngine(desired.Id, expected.EngineHostId, expected.Id);
+                        logger.LogRestoreMissingEngine(desired.Id, expected.EngineHostId, expected.Id);
                         actions.Delete.Add(expected);
                         actions.Deploy.Add((desired, engineProvisioning.Workflow, engineProvisioning.WorkflowMetadata));
                     }
@@ -467,7 +464,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         }
         foreach (var actualState in physicalDeploymentStates)
         {
-            _logger.LogRemoveUnexpectedEngine(engineHostProvisioning.Desired.Id, actualState.Key);
+            logger.LogRemoveUnexpectedEngine(engineHostProvisioning.Desired.Id, actualState.Key);
             if (actualState.Value == EngineState.Running)
                 actions.Stop.Add((actualState.Key, Guid.Empty, true, false));
             actions.TearDown.Add((actualState.Key, Guid.Empty, true, false));
@@ -514,7 +511,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
             foreach (var engineDisposal in engineHostDisposal.EngineActions)
             {
                 var execute = false;
-                if (physicalDeploymentStates.Remove(engineDisposal.Expected.Id, out var _))
+                if (physicalDeploymentStates.Remove(engineDisposal.Expected.Id, out _))
                     execute = true;
                 actions.TearDown.Add((engineDisposal.Expected.Id, engineDisposal.Expected.EngineId, execute, true));
             }
@@ -534,23 +531,23 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
     {
         if (engineHostDisposal.PhysicalState == EngineHostState.Started)
         {
-            _logger.LogStoppingEngineHost(engineHostDisposal.Expected.Id);
-            await _poolCommunication.StopHost(engineHostDisposal.Expected.Id, cancellationToken)
+            logger.LogStoppingEngineHost(engineHostDisposal.Expected.Id);
+            await poolCommunication.StopHost(engineHostDisposal.Expected.Id, cancellationToken)
                 .CatchAs(ClusterErrorInfos.CouldNotStopEngineHost(), cancellationToken);
         }
 
         if (engineHostDisposal.PhysicalState != EngineHostState.NotFound)
         {
-            _logger.LogTearingDownEngineHost(engineHostDisposal.Expected.Id);
-            await _poolCommunication.TearDownHost(engineHostDisposal.Expected.Id, cancellationToken)
+            logger.LogTearingDownEngineHost(engineHostDisposal.Expected.Id);
+            await poolCommunication.TearDownHost(engineHostDisposal.Expected.Id, cancellationToken)
                 .CatchAs(ClusterErrorInfos.CouldNotTearDownEngineHost(), cancellationToken);
         }
 
-        var dbEngineHost = await _engineDbContext.EngineHosts.SingleOrDefaultAsync(_ => _.Id == engineHostDisposal.Expected.Id, cancellationToken);
+        var dbEngineHost = await engineDbContext.EngineHosts.SingleOrDefaultAsync(eh => eh.Id == engineHostDisposal.Expected.Id, cancellationToken);
         if (dbEngineHost is not null)
         {
-            _engineDbContext.EngineHosts.Remove(dbEngineHost);
-            await _engineDbContext.Instance.SaveChangesAsync(cancellationToken);
+            engineDbContext.EngineHosts.Remove(dbEngineHost);
+            await engineDbContext.Instance.SaveChangesAsync(cancellationToken);
         }
     }
 
@@ -560,7 +557,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         Dictionary<Guid, EngineState> deploymentStates = [];
         if (physicalState == EngineHostState.Started)
         {
-            deploymentStates = new(await _hostCommunication.GetDeploymentStates(engineHostId, cancellationToken)
+            deploymentStates = new(await hostCommunication.GetDeploymentStates(engineHostId, cancellationToken)
                 .CatchAs(ClusterErrorInfos.CouldNotGetRunStatesOfEngines(), cancellationToken));
         }
         return deploymentStates;
@@ -573,16 +570,16 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         {
             foreach (var deployment in actions.ShouldNotRun)
                 deployment.ShouldRun = false;
-            await _engineDbContext.Instance.SaveChangesAsync(cancellationToken);
+            await engineDbContext.Instance.SaveChangesAsync(cancellationToken);
         }
 
         if (actions.Stop.Count != 0)
         {
             foreach (var stop in actions.Stop)
             {
-                _logger.LogStoppingEngine(stop.EngineId, engineHostId, stop.DeploymentId);
+                logger.LogStoppingEngine(stop.EngineId, engineHostId, stop.DeploymentId);
                 var stopped = !stop.Execute && stop.RaiseEvent;
-                if (stop.Execute && await _hostCommunication.StopEngine(engineHostId, stop.DeploymentId, cancellationToken)
+                if (stop.Execute && await hostCommunication.StopEngine(engineHostId, stop.DeploymentId, cancellationToken)
                     .CatchAs(ClusterErrorInfos.CouldNotStopEngine(), cancellationToken))
                 {
                     stopped = true;
@@ -595,19 +592,19 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         if (actions.Delete.Count != 0)
         {
             foreach (var delete in actions.Delete)
-                _engineDbContext.EngineDeployments.Remove(delete);
-            await _engineDbContext.Instance.SaveChangesAsync(cancellationToken);
+                engineDbContext.EngineDeployments.Remove(delete);
+            await engineDbContext.Instance.SaveChangesAsync(cancellationToken);
         }
 
         if (actions.TearDown.Count != 0)
         {
             foreach (var tearDown in actions.TearDown)
             {
-                _logger.LogTearingDownEngine(tearDown.EngineId, engineHostId, tearDown.DeploymentId);
+                logger.LogTearingDownEngine(tearDown.EngineId, engineHostId, tearDown.DeploymentId);
                 var tornDown = !tearDown.Execute && tearDown.RaiseEvent;
                 if (tearDown.Execute)
                 {
-                    await _hostCommunication.TearDownEngine(engineHostId, tearDown.DeploymentId, cancellationToken)
+                    await hostCommunication.TearDownEngine(engineHostId, tearDown.DeploymentId, cancellationToken)
                         .CatchAs(ClusterErrorInfos.CouldNotTearDownEngine(), cancellationToken);
                     tornDown = true;
                 }
@@ -618,8 +615,8 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
 
         foreach (var deploy in actions.Deploy)
         {
-            _logger.LogDeployingEngine(deploy.Engine.Id, deploy.Engine.Name, engineHostId, engineHostName);
-            var deploymentIdentifier = await _hostCommunication.DeployEngine(engineHostId, deploy.Workflow, cancellationToken)
+            logger.LogDeployingEngine(deploy.Engine.Id, deploy.Engine.Name, engineHostId, engineHostName);
+            var deploymentIdentifier = await hostCommunication.DeployEngine(engineHostId, deploy.Workflow, cancellationToken)
                 .CatchAs(ClusterErrorInfos.CouldNotDeployEngine(), cancellationToken);
 
             EngineDeployment engineDeployment = new()
@@ -630,8 +627,8 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
                 Checksum = new WorkflowComparer().GetHashCode(deploy.Workflow),
                 MqttRetainTopics = deploy.WorkflowMetadata.MqttRetainTopics,
             };
-            _engineDbContext.EngineDeployments.Add(engineDeployment);
-            await _engineDbContext.Instance.SaveChangesAsync(cancellationToken);
+            engineDbContext.EngineDeployments.Add(engineDeployment);
+            await engineDbContext.Instance.SaveChangesAsync(cancellationToken);
 
             if (deploy.Engine.Enabled)
             {
@@ -644,15 +641,15 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         {
             foreach (var shouldRun in actions.ShouldRun)
                 shouldRun.ShouldRun = true;
-            await _engineDbContext.Instance.SaveChangesAsync(cancellationToken);
+            await engineDbContext.Instance.SaveChangesAsync(cancellationToken);
         }
 
         if (actions.Start.Count != 0)
         {
             foreach (var start in actions.Start)
             {
-                _logger.LogStartingEngine(start.EngineId, engineHostId, start.DeploymentId);
-                if (await _hostCommunication.StartEngine(engineHostId, start.DeploymentId, cancellationToken)
+                logger.LogStartingEngine(start.EngineId, engineHostId, start.DeploymentId);
+                if (await hostCommunication.StartEngine(engineHostId, start.DeploymentId, cancellationToken)
                     .CatchAs(ClusterErrorInfos.CouldNotStartEngine(), cancellationToken))
                 {
                     await context.Publish(new EngineStarted(start.EngineId), cancellationToken);
@@ -677,13 +674,13 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
 
     private async Task DeleteRetainMessages(IMqttClient mqttClient, IReadOnlyCollection<Guid> expectedRetainMessages, CancellationToken cancellationToken)
     {
-        var finalEngineHosts = await _engineDbContext.EngineDeployments.AsNoTracking().ToListAsync(cancellationToken);
+        var finalEngineHosts = await engineDbContext.EngineDeployments.AsNoTracking().ToListAsync(cancellationToken);
         var retainMessageToRemove = expectedRetainMessages.Except(finalEngineHosts.SelectMany(d => d.MqttRetainTopics).Distinct());
         foreach (var topic in retainMessageToRemove)
         {
             var builder = new MqttApplicationMessageBuilder()
                 .WithTopic(topic.ToString())
-                .WithRetainFlag(true);
+                .WithRetainFlag();
             await mqttClient.PublishAsync(builder.Build(), cancellationToken);
         }
     }
@@ -704,6 +701,6 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
                     functionBlocks += fbs.Count;
             }
         }
-        _logger.LogDeploymentVolume(engineHosts.Count, engines, functionBlocks, dataPorts);
+        logger.LogDeploymentVolume(engineHosts.Count, engines, functionBlocks, dataPorts);
     }
 }
