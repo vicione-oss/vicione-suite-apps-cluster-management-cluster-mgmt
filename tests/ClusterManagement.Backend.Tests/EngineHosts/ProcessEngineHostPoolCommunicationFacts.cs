@@ -339,7 +339,7 @@ public class ProcessEngineHostPoolCommunicationFacts
                 info.FileName.Should().Be("ViciOne.ManagedEngine.Host");
                 info.UseShellExecute.Should().BeTrue();
             })!);
-            context.ServiceManagement.ReceivedCalls().Should().BeEmpty();
+            context.ServiceManagement.ReceivedCalls().Should().HaveCount(1);
         }
 
         [Fact(Skip = "LinuxOnly", SkipWhen = nameof(PlatformSkip.IfNotLinux), SkipType = typeof(PlatformSkip))]
@@ -464,7 +464,7 @@ public class ProcessEngineHostPoolCommunicationFacts
             context.FileSystem.FileExists(context.WorkingDirectory.TerminateFile).Should().BeTrue();
             context.FileSystem.FileExists(context.WorkingDirectory.ProcessIdFile).Should().BeFalse();
             await process.Received(1).WaitForExit(Arg.Any<CancellationToken>());
-            context.ServiceManagement.ReceivedCalls().Should().BeEmpty();
+            context.ServiceManagement.ReceivedCalls().Should().HaveCount(1);
         }
 
         [Theory(Skip = "LinuxOnly", SkipWhen = nameof(PlatformSkip.IfNotLinux), SkipType = typeof(PlatformSkip))]
@@ -600,7 +600,7 @@ public class ProcessEngineHostPoolCommunicationFacts
         {
             _directory = new();
             _communication = new(_directory.Path, ".", new FileSystem(),
-                Substitute.For<IMqttObserverClient>(), Substitute.For<IControlServiceManagement>(), Substitute.For<IConfiguration>());
+                Substitute.For<IMqttObserverClient>(), Substitute.For<IControlServiceManagement>());
         }
 
         public void Dispose() => _directory.Dispose();
@@ -686,7 +686,7 @@ public class ProcessEngineHostPoolCommunicationFacts
         {
             _directory = new();
             _communication = new(_directory.Path, ".", new FileSystem(),
-                Substitute.For<IMqttObserverClient>(), Substitute.For<IControlServiceManagement>(), Substitute.For<IConfiguration>());
+                Substitute.For<IMqttObserverClient>(), Substitute.For<IControlServiceManagement>());
         }
 
         public void Dispose() => _directory.Dispose();
@@ -786,7 +786,6 @@ internal sealed class EngineHostContext
     internal IMqttObserverClient MqttObserverClient { get; }
     internal IControlServiceManagement ServiceManagement { get; }
     internal ProcessEngineHostPoolCommunication Communication { get; }
-    internal IConfiguration Configuration { get; }
     internal IProcessManager ProcessManager { get; }
     internal Guid HostId { get; } = Guid.NewGuid();
 
@@ -799,16 +798,11 @@ internal sealed class EngineHostContext
             Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new MqttObserverResponse() { Payload = "upandrunning", });
         ServiceManagement = Substitute.For<IControlServiceManagement>();
-        Configuration = new ConfigurationBuilder()
-           .AddInMemoryCollection(
-            [
-               new("HostManagement:MockClient:Enabled", (!hostManagementAvailable).ToString(CultureInfo.InvariantCulture)),
-            ])
-           .Build();
+        ServiceManagement.IsAvailable.Returns(hostManagementAvailable);
         ProcessManager = osProcessManager ? new ProcessManager() : Substitute.For<IProcessManager>();
         hostsDirectory ??= FileSystem.Directory.GetCurrentDirectory();
         installDirectory ??= FileSystem.Directory.GetCurrentDirectory();
         Communication = new(installDirectory, hostsDirectory, FileSystem,
-            MqttObserverClient, ServiceManagement, Configuration, ProcessManager);
+            MqttObserverClient, ServiceManagement, ProcessManager);
     }
 }

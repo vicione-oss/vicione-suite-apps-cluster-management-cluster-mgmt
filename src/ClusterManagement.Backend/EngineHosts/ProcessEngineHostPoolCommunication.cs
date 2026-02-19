@@ -5,14 +5,16 @@ using System.Text.Json;
 using ClusterManagement.Backend.Diagnostics;
 using ClusterManagement.Backend.Extensions;
 using ClusterManagement.Backend.Mqtt;
-using Microsoft.Extensions.Configuration;
 using Sdk.SystemConfiguration;
 using Semver;
 
 namespace ClusterManagement.Backend.EngineHosts;
 
-internal sealed class ProcessEngineHostPoolCommunication(string installDirectory, string hostsDirectory, IFileSystem fileSystem,
-    IMqttObserverClient mqttObserverClient, IControlServiceManagement serviceManagement, IConfiguration configuration,
+internal sealed class ProcessEngineHostPoolCommunication(string installDirectory,
+    string hostsDirectory,
+    IFileSystem fileSystem,
+    IMqttObserverClient mqttObserverClient,
+    IControlServiceManagement serviceManagement,
     IProcessManager? processManager = null) : IEngineHostPoolCommunication
 {
     private const string PrivilegeIndicator = "-privileged";
@@ -22,22 +24,18 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
 
     private readonly string _installDirectory = fileSystem.Path.GetFullPath(installDirectory);
     private readonly string _hostsDirectory = fileSystem.Path.GetFullPath(hostsDirectory);
-    private readonly IFileSystem _fileSystem = fileSystem;
-    private readonly IMqttObserverClient _mqttObserverClient = mqttObserverClient;
-    private readonly IControlServiceManagement _serviceManagement = serviceManagement;
-    private readonly IConfiguration _configuration = configuration;
     private readonly IProcessManager _processManager = processManager ?? new ProcessManager();
 
     public async Task<IReadOnlyDictionary<Guid, EngineHostState>> GetStates(CancellationToken cancellationToken)
     {
         Dictionary<Guid, EngineHostState> states = [];
-        if (_fileSystem.Directory.Exists(_hostsDirectory))
+        if (fileSystem.Directory.Exists(_hostsDirectory))
         {
             var tasks = Task.WhenEach(
-                _fileSystem.Directory.EnumerateDirectories(_hostsDirectory)
+                fileSystem.Directory.EnumerateDirectories(_hostsDirectory)
                     .Select(async hostDirectory =>
                     {
-                        var id = Guid.Parse(_fileSystem.Path.GetFileName(hostDirectory));
+                        var id = Guid.Parse(fileSystem.Path.GetFileName(hostDirectory));
                         var state = await GetState(id, cancellationToken);
                         return (Id: id, State: state);
                     }));
@@ -54,7 +52,7 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
     public async Task<EngineHostState> GetState(Guid id, CancellationToken cancellationToken)
     {
         var workingDirectory = GetWorkingDirectory(id);
-        if (!_fileSystem.Directory.Exists(workingDirectory))
+        if (!fileSystem.Directory.Exists(workingDirectory))
             return EngineHostState.NotFound;
         var pid = await ReadProcessId(workingDirectory, cancellationToken);
         if (!pid.HasValue)
@@ -66,7 +64,7 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
     }
 
     private string GetWorkingDirectory(Guid id)
-        => _fileSystem.Path.Combine(_hostsDirectory, id.ToString());
+        => fileSystem.Path.Combine(_hostsDirectory, id.ToString());
 
     private async Task<int?> ReadProcessId(string directory, CancellationToken cancellationToken)
     {
@@ -87,7 +85,7 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
         }
         catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
         {
-            // Throws the canceled exception of the general token as usual.
+            // Throws the canceled exception to the general token as usual.
             if (cancellationToken.IsCancellationRequested)
                 throw;
         }
@@ -104,7 +102,10 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
             process.Kill();
         }
         catch
-        { }
+        {
+            // Ignore failures of killing the process,
+            // as there is not much else we can do, and it will be cleaned up eventually by the operating system.
+        }
     }
 
     public async Task DeployHost(Guid id, CancellationToken cancellationToken)
@@ -118,13 +119,13 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
 
     private void CheckExecutablePath(string executablePath)
     {
-        if (!_fileSystem.File.Exists(executablePath))
+        if (!fileSystem.File.Exists(executablePath))
             throw new InvalidOperationException($"A engine host cannot be deployed without an existing executable file.");
     }
 
     private string GetExecutablePath()
     {
-        var executable = _fileSystem.Path.Combine(_installDirectory, "ViciOne.ManagedEngine.Host");
+        var executable = fileSystem.Path.Combine(_installDirectory, "ViciOne.ManagedEngine.Host");
         if (OperatingSystem.IsWindows() && !executable.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
             executable += ".exe";
         return executable;
@@ -133,7 +134,7 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
     private Task WriteExecutablePath(string workingDirectory, string executablePath, CancellationToken cancellationToken)
         => WriteFile(workingDirectory, ExecutableFileName, executablePath, cancellationToken);
 
-    private void EnsureDirectory(string workingDirectory) => _fileSystem.Directory.CreateDirectory(workingDirectory);
+    private void EnsureDirectory(string workingDirectory) => fileSystem.Directory.CreateDirectory(workingDirectory);
 
     public async Task TearDownHost(Guid id, CancellationToken cancellationToken)
     {
@@ -145,8 +146,8 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
 
     private void RemoveDirectory(string workingDirectory)
     {
-        if (_fileSystem.Directory.Exists(workingDirectory))
-            _fileSystem.Directory.Delete(workingDirectory, true);
+        if (fileSystem.Directory.Exists(workingDirectory))
+            fileSystem.Directory.Delete(workingDirectory, true);
     }
 
     public async Task StartHost(Guid id, bool elevatedPrivileges, CancellationToken cancellationToken)
@@ -171,13 +172,11 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
         }
     }
 
-    private bool UseProcess() =>
-        OperatingSystem.IsWindows() ||
-        _configuration.GetSection("HostManagement")?.GetSection("MockClient")?.GetValue<bool?>("Enabled", false) == true;
+    private bool UseProcess() => !serviceManagement.IsAvailable || OperatingSystem.IsWindows();
 
     private async Task ObserveStart(Guid id, Func<CancellationToken, Task> startMethod, CancellationToken cancellationToken)
     {
-        var response = await _mqttObserverClient.Observe(startMethod, string.Concat(id, "/state"), cancellationToken);
+        var response = await mqttObserverClient.Observe(startMethod, string.Concat(id, "/state"), cancellationToken);
         if (!string.Equals(response.Payload, "upandrunning", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException($"Engine host '{id}' did not start with reason '{response.Payload}'.");
     }
@@ -209,15 +208,15 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
     private async Task EnsureAccessiblePermissions(string workingDirectory, Guid id, CancellationToken cancellationToken)
     {
         var filePath = GetConfigurationFilePath(workingDirectory);
-        if (_fileSystem.File.Exists(filePath))
+        if (fileSystem.File.Exists(filePath))
         {
             try
             {
-                await using var stream = _fileSystem.FileStream.New(filePath, FileMode.Open, FileAccess.Write, FileShare.ReadWrite);
+                await using var stream = fileSystem.FileStream.New(filePath, FileMode.Open, FileAccess.Write, FileShare.ReadWrite);
             }
             catch (UnauthorizedAccessException)
             {
-                await _serviceManagement.TryControlService(ServiceCommand.Start, $"enginehost-reset@{id}.service", cancellationToken);
+                await serviceManagement.TryControlService(ServiceCommand.Start, $"enginehost-reset@{id}.service", cancellationToken);
             }
         }
     }
@@ -225,21 +224,21 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
     private async Task StartService(Guid id, bool elevatedPrivileges, CancellationToken cancellationToken)
     {
         var privileged = elevatedPrivileges ? PrivilegeIndicator : string.Empty;
-        await _serviceManagement.TryControlService(ServiceCommand.Start, $"enginehost{privileged}@{id}.service", cancellationToken);
+        await serviceManagement.TryControlService(ServiceCommand.Start, $"enginehost{privileged}@{id}.service", cancellationToken);
     }
 
     private async Task WriteFile(string directory, string fileName, string content, CancellationToken cancellationToken)
     {
-        var filePath = _fileSystem.Path.Combine(directory, fileName);
-        await _fileSystem.File.WriteAllTextAsync(filePath, content, cancellationToken);
+        var filePath = fileSystem.Path.Combine(directory, fileName);
+        await fileSystem.File.WriteAllTextAsync(filePath, content, cancellationToken);
     }
 
     private async Task<string?> ReadFirstLine(string directory, string fileName, CancellationToken cancellationToken)
     {
-        var filePath = _fileSystem.Path.Combine(directory, fileName);
-        if (_fileSystem.File.Exists(filePath))
+        var filePath = fileSystem.Path.Combine(directory, fileName);
+        if (fileSystem.File.Exists(filePath))
         {
-            await foreach (var line in _fileSystem.File.ReadLinesAsync(filePath, cancellationToken))
+            await foreach (var line in fileSystem.File.ReadLinesAsync(filePath, cancellationToken))
                 return line;
         }
         return default;
@@ -264,7 +263,7 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
     }
 
     private async Task SendTerminate(string workingDirectory)
-        => await _fileSystem.File.Create(_fileSystem.Path.Combine(workingDirectory, "terminate")).DisposeAsync();
+        => await fileSystem.File.Create(fileSystem.Path.Combine(workingDirectory, "terminate")).DisposeAsync();
 
     private async Task StopService(Guid id, CancellationToken cancellationToken)
     {
@@ -272,9 +271,9 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
         if (service is not null)
         {
             if (service.Contains(PrivilegeIndicator, StringComparison.OrdinalIgnoreCase))
-                await _serviceManagement.TryControlService(ServiceCommand.Stop, $"enginehost{PrivilegeIndicator}@{id}.service", cancellationToken);
+                await serviceManagement.TryControlService(ServiceCommand.Stop, $"enginehost{PrivilegeIndicator}@{id}.service", cancellationToken);
             else
-                await _serviceManagement.TryControlService(ServiceCommand.Stop, $"enginehost@{id}.service", cancellationToken);
+                await serviceManagement.TryControlService(ServiceCommand.Stop, $"enginehost@{id}.service", cancellationToken);
         }
     }
 
@@ -344,8 +343,8 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
 
     private void DeleteProcessId(string directory)
     {
-        var filePath = _fileSystem.Path.Combine(directory, ProcessIdFileName);
-        _fileSystem.File.Delete(filePath);
+        var filePath = fileSystem.Path.Combine(directory, ProcessIdFileName);
+        fileSystem.File.Delete(filePath);
     }
 
     public async Task<int> CompareHostAppSettings(Guid id, EngineHostAppSettings appSettings, CancellationToken cancellationToken)
@@ -358,8 +357,8 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
     private async Task<int> CompareConfiguration(EngineHostAppSettings appSettings, string filePath, CancellationToken cancellationToken)
     {
         var existingConfiguration = string.Empty;
-        if (_fileSystem.File.Exists(filePath))
-            existingConfiguration = await _fileSystem.File.ReadAllTextAsync(filePath, cancellationToken);
+        if (fileSystem.File.Exists(filePath))
+            existingConfiguration = await fileSystem.File.ReadAllTextAsync(filePath, cancellationToken);
         var configuration = JsonSerializer.Serialize(appSettings, JsonSetup.DefaultOptions);
         return string.Compare(configuration, existingConfiguration, StringComparison.Ordinal);
     }
@@ -371,11 +370,11 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
         await WriteConfiguration(filePath, appSettings, cancellationToken);
     }
 
-    private string GetConfigurationFilePath(string workingDirectory) => _fileSystem.Path.Combine(workingDirectory, "appsettings.json");
+    private string GetConfigurationFilePath(string workingDirectory) => fileSystem.Path.Combine(workingDirectory, "appsettings.json");
 
     private async Task WriteConfiguration(string filePath, object appSettings, CancellationToken cancellationToken)
     {
-        await using var stream = _fileSystem.FileStream.New(filePath, FileMode.Create, FileAccess.Write, FileShare.Read);
+        await using var stream = fileSystem.FileStream.New(filePath, FileMode.Create, FileAccess.Write, FileShare.Read);
         await JsonSerializer.SerializeAsync(stream, appSettings, JsonSetup.DefaultOptions, cancellationToken);
     }
 
@@ -405,7 +404,7 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
         {
             var workingDirectory = GetWorkingDirectory(id.Value);
             var executablePath = await ReadExecutablePath(workingDirectory, cancellationToken);
-            installDirectory = _fileSystem.Path.GetDirectoryName(executablePath)!;
+            installDirectory = fileSystem.Path.GetDirectoryName(executablePath)!;
         }
         return installDirectory;
     }
@@ -414,8 +413,8 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
     {
         foreach (var fileName in fileNames)
         {
-            var filePath = _fileSystem.Path.Combine(directory, fileName);
-            if (_fileSystem.File.Exists(filePath))
+            var filePath = fileSystem.Path.Combine(directory, fileName);
+            if (fileSystem.File.Exists(filePath))
                 return filePath;
         }
         return default;

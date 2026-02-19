@@ -21,12 +21,22 @@ internal class PackageContentProvider(
     private PackageLoader? _packagesLoader;
 
     public PackageContent GetPackageContent(ClusterDependency dependency)
-        => _packages.TryGetValue(dependency, out var content)
-            ? content
-            : throw new KeyNotFoundException($"Package content for dependency '{dependency}' not found.");
+    {
+        lock (_lock)
+        {
+            return _packages.TryGetValue(dependency, out var content)
+                ? content
+                : throw new KeyNotFoundException($"Package content for dependency '{dependency}' not found.");
+        }
+    }
 
     public IReadOnlyDictionary<ClusterDependency, PackageContent> GetPackageContents()
-        => _packages;
+    {
+        lock (_lock)
+        {
+            return _packages.ToDictionary();
+        }
+    }
 
     /// <summary>
     /// Creates and initializes the packages loader.

@@ -28,8 +28,7 @@ internal static class IServiceCollectionExtensions
                     fileSystem.GetDeploymentsPath(workspaceProvider),
                     fileSystem,
                     s.GetRequiredService<IMqttObserverClient>(),
-                    s.GetRequiredService<IControlServiceManagement>(),
-                    s.GetRequiredService<IConfiguration>());
+                    s.GetRequiredService<IControlServiceManagement>());
             })
             .AddScoped<IEngineHostCommunication, MqttEngineHostCommunication>()
             .AddScoped<IEngineCommunication, MqttEngineCommunication>()
