@@ -31,7 +31,7 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
     private static readonly Guid s_functionBlockOutputDesignId = Guid.NewGuid();
 
     private readonly IMqttBrokerConnectionCache _brokerConnectionCache;
-    private readonly EngineDbContext _engineDbContext;
+    private readonly EngineDbContextSqlite _engineDbContext;
     private readonly IEngineHostPoolCommunication _poolCommunication;
     private readonly IEngineHostCommunication _hostCommunication;
     private readonly IDesignProvider _designProvider;
@@ -59,9 +59,11 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
         _brokerConnectionCache.GetMqttConnection(Arg.Any<CancellationToken>())
             .Returns(new Sdk.Connections.Contracts.MqttConnection());
 
-        var optionsBuilder = new DbContextOptionsBuilder<EngineDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString().Replace("-", "", StringComparison.Ordinal));
-        _engineDbContext = new EngineDbContext(optionsBuilder.Options);
+        var optionsBuilder = new DbContextOptionsBuilder<EngineDbContextSqlite>()
+            .UseSqlite("DataSource=:memory:");
+        _engineDbContext = new EngineDbContextSqlite(optionsBuilder.Options);
+        _engineDbContext.Database.OpenConnection();
+        _engineDbContext.Database.EnsureCreated();
 
         _poolCommunication = Substitute.For<IEngineHostPoolCommunication>();
         _poolCommunication.GetStates(Arg.Any<CancellationToken>()).Returns(_engineHostsStates);
