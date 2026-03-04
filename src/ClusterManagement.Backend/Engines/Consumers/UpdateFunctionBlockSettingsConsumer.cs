@@ -58,7 +58,7 @@ public class UpdateFunctionBlockSettingsConsumer(IClusterDbContext clusterDb, IC
     }
 
     private Task<int> SaveCluster(CancellationToken cancellationToken)
-        => clusterDb.Instance.SaveChangesAsync(cancellationToken);
+        => clusterDb.SaveChangesAsync(cancellationToken);
 
     private async Task SaveSnapshot(Cluster snapshot, CancellationToken cancellationToken)
     {

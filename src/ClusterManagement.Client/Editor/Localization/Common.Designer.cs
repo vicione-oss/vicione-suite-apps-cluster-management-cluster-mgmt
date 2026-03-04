@@ -19,7 +19,7 @@ namespace ClusterManagement.Client.Editor.Localization {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Common {
@@ -70,15 +70,6 @@ namespace ClusterManagement.Client.Editor.Localization {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Installed version.
-        /// </summary>
-        internal static string InstalledVersion {
-            get {
-                return ResourceManager.GetString("InstalledVersion", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to The packages have been modified. To apply these changes, please restart the application..
         /// </summary>
         internal static string NeedRestart {
@@ -106,29 +97,11 @@ namespace ClusterManagement.Client.Editor.Localization {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to pending uninstall.
-        /// </summary>
-        internal static string PendingUninstall {
-            get {
-                return ResourceManager.GetString("PendingUninstall", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Packages.
         /// </summary>
         internal static string Title {
             get {
                 return ResourceManager.GetString("Title", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to update to version {0} available.
-        /// </summary>
-        internal static string UpdateToVersionAvailible {
-            get {
-                return ResourceManager.GetString("UpdateToVersionAvailible", resourceCulture);
             }
         }
     }

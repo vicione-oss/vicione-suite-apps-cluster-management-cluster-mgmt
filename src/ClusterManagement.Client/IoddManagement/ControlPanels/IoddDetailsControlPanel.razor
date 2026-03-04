@@ -1,10 +1,11 @@
 ﻿@using ClusterManagement.Client.Localization
 @using Sdk.Client.Components.Settings
 @using Sdk.Client.ControlPanels.Components
+@using ViciOne.Ui.Localization.Resources
 @inherits ControlPanelBase<IoddDetailsControlPanelState>
 
-<ControlPanelPage Title="@Localization.IoddDetailsControlPanel.Overview">
-    <DescriptionBanner Title="@($"{Common.Details} {State.DeviceVariant!.Name}")">
+<ControlPanelPage Title="@CommonVocabulary.Overview">
+    <DescriptionBanner Title="@($"{CommonVocabulary.DetailPlural} {State.DeviceVariant!.Name}")">
         @Localization.IoddDetailsControlPanel.BannerDescription
     </DescriptionBanner>
 

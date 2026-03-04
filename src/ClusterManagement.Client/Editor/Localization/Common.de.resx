@@ -126,17 +126,8 @@
   <data name="PackageDetails" xml:space="preserve">
     <value>Paket Details</value>
   </data>
-  <data name="InstalledVersion" xml:space="preserve">
-    <value>Installierte Version</value>
-  </data>
   <data name="NeedRestart" xml:space="preserve">
     <value>Die Pakete wurden geändert. Um diese Änderungen zu übernehmen, starten Sie bitte die Anwendung neu.</value>
-  </data>
-  <data name="PendingUninstall" xml:space="preserve">
-    <value>Deinstallation ausstehend</value>
-  </data>
-  <data name="UpdateToVersionAvailible" xml:space="preserve">
-    <value>Update auf Version {0} verfügbar</value>
   </data>
   <data name="ActiveInCluster" xml:space="preserve">
     <value>Das installierte Paket ist im Cluster aktiv. Dieses Paket kann nicht deinstalliert oder aktualisiert werden.</value>

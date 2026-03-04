@@ -56,7 +56,7 @@ public static class ClusterDbContextTools
             Version = cluster.Version,
             Deployed = DateTimeOffset.UtcNow
         });
-        context.Instance.SaveChanges();
+        context.SaveChanges();
 
         entity.State = EntityState.Detached;
         return entity.Entity;

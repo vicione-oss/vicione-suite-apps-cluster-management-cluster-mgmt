@@ -16,6 +16,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Sdk.Backend.Messaging;
 using Sdk.Backend.Modules;
+using Sdk.Backend.Persistence;
 using Sdk.Connections.Contracts;
 using Sdk.Connections.Extensions;
 using Sdk.Connections.Requests;
@@ -75,6 +76,7 @@ internal sealed partial class ClusterSystemTestContext : IAsyncDisposable
         CopyFunctionBlockDesigns(_workspaceDirectory);
 
         services.AddSingleton(CreateInstanceInformationProvider(instanceType));
+        services.AddSingleton<IModuleDbContextRegistrar, TestModuleDbContextRegistrar>();
         services.AddScoped(p => Substitute.For<IControlServiceManagement>());
 
         var moduleId = ModuleIdResolver.ResolveId<ClusterManagementBackendModule>();

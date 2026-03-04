@@ -26,7 +26,7 @@ public sealed class ResetSagaStateConsumer(IClusterSagaDbContext sagaDbContext, 
         TryLogClusterState(deployState);
 
         sagaDbContext.DeployClusterState.Remove(deployState);
-        await sagaDbContext.Instance.SaveChangesAsync(context.CancellationToken);
+        await sagaDbContext.SaveChangesAsync(context.CancellationToken);
     }
 
     private void TryLogClusterState(DeployClusterState deployState)

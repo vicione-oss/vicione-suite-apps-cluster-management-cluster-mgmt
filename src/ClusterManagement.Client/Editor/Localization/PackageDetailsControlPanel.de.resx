@@ -123,19 +123,10 @@
   <data name="BannerDescription" xml:space="preserve">
     <value>In dieser Ansicht werden die Details des ausgewählten Pakets angezeigt.</value>
   </data>
-  <data name="InstallVersion" xml:space="preserve">
-    <value>Version installieren</value>
-  </data>
   <data name="MinCoreVersion" xml:space="preserve">
     <value>Min. Core Version</value>
   </data>
   <data name="PackageDetails" xml:space="preserve">
     <value>Paket Details</value>
-  </data>
-  <data name="PendingInstall" xml:space="preserve">
-    <value>Ausstehende Installation von Version</value>
-  </data>
-  <data name="PendingUpdate" xml:space="preserve">
-    <value>Ausstehende Aktualisierung auf Version</value>
   </data>
 </root>

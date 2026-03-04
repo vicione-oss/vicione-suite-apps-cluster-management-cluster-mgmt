@@ -7,7 +7,7 @@ using ClusterManagement.Public.Events;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Sdk.Messaging;
+using Sdk.Backend.Messaging;
 using Semver;
 
 namespace ClusterManagement.Backend.EngineHosts.Consumers;

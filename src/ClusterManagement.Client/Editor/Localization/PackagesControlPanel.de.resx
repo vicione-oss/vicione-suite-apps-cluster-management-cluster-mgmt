@@ -135,15 +135,6 @@
   <data name="AvailableBannerTitle" xml:space="preserve">
     <value>Installierte Pakete</value>
   </data>
-  <data name="PendingInstallOfVersion" xml:space="preserve">
-    <value>ausstehende Installation von Version {0}</value>
-  </data>
-  <data name="PendingUpdateToVersion" xml:space="preserve">
-    <value>ausstehende Aktualisierung auf Version {0}</value>
-  </data>
-  <data name="Uninstall" xml:space="preserve">
-    <value>Deinstallieren</value>
-  </data>
   <data name="LatestVersion" xml:space="preserve">
     <value>Aktuellste Version</value>
   </data>

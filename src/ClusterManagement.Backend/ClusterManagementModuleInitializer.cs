@@ -31,10 +31,10 @@ public sealed class ClusterManagementModuleInitializer : IModuleInitializer
         var engineDbContext = scopedServices.GetRequiredService<IEngineDbContext>();
         var sagaDbContext = scopedServices.GetRequiredService<IClusterSagaDbContext>();
 
-        await clusterDbContext.Instance.Database.MigrateAsync(stoppingToken);
-        await clusterEditorDbContext.Instance.Database.MigrateAsync(stoppingToken);
-        await engineDbContext.Instance.Database.MigrateAsync(stoppingToken);
-        await sagaDbContext.Instance.Database.MigrateAsync(stoppingToken);
+        await clusterDbContext.MigrateAsync(stoppingToken);
+        await clusterEditorDbContext.MigrateAsync(stoppingToken);
+        await engineDbContext.MigrateAsync(stoppingToken);
+        await sagaDbContext.MigrateAsync(stoppingToken);
 
         await scopedServices.GetRequiredService<IEngineHostPool>().Migrate(stoppingToken);
     }
@@ -91,7 +91,7 @@ public sealed class ClusterManagementModuleInitializer : IModuleInitializer
             DeployedBy = "suite"
         });
 
-        await clusterDb.Instance.SaveChangesAsync(stoppingToken);
+        await clusterDb.SaveChangesAsync(stoppingToken);
 
         // store same version 0.0.1 to the store - this one can be edited if it's the latest version
         await store.Store(defaultCluster, stoppingToken);

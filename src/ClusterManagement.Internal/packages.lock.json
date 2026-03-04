@@ -193,7 +193,7 @@
         "type": "Project",
         "dependencies": {
           "ViciOne.Cluster.Builder": "[0.11.0, )",
-          "ViciOne.Suite.Sdk": "[2.0.0-ci2328417675, )"
+          "ViciOne.Suite.Sdk": "[2.0.0-ci2363355084, )"
         }
       },
       "ViciOne.Cluster.Builder": {
@@ -218,9 +218,9 @@
       },
       "ViciOne.Suite.Sdk": {
         "type": "CentralTransitive",
-        "requested": "[2.0.0-ci2328417675, )",
-        "resolved": "2.0.0-ci2328417675",
-        "contentHash": "DNpI2sgkRJUMwQPZiO98nZTJXoUQ6CkWZT5fEmx15Ppk6Wnus6yU5A/aXpJMSrdMt5VP3/GJfqqMTR8B/YZgZg==",
+        "requested": "[2.0.0-ci2363355084, )",
+        "resolved": "2.0.0-ci2363355084",
+        "contentHash": "JvEM+OnS0kRqmm2x90OZB0dnRmUXGbtf9q2gIJUOnrGoG97KhnQX6nIh8WyBZDzxqnCYN2OzDuZfydWFPNTaCw==",
         "dependencies": {
           "MassTransit.Abstractions": "8.5.8",
           "Microsoft.AspNetCore.Authorization": "10.0.3",

@@ -6,6 +6,7 @@ using ClusterManagement.Backend.Diagnostics;
 using ClusterManagement.Backend.Extensions;
 using ClusterManagement.Backend.Mqtt;
 using Sdk.SystemConfiguration;
+using Sdk.SystemConfiguration.Commands;
 using Semver;
 
 namespace ClusterManagement.Backend.EngineHosts;

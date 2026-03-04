@@ -59,7 +59,7 @@ public sealed class ToggleEngineConsumer(IClusterDbContext database, IClusterSna
             ?? throw new InvalidOperationException($"Could not find engine '{engineId}' in cluster '{cluster.Id}'.");
 
     private Task<int> SaveCluster(CancellationToken cancellationToken)
-        => database.Instance.SaveChangesAsync(cancellationToken);
+        => database.SaveChangesAsync(cancellationToken);
 
     private async Task SaveSnapshot(Cluster snapshot, CancellationToken cancellationToken)
     {

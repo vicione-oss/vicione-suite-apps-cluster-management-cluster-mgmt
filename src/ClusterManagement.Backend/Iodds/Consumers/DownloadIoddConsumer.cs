@@ -2,6 +2,7 @@
 using ClusterManagement.Public.Iodds;
 using ClusterManagement.Public.Iodds.Requests;
 using MassTransit;
+using Sdk.Backend.Messaging;
 using Sdk.Messaging;
 
 namespace ClusterManagement.Backend.Iodds.Consumers;

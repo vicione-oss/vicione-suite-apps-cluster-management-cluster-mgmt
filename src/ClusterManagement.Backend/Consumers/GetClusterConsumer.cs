@@ -4,7 +4,7 @@ using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
 using MassTransit;
 using Microsoft.Extensions.Logging;
-using Sdk.Messaging;
+using Sdk.Backend.Messaging;
 
 namespace ClusterManagement.Backend.Consumers;
 

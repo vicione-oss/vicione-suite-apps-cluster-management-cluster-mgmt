@@ -7,7 +7,7 @@ using ClusterManagement.Public.Requests;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Sdk.Messaging;
+using Sdk.Backend.Messaging;
 using ViciOne.Cluster.Builder;
 using ViciOne.Cluster.Model;
 using ViciOne.Cluster.Model.Extensions;

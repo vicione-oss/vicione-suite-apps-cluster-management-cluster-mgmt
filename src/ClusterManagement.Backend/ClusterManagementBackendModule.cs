@@ -27,14 +27,14 @@ public sealed class ClusterManagementBackendModule : BackendModule
         var options = config.BindModuleSection<ClusterManagementOptions>(ModuleId);
 
         services
-            .AddDynamicDbContext<IClusterDbContext, ClusterDbContextSqlite, ClusterDbContextPostgres>(this,
+            .AddModuleDbContext<IClusterDbContext, ClusterDbContextSqlite, ClusterDbContextPostgres>(this,
                 ClusterDbContext.DbSchemaName, enableSynchronization: false)
             // engine db context is not synchronized because it's only changed in deploy consumer on master|standalone
-            .AddDynamicDbContext<IEngineDbContext, EngineDbContextSqlite, EngineDbContextPostgres>(this,
+            .AddModuleDbContext<IEngineDbContext, EngineDbContextSqlite, EngineDbContextPostgres>(this,
                 EngineDbContext.DbSchemaName, enableSynchronization: false)
-            .AddDynamicDbContext<IClusterSagaDbContext, ClusterSagaDbContextSqlite, ClusterSagaDbContextPostgres>(this,
+            .AddModuleDbContext<IClusterSagaDbContext, ClusterSagaDbContextSqlite, ClusterSagaDbContextPostgres>(this,
                 ClusterSagaDbContext.DbSchemaName, enableSynchronization: false)
-            .AddDynamicDbContext<IClusterEditorDbContext, ClusterEditorDbContextSqlite, ClusterEditorDbContextPostgres>(
+            .AddModuleDbContext<IClusterEditorDbContext, ClusterEditorDbContextSqlite, ClusterEditorDbContextPostgres>(
                 this,
                 ClusterEditorDbContext.DbSchemaName, enableSynchronization: true);
 

@@ -41,7 +41,7 @@ public sealed class AddOrUpdateClusterEditorSettingsConsumer(IClusterEditorDbCon
         {
             var settingsEntry = dbContext.Settings.Add(settings);
 
-            if (await dbContext.Instance.SaveChangesAsync(cancellationToken) == 0)
+            if (await dbContext.SaveChangesAsync(cancellationToken) == 0)
                 return null;
 
             // only publish if we really changed the db 
@@ -59,7 +59,7 @@ public sealed class AddOrUpdateClusterEditorSettingsConsumer(IClusterEditorDbCon
         existingSettings.SimplifiedView = settings.SimplifiedView;
         dbContext.Settings.Update(existingSettings);
 
-        if (await dbContext.Instance.SaveChangesAsync(cancellationToken) <= 0)
+        if (await dbContext.SaveChangesAsync(cancellationToken) <= 0)
             return null;    // could happen on queued events
 
         return new AddOrUpdateClusterEditorSettingsResult

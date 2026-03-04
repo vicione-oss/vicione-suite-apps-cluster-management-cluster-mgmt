@@ -33,9 +33,9 @@
                 <div style="display:contents;">
                     <AuthorizeView Policy="@AdminPolicy">
 
-                        <GridActionButton Text="@Localization.PackagesControlPanel.Uninstall"
+                        <GridActionButton Text="@CommonVocabulary.UninstallVerb"
                                           OnClick="@OnPackageUninstallClickAsync"
-                                          IconData="@SvgIcon.Uninstall.GetPath()"
+                                          IconCssClass="@MonochromeIconName.UninstallLight.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()"
                                           Enabled="@(InstalledItemSelection.Count != 0 && InstalledItemSelection.All(i => !string.IsNullOrEmpty(i.InstalledVersion) && string.IsNullOrEmpty(i.RunningClusterVersion)))" />
 
                     </AuthorizeView>
@@ -61,7 +61,7 @@
                     }
                 </TemplateColumn>
 
-                <TemplateColumn Title="@Localization.Common.InstalledVersion">
+                <TemplateColumn Title="@LibraryManagement.InstalledVersion">
                     <div class="version-wrapper">
                         <div class="version" title="@context.InstalledVersion">
                             @context.InstalledVersion
@@ -76,39 +76,39 @@
                             @if (context.PendingOperation.OperationKind is ClusterDependencyOperationKind.Install)
                             {
                                 var tooltipText = context.InstalledVersion is null ?
-                                string.Format(Localization.PackagesControlPanel.PendingInstallOfVersion, context.PendingOperation.Dependency.Version.ToString()) :
-                                string.Format(Localization.PackagesControlPanel.PendingUpdateToVersion, context.PendingOperation.Dependency.Version.ToString());
+                                    string.Format(LibraryManagement.PendingInstallationOfSpecificVersion, context.PendingOperation.Dependency.Version.ToString()) :
+                                    string.Format(LibraryManagement.PendingUpdateToSpecificVersion, context.PendingOperation.Dependency.Version.ToString());
 
                                 <div title="@tooltipText" class="icon-wrapper">
-                                    <img src="@SvgIcon.InstallPending.GetPath()" />
+                                    <MonochromeIcon Name="MonochromeIconName.InstallPendingLight" Size="MonochromeIconSize.SmallMedium" />
                                 </div>
                             }
                             else
                             {
-                                <div title="@Localization.Common.PendingUninstall" class="icon-wrapper">
-                                    <img src="@SvgIcon.UninstallPending.GetPath()" />
+                                <div title="@LibraryManagement.PendingUninstallation" class="icon-wrapper">
+                                    <MonochromeIcon Name="MonochromeIconName.UninstallPendingLight" Size="MonochromeIconSize.SmallMedium" />
                                 </div>
                             }
                         }
 
                         @if (context.AvailableUpdateVersion is not null)
                         {
-                            <div title="@string.Format(Localization.Common.UpdateToVersionAvailible, context.AvailableUpdateVersion)" class="icon-wrapper">
-                                <img src="@SvgIcon.UpdateAvailable.GetPath()" />
+                            <div title="@string.Format(LibraryManagement.UpdateToSpecificVersionAvailable, context.AvailableUpdateVersion)" class="icon-wrapper">
+                                <MonochromeIcon Name="MonochromeIconName.UpdateAvailableLight" Size="MonochromeIconSize.SmallMedium" />
                             </div>
                         }
 
                         @if (!string.IsNullOrEmpty(context.RunningClusterVersion))
                         {
                             <div title="@Localization.Common.ActiveInCluster" class="icon-wrapper">
-                                <MonochromeIcon Name="MonochromeIconName.LockActive" Size="MonochromeIconSize.Small" />
+                                <MonochromeIcon Name="MonochromeIconName.LockActive" Size="MonochromeIconSize.SmallMedium" />
                             </div>
                         }
 
                         @if (context.Error is not null)
                         {
                             <div title="@context.Error.Message" class="icon-wrapper">
-                                <MonochromeIcon Name="MonochromeIconName.ErrorFull" Size="MonochromeIconSize.Medium" />
+                                <MonochromeIcon Name="MonochromeIconName.ErrorFull" Size="MonochromeIconSize.SmallMedium" />
                             </div>
                         }
                     </div>
@@ -199,7 +199,7 @@
                         @if (context.Versions?.Any(k => k.IsLocal) == true)
                         {
                             <div title="@Localization.PackagesControlPanel.LocalAvailable" class="icon-wrapper">
-                                <MonochromeIcon Name="MonochromeIconName.Folder" Size="MonochromeIconSize.Small" />
+                                <MonochromeIcon Name="MonochromeIconName.Folder" Size="MonochromeIconSize.SmallMedium" />
                             </div>
                         }
 
@@ -208,17 +208,17 @@
                             @if (context.PendingOperation.OperationKind is ClusterDependencyOperationKind.Install)
                             {
                                 var tooltipText = context.InstalledVersion is null ?
-                                string.Format(Localization.PackagesControlPanel.PendingInstallOfVersion, context.PendingOperation.Dependency.Version.ToString()) :
-                                string.Format(Localization.PackagesControlPanel.PendingUpdateToVersion, context.PendingOperation.Dependency.Version.ToString());
+                                string.Format(LibraryManagement.PendingInstallationOfSpecificVersion, context.PendingOperation.Dependency.Version.ToString()) :
+                                string.Format(LibraryManagement.PendingUpdateToSpecificVersion, context.PendingOperation.Dependency.Version.ToString());
 
                                 <div title="@tooltipText" class="icon-wrapper">
-                                    <img src="@SvgIcon.InstallPending.GetPath()" />
+                                    <MonochromeIcon Name="MonochromeIconName.InstallPendingLight" Size="MonochromeIconSize.SmallMedium" />
                                 </div>
                             }
                             else
                             {
-                                <div title="@Localization.Common.PendingUninstall" class="icon-wrapper">
-                                    <img src="@SvgIcon.UninstallPending.GetPath()" />
+                                <div title="@LibraryManagement.PendingUninstallation" class="icon-wrapper">
+                                    <MonochromeIcon Name="MonochromeIconName.UninstallPendingLight" Size="MonochromeIconSize.SmallMedium" />
                                 </div>
                             }
                         }

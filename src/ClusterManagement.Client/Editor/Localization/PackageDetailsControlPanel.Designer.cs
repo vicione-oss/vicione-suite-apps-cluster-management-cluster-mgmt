@@ -19,7 +19,7 @@ namespace ClusterManagement.Client.Editor.Localization {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class PackageDetailsControlPanel {
@@ -70,15 +70,6 @@ namespace ClusterManagement.Client.Editor.Localization {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Install version.
-        /// </summary>
-        internal static string InstallVersion {
-            get {
-                return ResourceManager.GetString("InstallVersion", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Minimum core version.
         /// </summary>
         internal static string MinCoreVersion {
@@ -93,24 +84,6 @@ namespace ClusterManagement.Client.Editor.Localization {
         internal static string PackageDetails {
             get {
                 return ResourceManager.GetString("PackageDetails", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Pending install of version.
-        /// </summary>
-        internal static string PendingInstall {
-            get {
-                return ResourceManager.GetString("PendingInstall", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Pending update to version.
-        /// </summary>
-        internal static string PendingUpdate {
-            get {
-                return ResourceManager.GetString("PendingUpdate", resourceCulture);
             }
         }
         
