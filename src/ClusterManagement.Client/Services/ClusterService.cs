@@ -65,7 +65,7 @@ internal sealed class ClusterService(IUiMediator mediator,
         return result;
     }
 
-    public async Task CommitChange(Cluster cluster, CommitClusterOptions? options, CancellationToken cancellationToken = default)
+    public async Task<Guid> CommitChange(Cluster cluster, CommitClusterOptions? options, CancellationToken cancellationToken = default)
     {
         var stopwatch = new Stopwatch();
         _logger.LogDebug("Publishing {Name} width id {Id}, version {Version}",
@@ -84,6 +84,8 @@ internal sealed class ClusterService(IUiMediator mediator,
         stopwatch.Stop();
 
         _logger.LogInformation("Sending {Command} command took {Elapsed}", nameof(CommitClusterChange), stopwatch.Elapsed);
+
+        return command.CorrelationId;
     }
 
     public Task Remove(Guid clusterId, Version version, CancellationToken cancellationToken = default)

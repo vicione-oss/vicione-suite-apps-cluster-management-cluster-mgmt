@@ -54,10 +54,12 @@ public sealed partial class ClusterEditorPage
 
     protected override string PageTitle => Localization.ClusterEditor.ModuleTitle;
 
-    protected override ValueTask DisposeInternal()
+    protected override async ValueTask DisposeInternal()
     {
         _builder?.Dispose();
         _subscriptionHandles.Dispose();
+
+        await _tokenSource.CancelAsync();
         _tokenSource.Dispose();
 
         LoadService.ClusterLoaded -= OnClusterLoaded;
@@ -70,7 +72,7 @@ public sealed partial class ClusterEditorPage
 
         LayoutService.IsLoadingOverlayVisible = false;
 
-        return base.DisposeInternal();
+        await base.DisposeInternal();
     }
 
     protected override async Task OnInitializedAsync()

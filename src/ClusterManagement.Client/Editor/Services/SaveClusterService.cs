@@ -25,6 +25,7 @@ internal sealed class SaveClusterService : DialogServiceBase,
     private ClusterBuilder? _builder;
     private string? _name;
     private string? _description;
+    private Guid? _currentCorrelationId;
 
     public bool IsWorking
     {
@@ -111,7 +112,7 @@ internal sealed class SaveClusterService : DialogServiceBase,
             };
 
             // cluster will be sent to backend and a add notification gets triggered
-            await _clusterService.CommitChange(Builder.Cluster, publishOptions, _tokenSource.Token).ConfigureAwait(false);
+            _currentCorrelationId = await _clusterService.CommitChange(Builder.Cluster, publishOptions, _tokenSource.Token).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -139,7 +140,18 @@ internal sealed class SaveClusterService : DialogServiceBase,
         SetIsWorking(false);
         DisplayDialog = false;
 
-        ClusterChanged?.Invoke(this, context.Message);
+        if (context.CorrelationId == _currentCorrelationId)
+        {
+            if (context.Message.Version is not null)
+            {
+                Builder?.Cluster.Version = context.Message.Version;
+                Builder?.Cluster.VersionCreated = DateTime.UtcNow;
+            }
+        }
+        else
+        {
+            ClusterChanged?.Invoke(this, context.Message);
+        }
 
         return Task.CompletedTask;
     }
@@ -170,5 +182,15 @@ internal sealed class SaveClusterService : DialogServiceBase,
         => _layoutService.IsLoadingOverlayVisible = IsWorking = isWorking;
 
     public void Dispose()
-        => _tokenSource.Dispose();
+    {
+        try
+        {
+            _tokenSource.Cancel();
+            _tokenSource.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Ignore: CancellationTokenSource was already disposed.
+        }
+    }
 }

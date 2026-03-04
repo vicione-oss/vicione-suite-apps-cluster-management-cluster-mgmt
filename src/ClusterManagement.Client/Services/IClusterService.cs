@@ -6,7 +6,7 @@ namespace ClusterManagement.Client.Services;
 
 public interface IClusterService
 {
-    Task CommitChange(Cluster cluster, CommitClusterOptions? options, CancellationToken cancellationToken = default);
+    Task<Guid> CommitChange(Cluster cluster, CommitClusterOptions? options, CancellationToken cancellationToken = default);
     Task<Cluster> Query(Guid clusterId, Version? version, CancellationToken cancellationToken = default);
     Task<Version?> QueryLatestVersion(Guid clusterId, CancellationToken cancellationToken = default);
     Task<List<Version>> QueryVersions(Guid clusterId, CancellationToken cancellationToken = default);

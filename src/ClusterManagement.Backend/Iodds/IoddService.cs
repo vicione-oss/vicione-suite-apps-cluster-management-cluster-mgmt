@@ -109,6 +109,14 @@ internal sealed class IoddService(IIoddStore ioddStore, IFileSystem fileSystem, 
             _watcher.Dispose();
         }
 
-        _cancellationTokenSource.Dispose();
+        try
+        {
+            _cancellationTokenSource.Cancel();
+            _cancellationTokenSource.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Ignore: CancellationTokenSource was already disposed.
+        }
     }
 }

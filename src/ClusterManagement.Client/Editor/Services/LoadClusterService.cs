@@ -128,7 +128,16 @@ internal sealed class LoadClusterService : DialogServiceBase, IDisposable
 
     public void Dispose()
     {
-        _tokenSource.Dispose();
+        try
+        {
+            _tokenSource.Cancel();
+            _tokenSource.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Ignore: CancellationTokenSource was already disposed.
+        }
+
         _clusterBuilder?.Dispose();
     }
 }
