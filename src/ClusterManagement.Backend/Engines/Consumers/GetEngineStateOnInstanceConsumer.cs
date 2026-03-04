@@ -3,6 +3,7 @@ using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Internal.Requests;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using Sdk.Backend.Messaging;
 using Sdk.Messaging;
 
 namespace ClusterManagement.Backend.Engines.Consumers;

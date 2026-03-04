@@ -131,32 +131,5 @@ namespace ClusterManagement.Client.Editor.Localization {
                 return ResourceManager.GetString("LocalAvailable", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to pending installation of version {0}.
-        /// </summary>
-        internal static string PendingInstallOfVersion {
-            get {
-                return ResourceManager.GetString("PendingInstallOfVersion", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to pending update to version {0}.
-        /// </summary>
-        internal static string PendingUpdateToVersion {
-            get {
-                return ResourceManager.GetString("PendingUpdateToVersion", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Uninstall.
-        /// </summary>
-        internal static string Uninstall {
-            get {
-                return ResourceManager.GetString("Uninstall", resourceCulture);
-            }
-        }
     }
 }

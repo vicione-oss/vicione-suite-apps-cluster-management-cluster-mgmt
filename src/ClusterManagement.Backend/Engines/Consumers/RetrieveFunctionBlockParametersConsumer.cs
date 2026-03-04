@@ -5,7 +5,7 @@ using ClusterManagement.Public;
 using MassTransit;
 using MQTTnet;
 using MQTTnet.Protocol;
-using Sdk.Messaging;
+using Sdk.Backend.Messaging;
 
 namespace ClusterManagement.Backend.Engines.Consumers;
 

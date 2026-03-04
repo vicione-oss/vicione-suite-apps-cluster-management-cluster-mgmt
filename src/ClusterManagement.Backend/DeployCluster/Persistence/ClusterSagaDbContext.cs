@@ -10,9 +10,11 @@ public class ClusterSagaDbContext(DbContextOptions options) : SagaDbContext(opti
 {
     internal const string DbSchemaName = "clustersaga";
 
-    public Microsoft.EntityFrameworkCore.DbContext Instance => this;
     public string DefaultSchemaName => DbSchemaName;
     public IEnumerable<Type> NotSynchronizedEntityTypes => [];
+
+    public Task MigrateAsync(CancellationToken cancellationToken = default)
+        => Database.MigrateAsync(cancellationToken);
 
     public DbSet<DeployClusterState> DeployClusterState { get; set; }
 

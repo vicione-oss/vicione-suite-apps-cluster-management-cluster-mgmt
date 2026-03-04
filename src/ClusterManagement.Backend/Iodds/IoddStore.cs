@@ -53,7 +53,7 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
             dbContext.IoddSettings.Update(settings);
         }
 
-        await dbContext.Instance.SaveChangesAsync();
+        await dbContext.SaveChangesAsync();
     }
 
     public bool TryAddDevice(IoddId id)

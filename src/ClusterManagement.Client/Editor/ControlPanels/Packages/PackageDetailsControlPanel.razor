@@ -12,9 +12,9 @@
 
 @inherits ControlPanelBase<PackageDetailsControlPanelState>
 
-<ControlPanelPage Title="@Common.Details">
+<ControlPanelPage Title="@CommonVocabulary.DetailPlural">
     <div class="package-detail-control-panel-page">
-        <DescriptionBanner Title="@($"{Common.Details} {State.PackageInfo!.Name}")">
+        <DescriptionBanner Title="@($"{CommonVocabulary.DetailPlural} {State.PackageInfo!.Name}")">
             @Localization.PackageDetailsControlPanel.BannerDescription
         </DescriptionBanner>
 
@@ -41,14 +41,14 @@
                     </SettingsField>
                 }
 
-                <SettingsField Label="@Localization.Common.InstalledVersion">
+                <SettingsField Label="@LibraryManagement.InstalledVersion">
                     <div class="installed-version-wrapper">
                         @State.PackageInfo.InstalledVersion
                     
                         @if (State.PackageInfo.PendingOperation?.OperationKind is ClusterDependencyOperationKind.Uninstall)
                         {
-                            <div title="@Localization.Common.PendingUninstall" class="icon-wrapper">
-                                <img src="@SvgIcon.UninstallPending.GetPath()" />
+                            <div title="@LibraryManagement.PendingUninstallation" class="icon-wrapper">
+                                <MonochromeIcon Name="MonochromeIconName.UninstallPendingLight" Size="MonochromeIconSize.SmallMedium" />
                             </div>
                         }
                         else if (State.PackageInfo.Error is not null)
@@ -60,26 +60,12 @@
                     </div>
                 </SettingsField>
 
-                @if (State.PackageInfo.PendingOperation is not null)
-                {
-                    if (State.PackageInfo.PendingOperation.OperationKind is ClusterDependencyOperationKind.Install)
-                    {
-                        var labelText = State.PackageInfo.InstalledVersion is null ?
-                            Localization.PackageDetailsControlPanel.PendingInstall :
-                            Localization.PackageDetailsControlPanel.PendingUpdate;
-
-                        <SettingsField Label="@labelText">
-                            @State.PackageInfo.PendingOperation.Dependency.Version.ToString()
-                        </SettingsField>
-                    }
-                }
-
                 @if (string.IsNullOrEmpty(State.PackageInfo.RunningClusterVersion) &&
                     ((State.PackageInfo.Versions ?? []).Count > 1 ||
                     (string.IsNullOrEmpty(State.PackageInfo.InstalledVersion) && State.PackageInfo.PendingOperation?.OperationKind is not ClusterDependencyOperationKind.Install) ||
                     State.PackageInfo.PendingOperation?.OperationKind is ClusterDependencyOperationKind.Uninstall))
                 {
-                    <SettingsField Label="@Localization.PackageDetailsControlPanel.InstallVersion">
+                    <SettingsField Label="@UserActions.InstallVersion">
                         <div class="install-version-wrapper">
                             <AuthorizeView Policy="@AdminPolicy">
                                 <div class="combo-box-wrapper">
@@ -91,19 +77,33 @@
 
                                     @if (State.PackageInfo.AvailableUpdateVersion is not null)
                                     {
-                                        <div title="@string.Format(Localization.Common.UpdateToVersionAvailible, State.PackageInfo.AvailableUpdateVersion)" class="icon-wrapper">
-                                            <img src="@SvgIcon.UpdateAvailable.GetPath()" />
+                                        <div title="@string.Format(LibraryManagement.UpdateToSpecificVersionAvailable, State.PackageInfo.AvailableUpdateVersion)" class="icon-wrapper">
+                                            <MonochromeIcon Name="MonochromeIconName.UpdateAvailableLight" Size="MonochromeIconSize.SmallMedium" />
                                         </div>
                                     }
                                 </div>
-                        </AuthorizeView>
+                            </AuthorizeView>
 
-                        <div class="version">
-                            @State.PackageInfo.InstalledVersion
+                            <div class="version">
+                                @State.PackageInfo.InstalledVersion
+                            </div>
                         </div>
-                    </div>
-                </SettingsField>
-            }
+                    </SettingsField>
+                }
+
+                @if (State.PackageInfo.PendingOperation is not null)
+                {
+                    if (State.PackageInfo.PendingOperation.OperationKind is ClusterDependencyOperationKind.Install)
+                    {
+                        var infoText = State.PackageInfo.InstalledVersion is null ?
+                            string.Format(LibraryManagement.PendingInstallationOfSpecificVersion, State.PackageInfo.PendingOperation.Dependency.Version.ToString()) :
+                            string.Format(LibraryManagement.PendingUpdateToSpecificVersion, State.PackageInfo.PendingOperation.Dependency.Version.ToString());
+
+                        <SettingsInformation>
+                            @infoText
+                        </SettingsInformation>
+                    }
+                }
             </SettingsGroup>
         </SettingsLayout>
     </div>

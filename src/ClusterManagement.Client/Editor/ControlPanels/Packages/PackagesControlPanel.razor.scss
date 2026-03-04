@@ -22,27 +22,15 @@
                 text-overflow: ellipsis;
                 overflow: hidden;
             }
-
-            .icon-wrapper {
-                display: flex;
-                align-items: center;
-
-                img {
-                    width: 16px;
-                    height: 16px;
-                }
-            }
         }
 
         .status-wrapper {
+            display: flex;
+            gap: 8px;
+
             .icon-wrapper {
                 display: flex;
                 align-items: center;
-
-                img {
-                    width: 16px;
-                    height: 16px;
-                }
             }
         }
     }

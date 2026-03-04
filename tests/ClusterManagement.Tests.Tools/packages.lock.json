@@ -471,7 +471,7 @@
           "ViciOne.Core.Dataflow.DataModel.Generation": "[0.51.0, )",
           "ViciOne.Suite.ClusterManagement.Internal": "[2.0.0, )",
           "ViciOne.Suite.DataPort": "[0.29.0, )",
-          "ViciOne.Suite.Sdk.Backend": "[2.0.0-ci2328417675, )",
+          "ViciOne.Suite.Sdk.Backend": "[2.0.0-ci2363355084, )",
           "ViciOne.Suite.System.DataPort": "[0.15.0, )"
         }
       },
@@ -486,7 +486,7 @@
         "type": "Project",
         "dependencies": {
           "ViciOne.Cluster.Builder": "[0.11.0, )",
-          "ViciOne.Suite.Sdk": "[2.0.0-ci2328417675, )"
+          "ViciOne.Suite.Sdk": "[2.0.0-ci2363355084, )"
         }
       },
       "MassTransit.EntityFrameworkCore": {
@@ -572,9 +572,9 @@
       },
       "ViciOne.Suite.Sdk": {
         "type": "CentralTransitive",
-        "requested": "[2.0.0-ci2328417675, )",
-        "resolved": "2.0.0-ci2328417675",
-        "contentHash": "DNpI2sgkRJUMwQPZiO98nZTJXoUQ6CkWZT5fEmx15Ppk6Wnus6yU5A/aXpJMSrdMt5VP3/GJfqqMTR8B/YZgZg==",
+        "requested": "[2.0.0-ci2363355084, )",
+        "resolved": "2.0.0-ci2363355084",
+        "contentHash": "JvEM+OnS0kRqmm2x90OZB0dnRmUXGbtf9q2gIJUOnrGoG97KhnQX6nIh8WyBZDzxqnCYN2OzDuZfydWFPNTaCw==",
         "dependencies": {
           "MassTransit.Abstractions": "8.5.8",
           "Microsoft.AspNetCore.Authorization": "10.0.3",
@@ -584,14 +584,14 @@
       },
       "ViciOne.Suite.Sdk.Backend": {
         "type": "CentralTransitive",
-        "requested": "[2.0.0-ci2328417675, )",
-        "resolved": "2.0.0-ci2328417675",
-        "contentHash": "LPLBJrJTufIsAgCuOrjFKxXxYiQU9AolzVO62wvhJ9yCBS6e5phtcr1WD+8GPPFnRWMWA8yt9BpJLxeTUbbJnQ==",
+        "requested": "[2.0.0-ci2363355084, )",
+        "resolved": "2.0.0-ci2363355084",
+        "contentHash": "aEItrjAMz1k8lI2etjqFGlgSyTT+9AEf5jIEEuPNsjC/+4AAZmyf4kVoTK3Q4IUH0aKG49ZDTngxNv7cEujrOA==",
         "dependencies": {
           "Microsoft.EntityFrameworkCore.Relational": "10.0.3",
           "Microsoft.EntityFrameworkCore.Sqlite": "10.0.3",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "10.0.0",
-          "ViciOne.Suite.Sdk": "2.0.0-ci2328417675"
+          "ViciOne.Suite.Sdk": "2.0.0-ci2363355084"
         }
       },
       "ViciOne.Suite.System.DataPort": {

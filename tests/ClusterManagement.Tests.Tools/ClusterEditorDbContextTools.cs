@@ -15,7 +15,7 @@ public static class ClusterEditorDbContextTools
         };
 
         context.Settings.Add(settings);
-        context.Instance.SaveChanges();
+        context.SaveChanges();
         return settings;
     }
 }

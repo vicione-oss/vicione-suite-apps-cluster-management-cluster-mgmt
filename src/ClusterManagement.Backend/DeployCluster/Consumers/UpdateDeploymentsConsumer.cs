@@ -340,7 +340,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
                     if (elevatedPrivilegesChanged && engineHostProvisioning.Expected is not null)
                     {
                         engineHostProvisioning.Expected.ElevatedPrivileges = engineHostProvisioning.Desired.ElevatedPrivileges;
-                        await engineDbContext.Instance.SaveChangesAsync(cancellationToken);
+                        await engineDbContext.SaveChangesAsync(cancellationToken);
                     }
 
                     logger.LogStartingEngineHost(engineHostProvisioning.Desired.Id);
@@ -382,7 +382,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
                     Id = ehProvisioning.Desired.Id,
                     ElevatedPrivileges = ehProvisioning.Desired.ElevatedPrivileges,
                 });
-                await engineDbContext.Instance.SaveChangesAsync(cancelToken);
+                await engineDbContext.SaveChangesAsync(cancelToken);
             }
         }
     }
@@ -547,7 +547,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         if (dbEngineHost is not null)
         {
             engineDbContext.EngineHosts.Remove(dbEngineHost);
-            await engineDbContext.Instance.SaveChangesAsync(cancellationToken);
+            await engineDbContext.SaveChangesAsync(cancellationToken);
         }
     }
 
@@ -570,7 +570,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         {
             foreach (var deployment in actions.ShouldNotRun)
                 deployment.ShouldRun = false;
-            await engineDbContext.Instance.SaveChangesAsync(cancellationToken);
+            await engineDbContext.SaveChangesAsync(cancellationToken);
         }
 
         if (actions.Stop.Count != 0)
@@ -593,7 +593,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         {
             foreach (var delete in actions.Delete)
                 engineDbContext.EngineDeployments.Remove(delete);
-            await engineDbContext.Instance.SaveChangesAsync(cancellationToken);
+            await engineDbContext.SaveChangesAsync(cancellationToken);
         }
 
         if (actions.TearDown.Count != 0)
@@ -628,7 +628,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
                 MqttRetainTopics = deploy.WorkflowMetadata.MqttRetainTopics,
             };
             engineDbContext.EngineDeployments.Add(engineDeployment);
-            await engineDbContext.Instance.SaveChangesAsync(cancellationToken);
+            await engineDbContext.SaveChangesAsync(cancellationToken);
 
             if (deploy.Engine.Enabled)
             {
@@ -641,7 +641,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         {
             foreach (var shouldRun in actions.ShouldRun)
                 shouldRun.ShouldRun = true;
-            await engineDbContext.Instance.SaveChangesAsync(cancellationToken);
+            await engineDbContext.SaveChangesAsync(cancellationToken);
         }
 
         if (actions.Start.Count != 0)

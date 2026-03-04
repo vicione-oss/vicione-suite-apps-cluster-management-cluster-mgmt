@@ -19,7 +19,7 @@ namespace ClusterManagement.Client.IoddManagement.Localization {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class IoddDetailsControlPanel {
@@ -138,15 +138,6 @@ namespace ClusterManagement.Client.IoddManagement.Localization {
         internal static string Manufacturer {
             get {
                 return ResourceManager.GetString("Manufacturer", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Overview.
-        /// </summary>
-        internal static string Overview {
-            get {
-                return ResourceManager.GetString("Overview", resourceCulture);
             }
         }
         

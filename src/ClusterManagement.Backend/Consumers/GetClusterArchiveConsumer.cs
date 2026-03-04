@@ -2,6 +2,7 @@
 using ClusterManagement.Public.Requests;
 using MassTransit;
 using Microsoft.Extensions.Logging;
+using Sdk.Backend.Messaging;
 using Sdk.Messaging;
 
 namespace ClusterManagement.Backend.Consumers;

@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using System.Reflection;
@@ -12,9 +11,9 @@ using ClusterManagement.Backend.Diagnostics;
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Backend.Mqtt;
 using ClusterManagement.Backend.Tests.TestUtils;
-using Microsoft.Extensions.Configuration;
 using NSubstitute.ExceptionExtensions;
 using Sdk.SystemConfiguration;
+using Sdk.SystemConfiguration.Commands;
 using Sdk.Testing;
 using Semver;
 
@@ -317,7 +316,7 @@ public class ProcessEngineHostPoolCommunicationFacts
                 info.FileName.Should().Be("ViciOne.ManagedEngine.Host");
                 info.UseShellExecute.Should().BeTrue();
             })!);
-            context.ServiceManagement.ReceivedCalls().Should().BeEmpty();
+            context.ServiceManagement.ReceivedCalls().Should().HaveCount(1); //Will call "IsAvailable"
         }
 
         [Fact]
@@ -447,7 +446,7 @@ public class ProcessEngineHostPoolCommunicationFacts
             context.FileSystem.FileExists(context.WorkingDirectory.TerminateFile).Should().BeTrue();
             context.FileSystem.FileExists(context.WorkingDirectory.ProcessIdFile).Should().BeFalse();
             await process.Received(1).WaitForExit(Arg.Any<CancellationToken>());
-            context.ServiceManagement.ReceivedCalls().Should().BeEmpty();
+            context.ServiceManagement.ReceivedCalls().Should().HaveCount(1); //Will call "IsAvailable"
         }
 
         [Fact]

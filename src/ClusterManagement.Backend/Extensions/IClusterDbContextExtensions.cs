@@ -25,6 +25,6 @@ internal static class IClusterDbContextExtensions
             });
         }
 
-        return await dbContext.Instance.SaveChangesAsync(cancellationToken);
+        return await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

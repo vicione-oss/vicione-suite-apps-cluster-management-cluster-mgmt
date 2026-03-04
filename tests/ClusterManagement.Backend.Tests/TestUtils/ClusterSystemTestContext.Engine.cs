@@ -48,7 +48,7 @@ internal partial class ClusterSystemTestContext
             Id = id,
             ElevatedPrivileges = elevatedPrivileges,
         });
-        await database.Instance.SaveChangesAsync();
+        await database.SaveChangesAsync();
     }
 
     internal async Task Given_engineHost_is_deployed(Guid id, LogLevel? logLevel = null)
@@ -111,7 +111,7 @@ internal partial class ClusterSystemTestContext
         };
         using var scope = GetEngineServices(out _, out var database);
         database.EngineDeployments.Add(deployment);
-        await database.Instance.SaveChangesAsync();
+        await database.SaveChangesAsync();
     }
 
     private Workflow BuildMinimalWorkflow(Guid engineId, int chainIndex, uint cycleTime) => new()
@@ -176,7 +176,7 @@ internal partial class ClusterSystemTestContext
                     Version = deployment.Version,
                 };
                 database.EngineDeployments.Add(deployment);
-                await database.Instance.SaveChangesAsync();
+                await database.SaveChangesAsync();
             }
         }
         else
@@ -209,7 +209,7 @@ internal partial class ClusterSystemTestContext
         using var scope = GetEngineServices(out _, out var database);
         var deployment = await GetEngineDeployment(database, hostId, id);
         deployment!.Checksum = new WorkflowComparer().GetHashCode(deploymentWorkflow.Workflow);
-        await database.Instance.SaveChangesAsync();
+        await database.SaveChangesAsync();
     }
 
     internal async Task Given_engine_is_running(Guid id, Guid hostId)

@@ -130,6 +130,6 @@ internal sealed class EngineLifetime(IEngineHostPoolCommunication engineHostPool
         logger.LogRemoveDeploySagaState(clusterId);
 
         sagaDbContext.DeployClusterState.Remove(deployState);
-        await sagaDbContext.Instance.SaveChangesAsync(cancellationToken);
+        await sagaDbContext.SaveChangesAsync(cancellationToken);
     }
 }

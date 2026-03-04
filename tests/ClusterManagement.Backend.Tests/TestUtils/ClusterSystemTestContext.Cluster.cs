@@ -18,13 +18,13 @@ internal sealed partial class ClusterSystemTestContext
     {
         var initializer = new ClusterManagementModuleInitializer();
         using var scope = Services.CreateScope();
-        await initializer.Migrate(scope.ServiceProvider);
-        await initializer.OnPostMigrate(scope.ServiceProvider);
+        await initializer.Migrate(scope.ServiceProvider, CancellationToken);
+        await initializer.OnPostMigrate(scope.ServiceProvider, CancellationToken);
 
         var dbContext = scope.ServiceProvider.GetRequiredService<IClusterDbContext>();
-        var active = await dbContext.ActiveClusters.FirstAsync();
+        var active = await dbContext.ActiveClusters.FirstAsync(cancellationToken: CancellationToken);
 
-        _cluster = await _snapshotStore.Load(active.Id, active.Version) ?? throw new InvalidOperationException("Failed to load default cluster");
+        _cluster = await _snapshotStore.Load(active.Id, active.Version, CancellationToken) ?? throw new InvalidOperationException("Failed to load default cluster");
         var designProvider = Services.GetRequiredService<IDesignProvider>();
         _clusterBuilder = new(_cluster, await designProvider.CreateResolver());
         _clusterNode = _clusterBuilder.Cache.ClusterNodes.Single();
