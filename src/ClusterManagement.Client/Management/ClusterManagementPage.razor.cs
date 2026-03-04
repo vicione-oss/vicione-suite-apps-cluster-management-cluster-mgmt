@@ -31,9 +31,11 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
 
     protected override string PageTitle => Common.ModuleTitle;
 
-    protected override ValueTask DisposeInternal()
+    protected override async ValueTask DisposeInternal()
     {
         _subscriptionHandle?.Dispose();
+
+        await _tokenSource.CancelAsync();
         _tokenSource.Dispose();
 
         ManagementService.OnClusterUpdateStarted -= OnClusterUpdateStarted;
@@ -41,7 +43,7 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
         ManagementService.OnClusterUpdateCompleted -= OnClusterUpdateCompleted;
         ManagementService.OnClusterUpdateFailed -= OnClusterUpdateFailed;
 
-        return base.DisposeInternal();
+        await base.DisposeInternal();
     }
 
     protected override async Task OnInitializedAsync()

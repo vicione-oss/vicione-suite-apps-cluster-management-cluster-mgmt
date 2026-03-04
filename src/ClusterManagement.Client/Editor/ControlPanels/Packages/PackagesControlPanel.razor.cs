@@ -208,7 +208,16 @@ public partial class PackagesControlPanel : IEventConsumer<ClusterPackageChanged
     protected override async ValueTask DisposeAsyncCore()
     {
         _subscriptionHandles.Dispose();
-        _tokenSource.Dispose();
+
+        try
+        {
+            await _tokenSource.CancelAsync();
+            _tokenSource.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Ignore: CancellationTokenSource was already disposed.
+        }
 
         if (InstalledItemSelection is not null)
         {

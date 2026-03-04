@@ -51,6 +51,19 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
 
         await StopReconnectLoop();
         _client.Dispose();
+
+        try
+        {
+            if (_reconnectCancellation is not null)
+            {
+                await _reconnectCancellation.CancelAsync();
+                _reconnectCancellation.Dispose();
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+            // Ignore: CancellationTokenSource was already disposed.
+        }
     }
 
     private async Task<bool> EnsureConnected(CancellationToken cancellationToken = default)
