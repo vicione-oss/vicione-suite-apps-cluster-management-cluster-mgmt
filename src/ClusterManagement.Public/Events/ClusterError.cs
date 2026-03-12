@@ -22,9 +22,6 @@ public sealed record ClusterError : IEvent, CorrelatedBy<Guid?>
     /// <summary>No cluster exists for the requested version.</summary>
     public const int NoClusterForVersion = 102;
 
-    /// <summary>The target cluster is not in an active state.</summary>
-    public const int ClusterNotActive = 103;
-
     /// <summary>Unexpected error occurred while querying a single cluster.</summary>
     public const int UnexpectedClusterQueryError = 104;
 
@@ -34,9 +31,6 @@ public sealed record ClusterError : IEvent, CorrelatedBy<Guid?>
     /// <summary>Either the cluster ID or dataflow ID must be provided.</summary>
     public const int ClusterOrDataflowIdRequired = 106;
 
-    /// <summary>The referenced engine is unknown or not found.</summary>
-    public const int EngineUnknown = 110;
-
     /// <summary>Communication is not properly configured for the cluster or engine.</summary>
     public const int CommunicationUnconfigured = 121;
 
@@ -45,9 +39,6 @@ public sealed record ClusterError : IEvent, CorrelatedBy<Guid?>
 
     /// <summary>The communication type could not be converted as required.</summary>
     public const int CommunicationUnconvertible = 123;
-
-    /// <summary>The system was unable to retrieve logs from the cluster or engine.</summary>
-    public const int LogUnattainable = 130;
 
     /// <summary>Publishing the cluster or dataflow failed.</summary>
     public const int PublishFailed = 200;
