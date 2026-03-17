@@ -1,7 +1,6 @@
-﻿using ClusterManagement.Client.Editor.ControlPanels.Packages;
-using Sdk.Client.ControlPanels.Services;
+﻿using Sdk.Client.ControlPanels.Services;
 
-namespace ClusterManagement.Client.Editor.Services;
+namespace ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
 
 public sealed class PackageDetailsControlPanelResetHandler : IControlPanelResetHandler<PackageDetailsControlPanelState>
 {

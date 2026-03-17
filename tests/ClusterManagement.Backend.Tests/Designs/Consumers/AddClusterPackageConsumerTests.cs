@@ -106,8 +106,9 @@ public class AddClusterPackageConsumerTests
         await tester.TestCommand<AddClusterPackage, AddClusterPackageConsumer>(command);
 
         // Assert
-        Assert.True(await tester.Harness.Published.Any<ClusterPackageChangeFailed>(k
+        Assert.True(await tester.Harness.Published.Any<ClusterPackageChanged>(k
             => k.Context.Message.CorrelationId == command.CorrelationId
+            && k.Context.Message.Error is not null
             && k.Context.Message.Error.ErrorCode == 200, TestContext.Current.CancellationToken));
     }
 }

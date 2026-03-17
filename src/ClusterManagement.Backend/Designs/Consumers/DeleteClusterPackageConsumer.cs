@@ -22,15 +22,24 @@ public sealed class DeleteClusterPackageConsumer(IPackageStore packageStorage, I
 
             await packageStorage.DeletePackage(dependency, context.CancellationToken);
 
-            await context.Publish(new ClusterPackageChanged(context.Message.PackageName, context.Message.Version, ClusterPackageChange.Delete) { CorrelationId = context.Message.CorrelationId });
+            var changeEvent = new ClusterPackageChanged(context.Message.PackageName, context.Message.Version, ClusterPackageChange.Delete)
+            {
+                CorrelationId = context.Message.CorrelationId
+            };
+
+            await context.Publish(changeEvent);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to delete cluster package {PackageName} version {Version}", context.Message.PackageName, context.Message.Version);
 
-            var error = new ErrorInfo(200, ex.Message);
+            var changeEvent = new ClusterPackageChanged(context.Message.PackageName, context.Message.Version, ClusterPackageChange.Delete)
+            {
+                CorrelationId = context.Message.CorrelationId,
+                Error = new ErrorInfo(200, ex.Message)
+            };
 
-            await context.Publish(new ClusterPackageChangeFailed(context.Message.CorrelationId, error, ClusterPackageChange.Delete));
+            await context.Publish(changeEvent);
         }
     }
 }

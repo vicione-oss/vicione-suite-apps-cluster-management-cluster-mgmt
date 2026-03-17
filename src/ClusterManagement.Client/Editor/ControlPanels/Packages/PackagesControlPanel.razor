@@ -1,4 +1,5 @@
-﻿@using ClusterManagement.Client.Editor.Enums
+﻿@using ClusterManagement.Client.Editor.ControlPanels.Packages.Services
+@using ClusterManagement.Client.Editor.Enums
 @using ClusterManagement.Client.Editor.Extensions
 @using ClusterManagement.Client.Extensions
 @using ClusterManagement.Client.Localization
@@ -19,7 +20,7 @@
 @using ViciOne.Ui.MonochromeIcons.Core.Extensions
 @using ViciOne.Ui.Shared.Dx.Components
 
-@inherits ControlPanelBase<ControlPanelState>
+@inherits ControlPanelBase<PackagesControlPanelState>
 
 <ControlPanelPage Title="@CommonVocabulary.Installed">
     <div class="packages-control-panel-page">
@@ -28,7 +29,7 @@
         </DescriptionBanner>
 
 
-        <Grid Items="@FilterInstalledItems(_installedQueryable)" Virtualize="true" CssClass="packages-grid">
+        <Grid Items="@FilterInstalledItems(State.InstalledQueryable)" Virtualize="true" CssClass="packages-grid">
             <ActionButtons>
                 <div style="display:contents;">
                     <AuthorizeView Policy="@AdminPolicy">
@@ -43,7 +44,7 @@
             </ActionButtons>
 
             <Filter>
-                <GridFilterControl @bind-Text="@_installedFilterText" @bind-Text:after="@(() => InvokeAsync(StateHasChanged))" />
+                <GridFilterControl @bind-Text="@State.InstalledFilterText" @bind-Text:after="@(() => InvokeAsync(StateHasChanged))" />
             </Filter>
 
             <ChildContent>
@@ -54,8 +55,8 @@
                     @{
                         var key = new MarkupString(context.Name);
 
-                        if (!string.IsNullOrEmpty(_installedFilterText))
-                            key = key.WithHighlightedText(_installedFilterText);
+                        if (!string.IsNullOrEmpty(State.InstalledFilterText))
+                            key = key.WithHighlightedText(State.InstalledFilterText);
 
                         @key
                     }
@@ -100,7 +101,7 @@
 
                         @if (!string.IsNullOrEmpty(context.RunningClusterVersion))
                         {
-                            <div title="@Localization.Common.ActiveInCluster" class="icon-wrapper">
+                            <div title="@Editor.Localization.Common.ActiveInCluster" class="icon-wrapper">
                                 <MonochromeIcon Name="MonochromeIconName.LockActive" Size="MonochromeIconSize.SmallMedium" />
                             </div>
                         }
@@ -146,7 +147,7 @@
                        OnChange="OnFileChange" />
         </div>
 
-        <Grid Items="@FilterAvailableItems(_availableQueryable)" Virtualize="true" CssClass="packages-grid">
+        <Grid Items="@FilterAvailableItems(State.AvailableQueryable)" Virtualize="true" CssClass="packages-grid">
             <ActionButtons>
                 <div style="display:contents;">
                     <AuthorizeView Policy="@AdminPolicy">
@@ -168,7 +169,7 @@
             </ActionButtons>
 
             <Filter>
-                <GridFilterControl @bind-Text="@_availableFilterText" @bind-Text:after="@(() => InvokeAsync(StateHasChanged))" />
+                <GridFilterControl @bind-Text="@State.AvailableFilterText" @bind-Text:after="@(() => InvokeAsync(StateHasChanged))" />
             </Filter>
 
             <ChildContent>
@@ -179,8 +180,8 @@
                     @{
                         var key = new MarkupString(context.Name);
 
-                        if (!string.IsNullOrEmpty(_availableFilterText))
-                            key = key.WithHighlightedText(_availableFilterText);
+                        if (!string.IsNullOrEmpty(State.AvailableFilterText))
+                            key = key.WithHighlightedText(State.AvailableFilterText);
 
                         @key
                     }
@@ -240,13 +241,13 @@
 <DxDialog @ref="@_refUninstalllPackagesDialog"
           CloseOnEscape="true"
           CloseOnOutsideClick="false"
-          Header="@Localization.PackagesControlPanel.DeletePackagesHeader"
+          Header="@Localization.PackagesControlPanel.UninstallPackagesHeader"
           Height="300px"
           IsTextOnly="true"
           Width="600px">
 
     <Body>
-        <p class="dialog-content text-only">@Localization.PackagesControlPanel.DeletePackages</p>
+        <p class="dialog-content text-only">@Localization.PackagesControlPanel.UninstallPackages</p>
     </Body>
 
     <Footer>

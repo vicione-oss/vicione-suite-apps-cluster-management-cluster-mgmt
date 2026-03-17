@@ -14,13 +14,13 @@ public sealed class UpdateClusterDependenciesConsumer(IClusterDependencyStore de
         {
             var changes = await dependencyStore.EnqueueOperations(context.Message.Operations, context.CancellationToken);
 
-            await context.Publish(new ClusterDependenciesChanged(changes));
+            await context.Publish(new ClusterDependenciesChanged(changes) { CorrelationId = context.Message.CorrelationId });
         }
         catch (Exception ex)
         {
             var error = new ErrorInfo(230, ex.Message);
 
-            await context.Publish(new ClusterDependenciesUpdateFailed(context.Message.CorrelationId, error));
+            await context.Publish(new ClusterDependenciesChanged([], error) { CorrelationId = context.Message.CorrelationId });
         }
     }
 }

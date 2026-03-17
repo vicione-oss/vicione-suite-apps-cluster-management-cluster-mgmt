@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace ClusterManagement.Client.Editor.Localization {
+namespace ClusterManagement.Client.Editor.ControlPanels.Packages.Localization {
     using System;
     
     
@@ -22,14 +22,14 @@ namespace ClusterManagement.Client.Editor.Localization {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class PackagesControlPanel {
+    internal class PackageDetailsControlPanel {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
         private static global::System.Globalization.CultureInfo resourceCulture;
         
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal PackagesControlPanel() {
+        internal PackageDetailsControlPanel() {
         }
         
         /// <summary>
@@ -39,7 +39,8 @@ namespace ClusterManagement.Client.Editor.Localization {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("ClusterManagement.Client.Editor.Localization.PackagesControlPanel", typeof(PackagesControlPanel).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("ClusterManagement.Client.Editor.ControlPanels.Packages.Localization.PackageDetail" +
+                            "sControlPanel", typeof(PackageDetailsControlPanel).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -61,74 +62,38 @@ namespace ClusterManagement.Client.Editor.Localization {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Manage available packages, that can be used inside of Cluster Editor and provide additional functionality, sensors etc. The minimum core version is &apos;{0}&apos;..
+        ///   Looks up a localized string similar to This view presents the details of the selected package..
         /// </summary>
-        internal static string AvailableBannerDescription {
+        internal static string BannerDescription {
             get {
-                return ResourceManager.GetString("AvailableBannerDescription", resourceCulture);
+                return ResourceManager.GetString("BannerDescription", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Available Packages.
+        ///   Looks up a localized string similar to Minimum core version.
         /// </summary>
-        internal static string AvailableBannerTitle {
+        internal static string MinCoreVersion {
             get {
-                return ResourceManager.GetString("AvailableBannerTitle", resourceCulture);
+                return ResourceManager.GetString("MinCoreVersion", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Delete selected packages? Deleted packages can be reinstalled later..
+        ///   Looks up a localized string similar to Package details.
         /// </summary>
-        internal static string DeletePackages {
+        internal static string PackageDetails {
             get {
-                return ResourceManager.GetString("DeletePackages", resourceCulture);
+                return ResourceManager.GetString("PackageDetails", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Delete Packages.
+        ///   Looks up a localized string similar to Running cluster version.
         /// </summary>
-        internal static string DeletePackagesHeader {
+        internal static string RunningClusterVersion {
             get {
-                return ResourceManager.GetString("DeletePackagesHeader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Manage packages, that are used inside of the Cluster Editor. The minimum core version must be: {0}..
-        /// </summary>
-        internal static string InstalledBannerDescription {
-            get {
-                return ResourceManager.GetString("InstalledBannerDescription", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Installed Packages.
-        /// </summary>
-        internal static string InstalledBannerTitle {
-            get {
-                return ResourceManager.GetString("InstalledBannerTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Latest version.
-        /// </summary>
-        internal static string LatestVersion {
-            get {
-                return ResourceManager.GetString("LatestVersion", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to This package is locally available.
-        /// </summary>
-        internal static string LocalAvailable {
-            get {
-                return ResourceManager.GetString("LocalAvailable", resourceCulture);
+                return ResourceManager.GetString("RunningClusterVersion", resourceCulture);
             }
         }
     }
