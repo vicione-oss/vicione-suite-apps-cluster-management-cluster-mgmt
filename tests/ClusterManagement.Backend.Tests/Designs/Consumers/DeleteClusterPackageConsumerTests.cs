@@ -99,8 +99,9 @@ public class DeleteClusterPackageConsumerTests
         await tester.TestCommand<DeleteClusterPackage, DeleteClusterPackageConsumer>(command);
 
         // Assert        
-        Assert.True(await tester.Harness.Published.Any<ClusterPackageChangeFailed>(k
+        Assert.True(await tester.Harness.Published.Any<ClusterPackageChanged>(k
             => k.Context.Message.CorrelationId == command.CorrelationId
+            && k.Context.Message.Error is not null
             && k.Context.Message.Error.ErrorCode == 200
             && k.Context.Message.Change == ClusterPackageChange.Delete, TestContext.Current.CancellationToken));
     }

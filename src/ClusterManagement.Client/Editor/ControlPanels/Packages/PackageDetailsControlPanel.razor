@@ -1,4 +1,5 @@
-﻿@using ClusterManagement.Client.Editor.Enums
+﻿@using ClusterManagement.Client.Editor.ControlPanels.Packages.Services
+@using ClusterManagement.Client.Editor.Enums
 @using ClusterManagement.Client.Editor.Extensions
 @using ClusterManagement.Client.Extensions
 @using ClusterManagement.Client.Localization
@@ -19,7 +20,7 @@
         </DescriptionBanner>
 
         <SettingsLayout>
-            <SettingsGroup Title="@Localization.PackageDetailsControlPanel.PackageDetails" @bind-Expanded="_isDetailsExpanded">
+            <SettingsGroup Title="@Localization.PackageDetailsControlPanel.PackageDetails" Expanded="true">
                 <SettingsField Label="@CommonVocabulary.Name">
                     @State.PackageInfo.Name
                 </SettingsField>
@@ -34,7 +35,7 @@
                         <div class="active-cluster-version-wrapper">
                             @State.PackageInfo.RunningClusterVersion
 
-                            <div title="@Localization.Common.ActiveInCluster" class="icon-wrapper">
+                            <div title="@Editor.Localization.Common.ActiveInCluster" class="icon-wrapper">
                                 <MonochromeIcon Name="MonochromeIconName.LockActive" Size="MonochromeIconSize.SmallMedium" />
                             </div>
                         </div>

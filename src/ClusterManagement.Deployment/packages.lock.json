@@ -4,9 +4,9 @@
     "net10.0": {
       "ViciOne.Suite.Sdk.Deployment": {
         "type": "Direct",
-        "requested": "[2.0.0-ci2363355084, )",
-        "resolved": "2.0.0-ci2363355084",
-        "contentHash": "SQVTWLfWoqO/xVOfrM7w9xejXLrJbGAZk0OYwjIxIUNTgXqgEg4EyhO+XBUU7hLrWwTDJ4qb5YgaFDfJiHOqoA=="
+        "requested": "[2.0.0-ci2377740620, )",
+        "resolved": "2.0.0-ci2377740620",
+        "contentHash": "Pg8L2tWW7aZxmLfoaJSx1yBTD/G1xrn/jeUAxWHunVBMgy6K5la9Lbv8o0Uk3cX+9YckVg529qmCv6zVDWyW9A=="
       }
     },
     "net10.0/linux-arm64": {},

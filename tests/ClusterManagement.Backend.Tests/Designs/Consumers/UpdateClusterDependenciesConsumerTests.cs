@@ -127,8 +127,9 @@ public class UpdateClusterDependenciesConsumerTests
         await tester.TestCommand<UpdateClusterDependencies, UpdateClusterDependenciesConsumer>(command);
 
         // Assert        
-        Assert.True(await tester.Harness.Published.Any<ClusterDependenciesUpdateFailed>(k
+        Assert.True(await tester.Harness.Published.Any<ClusterDependenciesChanged>(k
             => k.Context.Message.CorrelationId == command.CorrelationId
+            && k.Context.Message.Error is not null
             && k.Context.Message.Error.ErrorCode == 230, TestContext.Current.CancellationToken));
     }
 

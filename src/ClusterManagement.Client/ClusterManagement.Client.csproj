@@ -73,17 +73,12 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>LoadFunctionBlockDialog.resx</DependentUpon>
     </Compile>
-    <Compile Update="Editor\Localization\Common.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Common.resx</DependentUpon>
-    </Compile>
-    <Compile Update="Editor\Localization\PackagesControlPanel.Designer.cs">
+    <Compile Update="Editor\ControlPanels\Packages\Localization\PackagesControlPanel.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>PackagesControlPanel.resx</DependentUpon>
     </Compile>
-    <Compile Update="Editor\Localization\PackageDetailsControlPanel.Designer.cs">
+    <Compile Update="Editor\ControlPanels\Packages\Localization\PackageDetailsControlPanel.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>PackageDetailsControlPanel.resx</DependentUpon>
@@ -165,15 +160,11 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>LoadFunctionBlockDialog.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Update="Editor\Localization\Common.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Common.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Editor\Localization\PackagesControlPanel.resx">
+    <EmbeddedResource Update="Editor\ControlPanels\Packages\Localization\PackagesControlPanel.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>PackagesControlPanel.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Update="Editor\Localization\PackageDetailsControlPanel.resx">
+    <EmbeddedResource Update="Editor\ControlPanels\Packages\Localization\PackageDetailsControlPanel.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>PackageDetailsControlPanel.Designer.cs</LastGenOutput>
     </EmbeddedResource>

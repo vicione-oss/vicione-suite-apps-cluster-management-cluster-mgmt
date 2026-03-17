@@ -5,7 +5,7 @@ include:
 variables:
   PROJECT_NAME: ClusterManagement
   MODULE_FULLNAME: ViciOne.Suite.ClusterManagement
-  IMAGE_NAME: mcr.microsoft.com/dotnet/sdk:10.0.103
+  IMAGE_NAME: mcr.microsoft.com/dotnet/sdk:10.0
   TEST_FILTER: "Category!=System"
 
 default:

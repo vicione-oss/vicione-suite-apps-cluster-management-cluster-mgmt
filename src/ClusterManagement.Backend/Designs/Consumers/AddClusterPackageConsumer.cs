@@ -24,7 +24,7 @@ public sealed class AddClusterPackageConsumer(IPackageStore packageStorage, ILog
 
             var error = new ErrorInfo(200, ex.Message);
 
-            await context.Publish(new ClusterPackageChangeFailed(context.Message.CorrelationId, error, ClusterPackageChange.Add));
+            await context.Publish(new ClusterPackageChanged("Unknown", "0.0.0", ClusterPackageChange.Add, error) { CorrelationId = context.Message.CorrelationId });
         }
     }
 }

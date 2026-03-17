@@ -1,11 +1,13 @@
 ﻿using ClusterManagement.Client.Editor.ControlPanels.General;
 using ClusterManagement.Client.Editor.ControlPanels.Packages;
+using ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
 using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Client.Editor.Wizards.Services;
 using ClusterManagement.Client.Services;
+using ClusterManagement.Internal.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Client.ControlPanels.Extensions;
-using Sdk.Client.ControlPanels.Services;
+using ViciOne.Ui.Blazor.Components.Grid.Extensions;
 using ViciOne.Ui.ClusterEditor.Extensions;
 using ViciOne.Ui.ClusterEditor.Services;
 
@@ -38,13 +40,31 @@ internal static class IServiceCollectionExtensions
             .WithResetHandler<GeneralControlPanelResetHandler>()
             .WithSaveHandler<GeneralControlPanelSaveHandler>();
 
-        services.AddControlPanel<ClusterManagementClientModule, PackagesControlPanel, ControlPanelState>()
-           .WithAutoDiscovery<PackagesControlPanelDescriptor>();
+        services.AddPackagesControlPanel();
+        services.AddPackageControlPanel();
 
+        return services;
+    }
+
+    internal static IServiceCollection AddPackagesControlPanel(this IServiceCollection services)
+    {
+        services.AddGridItemSelectColumn()
+            .AddGridItemSelection<ClusterPackageInfo>(typeof(PackagesControlPanelServiceKey));
+
+        services.AddControlPanel<ClusterManagementClientModule, PackagesControlPanel, PackagesControlPanelState>()
+           .WithAutoDiscovery<PackagesControlPanelDescriptor>()
+           .WithResetHandler<PackagesControlPanelResetHandler>()
+            .WithSaveHandler<PackagesControlPanelSaveHandler>();
+
+        return services;
+    }
+
+    internal static IServiceCollection AddPackageControlPanel(this IServiceCollection services)
+    {
         services.AddControlPanel<ClusterManagementClientModule, PackageDetailsControlPanel, PackageDetailsControlPanelState>()
             .WithAutoDiscovery<PackageDetailsControlPanelDescriptor>()
             .WithResetHandler<PackageDetailsControlPanelResetHandler>()
-            .WithSaveHandler<PackageDetailsControlPanelSaveHandler>(); ;
+            .WithSaveHandler<PackageDetailsControlPanelSaveHandler>();
 
         return services;
     }

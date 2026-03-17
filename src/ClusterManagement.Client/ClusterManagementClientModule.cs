@@ -1,6 +1,7 @@
 ﻿using ClusterManagement.Client.DataflowEvents.Extensions;
+using ClusterManagement.Client.Editor.ControlPanels.Packages;
+using ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
 using ClusterManagement.Client.Editor.Extensions;
-using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Client.IoddManagement.Extensions;
 using ClusterManagement.Client.Localization;
 using ClusterManagement.Client.Management.Extensions;

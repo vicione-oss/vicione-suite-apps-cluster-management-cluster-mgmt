@@ -5,7 +5,7 @@ using Sdk.Messaging;
 namespace ClusterManagement.Internal.Events;
 
 [ForwardToUI]
-public sealed record ClusterDependenciesChanged(IReadOnlyList<ClusterDependencyChange> Changes) : IEvent, CorrelatedBy<Guid>
+public sealed record ClusterDependenciesChanged(IReadOnlyList<ClusterDependencyChange> Changes, ErrorInfo? Error = null) : IEvent, CorrelatedBy<Guid>
 {
     public Guid CorrelationId { get; init; } = Guid.NewGuid();
 }
