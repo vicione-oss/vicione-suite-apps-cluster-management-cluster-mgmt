@@ -2,7 +2,7 @@
 using Sdk.Client.Modules;
 using ViciOne.Ui.Localization.Resources;
 
-namespace ClusterManagement.Client.Editor.ControlPanels.General;
+namespace ClusterManagement.Client.Editor.ControlPanels.General.Services;
 
 public sealed class GeneralControlPanelDescriptor : IControlPanelDescriptor<GeneralControlPanel>
 {

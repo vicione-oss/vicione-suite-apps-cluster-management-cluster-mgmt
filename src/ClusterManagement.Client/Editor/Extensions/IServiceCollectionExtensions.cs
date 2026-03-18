@@ -1,4 +1,5 @@
 ﻿using ClusterManagement.Client.Editor.ControlPanels.General;
+using ClusterManagement.Client.Editor.ControlPanels.General.Services;
 using ClusterManagement.Client.Editor.ControlPanels.Packages;
 using ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
 using ClusterManagement.Client.Editor.Services;
