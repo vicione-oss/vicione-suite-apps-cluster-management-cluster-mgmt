@@ -4,39 +4,30 @@ using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Internal.Events;
 using ClusterManagement.Public.Events;
 using MassTransit;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Sdk.Messaging;
 
 namespace ClusterManagement.Backend.Consumers;
 
-public sealed class AddOrUpdateClusterEditorSettingsConsumer(IClusterEditorDbContext dbContext, ILogger<GetActiveClusterConsumer> logger)
+public sealed partial class AddOrUpdateClusterEditorSettingsConsumer(IClusterEditorDbContext dbContext, ILogger<GetActiveClusterConsumer> logger)
     : IConsumer<AddOrUpdateClusterEditorSettings>, IConsumer<Fault<AddOrUpdateClusterEditorSettings>>
 {
     public async Task Consume(ConsumeContext<AddOrUpdateClusterEditorSettings> context)
     {
-        logger.LogDebug("Consume {Command} CorrelationId:{CorrelationId} for UserId:{UserId}",
-            nameof(AddOrUpdateClusterEditorSettings), context.CorrelationId, context.Message.Settings.UserId);
+        LogConsume(logger, nameof(AddOrUpdateClusterEditorSettings), context.Message.CorrelationId, context.Message.Settings.UserId);
 
-        try
-        {
-            var result = await AddOrUpdateSettings(context.Message.Settings, context.CancellationToken);
-            if (result is not null)
-                await context.Publish(new ClusterEditorSettingsChanged(result.Settings, result.CrudAction), context.CancellationToken);
-        }
-        catch (DbUpdateException e)
-        {
-            logger.LogWarning(e, "Consume {Command} CorrelationId:{CorrelationId} for UserId:{UserId} Retry:{Times}",
-                nameof(AddOrUpdateClusterEditorSettings), context.CorrelationId, context.Message.Settings.UserId, context.GetRetryCount());
+        var result = await AddOrUpdateSettings(context.Message.Settings, context.CancellationToken);
+        if (result is null)
+            throw new InvalidOperationException("Failed to create or update editor settings");
 
-            throw;
-        }
+        var changeEvent = new ClusterEditorSettingsChanged(result.Settings, result.CrudAction) { CorrelationId = context.Message.CorrelationId };
+
+        await context.Publish(changeEvent, context.CancellationToken);
     }
 
     private async Task<AddOrUpdateClusterEditorSettingsResult?> AddOrUpdateSettings(EditorSettings settings, CancellationToken cancellationToken)
     {
         var existingSettings = dbContext.Settings.FirstOrDefault(s => s.UserId == settings.UserId);
-
         if (existingSettings is null)
         {
             var settingsEntry = dbContext.Settings.Add(settings);
@@ -71,12 +62,20 @@ public sealed class AddOrUpdateClusterEditorSettingsConsumer(IClusterEditorDbCon
 
     public async Task Consume(ConsumeContext<Fault<AddOrUpdateClusterEditorSettings>> context)
     {
-        logger.LogError("{Command} faulted with errors: {Errors}",
-            nameof(AddOrUpdateClusterEditorSettings),
-            string.Join(" | ", context.Message.Exceptions.Select(e => e.Message)));
+        LogFaulted(logger, nameof(AddOrUpdateClusterEditorSettings), string.Join(" | ", context.Message.Exceptions.Select(e => e.Message)));
 
-        await context.Publish(new ErrorInfo(ClusterError.EditorStoreSettingsFailed, $"Failed to add or update settings for user {context.Message.Message.Settings.UserId}"));
+        var origMessage = context.Message.Message;
+        var errorInfo = new ErrorInfo(ClusterError.EditorStoreSettingsFailed, $"Failed to add or update settings for user {origMessage.Settings.UserId}");
+        var changeEvent = new ClusterEditorSettingsChanged(origMessage.Settings, CrudAction.Created) { CorrelationId = origMessage.CorrelationId };
+
+        await context.Publish(changeEvent);
     }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Consume {Command} CorrelationId:{CorrelationId} for UserId:{UserId}")]
+    private static partial void LogConsume(ILogger logger, string command, Guid correlationId, string userId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "{Command} faulted with errors: {Errors}")]
+    private static partial void LogFaulted(ILogger logger, string command, string errors);
 
     private sealed record AddOrUpdateClusterEditorSettingsResult
     {

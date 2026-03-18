@@ -22,7 +22,7 @@ public sealed class GetClusterEditorSettingsConsumerTests : TestWithDbContextSql
         };
 
     [Fact]
-    public async Task Request_unknown_userId_should_return_error()
+    public async Task Request_unknown_userId_should_return_new_settings()
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
@@ -32,8 +32,8 @@ public sealed class GetClusterEditorSettingsConsumerTests : TestWithDbContextSql
         var response = await tester.TestRequest<GetClusterEditorSettingsResponse, GetClusterEditorSettingsRequest>(request);
 
         // Assert
-        response.Settings.Should().BeNull();
-        response.RequestError.Should().NotBeNull();
+        response.Settings.Should().NotBeNull();
+        response.RequestError.Should().BeNull();
     }
 
     [Fact]

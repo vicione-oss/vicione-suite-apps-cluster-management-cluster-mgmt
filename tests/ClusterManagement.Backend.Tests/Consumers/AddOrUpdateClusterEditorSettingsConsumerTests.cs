@@ -98,6 +98,6 @@ public sealed class AddOrUpdateClusterEditorSettingsConsumerTests : TestWithDbCo
         await Assert.ThrowsAsync<DbUpdateException>(() => tester.TestCommandFault<AddOrUpdateClusterEditorSettings, AddOrUpdateClusterEditorSettingsConsumer>(command));
 
         // Assert
-        Assert.True(await tester.Harness.Published.Any<ErrorInfo>(TestContext.Current.CancellationToken));
+        Assert.True(await tester.Harness.Published.Any<ClusterEditorSettingsChanged>(TestContext.Current.CancellationToken));
     }
 }

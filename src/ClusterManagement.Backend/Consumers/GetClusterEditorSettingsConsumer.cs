@@ -9,36 +9,34 @@ using Sdk.Messaging;
 
 namespace ClusterManagement.Backend.Consumers;
 
-public sealed class GetClusterEditorSettingsConsumer(IClusterEditorDbContext dbContext, ILogger<GetActiveClusterConsumer> logger)
+public sealed partial class GetClusterEditorSettingsConsumer(IClusterEditorDbContext dbContext, ILogger<GetActiveClusterConsumer> logger)
     : RequestConsumer<GetClusterEditorSettingsRequest, GetClusterEditorSettingsResponse>
 {
     protected override async Task<GetClusterEditorSettingsResponse> Respond(ConsumeContext<GetClusterEditorSettingsRequest> context)
     {
-        logger.LogDebug("Consume {Request} CorrelationId:{CorrelationId} UserId:{Id} ",
-            nameof(GetClusterEditorSettingsRequest),
-            context.CorrelationId,
-            context.Message.UserId);
+        LogConsume(logger, nameof(GetClusterEditorSettingsRequest), context.CorrelationId, context.Message.UserId);
 
         var settings = await dbContext.Settings.AsNoTracking().FirstOrDefaultAsync(s => s.UserId == context.Message.UserId, context.CancellationToken);
 
-        var requestError = settings is null
-            ? new ErrorInfo(ClusterError.EditorLoadSettingsFailed, $"Failed to load settings for user {context.Message.UserId}")
-            : null;
-
         return new GetClusterEditorSettingsResponse
         {
-            Settings = settings,
-            RequestError = requestError
+            Settings = settings ?? new Internal.Contracts.EditorSettings { UserId = context.Message.UserId }
         };
     }
 
     protected override Task<GetClusterEditorSettingsResponse> HandleException(ConsumeContext<GetClusterEditorSettingsRequest> context, Exception e)
     {
-        logger.LogError(e, "Failed to handle {Request}", nameof(GetClusterEditorSettingsRequest));
+        LogHandleException(logger, e, nameof(GetClusterEditorSettingsRequest));
 
         return Task.FromResult(new GetClusterEditorSettingsResponse
         {
             RequestError = new ErrorInfo(ClusterError.EditorLoadSettingsFailed, $"Failed to load settings for user {context.Message.UserId}"),
         });
     }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Consume {Request} CorrelationId:{CorrelationId} UserId:{UserId}")]
+    private static partial void LogConsume(ILogger logger, string request, Guid? correlationId, string userId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to handle {Request}")]
+    private static partial void LogHandleException(ILogger logger, Exception exception, string request);
 }
