@@ -1,7 +1,7 @@
 ﻿using ClusterManagement.Client.IoddManagement.Models;
 using Sdk.Client.ControlPanels.Services;
 
-namespace ClusterManagement.Client.IoddManagement.ControlPanels;
+namespace ClusterManagement.Client.IoddManagement.ControlPanels.Services;
 
 public sealed class IoddDetailsControlPanelState : ControlPanelState
 {

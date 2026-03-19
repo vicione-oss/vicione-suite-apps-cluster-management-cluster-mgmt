@@ -7,7 +7,7 @@ using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Designs.Consumers;
 
-public sealed class DeleteClusterPackageConsumer(IPackageStore packageStorage, ILogger<DeleteClusterPackageConsumer> logger) :
+public sealed partial class DeleteClusterPackageConsumer(IPackageStore packageStorage, ILogger<DeleteClusterPackageConsumer> logger) :
     IConsumer<DeleteClusterPackage>
 {
     public async Task Consume(ConsumeContext<DeleteClusterPackage> context)
@@ -27,11 +27,11 @@ public sealed class DeleteClusterPackageConsumer(IPackageStore packageStorage, I
                 CorrelationId = context.Message.CorrelationId
             };
 
-            await context.Publish(changeEvent);
+            await context.Publish(changeEvent, context.CancellationToken);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to delete cluster package {PackageName} version {Version}", context.Message.PackageName, context.Message.Version);
+            LogError(logger, context.Message.PackageName, context.Message.Version);
 
             var changeEvent = new ClusterPackageChanged(context.Message.PackageName, context.Message.Version, ClusterPackageChange.Delete)
             {
@@ -39,7 +39,10 @@ public sealed class DeleteClusterPackageConsumer(IPackageStore packageStorage, I
                 Error = new ErrorInfo(200, ex.Message)
             };
 
-            await context.Publish(changeEvent);
+            await context.Publish(changeEvent, context.CancellationToken);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to delete cluster package {PackageName} version {Version}")]
+    private static partial void LogError(ILogger<DeleteClusterPackageConsumer> logger, string packageName, string version);
 }

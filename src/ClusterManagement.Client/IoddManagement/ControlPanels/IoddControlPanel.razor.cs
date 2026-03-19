@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using ClusterManagement.Client.Extensions;
+using ClusterManagement.Client.IoddManagement.ControlPanels.Services;
 using ClusterManagement.Client.IoddManagement.Extensions;
 using ClusterManagement.Client.IoddManagement.IoddTree;
 using ClusterManagement.Client.IoddManagement.Models;
@@ -9,14 +10,13 @@ using ClusterManagement.Public.Iodds;
 using ClusterManagement.Public.Iodds.Events;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using Sdk.Client.ControlPanels.Attributes;
 using Sdk.Client.ControlPanels.Services;
-using Sdk.Client.Infrastructure;
 using Sdk.Client.Services;
 using Sdk.MessageBanner.Contracts;
 using Sdk.Messaging;
-using Sdk.Utils;
 using ViciOne.Ui.Localization.Resources;
 using ViciOne.Ui.Shared.Dx.Components;
 using ViciOne.Ui.TreeEditor.Builder;
@@ -24,44 +24,95 @@ using ViciOne.Ui.TreeEditor.Builder;
 namespace ClusterManagement.Client.IoddManagement.ControlPanels;
 
 [ControlPanelCategory<IoddControlPanelCategoryDescriptor>]
-public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEventConsumer<IoddError>, IEventConsumer<AutoIoddDownloadChanged>
+public sealed partial class IoddControlPanel
 {
-
-    private string _filterText = string.Empty;
     private IQueryable<DeviceView> _itemsQueryable = Enumerable.Empty<DeviceView>().AsQueryable();
-    private readonly AutoDisposeList<IDisposable> _subscriptionHandles = [];
     private readonly TreeBuilder _treeBuilder = new();
     private DxDialog? _refDeleteIoddsDialog;
-    private bool _waitingForAutoDownloadChanged;
 
     [Inject] private IControlPanelRequest ControlPanelRequest { get; set; } = default!;
-    [Inject] private IUiMediator Mediator { get; set; } = default!;
     [Inject] private IJSRuntime JavaScript { get; set; } = default!;
     [Inject] private IJsInterop JavaScriptInterop { get; set; } = default!;
     [Inject] private IIoddService IoddService { get; set; } = default!;
     [Inject] private IoddTreeAdapter TreeAdapter { get; set; } = default!;
     [Inject] private IMessageBannerService MessageBannerService { get; set; } = default!;
+    [Inject] private ILogger<IoddControlPanel> Logger { get; set; } = default!;
 
     private GridItemSelection<IoddId> ItemSelection { get; } = [];
 
-    private async Task AutoDownloadChanged(bool value)
+    protected override async ValueTask DisposeAsyncCore()
     {
-        _waitingForAutoDownloadChanged = true;
-        await IoddService.SetIsAutoDownloading(value);
+        IoddService.AutoIoddDownloadChanged -= IoddService_AutoIoddDownloadChanged;
+        IoddService.IoddChanged -= IoddService_IoddChanged;
+
+        if (TreeAdapter is not null)
+        {
+            TreeAdapter.SelectionChanged -= OnIoddTreeAdapterSelectionChanged;
+            TreeAdapter.Dispose();
+        }
+
+        if (ItemSelection is not null)
+        {
+            ItemSelection.Changed -= OnItemSelectionChanged;
+            ItemSelection.Clear();
+        }
+
+        await base.DisposeAsyncCore();
     }
 
-    private IQueryable<DeviceView> FilterItems(IQueryable<DeviceView> devices)
-        => devices
-            .Where(i => i.Name.Contains(_filterText, StringComparison.OrdinalIgnoreCase)
-                     || i.DeviceId.ToString(CultureInfo.InvariantCulture).Contains(_filterText, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(d => d.Name);
-
-    public async Task Consume(ClientContext<IoddChanged> context, CancellationToken cancellationToken)
+    protected override async Task OnInitializedAsync()
     {
-        var deviceId = context.Message.Iodd.DeviceId;
-        var vendorId = context.Message.Iodd.VendorId;
+        await base.OnInitializedAsync();
+        await TreeAdapter.InitializeTreeIconsFromHttp();
 
-        if (context.Message.Action == CrudAction.Deleted)
+        IoddService.AutoIoddDownloadChanged += IoddService_AutoIoddDownloadChanged;
+        IoddService.IoddChanged += IoddService_IoddChanged;
+
+        TreeAdapter.SelectionChanged += OnIoddTreeAdapterSelectionChanged;
+
+        _treeBuilder.SetAdapter(TreeAdapter);
+        TreeAdapter.CoupleTreeBuilderEvents();
+        InitTreeAdapterDevices();
+
+        ItemSelection.Changed += OnItemSelectionChanged;
+    }
+
+    private void InitTreeAdapterDevices()
+    {
+        if (TreeAdapter is null)
+            return;
+
+        TreeAdapter.Clear();
+
+        foreach (var device in State.Devices)
+        {
+            TreeAdapter.AddDevice(device, false);
+        }
+
+        TreeAdapter.ExpandFirstVendor();
+
+        State.SelectedTreeNodeKey ??= TreeAdapter.GetDefaultSelectioNode();
+        if (State.SelectedTreeNodeKey is not null)
+            TreeAdapter.SetSelection(State.SelectedTreeNodeKey);
+    }
+
+    private async Task IoddService_IoddChanged(IoddChanged change, CancellationToken cancellationToken)
+    {
+
+        if (change.Error is not null)
+        {
+            if (change.Error.ErrorCode == IoddChanged.ExtractZipError)
+                MessageBannerService.ShowMessageBanner(MessageType.Error, Common.UploadFailed);
+            else
+                MessageBannerService.ShowMessageBanner(MessageType.Error, change.Error.Message);
+
+            return;
+        }
+
+        var deviceId = change.Iodd.DeviceId;
+        var vendorId = change.Iodd.VendorId;
+
+        if (change.Action == CrudAction.Deleted)
         {
             TreeAdapter.DeleteDevice(vendorId, deviceId);
 
@@ -72,37 +123,70 @@ public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEve
             }
         }
         // Todo: event is currently only thrown if the user uploads an iodd file, it should be sent when one is automatically uploaded too
-        else if (context.Message.Action == CrudAction.Created)
+        else if (change.Action == CrudAction.Created)
         {
-            if (context.Message.DeviceInfo is null)
-                throw new InvalidOperationException("The device cannot be null.");
+            if (change.DeviceInfo is null)
+                return;
 
-            foreach (var deviceVariant in context.Message.DeviceInfo.DeviceDescription.DeviceIdentity.Variants)
+            var variants = change.DeviceInfo.CreateDeviceVariants();
+            foreach (var deviceVariant in variants)
             {
-                var deviceView = context.Message.DeviceInfo.Create(deviceVariant);
-                TreeAdapter.AddDevice(deviceView);
+                State.Devices.Add(deviceVariant);
+                TreeAdapter.AddDevice(deviceVariant);
             }
+
             TreeAdapter.SetSelection(State.SelectedTreeNodeKey);
         }
 
         await InvokeAsync(StateHasChanged);
     }
 
-    public Task Consume(ClientContext<IoddError> context, CancellationToken cancellationToken)
+    private async Task IoddService_AutoIoddDownloadChanged(AutoIoddDownloadChanged change, CancellationToken cancellationToken)
     {
-        if (context.Message.Error.ErrorCode == IoddError.ExtractZipError)
-            MessageBannerService.ShowMessageBanner(MessageType.Error, Common.UploadFailed);
-        else
-            MessageBannerService.ShowMessageBanner(MessageType.Error, context.Message.Error.Message);
-
-        return Task.CompletedTask;
+        State.WaitingForAutoDownloadChange = true;
+        State.AutoDownload = change.Value;
+        await InvokeAsync(StateHasChanged);
     }
 
-    public async Task Consume(ClientContext<AutoIoddDownloadChanged> context, CancellationToken cancellationToken)
+    private async Task AutoDownloadValueChanged(bool value)
     {
-        State.AutoDownload = context.Message.Value;
-        _waitingForAutoDownloadChanged = false;
-        await InvokeAsync(StateHasChanged);
+        State.WaitingForAutoDownloadChange = false;
+        await IoddService.SetIsAutoDownloading(value);
+    }
+
+    private IQueryable<DeviceView> FilterItems(IQueryable<DeviceView> devices)
+        => devices
+            .Where(i => i.Name.Contains(State.FilterText, StringComparison.OrdinalIgnoreCase)
+                     || i.DeviceId.ToString(CultureInfo.InvariantCulture).Contains(State.FilterText, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(d => d.Name);
+
+    private void OnItemSelectionChanged(ViciOne.Ui.Blazor.Components.Grid.Services.GridItemSelectionChangedEventArgs<IoddId> obj)
+        => InvokeAsync(StateHasChanged);
+
+    private void OnIoddTreeAdapterSelectionChanged(IEnumerable<DeviceView> selection)
+    {
+        State.SelectedTreeNodeKey = TreeAdapter.SelectedNodeKey;
+        _itemsQueryable = selection.AsQueryable();
+
+        ItemSelection.Clear();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ShowDetailsAsync(DeviceView item)
+    {
+        try
+        {
+            var image = await IoddService.GetIODeviceImage(item.VendorId, item.DeviceId, item.DeviceImage);
+            var result = await ControlPanelRequest.Send<IoddDetailsControlPanel, IoddDetailsControlPanelState>(s =>
+            {
+                s.DeviceVariant = item;
+                s.DeviceImage = image;
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error showing details for device {VendorId}/{DeviceId}", item.VendorId, item.DeviceId);
+        }
     }
 
     private async Task OnDeleteIoddsCloseAsync()
@@ -112,12 +196,51 @@ public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEve
     {
         var ids = ItemSelection.Distinct();
 
-        foreach (var id in ids)
+        State.MarkIoddAsDeleted(ids);
+
+        // Delete devices from tree if they are marked for deletion
+        foreach (var device in State.DevicesMarkedForDeletion)
         {
-            await IoddService.DeleteIodd(id.VendorId, id.DeviceId);
+            TreeAdapter.DeleteDevice(device.VendorId, device.DeviceId);
+            ItemSelection.Remove(device);
+        }
+
+        if (State.HasChanges())
+        {
+            _itemsQueryable = _itemsQueryable
+                .Where(k => !State.DevicesMarkedForDeletion.Any(device => device.VendorId == k.VendorId
+                && device.DeviceId == k.DeviceId));
+
+            await BeginEdit();
         }
 
         await _refDeleteIoddsDialog!.CloseAsync();
+    }
+
+    private async Task OnIoddDeleteClickAsync()
+        => await _refDeleteIoddsDialog!.OpenAsync();
+
+    private async Task OnIoddDownloadClickAsync()
+    {
+        var ids = ItemSelection.Distinct();
+
+        foreach (var id in ids)
+        {
+            try
+            {
+                var (file, name) = await IoddService.DownloadIodd(id.VendorId, id.DeviceId);
+                using var stream = new MemoryStream();
+                await stream.WriteAsync(file);
+                stream.Position = 0;
+                await stream.FlushAsync();
+                await JavaScriptInterop.DownloadAs(stream, $"{Path.GetFileNameWithoutExtension(name)}.zip");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error downloading iodd for device {VendorId}/{DeviceId}", id.VendorId, id.DeviceId);
+                break;
+            }
+        }
     }
 
     private async Task OnFileChange(InputFileChangeEventArgs args)
@@ -143,91 +266,6 @@ public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEve
         }
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
-        await TreeAdapter.InitializeTreeIconsFromHttp();
-
-        TreeAdapter.SelectionChanged += OnIoddTreeAdapterSelectionChanged;
-
-        _treeBuilder.SetAdapter(TreeAdapter);
-        TreeAdapter.CoupleTreeBuilderEvents();
-
-        ItemSelection.Changed += OnItemSelectionChanged;
-
-        await AddInitialDevices();
-
-        State.AutoDownload = await IoddService.GetIsAutoDownloading();
-
-        _subscriptionHandles.Add(Mediator.Register<IoddChanged>(this));
-        _subscriptionHandles.Add(Mediator.Register<IoddError>(this));
-        _subscriptionHandles.Add(Mediator.Register<AutoIoddDownloadChanged>(this));
-
-        State.SelectedTreeNodeKey ??= TreeAdapter.GetDefaultSelectioNode();
-
-        if (State.SelectedTreeNodeKey is not null)
-            TreeAdapter.SetSelection(State.SelectedTreeNodeKey);
-    }
-
-    private async Task AddInitialDevices()
-    {
-        if (TreeAdapter is null)
-            throw new InvalidOperationException("Device tree must be initialized");
-
-        var devices = await IoddService.GetIODevices();
-
-        foreach (var device in devices)
-        {
-            foreach (var deviceVariant in device.DeviceDescription.DeviceIdentity.Variants)
-            {
-                var deviceView = device.Create(deviceVariant);
-                TreeAdapter.AddDevice(deviceView, false);
-            }
-        }
-
-        TreeAdapter.ExpandFirstVendor();
-    }
-
-    private void OnItemSelectionChanged(ViciOne.Ui.Blazor.Components.Grid.Services.GridItemSelectionChangedEventArgs<IoddId> obj)
-        => InvokeAsync(StateHasChanged);
-
-    private void OnIoddTreeAdapterSelectionChanged(IEnumerable<DeviceView> selection)
-    {
-        State.SelectedTreeNodeKey = TreeAdapter.SelectedNodeKey;
-        _itemsQueryable = selection.AsQueryable();
-
-        ItemSelection.Clear();
-        InvokeAsync(StateHasChanged);
-    }
-
-    private async Task ShowDetailsAsync(DeviceView item)
-    {
-        var image = await IoddService.GetIODeviceImage(item.VendorId, item.DeviceId, item.DeviceImage);
-        var result = await ControlPanelRequest.Send<IoddDetailsControlPanel, IoddDetailsControlPanelState>(s =>
-        {
-            s.DeviceVariant = item;
-            s.DeviceImage = image;
-        });
-    }
-
-    private async Task OnIoddDeleteClickAsync()
-        => await _refDeleteIoddsDialog!.OpenAsync();
-
-    private async Task OnIoddDownloadClickAsync()
-    {
-        var ids = ItemSelection.Distinct();
-
-        foreach (var id in ids)
-        {
-            var (file, name) = await IoddService.DownloadIodd(id.VendorId, id.DeviceId);
-            using var stream = new MemoryStream();
-            await stream.WriteAsync(file);
-            stream.Position = 0;
-            await stream.FlushAsync();
-            await JavaScriptInterop.DownloadAs(stream, $"{Path.GetFileNameWithoutExtension(name)}.zip");
-        }
-    }
-
     private async Task OnIoddUploadClickAsync()
         => await JavaScript.InvokeVoidAsync("triggerUploadClick");
 
@@ -242,24 +280,5 @@ public sealed partial class IoddControlPanel : IEventConsumer<IoddChanged>, IEve
             return $"{_itemsQueryable.Count()} {elements}";
 
         return $"{_itemsQueryable.Count()} {elements} | {_itemsQueryable.Where(d => ItemSelection.Select(s => s.DeviceId).Contains(d.DeviceId)).Count()} {CommonVocabulary.Selected}";
-    }
-
-    protected override async ValueTask DisposeAsyncCore()
-    {
-        _subscriptionHandles.Dispose();
-
-        if (TreeAdapter is not null)
-        {
-            TreeAdapter.SelectionChanged -= OnIoddTreeAdapterSelectionChanged;
-            TreeAdapter.Dispose();
-        }
-
-        if (ItemSelection is not null)
-        {
-            ItemSelection.Changed -= OnItemSelectionChanged;
-            ItemSelection.Clear();
-        }
-
-        await base.DisposeAsyncCore();
     }
 }

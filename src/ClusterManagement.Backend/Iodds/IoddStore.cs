@@ -33,7 +33,7 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
         return existingSettings?.AutoDownload ?? true;
     }
 
-    public async Task SetAutoDownloadIodds(bool value)
+    public async Task SetAutoDownloadIodds(bool value, CancellationToken cancellationToken)
     {
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<IClusterEditorDbContext>();
@@ -53,7 +53,7 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
             dbContext.IoddSettings.Update(settings);
         }
 
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public bool TryAddDevice(IoddId id)

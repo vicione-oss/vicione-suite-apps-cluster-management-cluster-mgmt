@@ -54,7 +54,7 @@ public class DeleteIoddConsumerTests
     }
 
     [Fact]
-    public async Task Command_should_publish_IoddChanged_event_on_success()
+    public async Task Command_should_publish_correlated_IoddChanged_event_on_success()
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
@@ -72,6 +72,7 @@ public class DeleteIoddConsumerTests
             => k.Context.Message.Iodd.VendorId == vendorId
             && k.Context.Message.Iodd.DeviceId == deviceId
             && k.Context.Message.Action == CrudAction.Deleted
+            && k.Context.Message.CorrelationId == command.CorrelationId
             && k.Context.Message.DeviceInfo == null, TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
@@ -90,9 +91,10 @@ public class DeleteIoddConsumerTests
         await tester.TestCommand<DeleteIodd, DeleteIoddConsumer>(command);
 
         // Assert
-        (await tester.Harness.Published.Any<IoddError>(k
-            => k.Context.Message.Error.ErrorCode == IoddError.DeleteIoddError
-            && k.Context.Message.Name == "Delete Failed", TestContext.Current.CancellationToken)).Should().BeTrue();
+        (await tester.Harness.Published.Any<IoddChanged>(k
+            => k.Context.Message.Error is not null
+            && k.Context.Message.Error.ErrorCode == IoddChanged.DeleteIoddError
+            , TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
     [Fact]
@@ -108,13 +110,14 @@ public class DeleteIoddConsumerTests
         await tester.TestCommand<DeleteIodd, DeleteIoddConsumer>(command);
 
         // Assert
-        (await tester.Harness.Published.Any<IoddError>(k
-            => k.Context.Message.Error.ErrorCode == IoddError.DeleteIoddError
-            && k.Context.Message.Error.Message == "Failed to delete IODD", TestContext.Current.CancellationToken)).Should().BeTrue();
+        (await tester.Harness.Published.Any<IoddChanged>(k
+            => k.Context.Message.Error is not null
+            && k.Context.Message.Error.ErrorCode == IoddChanged.DeleteIoddError
+            , TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
     [Fact]
-    public async Task Command_should_not_publish_changed_event_when_deletion_fails()
+    public async Task Command_should_not_publish_changed_event_with_error_deletion_fails()
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
@@ -126,7 +129,8 @@ public class DeleteIoddConsumerTests
         await tester.TestCommand<DeleteIodd, DeleteIoddConsumer>(command);
 
         // Assert
-        (await tester.Harness.Published.Any<IoddChanged>(TestContext.Current.CancellationToken)).Should().BeFalse();
+        (await tester.Harness.Published.Any<IoddChanged>(k
+            => k.Context.Message.Error is not null, TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
     [Fact]
@@ -179,7 +183,6 @@ public class DeleteIoddConsumerTests
 
         // Assert
         (await tester.Harness.Published.Any<IoddChanged>(TestContext.Current.CancellationToken)).Should().BeTrue();
-        (await tester.Harness.Published.Any<IoddError>(TestContext.Current.CancellationToken)).Should().BeFalse();
     }
 
     [Fact]
@@ -195,12 +198,14 @@ public class DeleteIoddConsumerTests
         await tester.TestCommand<DeleteIodd, DeleteIoddConsumer>(command);
 
         // Assert
-        (await tester.Harness.Published.Any<IoddError>(k
-            => k.Context.Message.Error.ErrorCode == IoddError.DeleteIoddError, TestContext.Current.CancellationToken)).Should().BeTrue();
+        (await tester.Harness.Published.Any<IoddChanged>(k
+            => k.Context.Message.Error is not null &&
+            k.Context.Message.Error.ErrorCode == IoddChanged.DeleteIoddError
+            , TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
     [Fact]
-    public async Task Command_should_handle_exception_from_store()
+    public async Task Should_publish_event_with_error_store_throws_exception()
     {
         // Arrange
         var exceptionConfigureServices = new Action<IBusRegistrationConfigurator>(cfg =>
@@ -219,10 +224,10 @@ public class DeleteIoddConsumerTests
         var command = new DeleteIodd(310, 2);
 
         // Act
-        var act = async () => await tester.TestCommand<DeleteIodd, DeleteIoddConsumer>(command);
+        await tester.TestCommand<DeleteIodd, DeleteIoddConsumer>(command);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Store error");
+        (await tester.Harness.Published.Any<IoddChanged>(k
+            => k.Context.Message.Error is not null, TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 }

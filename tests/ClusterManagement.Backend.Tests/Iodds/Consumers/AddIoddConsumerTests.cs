@@ -69,7 +69,7 @@ public class AddIoddConsumerTests
     }
 
     [Fact]
-    public async Task Command_should_publish_changed_event_on_success()
+    public async Task Command_should_publish_correlated_changed_event_on_success()
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
@@ -94,11 +94,13 @@ public class AddIoddConsumerTests
             => k.Context.Message.Iodd.VendorId == expectedId.VendorId
             && k.Context.Message.Iodd.DeviceId == expectedId.DeviceId
             && k.Context.Message.Action == CrudAction.Created
-            && k.Context.Message.DeviceInfo == deviceInfo, TestContext.Current.CancellationToken)).Should().BeTrue();
+            && k.Context.Message.CorrelationId == command.CorrelationId
+            && k.Context.Message.DeviceInfo == deviceInfo,
+            TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
     [Fact]
-    public async Task Command_should_throw_when_device_already_exists()
+    public async Task Should_publish_change_with_error_when_device_already_exists()
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
@@ -109,15 +111,17 @@ public class AddIoddConsumerTests
             .Returns(false);
 
         // Act
-        var act = async () => await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
+        await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Failed to add IODD, does it already exist?");
+        (await tester.Harness.Published.Any<IoddChanged>(k
+            => k.Context.Message.Error is not null
+            && k.Context.Message.CorrelationId == command.CorrelationId,
+            TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
     [Fact]
-    public async Task Command_should_throw_when_TryAddDevice_fails()
+    public async Task Should_publish_change_with_error_when_TryAddDevice_fails()
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
@@ -132,44 +136,17 @@ public class AddIoddConsumerTests
             });
 
         // Act
-        var act = async () => await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
+        await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        (await tester.Harness.Published.Any<IoddChanged>(k
+            => k.Context.Message.Error is not null
+            && k.Context.Message.CorrelationId == command.CorrelationId,
+            TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
     [Fact]
-    public async Task Fault_consumer_should_publish_error_event()
-    {
-        // Arrange
-        var faultConfigureServices = new Action<IBusRegistrationConfigurator>(cfg =>
-        {
-            cfg.AddConsumer<AddIoddConsumer>();
-            cfg.AddSingleton<IIoddStore>(_ =>
-            {
-                var store = Substitute.For<IIoddStore>();
-                store.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId>())
-                    .Returns(_ => throw new InvalidDataException("Invalid ZIP"));
-                return store;
-            });
-        });
-
-        await using var tester = new MassTransitTester(faultConfigureServices);
-        var zipData = CreateValidZipArchive();
-        var command = new AddIodd(zipData);
-
-        // Act
-        var act = async () => await tester.TestCommandFault<AddIodd, AddIoddConsumer>(command);
-
-        // Assert
-        await act.Should().ThrowAsync<InvalidDataException>();
-        (await tester.Harness.Published.Any<IoddError>(k
-            => k.Context.Message.Error.ErrorCode == IoddError.ExtractZipError
-            && k.Context.Message.Name == "Could not add IODD.", TestContext.Current.CancellationToken)).Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task Command_should_handle_invalid_zip_data()
+    public async Task Should_publish_change_with_error_on_handle_invalid_zip_data()
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
@@ -177,14 +154,17 @@ public class AddIoddConsumerTests
         var command = new AddIodd(invalidZipData);
 
         // Act
-        var act = async () => await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
+        await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        (await tester.Harness.Published.Any<IoddChanged>(k
+            => k.Context.Message.Error is not null
+            && k.Context.Message.CorrelationId == command.CorrelationId,
+            TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
     [Fact]
-    public async Task Command_should_handle_empty_zip_archive()
+    public async Task Should_publish_change_with_error_on_handle_empty_zip_archive()
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
@@ -195,10 +175,11 @@ public class AddIoddConsumerTests
             .Returns(false);
 
         // Act
-        var act = async () => await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
+        await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        (await tester.Harness.Published.Any<IoddChanged>(k
+            => k.Context.Message.Error is not null, TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
     [Fact]

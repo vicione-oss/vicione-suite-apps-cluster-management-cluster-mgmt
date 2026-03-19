@@ -2,7 +2,7 @@
 
 namespace ClusterManagement.Public.Iodds.Requests;
 
-public sealed record GetIODeviceImageConsumerRequest() : IRequest<GetIODeviceImageResponse>
+public sealed record GetIODeviceImageRequest() : IRequest<GetIODeviceImageResponse>
 {
     public required int VendorId { get; init; }
     public required int DeviceId { get; init; }
