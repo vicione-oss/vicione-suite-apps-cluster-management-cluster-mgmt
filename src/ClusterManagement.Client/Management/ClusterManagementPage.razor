@@ -3,7 +3,9 @@
 @using ClusterManagement.Public
 @using Sdk.Authorization
 @using ViciOne.Cluster.Model
+@using ViciOne.Ui.Blazor.Components.Toolbar.Components
 @using ViciOne.Ui.Localization.Resources
+@using ViciOne.Ui.MonochromeIcons.Core.Enums
 
 @attribute [Route(Constants.ManagementModuleRoute)]
 @attribute [ModuleAuthorize<ClusterManagementClientModule>(AccessLevel.Full)]
@@ -13,28 +15,26 @@
 
 <div class="cluster-mgmt">
     <div class="cluster-mgmt-toolbar">
-        <DxToolbar ItemRenderStyleMode="ToolbarRenderStyleMode.Plain">
+        <Toolbar>
+            <ToolbarGroup>
+                <ToolbarContent Enabled="false" Tooltip="@SelectedCluster?.Key">
+                    @(SelectedCluster != null ? SelectedCluster.DisplayNameVersion : string.Empty)
+                </ToolbarContent>
+            </ToolbarGroup>
+            <ToolbarGroup AlignRight="true">
+                <ToolbarButton Text="@(string.Format(UserActions.ResetSomething, "Saga"))"
+                               OnClick="@ResetSagaStates"
+                               IconName="@MonochromeIconName.Delete" />
 
-            <DxToolbarItem Alignment="ToolbarItemAlignment.Right"
-                           BeginGroup="true"
-                           Click="@ResetSagaStates"
-                           IconCssClass="mdi mdi-cloud-off-outline"
-                           Text="@(string.Format(UserActions.ResetSomething, "Saga"))" />
+                <ToolbarButton Text="@(string.Format(UserActions.GetSomething, "Saga"))"
+                               OnClick="@GetSagaState"
+                               IconName="@MonochromeIconName.Reload" />
 
-            <DxToolbarItem Click="@GetSagaState"
-                           IconCssClass="mdi mdi-cloud-download"
-                           Text="@(string.Format(UserActions.GetSomething, "Saga"))" />
-
-            <DxToolbarItem Click="@NavigateToEvents"
-                           IconCssClass="mdi mdi-message-processing"
-                           Text="@TechnicalTerms.EventPlural" />
-
-            <DxToolbarItem Alignment="ToolbarItemAlignment.Left"
-                           BeginGroup="true" Tooltip="@SelectedCluster?.Key"
-                           Text="@(SelectedCluster?.DisplayNameVersion)"
-                           Enabled="false" />
-
-        </DxToolbar>
+                <ToolbarButton Text="@TechnicalTerms.EventPlural"
+                               OnClick="@NavigateToEvents"
+                               IconName="@MonochromeIconName.Properties" />
+            </ToolbarGroup>
+        </Toolbar>
     </div>
 
     @if (!_hasLoaded)

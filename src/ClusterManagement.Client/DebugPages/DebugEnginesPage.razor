@@ -1,33 +1,33 @@
-﻿@using ViciOne.Ui.Localization.Resources
+﻿@using ViciOne.Ui.Blazor.Components.Toolbar.Components
+@using ViciOne.Ui.Localization.Resources
+@using ViciOne.Ui.MonochromeIcons.Core.Enums
 
 @inherits ModulePageBase<ClusterManagementClientModule>
 @attribute [Route(DebugConstants.DebugEnginesRoute)]
 
 <div class="debug-engines">
     <div class="debug-engines-toolbar">
-        <DxToolbar ItemRenderStyleMode="ToolbarRenderStyleMode.Plain">
+        <Toolbar>
+            <ToolbarGroup>
+                <ToolbarContent Enabled="false">
+                    @_clusterInfoText
+                </ToolbarContent>
+            </ToolbarGroup>
+            <ToolbarGroup AlignRight="true">
+                <ToolbarButton Text="@CommonVocabulary.Management"
+                               OnClick="@NavigateToManagement"
+                               IconName="@MonochromeIconName.DataflowLight" />
 
-            <DxToolbarItem Alignment="ToolbarItemAlignment.Right"
-                           BeginGroup="true"
-                           Click="@NavigateToManagement"
-                           IconCssClass="mdi mdi-share-variant"
-                           Text="Management"/>
-
-            <DxToolbarItem Click="@NavigateToEvents"
-                           IconCssClass="mdi mdi-message-processing"
-                           Text="Events"/>
-
-            <DxToolbarItem Alignment="ToolbarItemAlignment.Left"
-                           BeginGroup="true"
-                           Text="@_clusterInfoText"
-                           Enabled="false"/>
-
-        </DxToolbar>
+                <ToolbarButton Text="@TechnicalTerms.EventPlural"
+                               OnClick="@NavigateToEvents"
+                               IconName="@MonochromeIconName.Properties" />
+            </ToolbarGroup>
+        </Toolbar>
     </div>
 
     @if (!_hasLoaded)
     {
-        <LoadingSpinner Visible="true"/>
+        <LoadingSpinner Visible="true" />
     }
     else
     {
@@ -39,15 +39,15 @@
                 <Columns>
                     <DxGridDataColumn Caption="Engine-Host ID"
                                       FieldName="@nameof(EngineInfoModel.EngineHostId)"
-                                      GroupIndex="0"/>
+                                      GroupIndex="0" />
                     <DxGridDataColumn Caption="Engine-Host Name"
-                                      FieldName="@nameof(EngineInfoModel.EngineHostName)"/>
+                                      FieldName="@nameof(EngineInfoModel.EngineHostName)" />
                     <DxGridDataColumn Caption="Engine ID"
-                                      FieldName="@nameof(EngineInfoModel.EngineId)"/>
+                                      FieldName="@nameof(EngineInfoModel.EngineId)" />
                     <DxGridDataColumn Caption="Engine Name"
-                                      FieldName="@nameof(EngineInfoModel.EngineName)"/>
+                                      FieldName="@nameof(EngineInfoModel.EngineName)" />
                     <DxGridDataColumn Caption="Engine State"
-                                      FieldName="@nameof(EngineInfoModel.EngineState)"/>
+                                      FieldName="@nameof(EngineInfoModel.EngineState)" />
                     <DxGridCommandColumn Width="150px">
                         <HeaderTemplate>
                             Actions

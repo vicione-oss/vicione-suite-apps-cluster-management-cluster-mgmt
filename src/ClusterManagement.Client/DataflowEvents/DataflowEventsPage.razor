@@ -1,67 +1,57 @@
 ﻿@using ClusterManagement.Client.DataflowEvents.Models
 @using ClusterManagement.Public
+@using ViciOne.Ui.Blazor.Components.TextBox
+@using ViciOne.Ui.Blazor.Components.Toolbar.Components
 @using ViciOne.Ui.Localization.Resources
+@using ViciOne.Ui.MonochromeIcons.Core.Enums
+@using ViciOne.Ui.Blazor.Components.Toolbar.Enums
 
 @inherits ModulePageBase<ClusterManagementClientModule>
 @attribute [Route(Constants.ManagementEventsRoute)]
 
 <div class="cluster-events">
     <div class="cluster-events-toolbar">
-        <DxToolbar ItemRenderStyleMode="ToolbarRenderStyleMode.Plain">
+        <Toolbar>
+            <ToolbarGroup>
+                <ToolbarContent Enabled="false">
+                    @($"Cluster {PageService.ActiveVersion}")
+                </ToolbarContent>
+            </ToolbarGroup>
 
-            <!-- SET VALUE -->
-            <DxToolbarItem Alignment="ToolbarItemAlignment.Right"
-                           Enabled="false"
-                           Text="@("Selected: " + @PageService.SelectedEvent?.Name ?? "<ListItem>")" />
+            <ToolbarGroup AlignRight="true">
+                <ToolbarContent Enabled="false">
+                    @($"{CommonVocabulary.Selected}: {@PageService.SelectedEvent?.Name}")
+                </ToolbarContent>
+                <ToolbarContent>
+                    <span class="events-input-value">@CommonVocabulary.Value</span>
+                    <TextBox Enabled="true" @bind-Value="@PageService.SendInputValue"></TextBox>
+                </ToolbarContent>
+                <ToolbarButton Text="@(string.Format(UserActions.SetSomething, CommonVocabulary.Value))"
+                               Tooltip="@(string.Format(UserActions.SetSomething, CommonVocabulary.Value))"
+                               OnClick="@PageService.SetSelectedValue"
+                               IconName="@MonochromeIconName.SendLight"
+                               TextVisibility="@TextVisibility.MenuOnly" />
+            </ToolbarGroup>
 
-            <DxToolbarItem Alignment="ToolbarItemAlignment.Right"
-                           Text="@CommonVocabulary.Value"
-                           Enabled="false">
-                <Template>
-                    <DxTextBox BindValueMode="BindValueMode.OnInput"
-                               CssClass="event-input"
-                               @bind-Text="@PageService.SendInputValue">
-                    </DxTextBox>
-                </Template>
-            </DxToolbarItem>
+            <ToolbarGroup AlignRight="true">
+                <ToolbarButton IconName="@MonochromeIconName.DataflowLight"
+                               Text="@CommonVocabulary.Management"
+                               OnClick="@NavigateToManagement" />
+                               
+                <ToolbarButton IconName="@MonochromeIconName.Refresh"
+                               Text="@CommonVocabulary.RefreshVerb"
+                               Tooltip="@CommonVocabulary.RefreshVerb"
+                               OnClick="@RefreshDataflowEvents" />
 
-            <DxToolbarItem Alignment="ToolbarItemAlignment.Right"
-                           Click="@PageService.SetSelectedValue"
-                           Text="@(string.Format(UserActions.SetSomething, CommonVocabulary.Value))"
-                           Enabled="@(PageService.CanSetValue)"
-                           IconCssClass="mdi mdi-send"
-                           Name="@nameof(PageService.SetSelectedValue)">
-            </DxToolbarItem>
+                <ToolbarButton IconName="@MonochromeIconName.PlusSlim"
+                               Text="@(string.Format(UserActions.SubscribeSomething, CommonVocabulary.All))"
+                               OnClick="@PageService.SubscribeAll" />
 
-            <DxToolbarItem Alignment="ToolbarItemAlignment.Right"
-                           BeginGroup="true"
-                           Click="@NavigateToManagement"
-                           IconCssClass="mdi mdi-share-variant"
-                           Text="@CommonVocabulary.Management" />
-
-            <DxToolbarItem Alignment="ToolbarItemAlignment.Right"
-                           Click="@RefreshDataflowEvents"
-                           IconCssClass="mdi mdi-refresh"
-                           Text="@CommonVocabulary.RefreshVerb" />
-
-            <DxToolbarItem Alignment="ToolbarItemAlignment.Right"
-                           Click="@PageService.SubscribeAll"
-                           IconCssClass="mdi mdi-access-point-plus"
-                           Text="@(string.Format(UserActions.SubscribeSomething, CommonVocabulary.All))" />
-
-            <DxToolbarItem Alignment="ToolbarItemAlignment.Right"
-                           Click="@PageService.UnsubscribeAll"
-                           IconCssClass="mdi mdi-access-point-minus"
-                           Text="@(string.Format(UserActions.UnsubscribeSomething, CommonVocabulary.All))" />
-
-            <!-- CLUSTER VERSION -->
-            <DxToolbarItem Alignment="ToolbarItemAlignment.Left"
-                           BeginGroup="true"
-                           Enabled="false"
-                           Text="@($"Cluster {PageService.ActiveVersion}")"
-                           Tooltip="@PageService.ActiveClusterId?.ToString()" />
-
-        </DxToolbar>
+                <ToolbarButton IconName="@MonochromeIconName.MinusSlim"
+                               Text="@(string.Format(UserActions.UnsubscribeSomething, CommonVocabulary.All))"
+                               OnClick="@PageService.UnsubscribeAll" />
+            </ToolbarGroup>
+        </Toolbar>
     </div>
 
     <div class="cluster-events-grid">

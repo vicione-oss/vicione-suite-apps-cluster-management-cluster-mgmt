@@ -5,6 +5,7 @@ using ClusterManagement.Public.DataflowEvents;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Client.Modules.Localization.Extensions;
 using Sdk.Testing.Client;
+using ViciOne.Ui.Blazor.Components.Toolbar.Extensions;
 
 namespace ClusterManagement.Client.Tests.DataflowEvents;
 
@@ -25,6 +26,7 @@ public sealed class DataflowEventsPageTests
             setup.Services.AddLocalization<ClusterManagementClientModule, ClusterManagementClientLocalizer>();
         });
         ctx.SetupDevExpressBlazor();
+        ctx.Services.AddToolbar();
         ctx.Services.AddSingleton(_eventBroker);
         ctx.Services.AddSingleton<DataflowEventPageService>();
 

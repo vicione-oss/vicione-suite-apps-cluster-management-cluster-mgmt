@@ -4,3 +4,6 @@ Styles/icons/monochrome-icons
 
 # Files unpacked by target 'ConfigureDesignTargets'
 Styles/design
+
+# Files modified by target 'InjectImportsIntoCssBundle'
+wwwroot/icons/bundle.css

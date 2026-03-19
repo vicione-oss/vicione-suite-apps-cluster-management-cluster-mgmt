@@ -6,6 +6,7 @@ using ClusterManagement.Public.Designs;
 using ClusterManagement.Public.Requests;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Testing.Client;
+using ViciOne.Ui.Blazor.Components.Toolbar.Extensions;
 using Range = System.Range;
 
 namespace ClusterManagement.Client.Tests.Management;
@@ -15,10 +16,10 @@ public sealed class ClusterManagementPageTests
     private readonly IClusterManagementService _managementService = Substitute.For<IClusterManagementService>();
 
     [Fact]
-    public void PageGetsRendered()
+    public async Task PageGetsRendered()
     {
         // Arrange
-        using var ctx = new BunitContext();
+        await using var ctx = new BunitContext();
         ctx.SetupSuiteServices(setup =>
         {
             setup.Services.AddLocalization<ClusterManagementClientModule>();
@@ -29,6 +30,7 @@ public sealed class ClusterManagementPageTests
                 });
         });
         ctx.SetupDevExpressBlazor();
+        ctx.Services.AddToolbar();
         ctx.Services.AddSingleton(_managementService);
         ctx.Services.AddSingleton(Substitute.For<IClusterService>());
         ctx.Services.AddSingleton(Substitute.For<IDesignProvider>());
