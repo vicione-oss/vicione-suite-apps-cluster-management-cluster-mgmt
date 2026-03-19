@@ -111,7 +111,6 @@ public partial class PackagesControlPanel
             await InvokeAsync(StateHasChanged);
     }
 
-
     private async Task OnPackageUploadClickAsync()
         => await JavaScript.InvokeVoidAsync("triggerUploadClick");
 

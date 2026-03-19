@@ -8,12 +8,12 @@ using Sdk.Messaging;
 
 namespace ClusterManagement.Backend.Iodds.Consumers;
 
-public class GetIODeviceImageConsumer(IIoddStore ioddStore, IFileSystem fileSystem) : RequestConsumer<GetIODeviceImageConsumerRequest, GetIODeviceImageResponse>
+public class GetIODeviceImageConsumer(IIoddStore ioddStore, IFileSystem fileSystem) : RequestConsumer<GetIODeviceImageRequest, GetIODeviceImageResponse>
 {
-    protected override Task<GetIODeviceImageResponse> HandleException(ConsumeContext<GetIODeviceImageConsumerRequest> context, Exception e)
+    protected override Task<GetIODeviceImageResponse> HandleException(ConsumeContext<GetIODeviceImageRequest> context, Exception e)
         => Task.FromResult(new GetIODeviceImageResponse() { RequestError = new ErrorInfo(500, $"{e.GetType()} {e.Message} {e.StackTrace}"), ImageAsBase64 = string.Empty, });
 
-    protected override async Task<GetIODeviceImageResponse> Respond(ConsumeContext<GetIODeviceImageConsumerRequest> context)
+    protected override async Task<GetIODeviceImageResponse> Respond(ConsumeContext<GetIODeviceImageRequest> context)
     {
         var imageFilePath = fileSystem.Path.Combine(ioddStore.IoddDirectory,
             context.Message.VendorId.ToString(CultureInfo.InvariantCulture),

@@ -1,6 +1,7 @@
 ﻿@using ClusterManagement.Client.Editor.Extensions
 @using ClusterManagement.Client.Editor.Localization
 @using ClusterManagement.Client.Editor.Services
+@using ClusterManagement.Client.IoddManagement.ControlPanels.Services
 @using ClusterManagement.Client.Localization
 @using ClusterManagement.Public.Iodds
 @using Microsoft.AspNetCore.Components.Forms
@@ -49,10 +50,12 @@
                     <GridActionButton Text="@Client.Localization.Common.Upload" 
                                       OnClick="@OnIoddUploadClickAsync"
                                       IconCssClass="@MonochromeIconName.Export.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()" />
+
                     <GridActionButton Text="@CommonVocabulary.DownloadVerb"
                                       Enabled="@(ItemSelection.Any())"
                                       OnClick="@OnIoddDownloadClickAsync"
                                       IconCssClass="@MonochromeIconName.Import.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()" />
+
                     <GridActionButton Text="@CommonVocabulary.Delete"
                                       OnClick="@OnIoddDeleteClickAsync"
                                       Enabled="@(ItemSelection.Any())"
@@ -61,7 +64,7 @@
             </ActionButtons>
 
             <Filter>
-                <GridFilterControl @bind-Text="@_filterText" @bind-Text:after="@(() => InvokeAsync(StateHasChanged))" />
+                <GridFilterControl @bind-Text="@State.FilterText" @bind-Text:after="@(() => InvokeAsync(StateHasChanged))" />
             </Filter>
 
             <ChildContent>
@@ -78,8 +81,8 @@
                     @{
                         var key = new MarkupString(context.Name);
 
-                        if (!string.IsNullOrEmpty(_filterText))
-                            key = key.WithHighlightedText(_filterText);
+                        if (!string.IsNullOrEmpty(State.FilterText))
+                            key = key.WithHighlightedText(State.FilterText);
 
                         @key
                     }
@@ -89,8 +92,8 @@
                     @{
                         var value = new MarkupString(context.DeviceId.ToString(CultureInfo.InvariantCulture));
 
-                        if (!string.IsNullOrEmpty(_filterText))
-                            value = value.WithHighlightedText(_filterText);
+                        if (!string.IsNullOrEmpty(State.FilterText))
+                            value = value.WithHighlightedText(State.FilterText);
 
                         @value
                     }
@@ -121,8 +124,8 @@
                        Title="@Localization.IoddControlPanel.AutomaticDownloadFromFinder">
             <Expander>
                 <SwitchExpander Value="@State.AutoDownload"
-                                ValueChanged="@AutoDownloadChanged"
-                                IsLoading="@_waitingForAutoDownloadChanged"/>
+                                ValueChanged="@AutoDownloadValueChanged"
+                                IsLoading="@State.WaitingForAutoDownloadChange" />
             </Expander>
         </SettingsGroup>
     </SettingsLayout>

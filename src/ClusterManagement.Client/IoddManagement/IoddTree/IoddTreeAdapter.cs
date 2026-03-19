@@ -17,6 +17,15 @@ internal class IoddTreeAdapter(MonochromeIconHttpClient iconService) : TreeAdapt
 
     public event Action<IEnumerable<DeviceView>>? SelectionChanged;
 
+    public void Clear()
+    {
+        foreach (var repositoryNode in _repositoryNodes.Values)
+        {
+            repositoryNode.VendorNodes.Clear();
+            Builder.Reset();
+        }
+    }
+
     public TreeSelectionKey? SelectedNodeKey
         => Builder.Selection.SelectedNodes.FirstOrDefault() switch
         {

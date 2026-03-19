@@ -1,4 +1,5 @@
 ﻿using ClusterManagement.Client.IoddManagement.ControlPanels;
+using ClusterManagement.Client.IoddManagement.ControlPanels.Services;
 using ClusterManagement.Client.IoddManagement.IoddTree;
 using ClusterManagement.Client.IoddManagement.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,7 +12,10 @@ internal static class IServiceCollectionExtensions
     internal static IServiceCollection AddIoddManagement(this IServiceCollection services)
     {
         services.AddControlPanel<ClusterManagementClientModule, IoddControlPanel, IoddControlPanelState>()
-            .WithAutoDiscovery<IoddControlPanelDescriptor>();
+            .WithAutoDiscovery<IoddControlPanelDescriptor>()
+            .WithResetHandler<IoddControlPanelResetHandler>()
+            .WithSaveHandler<IoddControlPanelSaveHandler>();
+
         services.AddControlPanel<ClusterManagementClientModule, IoddDetailsControlPanel, IoddDetailsControlPanelState>()
             .WithAutoDiscovery<IoddDetailsControlPanelDescriptor>();
 

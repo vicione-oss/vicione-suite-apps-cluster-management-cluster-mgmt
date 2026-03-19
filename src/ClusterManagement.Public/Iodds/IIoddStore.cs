@@ -27,7 +27,7 @@ public interface IIoddStore
     /// Sets a value indicating whether IODD files should be automatically downloaded
     /// when missing or required.
     /// </summary>
-    Task SetAutoDownloadIodds(bool value);
+    Task SetAutoDownloadIodds(bool value, CancellationToken cancellationToken);
 
     /// <summary>
     /// Attempts to add a device to the store using its IODD ID.

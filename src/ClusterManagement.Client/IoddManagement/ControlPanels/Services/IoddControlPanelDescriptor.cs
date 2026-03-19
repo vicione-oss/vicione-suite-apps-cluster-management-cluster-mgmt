@@ -2,7 +2,7 @@
 using Sdk.Client.ControlPanels.Services;
 using Sdk.Client.Modules;
 
-namespace ClusterManagement.Client.IoddManagement.ControlPanels;
+namespace ClusterManagement.Client.IoddManagement.ControlPanels.Services;
 
 public sealed class IoddControlPanelDescriptor : IControlPanelDescriptor<IoddControlPanel>
 {
