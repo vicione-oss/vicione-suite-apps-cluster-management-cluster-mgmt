@@ -5,6 +5,9 @@
 
     .cluster-events-toolbar {
         @extend .cm-page-toolbar-base;
+        .events-input-value {            
+            margin: 0px 4px 0px 4px;
+        }
     }
 
     .cluster-events-grid {
