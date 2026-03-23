@@ -2,7 +2,6 @@
 using ClusterManagement.Backend.DeployCluster.StateMachines;
 using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
-using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Sdk.Backend.Messaging;
@@ -12,10 +11,10 @@ namespace ClusterManagement.Backend.DeployCluster.Consumers;
 public sealed class GetDeployClusterStateConsumer(IClusterSagaDbContext sagaDbContext, ILogger<GetDeployClusterStateConsumer> logger) :
     RequestConsumer<GetDeployClusterStateRequest, GetDeployClusterStateResponse>
 {
-    protected override async Task<GetDeployClusterStateResponse> Respond(ConsumeContext<GetDeployClusterStateRequest> context)
+    public override async Task<GetDeployClusterStateResponse> Respond(GetDeployClusterStateRequest message, CancellationToken cancellationToken)
     {
         var deployState = await sagaDbContext.DeployClusterState
-            .SingleOrDefaultAsync(k => k.ClusterId == context.Message.ClusterId, context.CancellationToken);
+            .SingleOrDefaultAsync(k => k.ClusterId == message.ClusterId, cancellationToken);
         if (deployState is null)
             return new();
 
@@ -29,7 +28,7 @@ public sealed class GetDeployClusterStateConsumer(IClusterSagaDbContext sagaDbCo
         };
     }
 
-    protected override Task<GetDeployClusterStateResponse> HandleException(ConsumeContext<GetDeployClusterStateRequest> context, Exception e)
+    public override Task<GetDeployClusterStateResponse> HandleException(GetDeployClusterStateRequest message, Exception e, CancellationToken cancellationToken)
     {
         logger.LogError(e, "Consume {Request} failed", nameof(GetDeployClusterStateRequest));
 

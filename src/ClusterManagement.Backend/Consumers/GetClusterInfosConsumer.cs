@@ -2,7 +2,6 @@
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
-using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Sdk.Backend.Messaging;
@@ -16,15 +15,10 @@ public sealed class GetClusterInfosConsumer(IClusterDbContext dbContext, ICluste
     private readonly IClusterSnapshotStore _snapshotStore = snapshotStore;
     private readonly ILogger<GetClusterInfosConsumer> _logger = logger;
 
-    protected override async Task<GetClusterInfosResponse> Respond(ConsumeContext<GetClusterInfosRequest> context)
+    public override async Task<GetClusterInfosResponse> Respond(GetClusterInfosRequest message, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Consume {Request} CorrelationId:{CorrelationId} Id:{Id}",
-            nameof(GetClusterInfosResponse),
-            context.CorrelationId,
-            context.Message.ClusterId);
-
-        var activeInfos = await _dbContext.ActiveClusters.AsNoTracking().ToListAsync(context.CancellationToken);
-        var fileInfos = (await _snapshotStore.GetClusterInfos(context.Message.ClusterId, context.CancellationToken))
+        var activeInfos = await _dbContext.ActiveClusters.AsNoTracking().ToListAsync(cancellationToken);
+        var fileInfos = (await _snapshotStore.GetClusterInfos(message.ClusterId, cancellationToken))
             .Select(k => ClusterInfoFactory.CreateInfo(k, activeInfos.Any(active => active.Id == k.Id && active.Version == k.Version)))
             .ToList();
 
@@ -36,7 +30,7 @@ public sealed class GetClusterInfosConsumer(IClusterDbContext dbContext, ICluste
         };
     }
 
-    protected override Task<GetClusterInfosResponse> HandleException(ConsumeContext<GetClusterInfosRequest> context, Exception e)
+    public override Task<GetClusterInfosResponse> HandleException(GetClusterInfosRequest message, Exception e, CancellationToken cancellationToken)
     {
         _logger.LogError(e, "Failed to handle {NameOfGetClusterInfosResponse}", nameof(GetClusterInfosResponse));
 

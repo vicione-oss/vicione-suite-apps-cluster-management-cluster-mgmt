@@ -1,6 +1,5 @@
 ﻿using ClusterManagement.Internal.Requests;
 using ClusterManagement.Public.Iodds;
-using MassTransit;
 using Sdk.Backend.Messaging;
 using Sdk.Messaging;
 
@@ -8,9 +7,9 @@ namespace ClusterManagement.Backend.Iodds.Consumers;
 
 public class GetAutoIoddDownloadConsumer(IIoddStore ioddStore) : RequestConsumer<GetAutoIoddDownloadRequest, GetAutoIoddDownloadResponse>
 {
-    protected override Task<GetAutoIoddDownloadResponse> HandleException(ConsumeContext<GetAutoIoddDownloadRequest> context, Exception e)
+    public override Task<GetAutoIoddDownloadResponse> HandleException(GetAutoIoddDownloadRequest message, Exception e, CancellationToken cancellationToken)
         => Task.FromResult(new GetAutoIoddDownloadResponse() { RequestError = new ErrorInfo(500, $"{e.GetType()} {e.Message} {e.StackTrace}") });
 
-    protected override Task<GetAutoIoddDownloadResponse> Respond(ConsumeContext<GetAutoIoddDownloadRequest> context)
+    public override Task<GetAutoIoddDownloadResponse> Respond(GetAutoIoddDownloadRequest message, CancellationToken cancellationToken)
         => Task.FromResult<GetAutoIoddDownloadResponse>(new() { IsAutoDownload = ioddStore.GetAutoDownloadIodds() });
 }

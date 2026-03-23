@@ -2,7 +2,6 @@
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
-using MassTransit;
 using Microsoft.Extensions.Logging;
 using Sdk.Backend.Messaging;
 
@@ -14,20 +13,14 @@ public sealed class GetClusterConsumer(IClusterSnapshotStore snapshotStore, ILog
     private readonly IClusterSnapshotStore _snapshotStore = snapshotStore;
     private readonly ILogger<GetClusterConsumer> _logger = logger;
 
-    protected override async Task<GetClusterResponse> Respond(ConsumeContext<GetClusterRequest> context)
+    public override async Task<GetClusterResponse> Respond(GetClusterRequest message, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Consume {Request} CorrelationId:{CorrelationId} Id:{Id} Version:{Version}",
-            nameof(GetClusterRequest),
-            context.CorrelationId,
-            context.Message.ClusterId,
-            context.Message.ClusterVersion);
+        var requestVersion = message.ClusterVersion
+            ?? await _snapshotStore.GetLatestVersion(message.ClusterId, cancellationToken);
 
-        var requestVersion = context.Message.ClusterVersion
-            ?? await _snapshotStore.GetLatestVersion(context.Message.ClusterId, context.CancellationToken);
-
-        var cluster = await _snapshotStore.LoadCompressedJson(context.Message.ClusterId,
+        var cluster = await _snapshotStore.LoadCompressedJson(message.ClusterId,
             requestVersion,
-            context.CancellationToken);
+            cancellationToken);
 
         if (cluster.Length > 0)
         {
@@ -41,12 +34,12 @@ public sealed class GetClusterConsumer(IClusterSnapshotStore snapshotStore, ILog
         {
             RequestError =
                 ClusterEventFactory.CreateErrorInfo(ClusterError.NoClusterForVersion,
-                    context.Message.ClusterId,
-                    context.Message.ClusterVersion)
+                    message.ClusterId,
+                    message.ClusterVersion)
         };
     }
 
-    protected override Task<GetClusterResponse> HandleException(ConsumeContext<GetClusterRequest> context, Exception e)
+    public override Task<GetClusterResponse> HandleException(GetClusterRequest message, Exception e, CancellationToken cancellationToken)
     {
         _logger.LogError(e, "Failed to handle {Request}", nameof(GetClusterRequest));
 

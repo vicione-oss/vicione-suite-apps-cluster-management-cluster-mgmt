@@ -1,7 +1,6 @@
 ﻿using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Internal.Requests;
-using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Sdk.Backend.Messaging;
 using Sdk.Messaging;
@@ -14,18 +13,18 @@ public sealed class GetEngineStateOnInstanceConsumer(IEngineHostCommunication en
     private readonly IEngineHostCommunication _engineHostCommunication = engineHostCommunication;
     private readonly IEngineDbContext _engineDbContext = engineDbContext;
 
-    protected override Task<GetEngineStateOnInstanceResponse> HandleException(ConsumeContext<GetEngineStateOnInstanceRequest> context, Exception e)
+    public override Task<GetEngineStateOnInstanceResponse> HandleException(GetEngineStateOnInstanceRequest message, Exception e, CancellationToken cancellationToken)
         => Task.FromResult(new GetEngineStateOnInstanceResponse(new ErrorInfo(((ErrorInfoException)e).ErrorCode, e.Message)));
 
-    protected override async Task<GetEngineStateOnInstanceResponse> Respond(ConsumeContext<GetEngineStateOnInstanceRequest> context)
+    public override async Task<GetEngineStateOnInstanceResponse> Respond(GetEngineStateOnInstanceRequest message, CancellationToken cancellationToken)
     {
         var deployment = await _engineDbContext.EngineDeployments.AsNoTracking()
-            .FirstOrDefaultAsync(d => d.EngineId == context.Message.EngineId, context.CancellationToken);
+            .FirstOrDefaultAsync(d => d.EngineId == message.EngineId, cancellationToken);
         if (deployment is not null)
         {
             try
             {
-                var engineState = await _engineHostCommunication.GetEngineState(deployment.EngineHostId, deployment.Id, context.CancellationToken);
+                var engineState = await _engineHostCommunication.GetEngineState(deployment.EngineHostId, deployment.Id, cancellationToken);
 
                 return new()
                 {
@@ -41,10 +40,10 @@ public sealed class GetEngineStateOnInstanceConsumer(IEngineHostCommunication en
             }
             catch (Exception ex)
             {
-                throw new ErrorInfoException($"Cannot retrieve state for engine '{context.Message.EngineId}'.", ex);
+                throw new ErrorInfoException($"Cannot retrieve state for engine '{message.EngineId}'.", ex);
             }
         }
 
-        throw new ErrorInfoException($"Cannot find engine '{context.Message.EngineId}'.");
+        throw new ErrorInfoException($"Cannot find engine '{message.EngineId}'.");
     }
 }

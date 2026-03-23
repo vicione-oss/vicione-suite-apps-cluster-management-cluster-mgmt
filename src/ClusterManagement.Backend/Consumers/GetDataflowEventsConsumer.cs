@@ -4,7 +4,6 @@ using ClusterManagement.Public.DataflowEvents;
 using ClusterManagement.Public.Designs;
 using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
-using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Sdk.Backend.Messaging;
@@ -24,26 +23,20 @@ public sealed class GetDataflowEventsConsumer(IClusterDbContext dbContext, IClus
     private readonly IDesignProvider _designProvider = designProvider;
     private readonly ILogger<GetDataflowEventsConsumer> _logger = logger;
 
-    protected override async Task<GetDataflowEventsResponse> Respond(ConsumeContext<GetDataflowEventsRequest> context)
+    public override async Task<GetDataflowEventsResponse> Respond(GetDataflowEventsRequest message, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Consume {Request} CorrelationId:{CorrelationId} ClusterId:{ClusterId} DataflowId:{DataflowId}",
-            nameof(GetActiveClusterRequest),
-            context.CorrelationId,
-            context.Message.ClusterId,
-            context.Message.DataflowId);
-
         var activeVersion = await _dbContext.ActiveClusters.AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == context.Message.ClusterId, context.CancellationToken)
-            ?? throw new InvalidOperationException($"Cluster {context.Message.ClusterId} is not active");
+            .FirstOrDefaultAsync(c => c.Id == message.ClusterId, cancellationToken)
+            ?? throw new InvalidOperationException($"Cluster {message.ClusterId} is not active");
 
-        var cluster = await _store.Load(activeVersion.Id, activeVersion.Version, context.CancellationToken);
+        var cluster = await _store.Load(activeVersion.Id, activeVersion.Version, cancellationToken);
         if (cluster is null)
         {
             return new GetDataflowEventsResponse
             {
                 RequestError =
                     ClusterEventFactory.CreateErrorInfo(ClusterError.NoClusterForVersion,
-                        context.Message.ClusterId, activeVersion.Version)
+                        message.ClusterId, activeVersion.Version)
             };
         }
 
@@ -52,16 +45,16 @@ public sealed class GetDataflowEventsConsumer(IClusterDbContext dbContext, IClus
 
         List<IDataflowEvent>? dataflowEvents = null;
 
-        if (context.Message.DataflowId is not null)
+        if (message.DataflowId is not null)
         {
-            var dataflow = builder.Cache.Dataflows.First(k => k.Id == context.Message.DataflowId);
+            var dataflow = builder.Cache.Dataflows.First(k => k.Id == message.DataflowId);
             var functionBlockIds = dataflow.Root.GetAllNestedFunctionBlocks().Select(k => k.Id);
             var connectors = builder.Cache.EventEnabledConnectors;
             var dataflowConnectors = connectors.Where(k => functionBlockIds.Contains(k.FunctionBlock.Id));
 
             dataflowEvents = GetAllEventEnabledConnectorEvents(dataflowConnectors, resolver, _logger);
         }
-        else if (context.Message.ClusterId is not null)
+        else if (message.ClusterId is not null)
         {
             var connectors = builder.Cache.EventEnabledConnectors;
 
@@ -73,14 +66,14 @@ public sealed class GetDataflowEventsConsumer(IClusterDbContext dbContext, IClus
             {
                 RequestError =
                     ClusterEventFactory.CreateErrorInfo(ClusterError.ClusterOrDataflowIdRequired,
-                        context.Message.ClusterId)
+                        message.ClusterId)
             };
         }
 
         return new GetDataflowEventsResponse
         {
-            ClusterId = context.Message.ClusterId ?? Guid.Empty,
-            DataflowId = context.Message.DataflowId ?? Guid.Empty,
+            ClusterId = message.ClusterId ?? Guid.Empty,
+            DataflowId = message.DataflowId ?? Guid.Empty,
             Results = dataflowEvents,
         };
     }
@@ -142,13 +135,13 @@ public sealed class GetDataflowEventsConsumer(IClusterDbContext dbContext, IClus
         };
     }
 
-    protected override Task<GetDataflowEventsResponse> HandleException(ConsumeContext<GetDataflowEventsRequest> context, Exception e)
+    public override Task<GetDataflowEventsResponse> HandleException(GetDataflowEventsRequest message, Exception e, CancellationToken cancellationToken)
     {
         _logger.LogError(e, "Failed to handle {Request}", nameof(GetClusterRequest));
 
         return Task.FromResult(new GetDataflowEventsResponse
         {
-            RequestError = ClusterEventFactory.CreateErrorInfo(ClusterError.UnexpectedClusterQueryError, context.Message.ClusterId),
+            RequestError = ClusterEventFactory.CreateErrorInfo(ClusterError.UnexpectedClusterQueryError, message.ClusterId),
         });
     }
 

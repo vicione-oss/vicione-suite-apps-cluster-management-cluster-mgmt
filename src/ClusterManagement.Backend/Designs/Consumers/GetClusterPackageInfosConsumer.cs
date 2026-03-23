@@ -1,7 +1,6 @@
 ﻿using ClusterManagement.Backend.EngineHosts.Consumers;
 using ClusterManagement.Internal.Requests;
 using ClusterManagement.Public.Events;
-using MassTransit;
 using Microsoft.Extensions.Logging;
 using Sdk.Backend.Messaging;
 
@@ -13,15 +12,15 @@ public sealed class GetClusterPackageInfosConsumer(
     ILogger<GetEngineHostPackageInfoConsumer> logger) :
     RequestConsumer<GetClusterPackageInfosRequest, GetClusterPackageInfosResponse>
 {
-    protected override async Task<GetClusterPackageInfosResponse> Respond(ConsumeContext<GetClusterPackageInfosRequest> context)
+    public override async Task<GetClusterPackageInfosResponse> Respond(GetClusterPackageInfosRequest message, CancellationToken cancellationToken)
     {
-        var packageInfos = await packageInfoProvider.GetClusterPackageInfos(context.CancellationToken, context.Message.PackageNames);
+        var packageInfos = await packageInfoProvider.GetClusterPackageInfos(cancellationToken, message.PackageNames);
         var coreVersion = packageInfoProvider.GetCoreVersion();
 
         return new GetClusterPackageInfosResponse(packageInfos.AsReadOnly(), coreVersion.ToString());
     }
 
-    protected override Task<GetClusterPackageInfosResponse> HandleException(ConsumeContext<GetClusterPackageInfosRequest> context, Exception e)
+    public override Task<GetClusterPackageInfosResponse> HandleException(GetClusterPackageInfosRequest message, Exception e, CancellationToken cancellationToken)
     {
         var coreVersion = packageInfoProvider.GetCoreVersion();
 

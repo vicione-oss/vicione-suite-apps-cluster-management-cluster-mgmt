@@ -2,23 +2,23 @@
 using System.IO.Abstractions;
 using ClusterManagement.Public.Iodds;
 using ClusterManagement.Public.Iodds.Requests;
-using MassTransit;
 using Sdk.Backend.Messaging;
 using Sdk.Messaging;
 
 namespace ClusterManagement.Backend.Iodds.Consumers;
 
-public class GetIODeviceImageConsumer(IIoddStore ioddStore, IFileSystem fileSystem) : RequestConsumer<GetIODeviceImageRequest, GetIODeviceImageResponse>
+public class GetIODeviceImageConsumer(IIoddStore ioddStore, IFileSystem fileSystem)
+    : RequestConsumer<GetIODeviceImageRequest, GetIODeviceImageResponse>
 {
-    protected override Task<GetIODeviceImageResponse> HandleException(ConsumeContext<GetIODeviceImageRequest> context, Exception e)
+    public override Task<GetIODeviceImageResponse> HandleException(GetIODeviceImageRequest message, Exception e, CancellationToken cancellationToken)
         => Task.FromResult(new GetIODeviceImageResponse() { RequestError = new ErrorInfo(500, $"{e.GetType()} {e.Message} {e.StackTrace}"), ImageAsBase64 = string.Empty, });
 
-    protected override async Task<GetIODeviceImageResponse> Respond(ConsumeContext<GetIODeviceImageRequest> context)
+    public override async Task<GetIODeviceImageResponse> Respond(GetIODeviceImageRequest message, CancellationToken cancellationToken)
     {
         var imageFilePath = fileSystem.Path.Combine(ioddStore.IoddDirectory,
-            context.Message.VendorId.ToString(CultureInfo.InvariantCulture),
-            context.Message.DeviceId.ToString(CultureInfo.InvariantCulture),
-            context.Message.ImageFilename);
+            message.VendorId.ToString(CultureInfo.InvariantCulture),
+            message.DeviceId.ToString(CultureInfo.InvariantCulture),
+            message.ImageFilename);
 
         if (!fileSystem.File.Exists(imageFilePath))
             throw new InvalidOperationException("Image file does not exist.");
