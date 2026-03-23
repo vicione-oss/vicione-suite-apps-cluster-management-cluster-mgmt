@@ -19,10 +19,7 @@
       <PrivateAssets>all</PrivateAssets>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="ViciOne.Ui.MonochromeIcons.Assets">
-      <PrivateAssets>all</PrivateAssets>
-      <ExcludeAssets>runtime</ExcludeAssets>
-    </PackageReference>
+    <PackageReference Include="ViciOne.Ui.MonochromeIcons.Assets" />
     <PackageReference Include="ViciOne.Ui.Localization" />
     <PackageReference Include="ViciOne.Ui.TreeEditor" />
   </ItemGroup>

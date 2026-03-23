@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace ClusterManagement.Backend.Engines;
+﻿namespace ClusterManagement.Backend.Engines;
 
 public sealed record class CommunicationProperty(string Id)
 {

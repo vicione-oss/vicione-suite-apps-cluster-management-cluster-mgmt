@@ -2,7 +2,6 @@
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
-using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Sdk.Backend.Messaging;
@@ -16,15 +15,10 @@ public sealed class GetActiveClusterConsumer(IClusterDbContext dbContext, IClust
     private readonly IClusterSnapshotStore _store = store;
     private readonly ILogger<GetActiveClusterConsumer> _logger = logger;
 
-    protected override async Task<GetActiveClusterResponse> Respond(ConsumeContext<GetActiveClusterRequest> context)
+    public override async Task<GetActiveClusterResponse> Respond(GetActiveClusterRequest message, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Consume {Request} CorrelationId:{CorrelationId} Id:{Id}",
-            nameof(GetActiveClusterRequest),
-            context.CorrelationId,
-            context.Message.ClusterId);
-
         var active = await _dbContext.ActiveClusters.AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == context.Message.ClusterId, context.CancellationToken);
+            .FirstOrDefaultAsync(c => c.Id == message.ClusterId, cancellationToken);
 
         if (active is null)
         {
@@ -32,25 +26,25 @@ public sealed class GetActiveClusterConsumer(IClusterDbContext dbContext, IClust
             {
                 RequestError =
                     ClusterEventFactory.CreateErrorInfo(ClusterError.ClusterIdUnknown,
-                        context.Message.ClusterId)
+                        message.ClusterId)
             };
         }
 
-        var cluster = await _store.LoadCompressedJson(active.Id, active.Version, context.CancellationToken);
+        var cluster = await _store.LoadCompressedJson(active.Id, active.Version, cancellationToken);
         if (cluster.Length == 0)
         {
             return new GetActiveClusterResponse
             {
                 RequestError =
                     ClusterEventFactory.CreateErrorInfo(ClusterError.NoClusterForVersion,
-                        context.Message.ClusterId)
+                        message.ClusterId)
             };
         }
 
         return new GetActiveClusterResponse { CompressedCluster = cluster };
     }
 
-    protected override Task<GetActiveClusterResponse> HandleException(ConsumeContext<GetActiveClusterRequest> context, Exception e)
+    public override Task<GetActiveClusterResponse> HandleException(GetActiveClusterRequest message, Exception e, CancellationToken cancellationToken)
     {
         _logger.LogError(e, "Failed to handle {ReqeustName}", nameof(GetActiveClusterRequest));
 

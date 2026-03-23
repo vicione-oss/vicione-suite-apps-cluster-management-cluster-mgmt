@@ -2,7 +2,6 @@
 using ClusterManagement.Backend.Engines;
 using ClusterManagement.Backend.Mqtt;
 using ClusterManagement.Internal;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Backend.Extensions;
 using Sdk.Backend.Modules;

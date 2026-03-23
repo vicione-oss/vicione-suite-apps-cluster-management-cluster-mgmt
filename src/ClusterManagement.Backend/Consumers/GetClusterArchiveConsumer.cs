@@ -1,6 +1,5 @@
 ﻿using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Public.Requests;
-using MassTransit;
 using Microsoft.Extensions.Logging;
 using Sdk.Backend.Messaging;
 using Sdk.Messaging;
@@ -13,9 +12,9 @@ public sealed class GetClusterArchiveConsumer(IClusterSnapshotStore snapshotStor
     private readonly IClusterSnapshotStore _snapshotStore = snapshotStore;
     private readonly ILogger<GetClusterArchiveConsumer> _logger = logger;
 
-    protected override async Task<GetClusterArchiveResponse> Respond(ConsumeContext<GetClusterArchiveRequest> context)
+    public override async Task<GetClusterArchiveResponse> Respond(GetClusterArchiveRequest message, CancellationToken cancellationToken)
     {
-        var clusterZip = await _snapshotStore.LoadCompressedJson(context.Message.ClusterId, context.Message.ClusterVersion, context.CancellationToken);
+        var clusterZip = await _snapshotStore.LoadCompressedJson(message.ClusterId, message.ClusterVersion, cancellationToken);
 
         if (clusterZip.Length == 0)
         {
@@ -25,9 +24,9 @@ public sealed class GetClusterArchiveConsumer(IClusterSnapshotStore snapshotStor
         return new GetClusterArchiveResponse(clusterZip);
     }
 
-    protected override Task<GetClusterArchiveResponse> HandleException(ConsumeContext<GetClusterArchiveRequest> context, Exception e)
+    public override Task<GetClusterArchiveResponse> HandleException(GetClusterArchiveRequest message, Exception e, CancellationToken cancellationToken)
     {
-        _logger.LogError(e, "Failed to create archive for cluster {Id} v.{Version}", context.Message.ClusterId, context.Message.ClusterVersion);
+        _logger.LogError(e, "Failed to create archive for cluster {Id} v.{Version}", message.ClusterId, message.ClusterVersion);
         return Task.FromResult(new GetClusterArchiveResponse([]) { RequestError = new ErrorInfo(-100, e.Message) });
     }
 }

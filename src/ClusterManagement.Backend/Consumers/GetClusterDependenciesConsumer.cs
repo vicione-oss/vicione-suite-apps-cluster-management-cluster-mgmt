@@ -1,7 +1,6 @@
 ﻿using ClusterManagement.Public.Designs;
 using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
-using MassTransit;
 using Microsoft.Extensions.Logging;
 using Sdk.Backend.Messaging;
 
@@ -13,13 +12,13 @@ public sealed class GetClusterDependenciesConsumer(IDesignProvider designProvide
     private readonly IDesignProvider _designProvider = designProvider;
     private readonly ILogger<GetClusterDependenciesConsumer> _logger = logger;
 
-    protected override async Task<GetClusterDependenciesResponse> Respond(ConsumeContext<GetClusterDependenciesRequest> context)
+    public override async Task<GetClusterDependenciesResponse> Respond(GetClusterDependenciesRequest message, CancellationToken cancellationToken)
         => new()
         {
             Dependencies = [.. await _designProvider.GetClusterDependencies()],
         };
 
-    protected override Task<GetClusterDependenciesResponse> HandleException(ConsumeContext<GetClusterDependenciesRequest> context, Exception e)
+    public override Task<GetClusterDependenciesResponse> HandleException(GetClusterDependenciesRequest message, Exception e, CancellationToken cancellationToken)
     {
         _logger.LogError(e, "Consume {Request} failed", nameof(GetClusterDependenciesRequest));
 

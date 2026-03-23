@@ -137,7 +137,8 @@ public class PackageServiceTests
 
             SetupSendAndSimulateEvent<UpdateClusterDependencies, ClusterDependenciesChanged>(
                 _mediator, service,
-                cmd => new ClusterDependenciesChanged([new ClusterDependencyChange(CrudAction.Created, operation)]));
+                cmd => new ClusterDependenciesChanged([new ClusterDependencyChange(CrudAction.Created, operation)])
+                { CorrelationId = cmd.CorrelationId });
 
             IReadOnlyCollection<ClusterDependencyChange>? changes = null;
             CancellationToken? cancellationToken = null;
@@ -205,7 +206,8 @@ public class PackageServiceTests
 
             SetupSendAndSimulateEvent<DeleteClusterPackage, ClusterPackageChanged>(
                 _mediator, service,
-                cmd => new ClusterPackageChanged(model.Name, _installedVersion, ClusterPackageChange.Delete));
+                cmd => new ClusterPackageChanged(model.Name, _installedVersion, ClusterPackageChange.Delete)
+                { CorrelationId = cmd.CorrelationId });
 
             ClusterPackageChanged? changedPackage = null;
             CancellationToken? cancellationToken = null;

@@ -1,8 +1,8 @@
 ﻿<Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <ViciOneSuiteSdkVersion>2.0.0-ci2377740620</ViciOneSuiteSdkVersion>
-    <DotNetVersion>10.0.4</DotNetVersion>
+    <ViciOneSuiteSdkVersion>2.0.0-ci2397913518</ViciOneSuiteSdkVersion>
+    <DotNetVersion>10.0.5</DotNetVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="AspNetCore.SassCompiler" Version="1.97.1" />
@@ -31,7 +31,7 @@
     <PackageVersion Include="ViciOne.Ui.ClusterEditor" Version="0.18.0-ci2308279749" />
     <PackageVersion Include="ViciOne.Ui.Design" Version="2.0.3" />
     <PackageVersion Include="ViciOne.Ui.Localization" Version="3.2.0" />
-    <PackageVersion Include="ViciOne.Ui.MonochromeIcons.Assets" Version="4.3.0" />
+    <PackageVersion Include="ViciOne.Ui.MonochromeIcons.Assets" Version="4.6.0" />
     <PackageVersion Include="ViciOne.Ui.TreeEditor" Version="0.12.0" />
     <!--Used for tests only:-->
     <PackageVersion Include="AwesomeAssertions" Version="9.3.0" />
