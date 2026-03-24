@@ -18,7 +18,7 @@ public sealed class PackageDetailsControlPanelSaveHandler(IPackageService packag
         var dependency = new ClusterDependency
         {
             Name = state.PackageInfo.Name,
-            Version = Version.Parse(state.VersionToInstall)
+            Version = state.VersionToInstall
         };
 
         var operation = new ClusterDependencyOperation(dependency, ClusterDependencyOperationKind.Install);

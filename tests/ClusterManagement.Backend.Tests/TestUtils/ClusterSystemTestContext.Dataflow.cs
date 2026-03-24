@@ -10,7 +10,7 @@ internal partial class ClusterSystemTestContext
         functionBlock.Outputs.Clear();
         if (engineId.HasValue)
         {
-            var engine = _clusterBuilder.Cache.EngineGuids[engineId.Value];
+            var engine = _clusterBuilder.Cache.EngineIds[engineId.Value];
             _clusterBuilder.Editors.FunctionBlock.AssignEngine(engine, functionBlock);
         }
     }

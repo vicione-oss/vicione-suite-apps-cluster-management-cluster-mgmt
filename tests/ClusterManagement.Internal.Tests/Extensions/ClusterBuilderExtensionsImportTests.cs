@@ -3,11 +3,10 @@ using ClusterManagement.Internal.Extensions;
 using ClusterManagement.Public;
 using ClusterManagement.Public.Designs;
 using ClusterManagement.Tests.Tools.Factories;
-using AwesomeAssertions;
+using Semver;
 using ViciOne.Cluster.Builder;
 using ViciOne.Cluster.Model;
 using ViciOne.Core.Dataflow.DataModel;
-using Xunit;
 
 namespace ClusterManagement.Internal.Tests.Extensions;
 
@@ -94,14 +93,14 @@ public class ClusterBuilderExtensionsImportTests
         builder.Cache.ClusterNodes.Should().HaveCount(2);
         builder.Cache.ClusterApplications.Should().HaveCount(2);
         builder.Cache.EngineHosts.Should().HaveCount(2);
-        builder.Cache.EngineGuids.Should().HaveCount(4);
+        builder.Cache.EngineIds.Should().HaveCount(4);
 
         builder.Cache.DataPorts.Should().HaveCount(2);
         builder.Cache.DataPortTreeNodes.Should().HaveCount(7);
         builder.Cache.DataPortProperties.Should().HaveCount(4, "2 orig + 2 imported");
         builder.Cache.DataPortProperties.Should().Contain(k => k.DesignId == ImportPropertyDesignId && Equals(k.Value, ImportPropertyStringValue));
 
-        builder.Cache.ContainerGuids.Should().HaveCount(5, "2*Root + imp/exp + exp.child");
+        builder.Cache.ContainerIds.Should().HaveCount(5, "2*Root + imp/exp + exp.child");
         builder.Cache.FunctionBlockDesigns.Should().HaveCount(4);
         builder.Cache.FunctionBlocks.Should().HaveCount(4);
         builder.Cache.Labels.Should().HaveCount(2);
@@ -115,8 +114,9 @@ public class ClusterBuilderExtensionsImportTests
         using var import = CreateImportBuilder(_fbDesigns);
 
         var dependency = import.Cache.ClusterDependencies.First();
+        var dependencyVersion = SemVersion.Parse(dependency.Version, SemVersionStyles.Strict);
         import.Editors.Cluster.RemoveDependency(dependency);
-        _ = import.Editors.Cluster.AddDependency(dependency.Name, new Version(dependency.Version.Major + 1, dependency.Version.Minor, dependency.Version.Build));
+        import.Editors.Cluster.AddDependency(dependency.Name, dependencyVersion.WithMajor(dependencyVersion.Major + 1).ToString());
 
         // Act
         var result = builder.ImportCluster(import.Cluster, new ClusterImportOptions());
@@ -133,8 +133,9 @@ public class ClusterBuilderExtensionsImportTests
         using var import = CreateImportBuilder(_fbDesigns);
 
         var dependency = builder.Cache.ClusterDependencies.First();
+        var dependencyVersion = SemVersion.Parse(dependency.Version, SemVersionStyles.Strict);
         builder.Editors.Cluster.RemoveDependency(dependency);
-        _ = builder.Editors.Cluster.AddDependency(dependency.Name, new Version(dependency.Version.Major + 1, dependency.Version.Minor, dependency.Version.Build));
+        builder.Editors.Cluster.AddDependency(dependency.Name, dependencyVersion.WithMajor(dependencyVersion.Major + 1).ToString());
 
         // Act
         var result = builder.ImportCluster(import.Cluster, new ClusterImportOptions());
@@ -151,10 +152,6 @@ public class ClusterBuilderExtensionsImportTests
         // Arrange
         using var builder = CreateTargetBuilder(_fbDesigns);
         using var import = CreateImportBuilder(_fbDesigns);
-
-        var dependency = builder.Cache.ClusterDependencies.First();
-        builder.Editors.Cluster.RemoveDependency(dependency);
-        _ = builder.Editors.Cluster.AddDependency(dependency.Name, new Version(dependency.Version.Major + 1, dependency.Version.Minor, dependency.Version.Build));
 
         // Act
         var result = builder.ImportCluster(import.Cluster, new ClusterImportOptions());

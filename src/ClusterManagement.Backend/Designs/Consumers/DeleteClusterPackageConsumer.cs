@@ -17,7 +17,7 @@ public sealed partial class DeleteClusterPackageConsumer(IPackageStore packageSt
             var dependency = new ClusterDependency
             {
                 Name = context.Message.PackageName,
-                Version = new Version(context.Message.Version)
+                Version = context.Message.Version
             };
 
             await packageStorage.DeletePackage(dependency, context.CancellationToken);

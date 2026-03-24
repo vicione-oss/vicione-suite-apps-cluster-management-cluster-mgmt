@@ -2,13 +2,14 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ClusterManagement.Public;
+using Semver;
 using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Snapshots.Extensions;
 
 internal static class IClusterSnapshotStoreExtensions
 {
-    public static async Task<JsonNode?> HandleClusterDependencies(this IClusterSnapshotStore clusterSnapshotStore, Guid clusterId, Version clusterVersion, Action<JsonObject, string, Version> dependencyCallback, CancellationToken cancellationToken)
+    public static async Task<JsonNode?> HandleClusterDependencies(this IClusterSnapshotStore clusterSnapshotStore, Guid clusterId, Version clusterVersion, Action<JsonObject, string, string> dependencyCallback, CancellationToken cancellationToken)
     {
         var cluster = await clusterSnapshotStore.Load(clusterId, clusterVersion, Read, cancellationToken);
         if (cluster is null)
@@ -30,7 +31,7 @@ internal static class IClusterSnapshotStoreExtensions
             => cluster[nameof(Cluster.Dependencies)]?.AsArray().OfType<JsonObject>() ?? [];
     }
 
-    private static bool GetNameAndVersion(JsonObject clusterDependencyToken, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out Version? version)
+    private static bool GetNameAndVersion(JsonObject clusterDependencyToken, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out string? version)
     {
         var nameNode = clusterDependencyToken[nameof(ClusterDependency.Name)];
         var versionNode = clusterDependencyToken[nameof(ClusterDependency.Version)];
@@ -44,8 +45,16 @@ internal static class IClusterSnapshotStoreExtensions
 
         name = nameToken.GetValue<string>();
 
-        if (!Version.TryParse(versionToken.GetValue<string>(), out version))
+        if (SemVersion.TryParse(versionToken.GetValue<string>(), SemVersionStyles.Strict, out _))
+        {
+            version = versionToken.GetValue<string>();
+        }
+        else
+        {
+            version = null;
             return false;
+        }
+
 
         return true;
     }

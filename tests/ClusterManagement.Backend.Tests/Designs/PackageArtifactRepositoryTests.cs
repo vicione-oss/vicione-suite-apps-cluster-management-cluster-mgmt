@@ -31,7 +31,7 @@ public class PackageArtifactRepositoryTests
         return new(_fileSystem, _workspaceProvider, _repository);
     }
 
-    private readonly ClusterDependency _dependency = new() { Name = "ViciOne.FB1", Version = new Version(1, 0) };
+    private readonly ClusterDependency _dependency = new() { Name = "ViciOne.FB1", Version = "1.0.0" };
 
     public sealed class DownloadAndExtract : PackageArtifactRepositoryTests
     {

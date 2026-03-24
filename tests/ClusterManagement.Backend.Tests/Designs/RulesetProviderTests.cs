@@ -94,7 +94,7 @@ public class RulesetProviderTests
             // Arrange
             var sut = CreateSut();
             var expectedRuleset = RulesetFactory.CreateTestRulesetMqtt();
-            var dependency = new ClusterDependency { Name = "TestPackage", Version = new Version(1, 0, 0) };
+            var dependency = new ClusterDependency { Name = "TestPackage", Version = "1.0.0" };
             var rulesets = new Dictionary<string, Ruleset>
             {
                 { "TestRuleset", expectedRuleset }
@@ -139,8 +139,8 @@ public class RulesetProviderTests
             var sut = CreateSut();
             var ruleset1 = RulesetFactory.CreateTestRulesetMqtt();
             var ruleset2 = RulesetFactory.CreateTestRulesetMqtt();
-            var dependency1 = new ClusterDependency { Name = "Package1", Version = new Version(1, 0, 0) };
-            var dependency2 = new ClusterDependency { Name = "Package2", Version = new Version(1, 0, 0) };
+            var dependency1 = new ClusterDependency { Name = "Package1", Version = "1.0.0" };
+            var dependency2 = new ClusterDependency { Name = "Package2", Version = "1.0.0" };
 
             var packageContents = new Dictionary<ClusterDependency, PackageContent>
             {
@@ -179,8 +179,8 @@ public class RulesetProviderTests
             var sut = CreateSut();
             var ruleset1 = RulesetFactory.CreateTestRulesetMqtt();
             var ruleset2 = RulesetFactory.CreateTestRulesetMqtt();
-            var dependency1 = new ClusterDependency { Name = "Package1", Version = new Version(1, 0, 0) };
-            var dependency2 = new ClusterDependency { Name = "Package2", Version = new Version(1, 0, 0) };
+            var dependency1 = new ClusterDependency { Name = "Package1", Version = "1.0.0" };
+            var dependency2 = new ClusterDependency { Name = "Package2", Version = "1.0.0" };
 
             var packageContents = new Dictionary<ClusterDependency, PackageContent>
             {
@@ -234,7 +234,7 @@ public class RulesetProviderTests
         {
             // Arrange
             var sut = CreateSut();
-            var dependency = new ClusterDependency { Name = "Package1", Version = new Version(1, 0, 0) };
+            var dependency = new ClusterDependency { Name = "Package1", Version = "1.0.0" };
             var packageContents = new Dictionary<ClusterDependency, PackageContent>
             {
                 {
@@ -263,7 +263,7 @@ public class RulesetProviderTests
         {
             // Arrange
             var sut = CreateSut();
-            var dependency = new ClusterDependency { Name = "TestPackage", Version = new Version(1, 0, 0) };
+            var dependency = new ClusterDependency { Name = "TestPackage", Version = "1.0.0" };
             var ruleset = RulesetFactory.CreateTestRulesetMqtt();
             var packageContent = new PackageContent(
                 new Dictionary<Guid, FunctionBlockDesign>(),
@@ -303,8 +303,8 @@ public class RulesetProviderTests
         {
             // Arrange
             var sut = CreateSut();
-            var dependency1 = new ClusterDependency { Name = "Package1", Version = new Version(1, 0, 0) };
-            var dependency2 = new ClusterDependency { Name = "Package2", Version = new Version(1, 0, 0) };
+            var dependency1 = new ClusterDependency { Name = "Package1", Version = "1.0.0" };
+            var dependency2 = new ClusterDependency { Name = "Package2", Version = "1.0.0" };
             var ruleset = RulesetFactory.CreateTestRulesetMqtt();
 
             var packageContents = new Dictionary<ClusterDependency, PackageContent>

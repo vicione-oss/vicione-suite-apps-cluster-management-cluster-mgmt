@@ -35,7 +35,7 @@ public class UpdateClusterDependenciesConsumerTests
         await using var tester = new MassTransitTester(_configureServices);
         var operations = new List<ClusterDependencyOperation>
         {
-            new(new ClusterDependency { Name = "TestPackage", Version = new Version(1, 0, 0) }, ClusterDependencyOperationKind.Install)
+            new(new ClusterDependency { Name = "TestPackage", Version = "1.0.0" }, ClusterDependencyOperationKind.Install)
         };
         var command = new UpdateClusterDependencies(operations);
 
@@ -59,13 +59,13 @@ public class UpdateClusterDependenciesConsumerTests
         var installOperation = new ClusterDependencyOperation(new ClusterDependency
         {
             Name = "Package1",
-            Version = new Version(1, 0, 0)
+            Version = "1.0.0"
         }, ClusterDependencyOperationKind.Install);
 
         var uninstallOperation = new ClusterDependencyOperation(new ClusterDependency
         {
             Name = "Package2",
-            Version = new Version(2, 1, 0)
+            Version = "2.1.0"
         }, ClusterDependencyOperationKind.Uninstall);
 
         var changes = new List<ClusterDependencyChange>
@@ -93,7 +93,7 @@ public class UpdateClusterDependenciesConsumerTests
         await using var tester = new MassTransitTester(_configureServices);
         var operations = new List<ClusterDependencyOperation>
         {
-            new(new ClusterDependency { Name = "PackageA", Version = new Version(1, 2, 3) }, ClusterDependencyOperationKind.Install)
+            new(new ClusterDependency { Name = "PackageA", Version = "1.2.3" }, ClusterDependencyOperationKind.Install)
         };
         var command = new UpdateClusterDependencies(operations);
 
@@ -116,7 +116,7 @@ public class UpdateClusterDependenciesConsumerTests
         await using var tester = new MassTransitTester(_configureServices);
         var operations = new List<ClusterDependencyOperation>
         {
-            new(new ClusterDependency { Name = "InvalidPackage", Version = new Version(1, 0, 0) }, ClusterDependencyOperationKind.Install)
+            new(new ClusterDependency { Name = "InvalidPackage", Version = "1.0.0" }, ClusterDependencyOperationKind.Install)
         };
         var command = new UpdateClusterDependencies(operations);
 
@@ -165,19 +165,19 @@ public class UpdateClusterDependenciesConsumerTests
         var installOperation1 = new ClusterDependencyOperation(new ClusterDependency
         {
             Name = "Package1",
-            Version = new Version(1, 0, 0)
+            Version = "1.0.0"
         }, ClusterDependencyOperationKind.Install);
 
         var installOperation2 = new ClusterDependencyOperation(new ClusterDependency
         {
             Name = "Package2",
-            Version = new Version(2, 1, 0)
+            Version = "2.1.0"
         }, ClusterDependencyOperationKind.Install);
 
         var installOperation3 = new ClusterDependencyOperation(new ClusterDependency
         {
             Name = "Package3",
-            Version = new Version(3, 4, 80)
+            Version = "3.4.80"
         }, ClusterDependencyOperationKind.Install);
 
         var changes = new List<ClusterDependencyChange>
@@ -209,19 +209,19 @@ public class UpdateClusterDependenciesConsumerTests
         var installOperationA = new ClusterDependencyOperation(new ClusterDependency
         {
             Name = "PackageA",
-            Version = new Version(1, 0, 0)
+            Version = "1.0.0"
         }, ClusterDependencyOperationKind.Install);
 
         var uninstallOperationB = new ClusterDependencyOperation(new ClusterDependency
         {
             Name = "PackageB",
-            Version = new Version(2, 1, 0)
+            Version = "2.1.0"
         }, ClusterDependencyOperationKind.Uninstall);
 
         var installOperationC = new ClusterDependencyOperation(new ClusterDependency
         {
             Name = "PackageC",
-            Version = new Version(3, 4, 80)
+            Version = "3.4.80"
         }, ClusterDependencyOperationKind.Install);
 
         var changes = new List<ClusterDependencyChange>

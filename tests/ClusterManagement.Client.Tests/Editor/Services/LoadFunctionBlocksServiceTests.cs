@@ -1,5 +1,6 @@
 ﻿using Bunit;
 using ClusterManagement.Client.Editor.Services;
+using ClusterManagement.Client.Services;
 using ClusterManagement.Public.Designs;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute.ExceptionExtensions;
@@ -7,7 +8,6 @@ using Sdk.Testing.Client;
 using ViciOne.Cluster.Model;
 using ViciOne.Ui.ClusterEditor.Extensions;
 using ViciOne.Ui.ClusterEditor.Services;
-using ClusterManagement.Client.Services;
 
 namespace ClusterManagement.Client.Tests.Editor.Services;
 
@@ -35,12 +35,12 @@ public class LoadFunctionBlocksServiceTests
             new()
             {
                 Name = "Test.Me.Good",
-                Version = new Version("0.0.1")
+                Version = "0.0.1"
             },
             new()
             {
                 Name = "Test.Me.Better",
-                Version = new Version("0.1.2")
+                Version = "0.1.2"
             },
         };
 
@@ -84,7 +84,7 @@ public class LoadFunctionBlocksServiceTests
         var dependency = new ClusterDependency()
         {
             Name = "Test.Me.Good",
-            Version = new Version("0.0.1")
+            Version = "0.0.1"
         };
 
         // Act
@@ -125,7 +125,7 @@ public class LoadFunctionBlocksServiceTests
         var dependency = new ClusterDependency()
         {
             Name = "Test.Me.Good",
-            Version = new Version("0.0.1")
+            Version = "0.0.1"
         };
 
         _designProviderMock.GetFunctionBlockDesignIds(dependency).ThrowsAsync(new InvalidDataException());

@@ -242,13 +242,13 @@ internal sealed class ClusterDependencyStore(
         => await DeserializeQueuedUpdates(cancellationToken);
 
 
-    public Dictionary<string, IEnumerable<Version>> BuildStoredPackageVersionMap()
+    public Dictionary<string, IEnumerable<string>> BuildStoredPackageVersionMap()
     {
         var dependenciesFolder = fileSystem.GetDependenciesPath(workspaceProvider);
         if (!fileSystem.Directory.Exists(dependenciesFolder))
             throw new DirectoryNotFoundException($"Dependencies folder '{dependenciesFolder}' does not exist.");
 
-        var result = new Dictionary<string, IEnumerable<Version>>();
+        var result = new Dictionary<string, IEnumerable<string>>();
 
         // dependencies/<package_name>/<version>/..
         foreach (var packageDirectory in fileSystem.Directory.EnumerateDirectories(dependenciesFolder))
@@ -262,8 +262,8 @@ internal sealed class ClusterDependencyStore(
             var versions = fileSystem.Directory.EnumerateDirectories(packageDirectory)
                 .Select(fileSystem.Path.GetFileName)
                 .Where(v => !string.IsNullOrEmpty(v))
+                .Select(v => v!)
                 .Distinct()
-                .Select(v => Version.Parse(v!))
                 .OrderBy(v => v)
                 .ToList();
 

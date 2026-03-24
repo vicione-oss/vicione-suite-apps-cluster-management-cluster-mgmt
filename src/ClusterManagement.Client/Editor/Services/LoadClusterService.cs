@@ -13,7 +13,7 @@ internal sealed class LoadClusterService : DialogServiceBase, IDisposable
     private readonly CancellationTokenSource _tokenSource = new();
 
     private readonly IClusterService _clusterService;
-    private readonly IDataManagementService _dataManagementService;
+    private readonly IClusterEditorManagement _clusterEditorManagement;
     private readonly ILogger<LoadClusterService> _logger;
     private readonly IDesignProvider _designProvider;
     private ClusterBuilder? _clusterBuilder;
@@ -22,12 +22,12 @@ internal sealed class LoadClusterService : DialogServiceBase, IDisposable
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "this notation is clearer")]
     public LoadClusterService(IClusterService clusterService,
-        IDataManagementService dataManagementService,
+        IClusterEditorManagement clusterEditorManagement,
         ILogger<LoadClusterService> logger,
         IDesignProvider designProvider)
     {
         _clusterService = clusterService;
-        _dataManagementService = dataManagementService;
+        _clusterEditorManagement = clusterEditorManagement;
         _logger = logger;
         _designProvider = designProvider;
     }
@@ -93,7 +93,7 @@ internal sealed class LoadClusterService : DialogServiceBase, IDisposable
         foreach (var designId in usedFunctionBlockDesignIds)
             _clusterBuilder.Editors.FunctionBlockDesign.AddFunctionBlockDesign(designId);
 
-        _dataManagementService.LoadDataflow(_clusterBuilder);
+        await _clusterEditorManagement.LoadDataflow(_clusterBuilder);
         stopwatch.Stop();
 
         _logger.LogInformation("Loading cluster {Id} version '{Version}' into editor took {Elapsed}", clusterId, version, stopwatch.Elapsed);

@@ -7,7 +7,7 @@ namespace ClusterManagement.Client.Editor.Services;
 
 internal sealed class LoadFunctionBlocksService(
     IDesignProvider designProvider,
-    IDataManagementService dataManagementService,
+    IClusterEditorManagement clusterEditorManagement,
     ILogger<LoadFunctionBlocksService> logger) : DialogServiceBase
 {
     public IEnumerable<ClusterDependency>? Dependencies { get; private set; }
@@ -45,7 +45,7 @@ internal sealed class LoadFunctionBlocksService(
             var designIds = await designProvider.GetFunctionBlockDesignIds([.. SelectedDependencies]);
 
             // load them into builder -> editor
-            dataManagementService.LoadFunctionBlockDesigns(designIds);
+            clusterEditorManagement.LoadFunctionBlockDesigns(designIds);
         }
         catch (Exception ex)
         {

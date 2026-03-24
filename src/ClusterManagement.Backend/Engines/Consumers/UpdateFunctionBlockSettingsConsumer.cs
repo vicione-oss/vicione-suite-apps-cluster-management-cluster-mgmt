@@ -10,6 +10,7 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Sdk.Backend.Messaging;
 using ViciOne.Cluster.Builder;
+using ViciOne.Cluster.Builder.Abstractions;
 using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Engines.Consumers;

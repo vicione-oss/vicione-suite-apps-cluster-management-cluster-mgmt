@@ -58,7 +58,7 @@ public class PackageInfoProvider(IClusterDependencyStore clusterDependencyStore,
             .Select(package => new ClusterPackageInfo
             {
                 Name = package.Key.Name,
-                InstalledVersion = SemVersion.FromVersion(package.Key.Version).ToString(),
+                InstalledVersion = package.Key.Version,
                 Error = package.Value.Error is not null
                 ? new ErrorInfo(package.Value.Error.HResult, package.Value.Error.Message)
                 : null,
@@ -77,7 +77,7 @@ public class PackageInfoProvider(IClusterDependencyStore clusterDependencyStore,
             .Select(dependency => new ClusterPackageInfo
             {
                 Name = dependency.Name,
-                InstalledVersion = SemVersion.FromVersion(dependency.Version).ToString(),
+                InstalledVersion = dependency.Version,
             });
 
         packageInfos.AddRange(fallbackPackages);
@@ -163,7 +163,7 @@ public class PackageInfoProvider(IClusterDependencyStore clusterDependencyStore,
                 var packageInfo = GetOrCreatePackage(packageInfos, name);
 
                 // Mark that this version is active in a running cluster
-                packageInfo.RunningClusterVersion = SemVersion.FromVersion(version).ToString();
+                packageInfo.RunningClusterVersion = SemVersion.Parse(version).ToString();
 
             }, cancellationToken);
         }

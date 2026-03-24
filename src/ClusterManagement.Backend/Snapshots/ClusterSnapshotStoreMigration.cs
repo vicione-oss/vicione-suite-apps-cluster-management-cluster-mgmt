@@ -5,6 +5,7 @@ using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.Snapshots.Extensions;
 using ClusterManagement.Public;
 using Microsoft.Extensions.Logging;
+using Semver;
 using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Snapshots;
@@ -73,9 +74,12 @@ internal class ClusterSnapshotStoreMigration(
         }
     }
 
-    private static bool ReplaceDependencyIfNewer(ClusterDependency dependency, Version version, JsonObject clusterDependencyNode)
+    private static bool ReplaceDependencyIfNewer(ClusterDependency dependency, string version, JsonObject clusterDependencyNode)
     {
-        if (dependency.Version > version)
+        var dependencyVersion = SemVersion.Parse(dependency.Version, SemVersionStyles.Strict);
+        var otherVersion = SemVersion.Parse(version, SemVersionStyles.Strict);
+
+        if (dependencyVersion.CompareSortOrderTo(otherVersion) == 1)
         {
             clusterDependencyNode[nameof(ClusterDependency.Version)] = dependency.Version.ToString();
             return true;

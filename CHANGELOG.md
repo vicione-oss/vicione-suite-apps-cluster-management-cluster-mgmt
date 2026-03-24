@@ -7,8 +7,9 @@
 - Improve async cancellation handling on client controls
 - Prevented local reloading after the cluster was saved
 - Updated .NET to version `10.0.5`
+- `ViciOne.Cluster.Builder` package, update version to `1.0.0`
 - `ViciOne.Suite.Sdk` packages, update to version `2.0.0-ci2397913518`
-- `ViciOne.Ui.ClusterEditor` package, update to `0.18.0-ci2308279749`
+- `ViciOne.Ui.ClusterEditor` package, update to `1.0.0-ci2387961829`
 - `ViciOne.Ui.Design`, update to `2.0.3`
 - `ViciOne.Ui.Localization` package, update version to `3.2.0`
 - `ViciOne.Ui.MonochromeIcons.Assets` package, update version to `4.6.0`

@@ -35,7 +35,7 @@ public partial class ComplexClusterTests
         var dep = new ClusterDependency
         {
             Name = "TestDependency",
-            Version = new Version(0, 0, 1),
+            Version = "0.0.1",
         };
         var designs = resolver.ResolveDependency(dep);
         var functionBlock3CC1 = clusterBuilder.Editors.Container.AddFunctionBlock(childContainer1,

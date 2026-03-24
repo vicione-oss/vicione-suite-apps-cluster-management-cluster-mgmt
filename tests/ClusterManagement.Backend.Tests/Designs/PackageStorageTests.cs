@@ -158,7 +158,7 @@ public class PackageStorageTests
             var dependency = new ClusterDependency
             {
                 Name = "ViciOne.Test.Package",
-                Version = Version.Parse("0.46.4")
+                Version = "0.46.4"
             };
 
             var packagePath = "some/path/ViciOne.Test.Package/0.46.4";
@@ -188,7 +188,7 @@ public class PackageStorageTests
             var dependency = new ClusterDependency
             {
                 Name = "ViciOne.Test.Package",
-                Version = Version.Parse("0.46.4")
+                Version = "0.46.4"
             };
 
             _dependencyStore.LoadDependencies(Arg.Any<CancellationToken>())

@@ -1,5 +1,4 @@
-﻿using AwesomeAssertions;
-using ClusterManagement.Backend.DeployCluster.Consumers;
+﻿using ClusterManagement.Backend.DeployCluster.Consumers;
 using ClusterManagement.Backend.DeployCluster.Persistence;
 using ClusterManagement.Backend.DeployCluster.StateMachines;
 using ClusterManagement.Public.Iodds.Commands;
@@ -7,9 +6,7 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using Sdk.Testing.Backend;
-using Xunit;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster.Consumers;
 

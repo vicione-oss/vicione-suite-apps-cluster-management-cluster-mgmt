@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using ClusterManagement.Backend.Extensions;
 using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Designs;
@@ -17,7 +18,7 @@ internal static class ClusterDependencyFactory
         return new()
         {
             Name = assemblyName.Name!,
-            Version = new(assemblyVersion.Major, assemblyVersion.Minor, assemblyVersion.Build),
+            Version = assemblyVersion.ToVersionString(),
         };
     }
 }

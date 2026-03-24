@@ -16,7 +16,7 @@ public sealed class PackagesControlPanelSaveHandlerTests
     private readonly ClusterDependency _dependency = new()
     {
         Name = "TestPackage",
-        Version = new Version("1.4.0")
+        Version = "1.4.0"
     };
 
     private ServiceProvider SetupServiceProvider()

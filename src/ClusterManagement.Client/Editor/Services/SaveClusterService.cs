@@ -5,7 +5,7 @@ using ClusterManagement.Public.Events;
 using Microsoft.Extensions.Logging;
 using Sdk.Client.Infrastructure;
 using Sdk.Client.Services;
-using ViciOne.Cluster.Builder;
+using ViciOne.Cluster.Builder.Abstractions;
 
 namespace ClusterManagement.Client.Editor.Services;
 
@@ -22,7 +22,7 @@ internal sealed class SaveClusterService : DialogServiceBase,
     private Guid? _currentClusterId;
     private bool _isWorking;
     private SaveConfirmationInfo? _confirmationMessage;
-    private ClusterBuilder? _builder;
+    private IClusterBuilder? _builder;
     private string? _name;
     private string? _description;
     private Guid? _currentCorrelationId;
@@ -37,7 +37,7 @@ internal sealed class SaveClusterService : DialogServiceBase,
         get => _confirmationMessage;
         set => SetField(ref _confirmationMessage, value);
     }
-    public ClusterBuilder? Builder
+    public IClusterBuilder? Builder
     {
         get => _builder;
         private set => SetField(ref _builder, value);
@@ -68,7 +68,7 @@ internal sealed class SaveClusterService : DialogServiceBase,
     /// handle save request from editor
     /// </summary>
     /// <param name="builder"></param>
-    public Task SaveRequested(ClusterBuilder builder)
+    public Task SaveRequested(IClusterBuilder builder)
     {
         try
         {

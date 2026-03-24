@@ -1,9 +1,7 @@
-﻿using AwesomeAssertions;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Sdk.Backend.Extensions;
 using Sdk.Testing.Backend;
-using Xunit;
 
 namespace ClusterManagement.Internal.Tests;
 

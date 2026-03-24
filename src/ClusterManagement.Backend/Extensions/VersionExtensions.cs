@@ -11,4 +11,7 @@ internal static class VersionExtensions
         VersionIncrementKind.Patch => new Version(version.Major, version.Minor, version.Build + 1),
         _ => throw new InvalidOperationException($"{incrementKind} is no valid {nameof(VersionIncrementKind)}"),
     };
+
+    public static string ToVersionString(this Version version)
+        => $"{version.Major}.{version.Minor}.{version.Build}";
 }

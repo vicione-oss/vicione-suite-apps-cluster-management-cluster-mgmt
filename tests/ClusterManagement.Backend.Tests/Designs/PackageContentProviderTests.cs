@@ -88,7 +88,7 @@ public class PackageContentProviderTests
         {
             // Arrange
             var provider = _services.GetRequiredService<PackageContentProvider>();
-            var dependency = new ClusterDependency { Name = "NonExistentPackage", Version = new Version(1, 0, 0) };
+            var dependency = new ClusterDependency { Name = "NonExistentPackage", Version = "1.0.0" };
 
             SetupClusterManagementAssemblyContext();
 
@@ -105,7 +105,7 @@ public class PackageContentProviderTests
         {
             // Arrange
             var provider = _services.GetRequiredService<PackageContentProvider>();
-            var dependency = new ClusterDependency { Name = "MissingPackage", Version = new Version(3, 2, 1) };
+            var dependency = new ClusterDependency { Name = "MissingPackage", Version = "3.2.1" };
 
             SetupClusterManagementAssemblyContext();
 
@@ -159,7 +159,7 @@ public class PackageContentProviderTests
         {
             // Arrange
             var provider = _services.GetRequiredService<PackageContentProvider>();
-            var failureDependency = new ClusterDependency { Name = "ViciOne.Failure", Version = new Version(0, 2, 0) };
+            var failureDependency = new ClusterDependency { Name = "ViciOne.Failure", Version = "0.2.0" };
 
             SetupClusterManagementAssemblyContext();
 
@@ -182,7 +182,7 @@ public class PackageContentProviderTests
         {
             // Arrange
             var provider = _services.GetRequiredService<PackageContentProvider>();
-            var dependency = new ClusterDependency { Name = "TestPackage", Version = new Version(1, 0, 0) };
+            var dependency = new ClusterDependency { Name = "TestPackage", Version = "1.0.0" };
 
             await provider.TryAddPackage(dependency, [], [], false, TestContext.Current.CancellationToken);
 

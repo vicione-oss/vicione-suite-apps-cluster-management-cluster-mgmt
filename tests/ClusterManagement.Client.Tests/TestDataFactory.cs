@@ -11,7 +11,7 @@ public static class TestDataFactory
     public static ClusterDependency ClusterDependencyMathAdd => new()
     {
         Name = "ACX.StandardFunction.Math.Add",
-        Version = new Version("0.34.0"),
+        Version = "0.34.0",
     };
 
     public static List<ClusterInfo> CreateClusterInfos(params Guid[] guids)

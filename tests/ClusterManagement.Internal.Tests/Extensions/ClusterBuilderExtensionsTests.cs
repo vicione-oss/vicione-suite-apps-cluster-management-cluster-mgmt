@@ -1,7 +1,5 @@
 ﻿using ClusterManagement.Internal.Extensions;
 using ClusterManagement.Tests.Tools.Factories;
-using AwesomeAssertions;
-using Xunit;
 
 namespace ClusterManagement.Internal.Tests.Extensions;
 

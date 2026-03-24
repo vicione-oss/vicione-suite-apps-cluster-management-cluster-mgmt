@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="ViciOne.TreeBuilder" />
+    <PackageReference Include="Semver" />
   </ItemGroup>
 
   <ItemGroup>

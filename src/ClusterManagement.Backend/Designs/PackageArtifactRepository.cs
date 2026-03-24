@@ -36,7 +36,7 @@ internal sealed class PackageArtifactRepository(
     }
 
     /// <inheritdoc/>
-    public Task<HttpLoaderResult> DownloadAndExtract(string functionBlockName, Version version, CancellationToken cancellationToken)
+    public Task<HttpLoaderResult> DownloadAndExtract(string functionBlockName, string version, CancellationToken cancellationToken)
     {
         var dependenciesPath = fileSystem.GetDependenciesPath(workspaceProvider);
         var targetPath = fileSystem.Path.Combine(dependenciesPath, functionBlockName, version.ToString());
@@ -47,7 +47,7 @@ internal sealed class PackageArtifactRepository(
             => fs.Directory.Exists(functionBlockPath) && fs.Directory.GetFiles(functionBlockPath).Length > 0;
     }
 
-    public async Task<HttpLoaderResult> ProcessDownload(string functionBlockName, Version version, string targetPath, Func<bool>? skipTarget, CancellationToken cancellationToken)
+    public async Task<HttpLoaderResult> ProcessDownload(string functionBlockName, string version, string targetPath, Func<bool>? skipTarget, CancellationToken cancellationToken)
     {
         var result = new HttpLoaderResult($"{FunctionBlockFolder}/{functionBlockName}/{version}", targetPath);
 
@@ -72,7 +72,7 @@ internal sealed class PackageArtifactRepository(
         return result;
     }
 
-    private async Task<IArtifact?> QueryArtifact(string functionBlockName, Version version, CancellationToken cancellationToken)
+    private async Task<IArtifact?> QueryArtifact(string functionBlockName, string version, CancellationToken cancellationToken)
     {
         var fileNameWithoutExtension = $"{version}-{RuntimeInformation.RuntimeIdentifier}";
         var queryBuilder = repository.CreateQueryBuilder();

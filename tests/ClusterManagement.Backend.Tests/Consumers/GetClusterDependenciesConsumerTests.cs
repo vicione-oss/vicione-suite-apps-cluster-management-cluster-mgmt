@@ -35,17 +35,17 @@ public class GetClusterDependenciesConsumerTests : TestWithDbContextSqlite<Clust
             new()
             {
                 Name = "Chocolate",
-                Version = new Version(1, 0, 0)
+                Version = "1.0.0"
             },
             new()
             {
                 Name = "Cheese",
-                Version = new Version(0, 4, 7)
+                Version = "0.4.7"
             },
             new()
             {
                 Name = "Cake",
-                Version = new Version(2, 1, 3)
+                Version = "2.1.3"
             },
         };
 

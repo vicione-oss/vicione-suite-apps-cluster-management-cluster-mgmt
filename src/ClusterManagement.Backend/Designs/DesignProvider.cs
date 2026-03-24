@@ -1,6 +1,6 @@
 ﻿using ClusterManagement.Public.Designs;
 using Microsoft.Extensions.Logging;
-using ViciOne.Cluster.Builder;
+using ViciOne.Cluster.Builder.Abstractions;
 using ViciOne.Cluster.Model;
 using ViciOne.Core.Dataflow.DataModel;
 

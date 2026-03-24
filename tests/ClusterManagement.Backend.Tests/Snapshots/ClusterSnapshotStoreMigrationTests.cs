@@ -78,9 +78,9 @@ public class ClusterSnapshotStoreMigration_Migrate
         snapshotStore.Load(clusterId, new(1, 1, 0), Arg.Any<Func<Stream, CancellationToken, Task<JsonNode?>>>(), Arg.Any<CancellationToken>()).Returns(clusterTwo);
         dependencyStore.LoadDependencies(TestContext.Current.CancellationToken).ReturnsForAnyArgs(
             [
-                new ClusterDependency { Name = "Test1", Version = new(0, 2, 0), },
-                new ClusterDependency { Name = "Test2", Version = new(0, 2, 0), },
-                new ClusterDependency { Name = "Test3", Version = new(1, 0, 0), },
+                new ClusterDependency { Name = "Test1", Version = "0.2.0" },
+                new ClusterDependency { Name = "Test2", Version = "0.2.0" },
+                new ClusterDependency { Name = "Test3", Version = "1.0.0" },
             ]);
         ClusterSnapshotStoreMigration migration = new(snapshotStore, dependencyStore, logger);
 
@@ -132,9 +132,9 @@ public class ClusterSnapshotStoreMigration_GetDependenciesFromFile
         var logger = Substitute.For<ILogger<ClusterSnapshotStoreMigration>>();
         var functionBlockDependencies = new[]
         {
-            new ClusterDependency { Name = "Test1", Version = new(0, 1, 0), },
-            new ClusterDependency { Name = "Test2", Version = new(0, 2, 0), },
-            new ClusterDependency { Name = "Test3", Version = new(1, 0, 0), },
+            new ClusterDependency { Name = "Test1", Version = "0.1.0" },
+            new ClusterDependency { Name = "Test2", Version = "0.2.0" },
+            new ClusterDependency { Name = "Test3", Version = "1.0.0" },
         };
         dependencyStore.LoadDependencies(TestContext.Current.CancellationToken).ReturnsForAnyArgs(functionBlockDependencies);
         ClusterSnapshotStoreMigration migration = new(snapshotStore, dependencyStore, logger);
@@ -158,10 +158,10 @@ public class ClusterSnapshotStoreMigration_GetDependenciesFromFile
         var logger = Substitute.For<ILogger<ClusterSnapshotStoreMigration>>();
         var functionBlockDependencies = new[]
         {
-            new ClusterDependency { Name = "Test1", Version = new(0, 1, 0), },
-            new ClusterDependency { Name = "Test2", Version = new(0, 2, 0), },
-            new ClusterDependency { Name = "Test2", Version = new(0, 1, 0), },
-            new ClusterDependency { Name = "Test3", Version = new(1, 0, 0), },
+            new ClusterDependency { Name = "Test1", Version = "0.1.0" },
+            new ClusterDependency { Name = "Test2", Version = "0.2.0" },
+            new ClusterDependency { Name = "Test2", Version = "0.1.0" },
+            new ClusterDependency { Name = "Test3", Version = "1.0.0" },
         };
         dependencyStore.LoadDependencies(TestContext.Current.CancellationToken).ReturnsForAnyArgs(functionBlockDependencies);
         ClusterSnapshotStoreMigration migration = new(snapshotStore, dependencyStore, logger);

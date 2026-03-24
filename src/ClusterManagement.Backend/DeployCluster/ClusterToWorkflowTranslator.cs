@@ -3,7 +3,7 @@ using ClusterManagement.Backend.Engines;
 using Sdk.Connections.Contracts;
 using Sdk.Extensions;
 using Sdk.Modules;
-using ViciOne.Cluster.Builder;
+using ViciOne.Cluster.Builder.Abstractions;
 using ViciOne.Cluster.Model;
 using ViciOne.Cluster.Model.Extensions;
 using ViciOne.Core.Contracts;

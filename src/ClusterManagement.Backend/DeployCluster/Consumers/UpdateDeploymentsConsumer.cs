@@ -21,6 +21,7 @@ using Sdk.Connections.Contracts;
 using Sdk.Instance;
 using Sdk.Messaging;
 using ViciOne.Cluster.Builder;
+using ViciOne.Cluster.Builder.Abstractions;
 using ViciOne.Cluster.Model;
 using Engine = ViciOne.Cluster.Model.Engine;
 using EngineHost = ViciOne.Cluster.Model.EngineHost;

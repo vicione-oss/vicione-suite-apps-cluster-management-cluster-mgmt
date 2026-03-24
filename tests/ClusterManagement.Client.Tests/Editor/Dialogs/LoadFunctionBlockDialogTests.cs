@@ -20,37 +20,37 @@ public class LoadFunctionBlockDialogTests
     private const string SkipMessage = "The dialog will be refactored and till then the tests will be disabled because they fail too often";
 
     private readonly IDesignProvider _designProvider = Substitute.For<IDesignProvider>();
-    private readonly IDataManagementService _dataManagementService = Substitute.For<IDataManagementService>();
+    private readonly IClusterEditorManagement _clusterEditorManagement = Substitute.For<IClusterEditorManagement>();
 
     private readonly ClusterDependency _dependencyFunctionBlockTest = new()
     {
         Name = "ACX.ViciOne.FunctionBlocks.Test",
-        Version = new Version(1, 0, 0)
+        Version = "1.0.0"
     };
 
     private readonly ClusterDependency _dependencyStandardFunctionTest = new()
     {
         Name = "ACX.ViciOne.StandardFunction.Test",
-        Version = new Version(1, 0, 0)
+        Version = "1.0.0"
     };
 
     private readonly ClusterDependency _dependencyStandardFunctionABC = new()
     {
         Name = "ACX.ViciOne.StandardFunction.ABC",
-        Version = new Version(1, 0, 0)
+        Version = "1.0.0"
     };
 
     private readonly ClusterDependency _dependencyStandardFunctionABCD = new()
     {
         Name = "ACX.ViciOne.StandardFunction.ABCD",
-        Version = new Version(1, 0, 0)
+        Version = "1.0.0"
     };
 
     private LoadFunctionBlocksService SetupServices(BunitContext ctx)
     {
         var service = new LoadFunctionBlocksService(
             _designProvider,
-            _dataManagementService,
+            _clusterEditorManagement,
             Substitute.For<ILogger<LoadFunctionBlocksService>>());
 
         ctx.SetupSuiteServices();
@@ -326,7 +326,7 @@ public class LoadFunctionBlockDialogTests
                 GetOkButton(component).Click();
 
                 // Assert
-                _dataManagementService.Received(1).LoadFunctionBlockDesigns(Arg.Any<IEnumerable<Guid>>());
+                _clusterEditorManagement.Received(1).LoadFunctionBlockDesigns(Arg.Any<IEnumerable<Guid>>());
             });
         }
 
@@ -356,7 +356,7 @@ public class LoadFunctionBlockDialogTests
                 GetOkButton(component).Click();
 
                 // Assert
-                _dataManagementService.Received(1).LoadFunctionBlockDesigns(Arg.Any<IEnumerable<Guid>>());
+                _clusterEditorManagement.Received(1).LoadFunctionBlockDesigns(Arg.Any<IEnumerable<Guid>>());
             });
         }
     }

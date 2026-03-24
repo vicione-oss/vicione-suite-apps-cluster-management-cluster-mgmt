@@ -1,11 +1,11 @@
 ﻿using System.IO.Abstractions;
 using ClusterManagement.Backend.DbContext;
+using ClusterManagement.Backend.Designs.Extensions;
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Backend.Engines;
+using ClusterManagement.Backend.Engines.Extensions;
 using ClusterManagement.Backend.Mqtt;
 using ClusterManagement.Public.Events;
-using ClusterManagement.Backend.Designs.Extensions;
-using ClusterManagement.Backend.Engines.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -36,7 +36,7 @@ internal partial class ClusterSystemTestContext
 
     internal void Given_user_disabled_engine(Guid engineId)
     {
-        var engine = _clusterBuilder.Cache.EngineGuids[engineId];
+        var engine = _clusterBuilder.Cache.EngineIds[engineId];
         _clusterBuilder.Editors.Engine.SetEnabled(engine, false);
     }
 

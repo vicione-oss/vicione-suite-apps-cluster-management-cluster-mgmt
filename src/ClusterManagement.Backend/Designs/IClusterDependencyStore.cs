@@ -37,5 +37,5 @@ public interface IClusterDependencyStore
     /// <summary>
     /// Returns a map of packages and their versions stored in the dependency store.
     /// </summary>
-    Dictionary<string, IEnumerable<Version>> BuildStoredPackageVersionMap();
+    Dictionary<string, IEnumerable<string>> BuildStoredPackageVersionMap();
 }

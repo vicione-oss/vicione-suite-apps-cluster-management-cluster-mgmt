@@ -45,6 +45,8 @@ public sealed partial class IoddControlPanel
         IoddService.AutoIoddDownloadChanged -= IoddService_AutoIoddDownloadChanged;
         IoddService.IoddChanged -= IoddService_IoddChanged;
 
+        _treeBuilder.Dispose();
+
         if (TreeAdapter is not null)
         {
             TreeAdapter.SelectionChanged -= OnIoddTreeAdapterSelectionChanged;

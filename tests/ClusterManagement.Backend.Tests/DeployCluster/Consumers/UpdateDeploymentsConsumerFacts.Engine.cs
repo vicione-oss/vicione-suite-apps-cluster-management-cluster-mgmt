@@ -83,7 +83,7 @@ public partial class UpdateDeploymentsConsumerFacts
 
     internal void Given_user_disabled_engine(Guid engineId)
     {
-        var engine = _clusterBuilder.Cache.EngineGuids[engineId];
+        var engine = _clusterBuilder.Cache.EngineIds[engineId];
         _clusterBuilder.Editors.Engine.SetEnabled(engine, false);
     }
 
@@ -289,7 +289,7 @@ public partial class UpdateDeploymentsConsumerFacts
         var output = functionBlock.GetConnectorByDesignId(s_functionBlockOutputDesignId) ?? throw new InvalidOperationException("Could not find output connector.");
         output.Id = EnsureOutputId(functionBlockId);
         _clusterBuilder.Editors.Connector.SetEventEnabled(true, output);
-        var engine = _clusterBuilder.Cache.EngineGuids[engineId];
+        var engine = _clusterBuilder.Cache.EngineIds[engineId];
         _clusterBuilder.Editors.FunctionBlock.AssignEngine(engine, functionBlock);
     }
 
