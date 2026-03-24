@@ -11,14 +11,14 @@ public static class ClusterDependencyPackageFactory
             new ClusterDependencyPackage(new ClusterDependency
                 {
                     Name = "TestDependency",
-                    Version = new Version(0, 0, 1)
+                    Version = "0.0.1"
                 },
                 [.. designs],
                 []),
             new ClusterDependencyPackage(new ClusterDependency
                 {
                     Name = "MqttDataPortDesign",
-                    Version = new Version(0, 0, 1)
+                    Version = "0.0.1"
                 },
                 [], [Public.Constants.MqttDataPortDesignId])
         ];

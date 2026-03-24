@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sdk.Testing.Backend;
 using ViciOne.Cluster.Builder;
+using ViciOne.Cluster.Builder.Abstractions;
 using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Tests.Consumers;

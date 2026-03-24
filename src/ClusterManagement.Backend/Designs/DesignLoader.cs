@@ -6,7 +6,6 @@ using ClusterManagement.Public;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Sdk.Backend.Modules;
-using Semver;
 using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Designs;
@@ -54,7 +53,7 @@ internal sealed class DesignLoader(
                     continue;
 
                 // We only load packages that exists as dependency (actually packages.json)
-                var existingPackage = existingPackages.FirstOrDefault(p => p.Key.Name == dependency.Name && ToVersion(p.Key.Version) == dependency.Version);
+                var existingPackage = existingPackages.FirstOrDefault(p => p.Key.Name == dependency.Name && p.Key.Version.ToString() == dependency.Version);
                 if (existingPackage.Key is null)
                     throw new InvalidOperationException($"Expected package '{dependency.Name}' version '{dependency.Version}' can't be found.");
 
@@ -90,9 +89,4 @@ internal sealed class DesignLoader(
         foreach (var result in results.Where(k => k.Error is not null))
             _logger.LogError(result.Error, "Failed to update cluster dependency {Source}", result.SourcePath);
     }
-
-    private static Version ToVersion(SemVersion version)
-        => version.IsPrerelease
-            ? new Version((int)version.Major, (int)version.Minor, (int)version.Patch)
-            : version.ToVersion();
 }

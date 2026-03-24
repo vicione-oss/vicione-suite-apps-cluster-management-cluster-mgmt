@@ -263,7 +263,7 @@ public class CommitClusterChangeConsumerTests
             var vseDesignDependency = new ClusterDependency
             {
                 Name = "VSE.IoT.Core",
-                Version = new Version(0, 8, 1),
+                Version = "0.8.1",
             };
 
             cluster.FunctionBlockDesignIds.Add(vseDesignId1);

@@ -27,7 +27,7 @@ internal sealed partial class PackageStore(
         var clusterDependency = new ClusterDependency
         {
             Name = packageName,
-            Version = new Version(packageVersion)
+            Version = packageVersion
         };
 
         var operation = new ClusterDependencyOperation(clusterDependency, ClusterDependencyOperationKind.Install);

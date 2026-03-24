@@ -1,21 +1,21 @@
 ﻿using Bunit;
 using ClusterManagement.Client.Editor.Services;
+using ClusterManagement.Client.Services;
 using ClusterManagement.Public.Designs;
 using ClusterManagement.Public.Requests;
+using ClusterManagement.Tests.Tools.Extensions;
+using ClusterManagement.Tests.Tools.Factories;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Testing.Client;
 using ViciOne.Cluster.Builder;
 using ViciOne.Cluster.Model;
 using ViciOne.Ui.ClusterEditor.Services;
-using ClusterManagement.Client.Services;
-using ClusterManagement.Tests.Tools.Factories;
-using ClusterManagement.Tests.Tools.Extensions;
 
 namespace ClusterManagement.Client.Tests.Editor.Services;
 
 public class LoadClusterServiceTests
 {
-    private readonly IDataManagementService _dataManagement = Substitute.For<IDataManagementService>();
+    private readonly IClusterEditorManagement _clusterEditorManagement = Substitute.For<IClusterEditorManagement>();
     private readonly IClusterService _clusterService = Substitute.For<IClusterService>();
     private readonly IDesignProvider _designProvider = Substitute.For<IDesignProvider>();
 
@@ -36,7 +36,7 @@ public class LoadClusterServiceTests
 
         ctx.SetupSuiteServices();
 
-        ctx.Services.AddSingleton(_dataManagement);
+        ctx.Services.AddSingleton(_clusterEditorManagement);
         ctx.Services.AddSingleton(_clusterService);
         ctx.Services.AddSingleton(_designProvider);
         ctx.Services.AddScoped<LoadClusterService>();
@@ -72,7 +72,7 @@ public class LoadClusterServiceTests
 
         // Assert
         loadMonitor.Should().Raise(nameof(LoadClusterService.ClusterLoaded));
-        _dataManagement.Received(1).LoadDataflow(
+        await _clusterEditorManagement.Received(1).LoadDataflow(
             Arg.Is<ClusterBuilder>(b => b.Cluster.Id == builder.Cluster.Id && b.Cluster.Version == builder.Cluster.Version));
     }
 
@@ -104,7 +104,7 @@ public class LoadClusterServiceTests
 
         // Assert
         loadMonitor.Should().Raise(nameof(LoadClusterService.ClusterLoaded));
-        _dataManagement.Received(1).LoadDataflow(
+        await _clusterEditorManagement.Received(1).LoadDataflow(
             Arg.Is<ClusterBuilder>(b => b.Cluster.Id == latestCluster.Id && b.Cluster.Version == latestCluster.Version));
     }
 }

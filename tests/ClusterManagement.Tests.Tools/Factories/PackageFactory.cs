@@ -9,13 +9,13 @@ public static class PackageFactory
     public static readonly ClusterDependency ConstantPackageDependency = new()
     {
         Name = "ViciOne.Constant",
-        Version = new Version(0, 34, 0)
+        Version = "0.34.0"
     };
 
     public static readonly ClusterDependency LogicPackageDependency = new()
     {
         Name = "ViciOne.Logic",
-        Version = new Version(0, 34, 0)
+        Version = "0.34.0"
     };
 
     public static byte[] CreatePackageZipArchiveBytes(string packageName, string version, string? depsJsonContent = null)

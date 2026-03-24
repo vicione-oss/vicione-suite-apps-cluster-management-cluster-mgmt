@@ -2,6 +2,15 @@
   "version": 2,
   "dependencies": {
     "net10.0": {
+      "Semver": {
+        "type": "Direct",
+        "requested": "[3.0.0, )",
+        "resolved": "3.0.0",
+        "contentHash": "9jZCicsVgTebqkAujRWtC9J1A5EQVlu0TVKHcgoCuv345ve5DYf4D1MjhKEnQjdRZo6x/vdv6QQrYFs7ilGzLA==",
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "5.0.1"
+        }
+      },
       "ViciOne.TreeBuilder": {
         "type": "Direct",
         "requested": "[0.6.0, )",
@@ -13,8 +22,8 @@
       },
       "FastCloner": {
         "type": "Transitive",
-        "resolved": "3.3.10",
-        "contentHash": "3Qw0IlWqsfNHep1ryRSW3J3mSz9fPOktHiinESThg9RVQTIH0FfVNoiDnSp7/byINOpSVUVAUuFAFqUxokm7BA=="
+        "resolved": "3.4.7",
+        "contentHash": "30wSSPo5ut//D6VZH1HfugVZBAmXxaoF7/oDPiAOKAOp+50C63KJ2dhtja4CeQd68ZqiYJoxNcigJPARieWiJg=="
       },
       "MassTransit.Abstractions": {
         "type": "Transitive",
@@ -128,17 +137,17 @@
       },
       "Newtonsoft.Json": {
         "type": "Transitive",
-        "resolved": "13.0.3",
-        "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
+        "resolved": "13.0.4",
+        "contentHash": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A=="
       },
       "ViciOne.Cluster.Model": {
         "type": "Transitive",
-        "resolved": "0.11.0",
-        "contentHash": "pQIf9/9xdSYbS7tn3ldlOzyWfm7BhwMkQbbIYUdsg6gxkwjF0Nynp0L+RBkM9tE/5VXYSezjBxh0fZPJfFxFcA==",
+        "resolved": "1.0.0",
+        "contentHash": "ljSWCLtPYlrzNhlgbVFP9XfU7/MTlOrNIQ+AIcAGLyFjEGTWv7tMpdFGjWbhAs8rNo8coGk2puXWUpimkqr6EQ==",
         "dependencies": {
-          "ViciOne.Core.Contracts": "0.51.0",
-          "ViciOne.ManagedEngine.Serialization": "0.61.0",
-          "ViciOne.Serialization.Json": "0.51.0"
+          "ViciOne.Core.Contracts": "1.0.0",
+          "ViciOne.ManagedEngine.Serialization": "1.0.0",
+          "ViciOne.Serialization.Json": "1.0.0"
         }
       },
       "ViciOne.CodeAnalysis.MustCallBase": {
@@ -148,40 +157,40 @@
       },
       "ViciOne.Core.Contracts": {
         "type": "Transitive",
-        "resolved": "0.51.0",
-        "contentHash": "3uyq+x3QvdmzgGgep1Z8rUKv+s8fh/Em5RQL3hOquk+WDi9/Y48s7TuErEnPkAAzJN7zaK8NE/dIe4Qxi47U1A==",
+        "resolved": "1.0.0",
+        "contentHash": "AOr1PWoy5LCJWbb73E0+Gywh55DQFQLiJRUGZFEAknCQOZ07TuyiNxkb+f7mh/W+fyhgx1eehdN4H8L9i6s31g==",
         "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "9.0.7"
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.3"
         }
       },
       "ViciOne.Core.Dataflow": {
         "type": "Transitive",
-        "resolved": "0.51.0",
-        "contentHash": "eAgYzt5rzNYkDuq0dleev7s05quV+U2/1wCG/pm3MFfHFBOItRODO7vui0a8HDNm0IOag3q67tPP2yblfbBgzQ==",
+        "resolved": "1.0.0",
+        "contentHash": "+cXGZuamNOKQvbqCYKUSYttrz64qBaQHno/VXANMnOT6///jCE+rcJXqiuw3g6d5R71i7uNWtvknEJcUed5+0g==",
         "dependencies": {
-          "FastCloner": "3.3.10",
-          "ViciOne.Core.Contracts": "0.51.0"
+          "FastCloner": "3.4.7",
+          "ViciOne.Core.Contracts": "1.0.0"
         }
       },
       "ViciOne.Engine.DefaultPoolings": {
         "type": "Transitive",
-        "resolved": "0.51.0",
-        "contentHash": "Kr0ukLNz3IP7NaF5NN3TGpwcdM0gkmZoXSwaOQ38nIc4n46e9yFiDFaVN2P2PVx88BUhy7O5d2qTk2Cg6nfaWQ==",
+        "resolved": "1.0.0",
+        "contentHash": "aKo2lnS28E2u0PkTZ+Tj3cZssIUN9Nk8b5xNVZ0AaeHoRDRIRtkTDLXgMRSCrVYJlpmzRRfmhkFQedi22nhr4w==",
         "dependencies": {
-          "ViciOne.Core.Runtime": "0.51.0"
+          "ViciOne.Core.Runtime": "1.0.0"
         }
       },
       "ViciOne.ManagedEngine.Serialization": {
         "type": "Transitive",
-        "resolved": "0.61.0",
-        "contentHash": "bxoRgDT97ay8oKYZbolOG+SI4HsKNmU+c3s8x+cfRHqAyIfXyXIr+wo1si52l8q70OJ2vRU6IzpgehOvKARzBg=="
+        "resolved": "1.0.0",
+        "contentHash": "8ZwPSnqDn3lZODdhK2/7Qe54yNEWt3XIxmVDAd5IK86+OjsU3gSCcZdMOo1Zq2aqWja4KtlSzgvj3hQfMqiisQ=="
       },
       "ViciOne.Serialization.Json": {
         "type": "Transitive",
-        "resolved": "0.51.0",
-        "contentHash": "WtsPTyb9caYmbBYi/Vht88ctExv5rqXduF1DuD0Zvd1gVaaAFYLG6TDfOnNdFHzwOhvBe7rXoz4ShEQG/HUl3Q==",
+        "resolved": "1.0.0",
+        "contentHash": "6txx7nQFY0+8NAlP3XxYP7NUwCf2ttzybI1/22XKQ+3WQpnEjWt12wxg+8zN5c9rTOIE1kzKe8XQTLzbZNKRBw==",
         "dependencies": {
-          "Newtonsoft.Json": "13.0.3"
+          "Newtonsoft.Json": "13.0.4"
         }
       },
       "YamlDotNet": {
@@ -192,28 +201,28 @@
       "ViciOne.Suite.ClusterManagement.Public": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Cluster.Builder": "[0.11.0, )",
+          "ViciOne.Cluster.Builder": "[1.0.0, )",
           "ViciOne.Suite.Sdk": "[2.0.0-ci2397913518, )"
         }
       },
       "ViciOne.Cluster.Builder": {
         "type": "CentralTransitive",
-        "requested": "[0.11.0, )",
-        "resolved": "0.11.0",
-        "contentHash": "5L6bjq+pIgoD+c5+wvVmX+/poMJLW7+n/geMOjVIlgIEKvLPXWHTnsbpZL6Gpyo9yrkF3eMAjoQs4Fx8HQO/4w==",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "GCcxOXTcePV3zIkVel6qYQ3px0TkV0k2cCet4mZ2FC3eKBZqE3rioLWn1Tybt2bH1KOSxTSSqz2K8gCdt07EPA==",
         "dependencies": {
-          "ViciOne.Cluster.Model": "0.11.0",
-          "ViciOne.Core.Dataflow": "0.51.0",
-          "ViciOne.Engine.DefaultPoolings": "0.51.0"
+          "ViciOne.Cluster.Model": "1.0.0",
+          "ViciOne.Core.Dataflow": "1.0.0",
+          "ViciOne.Engine.DefaultPoolings": "1.0.0"
         }
       },
       "ViciOne.Core.Runtime": {
         "type": "CentralTransitive",
         "requested": "[0.51.0, )",
-        "resolved": "0.51.0",
-        "contentHash": "Fx/lbcNJBM1fFWhHQse0FBJEca7b+wrY52HyR6xNASAol7adkITrXkPD1g8k+7zUoVff/fXlcdb33Z6+ytzloQ==",
+        "resolved": "1.0.0",
+        "contentHash": "if/EBwinB6KOWxGugJj+zhctBhnKyYAFAXhGt2BOFYxPADUrXS2uC1C5Nwkodfz7JbFxmnF+iAXTioX0ap5f7A==",
         "dependencies": {
-          "ViciOne.Core.Contracts": "0.51.0"
+          "ViciOne.Core.Contracts": "1.0.0"
         }
       },
       "ViciOne.Suite.Sdk": {

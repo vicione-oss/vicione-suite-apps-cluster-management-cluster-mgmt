@@ -26,7 +26,7 @@ public class DesignProviderTests
         public async Task Should_return_dependency_resolver()
         {
             // Arrange
-            var dependency = new ClusterDependency { Name = "TestPackage", Version = new Version(1, 0, 0) };
+            var dependency = new ClusterDependency { Name = "TestPackage", Version = "1.0.0" };
             var design = CreateFunctionBlockDesign(Guid.NewGuid(), "TestDesign");
 
             var packageContent = new PackageContent(
@@ -49,8 +49,8 @@ public class DesignProviderTests
         public async Task Should_return_resolver_with_all_packages()
         {
             // Arrange
-            var dependency1 = new ClusterDependency { Name = "Package1", Version = new Version(1, 0, 0) };
-            var dependency2 = new ClusterDependency { Name = "Package2", Version = new Version(2, 0, 0) };
+            var dependency1 = new ClusterDependency { Name = "Package1", Version = "1.0.0" };
+            var dependency2 = new ClusterDependency { Name = "Package2", Version = "2.0.0" };
 
             var design1 = CreateFunctionBlockDesign(Guid.NewGuid(), "Design1");
             var design2 = CreateFunctionBlockDesign(Guid.NewGuid(), "Design2");
@@ -86,9 +86,9 @@ public class DesignProviderTests
         public async Task Should_return_all_dependencies_when_includeDataPortDependencies_is_true()
         {
             // Arrange
-            var dependency1 = new ClusterDependency { Name = "Package1", Version = new Version(1, 0, 0) };
-            var dependency2 = new ClusterDependency { Name = "Package2", Version = new Version(2, 0, 0) };
-            var dataPortDependency = new ClusterDependency { Name = "DataPort", Version = new Version(1, 0, 0) };
+            var dependency1 = new ClusterDependency { Name = "Package1", Version = "1.0.0" };
+            var dependency2 = new ClusterDependency { Name = "Package2", Version = "2.0.0" };
+            var dataPortDependency = new ClusterDependency { Name = "DataPort", Version = "1.0.0" };
 
             var design = CreateFunctionBlockDesign(Guid.NewGuid(), "Design");
             var ruleset = RulesetFactory.CreateTestRulesetMqtt();
@@ -130,9 +130,9 @@ public class DesignProviderTests
         public async Task Should_exclude_dataport_dependencies_when_includeDataPortDependencies_is_false()
         {
             // Arrange
-            var dependency1 = new ClusterDependency { Name = "Package1", Version = new Version(1, 0, 0) };
-            var dependency2 = new ClusterDependency { Name = "Package2", Version = new Version(2, 0, 0) };
-            var dataPortDependency = new ClusterDependency { Name = "DataPort", Version = new Version(1, 0, 0) };
+            var dependency1 = new ClusterDependency { Name = "Package1", Version = "1.0.0" };
+            var dependency2 = new ClusterDependency { Name = "Package2", Version = "2.0.0" };
+            var dataPortDependency = new ClusterDependency { Name = "DataPort", Version = "1.0.0" };
 
             var design = CreateFunctionBlockDesign(Guid.NewGuid(), "Design");
             var ruleset = RulesetFactory.CreateTestRulesetMqtt();
@@ -188,8 +188,8 @@ public class DesignProviderTests
         public async Task Should_use_default_value_for_includeDataPortDependencies_parameter()
         {
             // Arrange
-            var dependency = new ClusterDependency { Name = "Package1", Version = new Version(1, 0, 0) };
-            var dataPortDependency = new ClusterDependency { Name = "DataPort", Version = new Version(1, 0, 0) };
+            var dependency = new ClusterDependency { Name = "Package1", Version = "1.0.0" };
+            var dataPortDependency = new ClusterDependency { Name = "DataPort", Version = "1.0.0" };
 
             var design = CreateFunctionBlockDesign(Guid.NewGuid(), "Design");
             var ruleset = RulesetFactory.CreateTestRulesetMqtt();
@@ -226,7 +226,7 @@ public class DesignProviderTests
         public async Task Should_return_design_ids_for_single_dependency()
         {
             // Arrange
-            var dependency = new ClusterDependency { Name = "Package1", Version = new Version(1, 0, 0) };
+            var dependency = new ClusterDependency { Name = "Package1", Version = "1.0.0" };
             var designId1 = Guid.NewGuid();
             var designId2 = Guid.NewGuid();
 
@@ -258,8 +258,8 @@ public class DesignProviderTests
         public async Task Should_return_design_ids_for_multiple_dependencies()
         {
             // Arrange
-            var dependency1 = new ClusterDependency { Name = "Package1", Version = new Version(1, 0, 0) };
-            var dependency2 = new ClusterDependency { Name = "Package2", Version = new Version(2, 0, 0) };
+            var dependency1 = new ClusterDependency { Name = "Package1", Version = "1.0.0" };
+            var dependency2 = new ClusterDependency { Name = "Package2", Version = "2.0.0" };
 
             var designId1 = Guid.NewGuid();
             var designId2 = Guid.NewGuid();
@@ -318,7 +318,7 @@ public class DesignProviderTests
         public async Task Should_exclude_hidden_packages()
         {
             // Arrange
-            var dependency = new ClusterDependency { Name = "HiddenPackage", Version = new Version(1, 0, 0) };
+            var dependency = new ClusterDependency { Name = "HiddenPackage", Version = "1.0.0" };
             var designId = Guid.NewGuid();
             var design = CreateFunctionBlockDesign(designId, "HiddenDesign");
 
@@ -344,7 +344,7 @@ public class DesignProviderTests
         public async Task Should_return_designs_for_single_dependency()
         {
             // Arrange
-            var dependency = new ClusterDependency { Name = "Package1", Version = new Version(1, 0, 0) };
+            var dependency = new ClusterDependency { Name = "Package1", Version = "1.0.0" };
             var design1 = CreateFunctionBlockDesign(Guid.NewGuid(), "Design1");
             var design2 = CreateFunctionBlockDesign(Guid.NewGuid(), "Design2");
 
@@ -373,8 +373,8 @@ public class DesignProviderTests
         public async Task Should_return_designs_for_multiple_dependencies()
         {
             // Arrange
-            var dependency1 = new ClusterDependency { Name = "Package1", Version = new Version(1, 0, 0) };
-            var dependency2 = new ClusterDependency { Name = "Package2", Version = new Version(2, 0, 0) };
+            var dependency1 = new ClusterDependency { Name = "Package1", Version = "1.0.0" };
+            var dependency2 = new ClusterDependency { Name = "Package2", Version = "2.0.0" };
 
             var design1 = CreateFunctionBlockDesign(Guid.NewGuid(), "Design1");
             var design2 = CreateFunctionBlockDesign(Guid.NewGuid(), "Design2");
@@ -429,7 +429,7 @@ public class DesignProviderTests
         public async Task Should_exclude_designs_from_hidden_packages()
         {
             // Arrange
-            var dependency = new ClusterDependency { Name = "HiddenPackage", Version = new Version(1, 0, 0) };
+            var dependency = new ClusterDependency { Name = "HiddenPackage", Version = "1.0.0" };
             var design = CreateFunctionBlockDesign(Guid.NewGuid(), "HiddenDesign");
 
             var hiddenPackageContent = new PackageContent(
@@ -451,8 +451,8 @@ public class DesignProviderTests
         public async Task Should_handle_mixed_visible_and_hidden_packages()
         {
             // Arrange
-            var visibleDependency = new ClusterDependency { Name = "VisiblePackage", Version = new Version(1, 0, 0) };
-            var hiddenDependency = new ClusterDependency { Name = "HiddenPackage", Version = new Version(2, 0, 0) };
+            var visibleDependency = new ClusterDependency { Name = "VisiblePackage", Version = "1.0.0" };
+            var hiddenDependency = new ClusterDependency { Name = "HiddenPackage", Version = "2.0.0" };
 
             var visibleDesign = CreateFunctionBlockDesign(Guid.NewGuid(), "VisibleDesign");
             var hiddenDesign = CreateFunctionBlockDesign(Guid.NewGuid(), "HiddenDesign");

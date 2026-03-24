@@ -5,6 +5,7 @@ using System.Reflection;
 using AwesomeAssertions.Execution;
 using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.EngineHosts.Extensions;
+using ClusterManagement.Backend.Extensions;
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Backend.Tests.TestUtils;
 using ClusterManagement.Public.Designs;
@@ -25,7 +26,7 @@ using Sdk.Modules;
 using Sdk.SystemConfiguration;
 using Sdk.Testing;
 using Sdk.Testing.Backend;
-using ViciOne.Cluster.Builder;
+using ViciOne.Cluster.Builder.Abstractions;
 using ViciOne.Core.Dataflow.DataModel.Generation;
 using ViciOne.Core.Dataflow.Pooling;
 using Constants = ClusterManagement.Public.Constants;
@@ -126,7 +127,7 @@ internal sealed partial class ClusterSystemTestContext : IAsyncDisposable
             new (new ViciOne.Cluster.Model.ClusterDependency()
             {
                 Name = dummyFunctionBlockAssemblyName.Name!,
-                Version = dummyFunctionBlockAssemblyName.Version!,
+                Version = dummyFunctionBlockAssemblyName.Version!.ToVersionString(),
             }, [dummyFunctionBlockDesign,], []),
         ]));
     }

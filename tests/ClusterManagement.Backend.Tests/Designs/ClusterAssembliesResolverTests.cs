@@ -15,12 +15,12 @@ public class ClusterAssembliesResolver_GetPackages
             new()
             {
                 Name = "A",
-                Version = new Version("1.2.3"),
+                Version = "1.2.3",
             },
             new()
             {
                 Name = "B",
-                Version = new Version("2.0.0"),
+                Version = "2.0.0",
             },
         ];
         MockFileSystem fileSystem = new();

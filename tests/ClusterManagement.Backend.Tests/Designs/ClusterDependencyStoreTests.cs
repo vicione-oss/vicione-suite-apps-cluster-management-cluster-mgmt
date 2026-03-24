@@ -54,43 +54,46 @@ public class ClusterDependencyStoreTests
         [Fact]
         public void Should_build_package_version_map_for_stored_packages()
         {
-            // Arrange            
+            // Arrange
             var store = _services.GetRequiredService<IClusterDependencyStore>();
 
-            var package1 = new ClusterDependency { Name = "Test.Package1", Version = new Version(1, 0, 0) };
-            var package2 = new ClusterDependency { Name = "Test.Package2", Version = new Version(2, 2, 0) };
-            var package3 = new ClusterDependency { Name = "Test.Package3", Version = new Version(1, 0, 11) };
+            var package1 = new ClusterDependency { Name = "Test.Package1", Version = "1.0.0" };
+            var package2 = new ClusterDependency { Name = "Test.Package2", Version = "2.2.0" };
+            var package3 = new ClusterDependency { Name = "Test.Package3", Version = "1.0.11" };
+            var package4 = new ClusterDependency { Name = "Test.Package4", Version = "3.0.0-ci123456789" };
 
-            SetupStoredPackageVersions([package1, package2, package3]);
+            SetupStoredPackageVersions([package1, package2, package3, package4]);
 
             // Act
             var result = store.BuildStoredPackageVersionMap();
 
             // Assert
-            result.Should().HaveCount(3);
+            result.Should().HaveCount(4);
             result.Should().Contain(d => d.Key == package1.Name && d.Value.Any(v => v == package1.Version));
             result.Should().Contain(d => d.Key == package2.Name && d.Value.Any(v => v == package2.Version));
             result.Should().Contain(d => d.Key == package3.Name && d.Value.Any(v => v == package3.Version));
+            result.Should().Contain(d => d.Key == package4.Name && d.Value.Any(v => v == package4.Version));
         }
 
         [Fact]
         public void Should_allow_multiple_package_versions()
         {
-            // Arrange            
+            // Arrange
             var store = _services.GetRequiredService<IClusterDependencyStore>();
 
-            var package1 = new ClusterDependency { Name = "Test.Package1", Version = new Version(1, 0, 0) };
-            var package2 = new ClusterDependency { Name = "Test.Package1", Version = new Version(2, 2, 0) };
-            var package3 = new ClusterDependency { Name = "Test.Package1", Version = new Version(1, 0, 11) };
+            var package1 = new ClusterDependency { Name = "Test.Package1", Version = "1.0.0" };
+            var package2 = new ClusterDependency { Name = "Test.Package1", Version = "2.2.0" };
+            var package3 = new ClusterDependency { Name = "Test.Package1", Version = "1.0.11" };
+            var package4 = new ClusterDependency { Name = "Test.Package1", Version = "3.0.0-ci123456789" };
 
-            SetupStoredPackageVersions([package1, package2, package3]);
+            SetupStoredPackageVersions([package1, package2, package3, package4]);
 
             // Act
             var result = store.BuildStoredPackageVersionMap();
 
             // Assert
             result.Should().HaveCount(1);
-            result.Should().Contain(d => d.Key == package1.Name && d.Value.Count() == 3);
+            result.Should().Contain(d => d.Key == package1.Name && d.Value.Count() == 4);
         }
     }
 
@@ -99,21 +102,23 @@ public class ClusterDependencyStoreTests
         [Fact]
         public async Task Should_load_dependencies_from_packages_file()
         {
-            // Arrange            
+            // Arrange
             var store = _services.GetRequiredService<IClusterDependencyStore>();
 
             SetupPackagesFile([
-                new() { Name = "TestPackage1", Version = new Version(1, 0, 0) },
-                new() { Name = "TestPackage2", Version = new Version(2, 0, 0) }
+                new() { Name = "TestPackage1", Version = "1.0.0" },
+                new() { Name = "TestPackage2", Version = "2.0.0" },
+                new() { Name = "TestPackage3", Version = "3.0.0-ci123456789" }
             ]);
 
             // Act
             var result = await store.LoadDependencies(CancellationToken.None);
 
             // Assert
-            result.Should().HaveCount(2);
-            result.Should().Contain(d => d.Name == "TestPackage1" && d.Version == new Version(1, 0, 0));
-            result.Should().Contain(d => d.Name == "TestPackage2" && d.Version == new Version(2, 0, 0));
+            result.Should().HaveCount(3);
+            result.Should().Contain(d => d.Name == "TestPackage1" && d.Version == "1.0.0");
+            result.Should().Contain(d => d.Name == "TestPackage2" && d.Version == "2.0.0");
+            result.Should().Contain(d => d.Name == "TestPackage3" && d.Version == "3.0.0-ci123456789");
         }
 
         [Fact]
@@ -135,7 +140,7 @@ public class ClusterDependencyStoreTests
 
             var dependencies = new List<ClusterDependency>
             {
-                new() { Name = "EdgePackage", Version = new Version(1, 0, 0) }
+                new() { Name = "EdgePackage", Version = "1.0.0" }
             };
 
             var packagesFile = _fileSystem.Path.Combine(HomePath, $"{ClusterDependencyStore.PackagesFileName}.edge-s.{ClusterDependencyStore.PackagesFileExtension}");
@@ -160,7 +165,7 @@ public class ClusterDependencyStoreTests
         {
             // Arrange
             var store = _services.GetRequiredService<IClusterDependencyStore>();
-            var dependency = new ClusterDependency() { Name = "TestPackage", Version = new Version(1, 0, 0) };
+            var dependency = new ClusterDependency() { Name = "TestPackage", Version = "1.0.0" };
 
             SetupPackagesFile([]);
 
@@ -187,9 +192,9 @@ public class ClusterDependencyStoreTests
         {
             // Arrange
             var store = _services.GetRequiredService<IClusterDependencyStore>();
-            var queuedDependency = new ClusterDependency() { Name = "QueuedPackage", Version = new Version(1, 0, 0) };
-            var newDependency = new ClusterDependency() { Name = "NewPackage", Version = new Version(2, 0, 0) };
-            var otherDependency = new ClusterDependency() { Name = "OtherPackage", Version = new Version(1, 4, 2) };
+            var queuedDependency = new ClusterDependency() { Name = "QueuedPackage", Version = "1.0.0" };
+            var newDependency = new ClusterDependency() { Name = "NewPackage", Version = "2.0.0" };
+            var otherDependency = new ClusterDependency() { Name = "OtherPackage", Version = "1.4.2-ci235698741" };
 
             SetupPackagesFile([]);
 
@@ -222,8 +227,8 @@ public class ClusterDependencyStoreTests
         {
             // Arrange
             var store = _services.GetRequiredService<IClusterDependencyStore>();
-            var existingDependency = new ClusterDependency() { Name = "TestPackage", Version = new Version(1, 0, 0) };
-            var overwriteDependency = new ClusterDependency() { Name = "TestPackage", Version = new Version(2, 0, 0) };
+            var existingDependency = new ClusterDependency() { Name = "TestPackage", Version = "1.0.0" };
+            var overwriteDependency = new ClusterDependency() { Name = "TestPackage", Version = "2.0.0" };
 
             SetupPackagesFile([]);
 
@@ -268,7 +273,7 @@ public class ClusterDependencyStoreTests
         {
             // Arrange
             var store = _services.GetRequiredService<IClusterDependencyStore>();
-            var installedDependency = new ClusterDependency { Name = "TestPackage", Version = new Version(1, 0, 0) };
+            var installedDependency = new ClusterDependency { Name = "TestPackage", Version = "1.0.0" };
 
             SetupPackagesFile([installedDependency]);
 
@@ -294,8 +299,8 @@ public class ClusterDependencyStoreTests
         {
             // Arrange
             var store = _services.GetRequiredService<IClusterDependencyStore>();
-            var installedDependency = new ClusterDependency { Name = "TestPackage", Version = new Version(1, 0, 0) };
-            var deleteDependency = new ClusterDependency() { Name = "TestPackage", Version = new Version(2, 0, 0) };
+            var installedDependency = new ClusterDependency { Name = "TestPackage", Version = "1.0.0" };
+            var deleteDependency = new ClusterDependency() { Name = "TestPackage", Version = "2.0.0" };
 
             SetupPackagesFile([installedDependency]);
 
@@ -323,8 +328,8 @@ public class ClusterDependencyStoreTests
         {
             // Arrange
             var store = _services.GetRequiredService<IClusterDependencyStore>();
-            var existingDependency = new ClusterDependency() { Name = "ExistingPackage", Version = new Version(1, 0, 0) };
-            var newDependency = new ClusterDependency() { Name = "NewPackage", Version = new Version(2, 0, 0) };
+            var existingDependency = new ClusterDependency() { Name = "ExistingPackage", Version = "1.0.0" };
+            var newDependency = new ClusterDependency() { Name = "NewPackage", Version = "2.0.0" };
 
             var packagesFile = SetupPackagesFile([existingDependency]);
 
@@ -346,8 +351,8 @@ public class ClusterDependencyStoreTests
         {
             // Arrange
             var store = _services.GetRequiredService<IClusterDependencyStore>();
-            var existingDependency = new ClusterDependency() { Name = "TestPackage", Version = new Version(1, 0, 0) };
-            var updateDependency = new ClusterDependency() { Name = "TestPackage", Version = new Version(2, 0, 0) };
+            var existingDependency = new ClusterDependency() { Name = "TestPackage", Version = "1.0.0" };
+            var updateDependency = new ClusterDependency() { Name = "TestPackage", Version = "2.0.0" };
 
             var packagesFile = SetupPackagesFile([existingDependency]);
 
@@ -368,7 +373,7 @@ public class ClusterDependencyStoreTests
         {
             // Arrange
             var store = _services.GetRequiredService<IClusterDependencyStore>();
-            var existingDependency = new ClusterDependency() { Name = "TestPackage", Version = new Version(1, 0, 0) };
+            var existingDependency = new ClusterDependency() { Name = "TestPackage", Version = "1.0.0" };
             var packagesFile = SetupPackagesFile([existingDependency]);
 
             // Act
@@ -386,8 +391,8 @@ public class ClusterDependencyStoreTests
         {
             // Arrange
             var store = _services.GetRequiredService<IClusterDependencyStore>();
-            var existingDependency = new ClusterDependency() { Name = "TestPackage", Version = new Version(1, 0, 0) };
-            var toBeRemovedDependency = new ClusterDependency() { Name = "ToBeRemovedPackage", Version = new Version(1, 0, 0) };
+            var existingDependency = new ClusterDependency() { Name = "TestPackage", Version = "1.0.0" };
+            var toBeRemovedDependency = new ClusterDependency() { Name = "ToBeRemovedPackage", Version = "1.0.0" };
 
             var packagesFile = SetupPackagesFile([existingDependency, toBeRemovedDependency]);
 
@@ -408,8 +413,8 @@ public class ClusterDependencyStoreTests
         {
             // Arrange
             var store = _services.GetRequiredService<IClusterDependencyStore>();
-            var existingDependency = new ClusterDependency() { Name = "TestPackage", Version = new Version(1, 0, 0) };
-            var updateDependency = new ClusterDependency() { Name = "TestPackage", Version = new Version(2, 0, 0) };
+            var existingDependency = new ClusterDependency() { Name = "TestPackage", Version = "1.0.0" };
+            var updateDependency = new ClusterDependency() { Name = "TestPackage", Version = "2.0.0" };
 
             SetupPackagesFile([existingDependency]);
 

@@ -18,8 +18,8 @@ public sealed class ClusterImportResultVersionItem : ClusterImportResultItem
 
 public sealed class ClusterImportResultVersion : ClusterImportResultItem
 {
-    public required Version CurrentVersion { get; set; }
-    public required Version ImportVersion { get; set; }
+    public required string CurrentVersion { get; set; }
+    public required string ImportVersion { get; set; }
 
     public required string PackageName { get; set; }
 }

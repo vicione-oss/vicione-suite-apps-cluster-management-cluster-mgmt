@@ -32,7 +32,7 @@ public interface IPackageArtifactRepository
     /// <returns>
     /// A task that returns an <see cref="HttpLoaderResult"/> representing the result of the download and extraction operation.
     /// </returns>
-    Task<HttpLoaderResult> DownloadAndExtract(string functionBlockName, Version version, CancellationToken cancellationToken = default);
+    Task<HttpLoaderResult> DownloadAndExtract(string functionBlockName, string version, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Queries the latest ZIP package artifact for the specified core version.

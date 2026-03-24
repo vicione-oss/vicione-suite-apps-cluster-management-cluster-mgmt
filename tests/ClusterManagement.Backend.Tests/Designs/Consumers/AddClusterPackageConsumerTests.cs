@@ -35,7 +35,7 @@ public class AddClusterPackageConsumerTests
         await using var tester = new MassTransitTester(_configureServices);
         var zipData = new byte[] { 0x50, 0x4B, 0x03, 0x04 }; // ZIP file signature
         var command = new AddClusterPackage(zipData);
-        var dependency = new ClusterDependency { Name = "TestPackage", Version = new Version(1, 0, 0) };
+        var dependency = new ClusterDependency { Name = "TestPackage", Version = "1.0.0" };
 
         _packageStore.StorePackage(Arg.Is<byte[]>(data => data.SequenceEqual(zipData)), true, Arg.Any<CancellationToken>())
             .Returns(dependency);
@@ -55,7 +55,7 @@ public class AddClusterPackageConsumerTests
         await using var tester = new MassTransitTester(_configureServices);
         var zipData = new byte[] { 0x50, 0x4B, 0x03, 0x04 }; // ZIP file signature
         var command = new AddClusterPackage(zipData);
-        var dependency = new ClusterDependency { Name = "MyPackage", Version = new Version(2, 1, 3) };
+        var dependency = new ClusterDependency { Name = "MyPackage", Version = "2.1.3" };
 
         _packageStore.StorePackage(Arg.Is<byte[]>(data => data.SequenceEqual(zipData)), true, Arg.Any<CancellationToken>())
             .Returns(dependency);
@@ -76,7 +76,7 @@ public class AddClusterPackageConsumerTests
         await using var tester = new MassTransitTester(_configureServices);
         var zipData = new byte[] { 0x50, 0x4B, 0x03, 0x04, 0x01, 0x02, 0x03 };
         var command = new AddClusterPackage(zipData);
-        var dependency = new ClusterDependency { Name = "PackageA", Version = new Version(1, 0, 0) };
+        var dependency = new ClusterDependency { Name = "PackageA", Version = "1.0.0" };
 
         _packageStore.StorePackage(Arg.Is<byte[]>(data => data.SequenceEqual(zipData)), true, Arg.Any<CancellationToken>())
             .Returns(dependency);

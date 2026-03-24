@@ -31,25 +31,25 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
     private readonly ClusterDependency _chocolate = new()
     {
         Name = "Chocolate",
-        Version = new Version(1, 0, 0)
+        Version = "1.0.0"
     };
 
     private readonly ClusterDependency _cheese = new()
     {
         Name = "Cheese",
-        Version = new Version(0, 4, 7)
+        Version = "0.4.7"
     };
 
     private readonly ClusterDependency _cake = new()
     {
         Name = "Cake",
-        Version = new Version(2, 1, 3)
+        Version = "2.1.3"
     };
 
     public PackageInfoProviderTests()
     {
         _dependencyStore.BuildStoredPackageVersionMap()
-            .Returns(new Dictionary<string, IEnumerable<Version>>());
+            .Returns(new Dictionary<string, IEnumerable<string>>());
     }
 
     public sealed class GetClusterPackageInfos : PackageInfoProviderTests
@@ -127,8 +127,8 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
 
             _dependencyStore.GetEnqueuedOperations(Arg.Any<CancellationToken>())
                 .Returns([
-                    new(new ClusterDependency { Name = "New.Block", Version = new Version(1,0,0)}, ClusterDependencyOperationKind.Install),
-                    new(new ClusterDependency { Name = _chocolate.Name, Version = new Version(1,1,0)}, ClusterDependencyOperationKind.Install),
+                    new(new ClusterDependency { Name = "New.Block", Version = "1.0.0"}, ClusterDependencyOperationKind.Install),
+                    new(new ClusterDependency { Name = _chocolate.Name, Version = "1.1.0"}, ClusterDependencyOperationKind.Install),
                     new(new ClusterDependency { Name = _cheese.Name, Version = _cheese.Version}, ClusterDependencyOperationKind.Uninstall)
                 ]);
 
@@ -141,12 +141,12 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
 
             result.Should().Contain(k => k.Name == "New.Block"
                 && k.PendingOperation != null
-                && k.PendingOperation.Dependency.Version == new Version(1, 0, 0)
+                && k.PendingOperation.Dependency.Version == "1.0.0"
                 && k.PendingOperation.OperationKind == ClusterDependencyOperationKind.Install);
 
             result.Should().Contain(k => k.Name == _chocolate.Name
                 && k.PendingOperation != null
-                && k.PendingOperation.Dependency.Version == new Version(1, 1, 0)
+                && k.PendingOperation.Dependency.Version == "1.1.0"
                 && k.PendingOperation.OperationKind == ClusterDependencyOperationKind.Install);
 
             result.Should().Contain(k => k.Name == _cheese.Name
@@ -170,8 +170,8 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
 
             _dependencyStore.GetEnqueuedOperations(Arg.Any<CancellationToken>())
                 .Returns([
-                    new(new ClusterDependency { Name = "New.Block", Version = new Version(1,0,0)}, ClusterDependencyOperationKind.Install),
-                    new(new ClusterDependency { Name = _chocolate.Name, Version = new Version(1,1,0)}, ClusterDependencyOperationKind.Install),
+                    new(new ClusterDependency { Name = "New.Block", Version = "1.0.0"}, ClusterDependencyOperationKind.Install),
+                    new(new ClusterDependency { Name = _chocolate.Name, Version = "1.1.0"}, ClusterDependencyOperationKind.Install),
                     new(new ClusterDependency { Name = _cheese.Name, Version = _cheese.Version}, ClusterDependencyOperationKind.Uninstall)
                 ]);
 
@@ -190,10 +190,10 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
             _packageContentProvider.GetPackageContents().Returns(new Dictionary<ClusterDependency, PackageContent>());
 
             _dependencyStore.BuildStoredPackageVersionMap()
-                .Returns(new Dictionary<string, IEnumerable<Version>>
+                .Returns(new Dictionary<string, IEnumerable<string>>
                 {
-                    {"Local.Package.One", [new Version(0,9,0), new Version(1,0,0)] },
-                    {"Local.Package.Two", [new Version(1,3,1), new Version(1,3,5), new Version(1,7,7)] },
+                    {"Local.Package.One", ["0.9.0", "1.0.0"] },
+                    {"Local.Package.Two", ["1.3.1", "1.3.5", "1.7.7"] },
                 });
 
             // Act
@@ -218,10 +218,10 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
             var requestPackage = "Local.Package.One";
 
             _dependencyStore.BuildStoredPackageVersionMap()
-                .Returns(new Dictionary<string, IEnumerable<Version>>
+                .Returns(new Dictionary<string, IEnumerable<string>>
                 {
-                    {requestPackage, [new Version(0,9,0), new Version(1,0,0)] },
-                    {"Local.Package.Two", [new Version(1,3,1), new Version(1,3,5), new Version(1,7,7)] },
+                    {requestPackage, ["0.9.0", "1.0.0"] },
+                    {"Local.Package.Two", ["1.3.1", "1.3.5", "1.7.7"] },
                 });
 
             // Act
@@ -245,11 +245,11 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
                 .Returns([chocolate, cheese]);
 
             _dependencyStore.BuildStoredPackageVersionMap()
-                .Returns(new Dictionary<string, IEnumerable<Version>>
+                .Returns(new Dictionary<string, IEnumerable<string>>
                 {
-                    {"Local.Package.One", [new Version(0,9,0), new Version(1,0,0)] },
-                    {"Local.Package.Two", [new Version(1,3,1), new Version(1,3,5)] },
-                    {"Local.Package.Three", [new Version(2,5,3), new Version(1,8,2)] },
+                    {"Local.Package.One", ["0.9.0", "1.0.0"] },
+                    {"Local.Package.Two", ["1.3.1", "1.3.5"] },
+                    {"Local.Package.Three", ["2.5.3", "1.8.2"] },
                 });
 
             // Act
@@ -318,8 +318,8 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
             var provider = CreateProvider();
             _packageContentProvider.GetPackageContents().Returns(new Dictionary<ClusterDependency, PackageContent>());
 
-            var chocolate = CreateArtifact(_chocolate, new Version(1, 0, 3));
-            var chocolateRe = CreateArtifact(_chocolate, new Version(1, 0, 2), DateTimeOffset.UtcNow.Subtract(TimeSpan.FromDays(5)));
+            var chocolate = CreateArtifact(_chocolate, "1.0.3");
+            var chocolateRe = CreateArtifact(_chocolate, "1.0.2", DateTimeOffset.UtcNow.Subtract(TimeSpan.FromDays(5)));
 
             _repository.QueryMetadataArtifacts(Arg.Any<SemVersion>(), null, Arg.Any<CancellationToken>())
                 .Returns([chocolate, chocolateRe]);
@@ -342,9 +342,9 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
 
             SetupPackageContents([_chocolate]);
 
-            var chocolate = CreateArtifact(_chocolate, new Version(1, 0, 3));
-            var chocolate2 = CreateArtifact(_chocolate, new Version(1, 0, 2), DateTimeOffset.UtcNow.Subtract(TimeSpan.FromDays(5)));
-            var chocolateOld = CreateArtifact(_chocolate, new Version(1, 0, 1), DateTimeOffset.UtcNow.Subtract(TimeSpan.FromDays(15)));
+            var chocolate = CreateArtifact(_chocolate, "1.0.3");
+            var chocolate2 = CreateArtifact(_chocolate, "1.0.2", DateTimeOffset.UtcNow.Subtract(TimeSpan.FromDays(5)));
+            var chocolateOld = CreateArtifact(_chocolate, "1.0.1", DateTimeOffset.UtcNow.Subtract(TimeSpan.FromDays(15)));
 
             _repository.QueryMetadataArtifacts(Arg.Any<SemVersion>(), null, Arg.Any<CancellationToken>())
                 .Returns([chocolate, chocolate2, chocolateOld]);
@@ -384,14 +384,14 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
             var provider = CreateProvider();
             _packageContentProvider.GetPackageContents().Returns(new Dictionary<ClusterDependency, PackageContent>());
 
-            var v100 = CreateArtifact(_chocolate, new Version(1, 0, 0));
+            var v100 = CreateArtifact(_chocolate, "1.0.0");
             _repository.QueryMetadataArtifacts(Arg.Any<SemVersion>(), null, Arg.Any<CancellationToken>())
                 .Returns([v100]);
 
             _dependencyStore.BuildStoredPackageVersionMap()
-                .Returns(new Dictionary<string, IEnumerable<Version>>
+                .Returns(new Dictionary<string, IEnumerable<string>>
                 {
-                    { _chocolate.Name, [new Version(1, 0, 0), new Version(1, 1, 0)] }
+                    { _chocolate.Name, ["1.0.0", "1.1.0"] }
                 });
 
             // Act
@@ -410,15 +410,15 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
             var provider = CreateProvider();
             _packageContentProvider.GetPackageContents().Returns(new Dictionary<ClusterDependency, PackageContent>());
 
-            var v100 = CreateArtifact(_chocolate, new Version(1, 0, 0));
-            var v200 = CreateArtifact(_chocolate, new Version(2, 0, 0));
+            var v100 = CreateArtifact(_chocolate, "1.0.0");
+            var v200 = CreateArtifact(_chocolate, "2.0.0");
             _repository.QueryMetadataArtifacts(Arg.Any<SemVersion>(), null, Arg.Any<CancellationToken>())
                 .Returns([v100, v200]);
 
             _dependencyStore.BuildStoredPackageVersionMap()
-                .Returns(new Dictionary<string, IEnumerable<Version>>
+                .Returns(new Dictionary<string, IEnumerable<string>>
                 {
-                    { _chocolate.Name, [new Version(1, 1, 0)] }
+                    { _chocolate.Name, ["1.1.0"] }
                 });
 
             // Act
@@ -439,9 +439,9 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
 
             _dependencyStore.LoadDependencies(Arg.Any<CancellationToken>()).Returns([_chocolate]);
 
-            var v100 = CreateArtifact(_chocolate, new Version(1, 0, 0));
-            var v110 = CreateArtifact(_chocolate, new Version(1, 1, 0));
-            var v200 = CreateArtifact(_chocolate, new Version(2, 0, 0));
+            var v100 = CreateArtifact(_chocolate, "1.0.0");
+            var v110 = CreateArtifact(_chocolate, "1.1.0");
+            var v200 = CreateArtifact(_chocolate, "2.0.0");
 
             _repository.QueryMetadataArtifacts(Arg.Any<SemVersion>(), null, Arg.Any<CancellationToken>())
                 .Returns([v100, v110, v200]);
@@ -521,7 +521,7 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
             _logger);
     }
 
-    private IArtifact CreateArtifact(ClusterDependency dependency, Version? versionOverride = null, DateTimeOffset? modified = null)
+    private IArtifact CreateArtifact(ClusterDependency dependency, string? versionOverride = null, DateTimeOffset? modified = null)
     {
         modified ??= DateTimeOffset.UtcNow;
 

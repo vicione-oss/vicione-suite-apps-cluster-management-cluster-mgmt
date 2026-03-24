@@ -86,7 +86,7 @@ public class PackageServiceTests
 
     public sealed class UpdatePackagesTests : PackageServiceTests
     {
-        private readonly ClusterDependency _dependency = new() { Name = "ViciOne.Test.Fb", Version = new Version("1.2.0") };
+        private readonly ClusterDependency _dependency = new() { Name = "ViciOne.Test.Fb", Version = "1.2.0" };
 
         [Fact]
         public async Task Should_send_create_command_and_return_success()

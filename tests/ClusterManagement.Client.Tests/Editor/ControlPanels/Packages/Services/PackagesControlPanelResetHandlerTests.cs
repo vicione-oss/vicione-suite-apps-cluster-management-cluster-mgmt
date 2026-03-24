@@ -14,13 +14,13 @@ public sealed class PackagesControlPanelResetHandlerTests
     private readonly ClusterDependency _dependency = new()
     {
         Name = "ViciOne.TestPackage",
-        Version = new Version("1.4.0")
+        Version = "1.4.0"
     };
 
     private readonly ClusterDependency _anotherDependency = new()
     {
         Name = "ViciOne.OtherPackage",
-        Version = new Version("2.1.17")
+        Version = "2.1.17"
     };
 
     private ServiceProvider SetupServiceProvider()

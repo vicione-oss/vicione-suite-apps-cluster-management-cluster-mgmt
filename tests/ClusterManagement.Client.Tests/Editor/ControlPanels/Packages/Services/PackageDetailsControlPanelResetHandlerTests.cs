@@ -11,7 +11,7 @@ public sealed class PackageDetailsControlPanelResetHandlerTests
     private readonly ClusterDependency _dependency = new ClusterDependency
     {
         Name = "ViciOne.TestPackage",
-        Version = new Version("1.4.0")
+        Version = "1.4.0"
     };
 
     private ServiceProvider SetupServiceProvider()
@@ -30,7 +30,7 @@ public sealed class PackageDetailsControlPanelResetHandlerTests
         var packageInfo = new ClusterPackageInfo
         {
             Name = _dependency.Name,
-            PendingOperation = new ClusterDependencyOperation(_dependency , ClusterDependencyOperationKind.Install)
+            PendingOperation = new ClusterDependencyOperation(_dependency, ClusterDependencyOperationKind.Install)
         };
 
         var state = new PackageDetailsControlPanelState()

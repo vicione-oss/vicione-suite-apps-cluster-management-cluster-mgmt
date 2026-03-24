@@ -40,7 +40,7 @@ public sealed partial class ClusterEditorPage
 
     [Inject] private ExportClusterService ExportService { get; set; } = default!;
 
-    [Inject] private IDataManagementService DataManagementService { get; set; } = default!;
+    [Inject] private IClusterEditorManagement ClusterEditorManagement { get; set; } = default!;
 
     [Inject] private ClusterWizardDialogService WizardDialogService { get; set; } = default!;
 
@@ -65,10 +65,10 @@ public sealed partial class ClusterEditorPage
         LoadService.ClusterLoaded -= OnClusterLoaded;
         SaveService.ClusterChanged -= OnClusterChanged;
 
-        DataManagementService.ExportRequested -= OnExportRequested;
-        DataManagementService.ImportRequested -= OnImportRequested;
-        DataManagementService.SaveRequested -= SaveService.SaveRequested;
-        DataManagementService.LoadFunctionBlockDesignsRequested -= OnLoadFunctionBlockDesignsRequested;
+        ClusterEditorManagement.ExportRequested -= OnExportRequested;
+        ClusterEditorManagement.ImportRequested -= OnImportRequested;
+        ClusterEditorManagement.SaveRequested -= SaveService.SaveRequested;
+        ClusterEditorManagement.LoadFunctionBlockDesignsRequested -= OnLoadFunctionBlockDesignsRequested;
 
         LayoutService.IsLoadingOverlayVisible = false;
 
@@ -108,10 +108,10 @@ public sealed partial class ClusterEditorPage
         // will only be triggered for save executed by ourselves
         SaveService.ClusterChanged += OnClusterChanged;
 
-        DataManagementService.ExportRequested += OnExportRequested;
-        DataManagementService.ImportRequested += OnImportRequested;
-        DataManagementService.SaveRequested += SaveService.SaveRequested;
-        DataManagementService.LoadFunctionBlockDesignsRequested += OnLoadFunctionBlockDesignsRequested;
+        ClusterEditorManagement.ExportRequested += OnExportRequested;
+        ClusterEditorManagement.ImportRequested += OnImportRequested;
+        ClusterEditorManagement.SaveRequested += SaveService.SaveRequested;
+        ClusterEditorManagement.LoadFunctionBlockDesignsRequested += OnLoadFunctionBlockDesignsRequested;
 
         await LoadService.TryLoadLatestVersion();
 

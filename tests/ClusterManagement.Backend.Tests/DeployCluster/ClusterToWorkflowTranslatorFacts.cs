@@ -258,14 +258,14 @@ public class ClusterToWorkflowTranslatorFacts
                             new()
                             {
                                 DesignId = mySetting.Output.DesignId,
-                                InitialValue = TypedObject.CreateOptional(TimeSpan.Zero),
+                                InitialValue = new(typeof(TimeSpan).AssemblyQualifiedName!, "\"21:01:23\""),
                                 MarkAsChangedOnlyIfNotEqual = true,
                                 Id = mySetting.Output.Id,
                             },
                             new()
                             {
                                 DesignId = myOutputSystemConnector.DesignId,
-                                InitialValue = TypedObject.CreateOptional(false),
+                                InitialValue = new(typeof(bool).AssemblyQualifiedName!, "true"),
                                 MarkAsChangedOnlyIfNotEqual = true,
                                 Id = myOutputSystemConnector.Id,
                             },

@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sdk.Testing.Client;
 using ViciOne.Cluster.Builder;
+using ViciOne.Cluster.Builder.Abstractions;
 
 namespace ClusterManagement.Client.Tests.Editor.Dialogs;
 

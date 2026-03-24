@@ -18,7 +18,7 @@ public sealed class PackageDetailsControlPanelSaveHandlerTests
     private readonly ClusterDependency _dependency = new()
     {
         Name = "TestPackage",
-        Version = new Version("1.4.0")
+        Version = "1.4.0"
     };
 
     private ServiceProvider SetupServiceProvider()
@@ -73,7 +73,7 @@ public sealed class PackageDetailsControlPanelSaveHandlerTests
         result.Should().BeOfType<SaveSuccessResult>();
         await _packageService.Received(1).UpdatePackages(
             Arg.Is<List<ClusterDependencyOperation>>(x => x.Any(k => k.Dependency.Name == _dependency.Name
-            && k.Dependency.Version == new Version(state.VersionToInstall))), Arg.Any<CancellationToken>());
+            && k.Dependency.Version == state.VersionToInstall)), Arg.Any<CancellationToken>());
     }
 
     [Fact]

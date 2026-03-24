@@ -84,7 +84,7 @@ public sealed class PackagesControlPanelState : ControlPanelState
             var dependency = new ClusterDependency
             {
                 Name = item.Name,
-                Version = Version.Parse(item.Versions!.First().Version),
+                Version = item.Versions!.First().Version,
             };
 
             InstallOperations.Add(new ClusterDependencyOperation(dependency, ClusterDependencyOperationKind.Install));
@@ -105,7 +105,7 @@ public sealed class PackagesControlPanelState : ControlPanelState
             var dependecy = new ClusterDependency
             {
                 Name = item.Name,
-                Version = Version.Parse(item.InstalledVersion),
+                Version = item.InstalledVersion,
             };
 
             UninstallOperations.Add(new ClusterDependencyOperation(dependecy, ClusterDependencyOperationKind.Uninstall));

@@ -1,5 +1,5 @@
-﻿using ClusterManagement.Public;
-using AwesomeAssertions;
+﻿using AwesomeAssertions;
+using ClusterManagement.Public;
 using ViciOne.Cluster.Builder;
 using ViciOne.Cluster.Model;
 
@@ -109,8 +109,8 @@ public static class ClusterBuilderExtensions
                 options => options.Excluding(c => c.Engines));
 
     private static void EnginesShouldBeEquivalent(this ClusterBuilder builder, ClusterBuilder compareTo)
-        => builder.Cache.EngineGuids.Values.Should()
-            .BeEquivalentTo(compareTo.Cache.EngineGuids.Values);
+        => builder.Cache.EngineIds.Values.Should()
+            .BeEquivalentTo(compareTo.Cache.EngineIds.Values);
 
     private static void DataPortsShouldBeEquivalent(this ClusterBuilder builder, ClusterBuilder compareTo)
         => builder.Cache.DataPorts.Should()

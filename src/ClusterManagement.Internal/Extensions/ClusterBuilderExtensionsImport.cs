@@ -1,5 +1,6 @@
 ﻿using System.Drawing;
 using ClusterManagement.Internal.Contracts;
+using Semver;
 using ViciOne.Cluster.Builder;
 using ViciOne.Cluster.Model;
 using ViciOne.Cluster.Model.Extensions;
@@ -57,13 +58,16 @@ public static class ClusterBuilderExtensionsImport
                 continue;
             }
 
-            var existingVersion = builder.Cache.ClusterDependencies.FirstOrDefault(k => k.Name == dependency.Name);
-            if (existingVersion is not null)
+            var existingDependency = builder.Cache.ClusterDependencies.FirstOrDefault(k => k.Name == dependency.Name);
+            if (existingDependency is not null)
             {
                 // import cluster has a higher version - should we support it?!
-                if (existingVersion.Version < dependency.Version)
+                var existingDependencyVersion = SemVersion.Parse(existingDependency.Version, SemVersionStyles.Strict);
+                var otherDependencyVersion = SemVersion.Parse(dependency.Version, SemVersionStyles.Strict);
+
+                if (otherDependencyVersion.CompareSortOrderTo(existingDependencyVersion) == 1) // 1 means other version is higher than existing version
                 {
-                    resultItem.Errors.Add($"Cluster dependency {dependency.Name} downgrade from {dependency.Version} to {existingVersion.Version} is not supported.");
+                    resultItem.Errors.Add($"Cluster dependency {dependency.Name} downgrade from {dependency.Version} to {existingDependency.Version} is not supported.");
                     resultItem.Skipped++;
                     continue;
                 }
@@ -72,7 +76,7 @@ public static class ClusterBuilderExtensionsImport
                 resultItem.Versions.Add(new ClusterImportResultVersion
                 {
                     ImportVersion = dependency.Version,
-                    CurrentVersion = existingVersion.Version,
+                    CurrentVersion = existingDependency.Version,
                     PackageName = dependency.Name
                 });
 
@@ -283,7 +287,7 @@ public static class ClusterBuilderExtensionsImport
 
     private static Engine GetOrCreateEngine(this ClusterBuilder builder, EngineHost engineHost, Engine engine, ClusterImportResultItem resultItem)
     {
-        if (builder.Cache.EngineGuids.TryGetValue(engine.Id, out var cached))
+        if (builder.Cache.EngineIds.TryGetValue(engine.Id, out var cached))
         {
             resultItem.Skipped++;
             return cached;
@@ -357,7 +361,7 @@ public static class ClusterBuilderExtensionsImport
     private static void GetOrCreateContainerConnector(this ClusterBuilder builder, ContainerConnector other, ClusterImportResultItem resultItem)
     {
         var existing = builder.Cache.ContainerConnectors.FirstOrDefault(k => k.Id == other.Id);
-        if (existing is not null || !builder.Cache.ConnectorGuids.TryGetValue(other.ConnectorId, out var connector))
+        if (existing is not null || !builder.Cache.ConnectorIds.TryGetValue(other.ConnectorId, out var connector))
         {
             resultItem.Skipped++;
             return;
@@ -393,7 +397,7 @@ public static class ClusterBuilderExtensionsImport
 
     private static Container GetOrCreateContainer(this ClusterBuilder builder, Container parent, ChildContainer other, ClusterImportResultItem resultItem)
     {
-        if (builder.Cache.ContainerGuids.TryGetValue(other.Id, out var existing))
+        if (builder.Cache.ContainerIds.TryGetValue(other.Id, out var existing))
         {
             resultItem.Skipped++;
             return existing;
@@ -414,7 +418,7 @@ public static class ClusterBuilderExtensionsImport
 
     private static FunctionBlock GetOrCreateFunctionBlock(this ClusterBuilder builder, Container container, FunctionBlock functionBlock, ClusterImportResultItem resultItem)
     {
-        if (builder.Cache.FunctionBlockGuids.TryGetValue(functionBlock.Id, out var existing))
+        if (builder.Cache.FunctionBlockIds.TryGetValue(functionBlock.Id, out var existing))
         {
             resultItem.Skipped++;
             return existing;
@@ -443,7 +447,7 @@ public static class ClusterBuilderExtensionsImport
         }
 
         // engine is already created so we can assign it
-        if (functionBlock.EngineId.HasValue && builder.Cache.EngineGuids.TryGetValue(functionBlock.EngineId.Value, out var engine))
+        if (functionBlock.EngineId.HasValue && builder.Cache.EngineIds.TryGetValue(functionBlock.EngineId.Value, out var engine))
         {
             builder.Editors.FunctionBlock.AssignEngine(engine, created);
         }
@@ -463,7 +467,7 @@ public static class ClusterBuilderExtensionsImport
 
     private static DataPort GetOrCreateDataPort(this ClusterBuilder builder, Dataflow dataflow, DataPort dataPort, ClusterImportOptions options, ClusterImportResult result)
     {
-        if (builder.Cache.DataPortGuids.TryGetValue(dataPort.Id, out var existing))
+        if (builder.Cache.DataPortIds.TryGetValue(dataPort.Id, out var existing))
         {
             // we don't touch the DataPortTreeNodes of existing DataPort but we could...
             result.DataPorts.Skipped++;
@@ -476,7 +480,7 @@ public static class ClusterBuilderExtensionsImport
         builder.Editors.DataPort.SetDescription(addedDataPort, dataPort.Description);
         builder.Editors.DataPort.SetIcon(addedDataPort, dataPort.Icon);
 
-        if (dataPort.EngineId is not null && builder.Cache.EngineGuids.TryGetValue(dataPort.EngineId.Value, out var engine))
+        if (dataPort.EngineId is not null && builder.Cache.EngineIds.TryGetValue(dataPort.EngineId.Value, out var engine))
         {
             builder.Editors.DataPort.AssignEngine(engine, addedDataPort);
         }
@@ -484,7 +488,7 @@ public static class ClusterBuilderExtensionsImport
         // we add only not existing properties - we could also update existing
         foreach (var property in dataPort.Properties)
         {
-            if (builder.Cache.DataPortPropertyGuids.ContainsKey(property.Id))
+            if (builder.Cache.DataPortPropertyIds.ContainsKey(property.Id))
             {
                 result.DataPortProperties.Skipped++;
                 continue;
@@ -500,7 +504,7 @@ public static class ClusterBuilderExtensionsImport
         // we add not existing DataPortTreeNodes - links will be added after everything else is added
         foreach (var rootNode in dataPort.TreeNodes)
         {
-            if (builder.Cache.DataPortTreeNodeGuids.ContainsKey(rootNode.Id))
+            if (builder.Cache.DataPortTreeNodeIds.ContainsKey(rootNode.Id))
             {
                 result.DataPortTreeNodes.Skipped++;
                 continue;
@@ -531,7 +535,7 @@ public static class ClusterBuilderExtensionsImport
 
     private static DataPortTreeNode GetOrCreateDataPortTreeNode(this ClusterBuilder builder, DataPortTreeNode targetParent, DataPortTreeNode node, ClusterImportResult result)
     {
-        if (builder.Cache.DataPortTreeNodeGuids.TryGetValue(node.Id, out var existing))
+        if (builder.Cache.DataPortTreeNodeIds.TryGetValue(node.Id, out var existing))
         {
             result.DataPortTreeNodes.Skipped++;
             return existing;
@@ -558,7 +562,7 @@ public static class ClusterBuilderExtensionsImport
 
     private static void AddOrSkipDataPortProperty(this ClusterBuilder builder, DataPortTreeNode node, DataPortProperty property, ClusterImportResultItem resultItem)
     {
-        if (builder.Cache.DataPortPropertyGuids.ContainsKey(property.Id))
+        if (builder.Cache.DataPortPropertyIds.ContainsKey(property.Id))
         {
             resultItem.Skipped++;
             return;
@@ -570,7 +574,7 @@ public static class ClusterBuilderExtensionsImport
 
     private static Label GetOrCreateLabel(this ClusterBuilder builder, Container container, Label label, ClusterImportResultItem resultItem)
     {
-        if (builder.Cache.LabelGuids.TryGetValue(label.Id, out var existing))
+        if (builder.Cache.LabelIds.TryGetValue(label.Id, out var existing))
         {
             resultItem.Skipped++;
             return existing;
@@ -634,12 +638,12 @@ public static class ClusterBuilderExtensionsImport
 
         foreach (var connector in otherConnectors)
         {
-            if (!builder.Cache.ConnectorGuids.TryGetValue(other.ConnectorId, out var cacheConnector))
+            if (!builder.Cache.ConnectorIds.TryGetValue(other.ConnectorId, out var cacheConnector))
                 continue;
 
             foreach (var link in connector.Links)
             {
-                if (builder.Cache.LinkGuids.ContainsKey(link.Id))
+                if (builder.Cache.LinkIds.ContainsKey(link.Id))
                 {
                     resultItem.Skipped++;
                     continue;
@@ -647,7 +651,7 @@ public static class ClusterBuilderExtensionsImport
 
                 if (cacheConnector is IConnectorInput && cacheContainerConnector is ContainerConnectorInput containerInput)
                 {
-                    if (link.SourceConnectorId.HasValue && builder.Cache.ConnectorGuids.TryGetValue(link.SourceConnectorId.Value, out var srcConnector))
+                    if (link.SourceConnectorId.HasValue && builder.Cache.ConnectorIds.TryGetValue(link.SourceConnectorId.Value, out var srcConnector))
                     {
                         TryAndLog(() =>
                         {
@@ -655,11 +659,11 @@ public static class ClusterBuilderExtensionsImport
                             resultItem.Added++;
                         }, resultItem);
                     }
-                    else if (link.SourceDataPortTreeNodeId.HasValue && builder.Cache.DataPortTreeNodeGuids.TryGetValue(link.SourceDataPortTreeNodeId.Value, out var treeNode))
+                    else if (link.SourceDataPortTreeNodeId.HasValue && builder.Cache.DataPortTreeNodeIds.TryGetValue(link.SourceDataPortTreeNodeId.Value, out var treeNode))
                     {
                         TryAndLog(() =>
                         {
-                            builder.Editors.DataPortTreeNode.AssignConnector(treeNode, cacheConnector, id: link.Id);
+                            builder.Editors.DataPortTreeNode.AssignConnector(treeNode, cacheConnector.GetUnderlyingConnector(), id: link.Id);
                             resultItem.Added++;
                         }, resultItem);
                         continue;
@@ -667,11 +671,11 @@ public static class ClusterBuilderExtensionsImport
                 }
                 else if (cacheConnector is IConnectorOutput && cacheContainerConnector is ContainerConnectorOutput)
                 {
-                    if (link.DestinationDataPortTreeNode is not null && builder.Cache.DataPortTreeNodeGuids.TryGetValue(link.DestinationDataPortTreeNode.Id, out var treeNode))
+                    if (link.DestinationDataPortTreeNode is not null && builder.Cache.DataPortTreeNodeIds.TryGetValue(link.DestinationDataPortTreeNode.Id, out var treeNode))
                     {
                         TryAndLog(() =>
                         {
-                            builder.Editors.DataPortTreeNode.AssignConnector(treeNode, cacheConnector, id: link.Id);
+                            builder.Editors.DataPortTreeNode.AssignConnector(treeNode, cacheConnector.GetUnderlyingConnector(), id: link.Id);
                             resultItem.Added++;
                         }, resultItem);
                     }
@@ -683,12 +687,12 @@ public static class ClusterBuilderExtensionsImport
     private static void MigrateConnectorLinks(this ClusterBuilder builder, Connector other, ClusterImportResultItem resultItem)
     {
         // we need to use the builder tree node to assign the connector
-        if (!builder.Cache.ConnectorGuids.TryGetValue(other.Id, out var cacheConnector))
+        if (!builder.Cache.ConnectorIds.TryGetValue(other.Id, out var cacheConnector))
             return;
 
         foreach (var link in other.Links)
         {
-            if (builder.Cache.LinkGuids.ContainsKey(link.Id))
+            if (builder.Cache.LinkIds.ContainsKey(link.Id))
             {
                 resultItem.Skipped++;
                 continue;
@@ -696,7 +700,7 @@ public static class ClusterBuilderExtensionsImport
 
             if (cacheConnector is IConnectorInput inputConnector)
             {
-                if (link.SourceConnectorId.HasValue && builder.Cache.ConnectorGuids.TryGetValue(link.SourceConnectorId.Value, out var srcConnector))
+                if (link.SourceConnectorId.HasValue && builder.Cache.ConnectorIds.TryGetValue(link.SourceConnectorId.Value, out var srcConnector))
                 {
                     TryAndLog(() =>
                     {
@@ -704,22 +708,22 @@ public static class ClusterBuilderExtensionsImport
                         resultItem.Added++;
                     }, resultItem);
                 }
-                else if (link.SourceDataPortTreeNodeId.HasValue && builder.Cache.DataPortTreeNodeGuids.TryGetValue(link.SourceDataPortTreeNodeId.Value, out var treeNode))
+                else if (link.SourceDataPortTreeNodeId.HasValue && builder.Cache.DataPortTreeNodeIds.TryGetValue(link.SourceDataPortTreeNodeId.Value, out var treeNode))
                 {
                     TryAndLog(() =>
                     {
-                        builder.Editors.DataPortTreeNode.AssignConnector(treeNode, cacheConnector, id: link.Id);
+                        builder.Editors.DataPortTreeNode.AssignConnector(treeNode, cacheConnector.GetUnderlyingConnector(), id: link.Id);
                         resultItem.Added++;
                     }, resultItem);
                 }
             }
             else if (cacheConnector is IConnectorOutput)
             {
-                if (link.DestinationDataPortTreeNode is not null && builder.Cache.DataPortTreeNodeGuids.TryGetValue(link.DestinationDataPortTreeNode.Id, out var treeNode))
+                if (link.DestinationDataPortTreeNode is not null && builder.Cache.DataPortTreeNodeIds.TryGetValue(link.DestinationDataPortTreeNode.Id, out var treeNode))
                 {
                     TryAndLog(() =>
                     {
-                        builder.Editors.DataPortTreeNode.AssignConnector(treeNode, cacheConnector, id: link.Id);
+                        builder.Editors.DataPortTreeNode.AssignConnector(treeNode, cacheConnector.GetUnderlyingConnector(), id: link.Id);
                         resultItem.Added++;
                     }, resultItem);
                 }
@@ -730,22 +734,22 @@ public static class ClusterBuilderExtensionsImport
     private static void MigrateDataPortTreeNodeLink(this ClusterBuilder builder, DataPortTreeNode other, ClusterImportResultItem resultItem)
     {
         // we need to use the builder tree node to assign the connector
-        if (!builder.Cache.DataPortTreeNodeGuids.TryGetValue(other.Id, out var dataPortTreeNode))
+        if (!builder.Cache.DataPortTreeNodeIds.TryGetValue(other.Id, out var dataPortTreeNode))
             return;
 
         foreach (var link in other.Links)
         {
-            if (builder.Cache.LinkGuids.ContainsKey(link.Id))
+            if (builder.Cache.LinkIds.ContainsKey(link.Id))
             {
                 resultItem.Skipped++;
                 continue;
             }
 
-            if (link.SourceConnectorId.HasValue && builder.Cache.ConnectorGuids.TryGetValue(link.SourceConnectorId.Value, out var connector))
+            if (link.SourceConnectorId.HasValue && builder.Cache.ConnectorIds.TryGetValue(link.SourceConnectorId.Value, out var connector))
             {
                 TryAndLog(() =>
                 {
-                    builder.Editors.DataPortTreeNode.AssignConnector(dataPortTreeNode, connector, link.Id);
+                    builder.Editors.DataPortTreeNode.AssignConnector(dataPortTreeNode, connector.GetUnderlyingConnector(), link.Id);
                     resultItem.Added++;
                 }, resultItem);
             }

@@ -54,8 +54,8 @@ internal sealed class ClusterWizardDialogService(IServiceProvider services, ILog
 
             if (changed)
             {
-                var dataService = _services.GetRequiredService<IDataManagementService>();
-                await dataService.ForceRootContainerReload();
+                var clusterEditorManagement = _services.GetRequiredService<IClusterEditorManagement>();
+                await clusterEditorManagement.ForceRootContainerReload();
             }
         }
         catch (Exception ex)
