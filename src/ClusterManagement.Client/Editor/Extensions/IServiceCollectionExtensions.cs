@@ -50,7 +50,8 @@ internal static class IServiceCollectionExtensions
     internal static IServiceCollection AddPackagesControlPanel(this IServiceCollection services)
     {
         services.AddGridItemSelectColumn()
-            .AddGridItemSelection<ClusterPackageInfo>(typeof(PackagesControlPanelServiceKey));
+            .AddGridItemSelection<ClusterPackageInfo>(typeof(InstalledPackagesControlPanelServiceKey))
+            .AddGridItemSelection<ClusterPackageInfo>(typeof(AvailablePackagesControlPanelServiceKey));
 
         services.AddControlPanel<ClusterManagementClientModule, PackagesControlPanel, PackagesControlPanelState>()
            .WithAutoDiscovery<PackagesControlPanelDescriptor>()

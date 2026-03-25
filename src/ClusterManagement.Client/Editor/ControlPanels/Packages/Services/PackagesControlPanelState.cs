@@ -7,8 +7,33 @@ namespace ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
 
 public sealed class PackagesControlPanelState : ControlPanelState
 {
-    internal IQueryable<ClusterPackageInfo> InstalledQueryable { get; set; } = Enumerable.Empty<ClusterPackageInfo>().AsQueryable();
-    internal IQueryable<ClusterPackageInfo> AvailableQueryable { get; set; } = Enumerable.Empty<ClusterPackageInfo>().AsQueryable();
+    internal IQueryable<ClusterPackageInfo> InstalledQueryable
+    {
+        get => field;
+        set
+        {
+            if (value == field)
+                return;
+
+            field = value;
+
+            OnPropertyChanged(nameof(InstalledQueryable));
+        }
+    } = Enumerable.Empty<ClusterPackageInfo>().AsQueryable();
+
+    internal IQueryable<ClusterPackageInfo> AvailableQueryable
+    {
+        get => field;
+        set
+        {
+            if (value == field)
+                return;
+
+            field = value;
+
+            OnPropertyChanged(nameof(AvailableQueryable));
+        }
+    } = Enumerable.Empty<ClusterPackageInfo>().AsQueryable();
 
     internal string InstalledFilterText { get; set; } = string.Empty;
     internal string AvailableFilterText { get; set; } = string.Empty;
@@ -62,7 +87,7 @@ public sealed class PackagesControlPanelState : ControlPanelState
             return false;
 
         // we have to update the readonly collection to remove the version
-        package.Versions = package.Versions!.Where(v => v.Version != deletedVersion.Version).ToList();
+        package.Versions = [.. package.Versions!.Where(v => v.Version != deletedVersion.Version)];
         if (package.Versions.Count > 0)
             return false;
 
@@ -75,8 +100,13 @@ public sealed class PackagesControlPanelState : ControlPanelState
     {
         foreach (var item in packages)
         {
+            if (item.Versions is null || item.Versions.Count == 0)
+            {
+                continue;
+            }
+
             if (InstallOperations.Any(p => p.Dependency.Name == item.Name
-                && p.Dependency.Version.ToString() == item.Versions!.First().Version))
+                && p.Dependency.Version.ToString() == item.Versions.First().Version))
             {
                 continue;
             }
@@ -84,7 +114,7 @@ public sealed class PackagesControlPanelState : ControlPanelState
             var dependency = new ClusterDependency
             {
                 Name = item.Name,
-                Version = item.Versions!.First().Version,
+                Version = item.Versions.First().Version,
             };
 
             InstallOperations.Add(new ClusterDependencyOperation(dependency, ClusterDependencyOperationKind.Install));
@@ -95,9 +125,14 @@ public sealed class PackagesControlPanelState : ControlPanelState
     {
         foreach (var item in packages)
         {
+            if (item.Versions is null || item.Versions.Count == 0)
+            {
+                continue;
+            }
+
             if (string.IsNullOrWhiteSpace(item.InstalledVersion)
                 || UninstallOperations.Any(p => p.Dependency.Name == item.Name
-                && p.Dependency.Version.ToString() == item.Versions!.First().Version))
+                && p.Dependency.Version.ToString() == item.Versions.First().Version))
             {
                 continue;
             }
@@ -109,6 +144,18 @@ public sealed class PackagesControlPanelState : ControlPanelState
             };
 
             UninstallOperations.Add(new ClusterDependencyOperation(dependecy, ClusterDependencyOperationKind.Uninstall));
+        }
+    }
+
+    internal void UpdateUninstallOperations(List<ClusterDependencyOperation> operations)
+    {
+        foreach (var operation in operations)
+        {
+            var exists = UninstallOperations.FirstOrDefault(k => k.Dependency.Name == operation.Dependency.Name && k.OperationKind == operation.OperationKind);
+            if (exists is not null)
+                UninstallOperations.Remove(operation);
+
+            UninstallOperations.Add(operation);
         }
     }
 

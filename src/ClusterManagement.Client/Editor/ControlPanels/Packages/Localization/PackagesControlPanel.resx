@@ -124,7 +124,7 @@
     <value>Delete Packages</value>
   </data>
   <data name="InstalledBannerDescription" xml:space="preserve">
-    <value>Manage packages, that are used inside of the Cluster Editor. The minimum core version is {0}.</value>
+    <value>Manage packages, that are used inside of the Cluster Editor. The minimum core version is {0}. Uninstalled packages will remain on the device and can be found in the 'Browse' tab afterwards.</value>
   </data>
   <data name="AvailableBannerDescription" xml:space="preserve">
     <value>Manage available packages, that can be used inside of Cluster Editor and provide additional functionality, sensors etc. Minimum core version is {0}.</value>
@@ -140,11 +140,5 @@
   </data>
   <data name="LocalAvailable" xml:space="preserve">
     <value>This package is locally available</value>
-  </data>
-  <data name="UninstallPackages" xml:space="preserve">
-    <value>Uninstall selected packages? Uninstalled packages will remain on the device and can be found in 'Browse' tab afterwards.</value>
-  </data>
-  <data name="UninstallPackagesHeader" xml:space="preserve">
-    <value>Uninstall Packages</value>
   </data>
 </root>

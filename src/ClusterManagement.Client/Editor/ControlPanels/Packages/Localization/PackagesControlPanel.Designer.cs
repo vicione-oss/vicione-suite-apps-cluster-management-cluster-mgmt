@@ -98,7 +98,7 @@ namespace ClusterManagement.Client.Editor.ControlPanels.Packages.Localization {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Manage packages, that are used inside of the Cluster Editor. The minimum core version is {0}..
+        ///   Looks up a localized string similar to Manage packages, that are used inside of the Cluster Editor. The minimum core version is {0}. Uninstalled packages will remain on the device and can be found in the &apos;Browse&apos; tab afterwards..
         /// </summary>
         internal static string InstalledBannerDescription {
             get {
@@ -130,24 +130,6 @@ namespace ClusterManagement.Client.Editor.ControlPanels.Packages.Localization {
         internal static string LocalAvailable {
             get {
                 return ResourceManager.GetString("LocalAvailable", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Uninstall selected packages? Uninstalled packages will remain on the device and can be found in &apos;Browse&apos; tab afterwards..
-        /// </summary>
-        internal static string UninstallPackages {
-            get {
-                return ResourceManager.GetString("UninstallPackages", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Uninstall Packages.
-        /// </summary>
-        internal static string UninstallPackagesHeader {
-            get {
-                return ResourceManager.GetString("UninstallPackagesHeader", resourceCulture);
             }
         }
     }

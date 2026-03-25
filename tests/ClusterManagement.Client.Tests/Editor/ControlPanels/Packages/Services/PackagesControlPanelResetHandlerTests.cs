@@ -32,7 +32,6 @@ public sealed class PackagesControlPanelResetHandlerTests
         return services.BuildServiceProvider();
     }
 
-
     [Fact]
     public async Task Should_reset_pending_operations()
     {
@@ -98,5 +97,28 @@ public sealed class PackagesControlPanelResetHandlerTests
         state.InstalledQueryable.Should().ContainSingle(k => k.Name == _dependency.Name);
         state.InstalledQueryable.Should().ContainSingle(k => k.Name == _anotherDependency.Name);
         state.AvailableQueryable.Should().ContainSingle(k => k.Name == "Available");
+    }
+
+    [Fact]
+    public async Task Should_not_execute_if_we_have_packages_and_no_pending_changes()
+    {
+        // Arrange
+        await using var serviceProvider = SetupServiceProvider();
+        var state = new PackagesControlPanelState();
+
+        var installedPackage = new ClusterPackageInfo()
+        {
+            Name = _dependency.Name,
+            InstalledVersion = "1.0.0",
+        };
+        state.InstalledQueryable = new List<ClusterPackageInfo>() { installedPackage }.AsQueryable();
+
+        var saveHandler = serviceProvider.GetRequiredService<IControlPanelResetHandler<PackagesControlPanelState>>();
+
+        // Act
+        await saveHandler.Reset(state, TestContext.Current.CancellationToken);
+
+        // Assert
+        await _packageService.Received(0).GetPackages(null, Arg.Any<CancellationToken>());
     }
 }

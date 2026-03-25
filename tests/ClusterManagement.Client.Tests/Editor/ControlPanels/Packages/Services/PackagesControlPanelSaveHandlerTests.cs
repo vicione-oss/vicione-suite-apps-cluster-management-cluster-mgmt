@@ -62,6 +62,7 @@ public sealed class PackagesControlPanelSaveHandlerTests
 
         // Assert
         result.Should().BeOfType<SaveSuccessResult>();
+        state.InstallOperations.Should().BeEmpty();
         await _packageService.Received(1).UpdatePackages(
             Arg.Is<List<ClusterDependencyOperation>>(x => x.Any(k => k.Dependency.Name == _dependency.Name)), Arg.Any<CancellationToken>());
     }
@@ -92,14 +93,14 @@ public sealed class PackagesControlPanelSaveHandlerTests
     [Fact]
     public async Task Should_delete_packages_and_return_success()
     {
-        // Arrange
-        _packageService.UpdatePackages(Arg.Any<List<ClusterDependencyOperation>>(), Arg.Any<CancellationToken>())
-            .Returns(new PackageServiceSuccessResult());
-
+        // Arrange        
         await using var serviceProvider = SetupServiceProvider();
         var operation = new ClusterDependencyOperation(_dependency, ClusterDependencyOperationKind.Install);
         var state = new PackagesControlPanelState();
         state.PackagesToBeDeleted.Add(new ClusterPackageItem(_dependency.Name, _dependency.Version.ToString()));
+
+        _packageService.DeletePackage(_dependency.Name, _dependency.Version.ToString(), Arg.Any<CancellationToken>())
+            .Returns(new PackageServiceSuccessResult());
 
         var saveHandler = serviceProvider.GetRequiredService<IControlPanelSaveHandler<PackagesControlPanelState>>();
 
@@ -108,6 +109,7 @@ public sealed class PackagesControlPanelSaveHandlerTests
 
         // Assert
         result.Should().BeOfType<SaveSuccessResult>();
+        state.PackagesToBeDeleted.Should().BeEmpty();
         await _packageService.Received(1).DeletePackage(_dependency.Name, _dependency.Version.ToString(), Arg.Any<CancellationToken>());
     }
 
