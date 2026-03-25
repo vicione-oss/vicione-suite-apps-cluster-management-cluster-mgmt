@@ -6,6 +6,9 @@ internal sealed class PackagesControlPanelResetHandler(IPackageService packageSe
 {
     public async Task Reset(PackagesControlPanelState state, CancellationToken cancellationToken)
     {
+        if (!state.HasPendingChanges() && (state.InstalledQueryable.Any() || state.AvailableQueryable.Any()))
+            return;
+
         state.BeginLoading();
 
         try

@@ -11,16 +11,22 @@ using Sdk.Client.ControlPanels.Services;
 using Sdk.Client.Services;
 using Sdk.MessageBanner.Contracts;
 using Sdk.Utils;
+using ViciOne.Cluster.Model;
 using ViciOne.Ui.Blazor.Components.Grid.Services;
-using ViciOne.Ui.Shared.Dx.Components;
+using ViciOne.Ui.MonochromeIcons.Core.Enums;
+using ViciOne.Ui.MonochromeIcons.Core.Extensions;
 
 namespace ClusterManagement.Client.Editor.ControlPanels.Packages;
 
 [ControlPanelCategory<ControlPanelCategoryDescriptor>]
 public partial class PackagesControlPanel
 {
+    private readonly string _uninstallIconCssClasses = @MonochromeIconName.UninstallLight.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated();
+    private readonly string _exportIconCssClasses = @MonochromeIconName.Export.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated();
+    private readonly string _importIconCssClasses = @MonochromeIconName.Import.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated();
+    private readonly string _deleteIconCssClasses = @MonochromeIconName.Delete.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated();
+
     private readonly CancellationTokenSource _tokenSource = new();
-    private DxDialog? _refUninstalllPackagesDialog;
     private readonly AutoDisposeList<IDisposable> _subscriptionHandles = [];
 
     [Inject] private IControlPanelRequest ControlPanelRequest { get; set; } = default!;
@@ -28,12 +34,46 @@ public partial class PackagesControlPanel
     [Inject] private IMessageBannerService MessageBannerService { get; set; } = default!;
     [Inject] private IJSRuntime JavaScript { get; set; } = default!;
 
-    [Inject(Key = typeof(PackagesControlPanelServiceKey))] private IGridItemSelection<ClusterPackageInfo> InstalledItemSelection { get; set; } = default!;
+    [Inject(Key = typeof(InstalledPackagesControlPanelServiceKey))] private IGridItemSelection<ClusterPackageInfo> InstalledItemSelection { get; set; } = default!;
 
-    [Inject(Key = typeof(PackagesControlPanelServiceKey))] private IGridItemSelection<ClusterPackageInfo> AvailableItemSelection { get; set; } = default!;
+    [Inject(Key = typeof(AvailablePackagesControlPanelServiceKey))] private IGridItemSelection<ClusterPackageInfo> AvailableItemSelection { get; set; } = default!;
 
     private string? AdminPolicy { get; }
         = ModulePolicyProvider.GetPolicy<ClusterManagementClientModule>(AccessLevel.Full);
+
+    protected override async ValueTask DisposeAsyncCore()
+    {
+        _subscriptionHandles.Dispose();
+
+        PackageService.PackageChanged -= OnPackageChanged;
+        PackageService.DependenciesChanged -= OnDependenciesChanged;
+
+        State.Changed -= State_Changed;
+
+        try
+        {
+            await _tokenSource.CancelAsync();
+            _tokenSource.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Ignore: CancellationTokenSource was already disposed.
+        }
+
+        if (InstalledItemSelection is not null)
+        {
+            InstalledItemSelection.Changed -= OnItemSelectionChanged;
+            InstalledItemSelection.Clear();
+        }
+
+        if (AvailableItemSelection is not null)
+        {
+            AvailableItemSelection.Changed -= OnItemSelectionChanged;
+            AvailableItemSelection.Clear();
+        }
+
+        await base.DisposeAsyncCore();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -44,6 +84,27 @@ public partial class PackagesControlPanel
 
         PackageService.PackageChanged += OnPackageChanged;
         PackageService.DependenciesChanged += OnDependenciesChanged;
+
+        State.Changed += State_Changed;
+    }
+
+    private async void State_Changed(ControlPanelStateChangedEventArgs args)
+    {
+        var stateHasChanged = false;
+
+        if (args.PropertyNames.Contains(nameof(State.AvailableQueryable)))
+        {
+            AvailableItemSelection.Clear();
+            stateHasChanged = true;
+        }
+        else if (args.PropertyNames.Contains(nameof(State.InstalledQueryable)))
+        {
+            InstalledItemSelection.Clear();
+            stateHasChanged = true;
+        }
+
+        if (stateHasChanged)
+            await InvokeAsync(StateHasChanged);
     }
 
     private async void OnItemSelectionChanged(GridItemSelectionChangedEventArgs<ClusterPackageInfo> args)
@@ -114,10 +175,28 @@ public partial class PackagesControlPanel
     private async Task OnPackageUploadClickAsync()
         => await JavaScript.InvokeVoidAsync("triggerUploadClick");
 
-    private async Task OnPackageUninstallClickAsync()
-        => await _refUninstalllPackagesDialog!.OpenAsync();
+    private bool CanUninstallPackages()
+        => InstalledItemSelection.Count != 0
+        && InstalledItemSelection.All(i => !string.IsNullOrEmpty(i.InstalledVersion)
+        && string.IsNullOrEmpty(i.RunningClusterVersion));
 
-    private async Task OnPackageInstallClickAsync()
+    private async Task UninstallPackagesClick()
+    {
+        var items = InstalledItemSelection.Distinct();
+
+        State.UpdateUninstallOperations(items);
+
+        if (State.HasPendingChanges())
+        {
+            await BeginEdit();
+        }
+    }
+
+    private bool CanInstallAvailablePackages()
+        => AvailableItemSelection.Count != 0
+        && AvailableItemSelection.All(i => string.IsNullOrEmpty(i.InstalledVersion) && string.IsNullOrEmpty(i.RunningClusterVersion));
+
+    private async Task InstallAvailablePackagesClick()
     {
         var packagesToInstall = AvailableItemSelection
             .Distinct()
@@ -131,7 +210,13 @@ public partial class PackagesControlPanel
         }
     }
 
-    private async Task OnPackageDeleteClickAsync()
+    private bool CanDeleteAvailablePackages()
+        => AvailableItemSelection.Count != 0
+        && AvailableItemSelection.All(i => string.IsNullOrEmpty(i.InstalledVersion)
+            && string.IsNullOrEmpty(i.RunningClusterVersion)
+            && i.Versions?.Any(v => v.IsLocal) == true);
+
+    private async Task DeleteAvailablePackagesClick()
     {
         var packagesToDelete = AvailableItemSelection
             .Distinct()
@@ -146,22 +231,54 @@ public partial class PackagesControlPanel
         }
     }
 
-    private async Task OnUninstallPackagesCloseAsync()
-        => await _refUninstalllPackagesDialog!.CloseAsync();
+    private bool CanResetInstalledSelectedModules()
+        => InstalledItemSelection.Count != 0
+        && InstalledItemSelection.All(k => k.PendingOperation?.OperationKind == ClusterDependencyOperationKind.Uninstall);
 
-    private async Task OnUninstallPackagesOkAsync()
+    private async Task ResetInstalledSelectedModules()
     {
-        var items = InstalledItemSelection.Distinct();
+        var operations = InstalledItemSelection
+            .Where(k => k.PendingOperation != null && k.PendingOperation.OperationKind == ClusterDependencyOperationKind.Uninstall)
+            .Distinct()
+            .Select(item => new ClusterDependencyOperation(new ClusterDependency
+            {
+                Name = item.Name,
+                Version = item.PendingOperation!.Dependency.Version,
+            },
+            ClusterDependencyOperationKind.Install))
+            .ToList();
 
-        State.UpdateUninstallOperations(items);
+        State.UpdateUninstallOperations(operations);
 
         if (State.HasPendingChanges())
         {
             await BeginEdit();
         }
+    }
 
-        // maybe give user some feedback if nothing to uninstall?        
-        await _refUninstalllPackagesDialog!.CloseAsync();
+    private bool CanResetAvailableSelectedModules()
+        => AvailableItemSelection.Count != 0
+        && AvailableItemSelection.All(k => k.PendingOperation?.OperationKind == ClusterDependencyOperationKind.Install);
+
+    private async Task ResetAvailableSelectedModules()
+    {
+        var operations = AvailableItemSelection
+            .Where(k => k.PendingOperation != null && k.PendingOperation.OperationKind == ClusterDependencyOperationKind.Install)
+            .Distinct()
+            .Select(item => new ClusterDependencyOperation(new ClusterDependency
+            {
+                Name = item.Name,
+                Version = item.PendingOperation!.Dependency.Version,
+            },
+            ClusterDependencyOperationKind.Uninstall))
+            .ToList();
+
+        State.UpdateUninstallOperations(operations);
+
+        if (State.HasPendingChanges())
+        {
+            await BeginEdit();
+        }
     }
 
     private async Task ShowDetailsAsync(ClusterPackageInfo item)
@@ -182,50 +299,8 @@ public partial class PackagesControlPanel
             .Where(i => i.Name.Contains(State.AvailableFilterText, StringComparison.OrdinalIgnoreCase))
             .OrderBy(d => d.Name);
 
-    private bool CanInstallAvailablePackages()
-        => AvailableItemSelection.Count != 0
-        && AvailableItemSelection.All(i => string.IsNullOrEmpty(i.InstalledVersion) && string.IsNullOrEmpty(i.RunningClusterVersion));
-
-    private bool CanDeleteAvailablePackages()
-        => AvailableItemSelection.Count != 0
-        && AvailableItemSelection.All(i => string.IsNullOrEmpty(i.InstalledVersion)
-            && string.IsNullOrEmpty(i.RunningClusterVersion)
-            && i.Versions?.Any(v => v.IsLocal) == true);
-
     private static string GetLatestVersion(ClusterPackageInfo? package)
         => package?.Versions?.FirstOrDefault()?.Version ?? string.Empty;
-
-    protected override async ValueTask DisposeAsyncCore()
-    {
-        _subscriptionHandles.Dispose();
-
-        PackageService.PackageChanged -= OnPackageChanged;
-        PackageService.DependenciesChanged -= OnDependenciesChanged;
-
-        try
-        {
-            await _tokenSource.CancelAsync();
-            _tokenSource.Dispose();
-        }
-        catch (ObjectDisposedException)
-        {
-            // Ignore: CancellationTokenSource was already disposed.
-        }
-
-        if (InstalledItemSelection is not null)
-        {
-            InstalledItemSelection.Changed -= OnItemSelectionChanged;
-            InstalledItemSelection.Clear();
-        }
-
-        if (AvailableItemSelection is not null)
-        {
-            AvailableItemSelection.Changed -= OnItemSelectionChanged;
-            AvailableItemSelection.Clear();
-        }
-
-        await base.DisposeAsyncCore();
-    }
 
     private async Task RefreshPackageAsync(string packageName)
     {

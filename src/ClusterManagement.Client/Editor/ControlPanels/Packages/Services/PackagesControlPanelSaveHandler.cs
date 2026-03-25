@@ -19,14 +19,20 @@ internal sealed class PackagesControlPanelSaveHandler(IPackageService packageSer
             var result = await packageService.UpdatePackages(operations, cancellationToken);
             if (result is PackageServiceErrorResult error)
                 return new SaveErrorResult(error.ErrorMessage, error.ErrorCode);
+
+            state.InstallOperations.Clear();
+            state.UninstallOperations.Clear();
         }
 
         // deletions
-        foreach (var package in state.PackagesToBeDeleted)
+        var toBeDeleted = state.PackagesToBeDeleted.ToArray();
+        foreach (var package in toBeDeleted)
         {
             var deleteResult = await packageService.DeletePackage(package.Name, package.Version, cancellationToken);
             if (deleteResult is PackageServiceErrorResult deleteError)
                 return new SaveErrorResult(deleteError.ErrorMessage, deleteError.ErrorCode);
+
+            state.PackagesToBeDeleted.Remove(package);
         }
 
         return new SaveSuccessResult();

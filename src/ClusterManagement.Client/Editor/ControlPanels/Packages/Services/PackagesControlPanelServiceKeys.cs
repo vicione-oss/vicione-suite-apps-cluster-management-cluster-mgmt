@@ -3,4 +3,6 @@
 /// <summary>
 /// Class type that is used as service key in registrations of services used in <see cref="PackagesControlPanel"/>.
 /// </summary>
-internal class PackagesControlPanelServiceKey;
+internal class InstalledPackagesControlPanelServiceKey;
+
+internal class AvailablePackagesControlPanelServiceKey;

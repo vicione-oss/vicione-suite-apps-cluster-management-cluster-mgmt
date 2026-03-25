@@ -28,17 +28,20 @@
             @(string.Format(Localization.PackagesControlPanel.InstalledBannerDescription, PackageService.MinCoreVersion))
         </DescriptionBanner>
 
-
         <Grid Items="@FilterInstalledItems(State.InstalledQueryable)" Virtualize="true" CssClass="packages-grid">
             <ActionButtons>
                 <div style="display:contents;">
                     <AuthorizeView Policy="@AdminPolicy">
 
                         <GridActionButton Text="@CommonVocabulary.UninstallVerb"
-                                          OnClick="@OnPackageUninstallClickAsync"
-                                          IconCssClass="@MonochromeIconName.UninstallLight.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()"
-                                          Enabled="@(InstalledItemSelection.Count != 0 && InstalledItemSelection.All(i => !string.IsNullOrEmpty(i.InstalledVersion) && string.IsNullOrEmpty(i.RunningClusterVersion)))" />
+                                          OnClick="@UninstallPackagesClick"
+                                          IconCssClass="@_uninstallIconCssClasses"
+                                          Enabled="@CanUninstallPackages()" />
 
+                        <GridActionButton Text="@CommonVocabulary.ResetVerb"
+                                          OnClick="@(async () => await ResetInstalledSelectedModules())"
+                                          IconCssClass="@_uninstallIconCssClasses"
+                                          Enabled="@CanResetInstalledSelectedModules()" />
                     </AuthorizeView>
                 </div>
             </ActionButtons>
@@ -151,19 +154,25 @@
             <ActionButtons>
                 <div style="display:contents;">
                     <AuthorizeView Policy="@AdminPolicy">
-                        <GridActionButton Text="@Common.Upload"
-                                          OnClick="OnPackageUploadClickAsync"
-                                          IconCssClass="@MonochromeIconName.Export.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()" />
-
+                        
                         <GridActionButton Text="@CommonVocabulary.InstallVerb"
-                                          OnClick="OnPackageInstallClickAsync"
-                                          IconCssClass="@MonochromeIconName.Import.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()"
+                                          OnClick="InstallAvailablePackagesClick"
+                                          IconCssClass="@_importIconCssClasses"
                                           Enabled="@CanInstallAvailablePackages()" />
 
+                        <GridActionButton Text="@Common.Upload"
+                                          OnClick="OnPackageUploadClickAsync"
+                                          IconCssClass="@_exportIconCssClasses" />
+                        
                         <GridActionButton Text="@CommonVocabulary.Delete"
-                                          OnClick="@OnPackageDeleteClickAsync"
-                                          IconCssClass="@(MonochromeIconName.Delete.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated())"
+                                          OnClick="@DeleteAvailablePackagesClick"
+                                          IconCssClass="@_deleteIconCssClasses"
                                           Enabled="@CanDeleteAvailablePackages()" />
+
+                        <GridActionButton Text="@CommonVocabulary.ResetVerb"
+                                          OnClick="@(async () => await ResetAvailableSelectedModules())"
+                                          IconCssClass="@_uninstallIconCssClasses"
+                                          Enabled="@CanResetAvailableSelectedModules()" />
                     </AuthorizeView>
                 </div>
             </ActionButtons>
@@ -237,24 +246,3 @@
         </Grid>
     </div>
 </ControlPanelPage>
-
-<DxDialog @ref="@_refUninstalllPackagesDialog"
-          CloseOnEscape="true"
-          CloseOnOutsideClick="false"
-          Header="@Localization.PackagesControlPanel.UninstallPackagesHeader"
-          Height="300px"
-          IsTextOnly="true"
-          Width="600px">
-
-    <Body>
-        <p class="dialog-content text-only">@Localization.PackagesControlPanel.UninstallPackages</p>
-    </Body>
-
-    <Footer>
-        <DxDialogFooterButton OnClick="@OnUninstallPackagesOkAsync"
-                              Text="@CommonVocabulary.Ok" />
-
-        <DxDialogFooterButton OnClick="@OnUninstallPackagesCloseAsync"
-                              Text="@CommonVocabulary.Cancel" />
-    </Footer>
-</DxDialog>
