@@ -93,7 +93,7 @@ internal sealed class LoadClusterService : DialogServiceBase, IDisposable
         foreach (var designId in usedFunctionBlockDesignIds)
             _clusterBuilder.Editors.FunctionBlockDesign.AddFunctionBlockDesign(designId);
 
-        await _clusterEditorManagement.LoadDataflow(_clusterBuilder);
+        await _clusterEditorManagement.LoadDataflow(_clusterBuilder, cancellationToken);
         stopwatch.Stop();
 
         _logger.LogInformation("Loading cluster {Id} version '{Version}' into editor took {Elapsed}", clusterId, version, stopwatch.Elapsed);
