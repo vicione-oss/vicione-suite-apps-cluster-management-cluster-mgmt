@@ -55,7 +55,10 @@ internal sealed class ClusterWizardDialogService(IServiceProvider services, ILog
             if (changed)
             {
                 var clusterEditorManagement = _services.GetRequiredService<IClusterEditorManagement>();
-                await clusterEditorManagement.ForceRootContainerReload();
+                // Currently we use CancellationToken.None because the wizard cannot be called from the user anyhow.
+                // (lately it was used in the ClusterEditorPage as import wizard which is not callable by the user anymore)
+                // If there will be a usage sometimes in the future a correct CancellationTokenSource implementation have to be done!
+                await clusterEditorManagement.ForceRootContainerReload(CancellationToken.None);
             }
         }
         catch (Exception ex)

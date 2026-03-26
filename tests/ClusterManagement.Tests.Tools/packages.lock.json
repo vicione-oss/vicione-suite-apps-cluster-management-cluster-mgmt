@@ -23,6 +23,11 @@
         "resolved": "1.0.17",
         "contentHash": "Pwz0MD7CAM/G/fvJjM3ceOfI+S0IgjanHcK7evwyrW9qAWUG8fgiEXYfSX1/s3h2JUNDOw6ik0G8zp+RT61Y1g=="
       },
+      "AngleSharp": {
+        "type": "Transitive",
+        "resolved": "1.4.0",
+        "contentHash": "6ph8mpaQx0KL0COYRt0kI8MB9gSp1PtKijKMhJU//+aVFgKAJLKDesG/+26JSaVCOrHNgPf12wpfoyRcMYOeXg=="
+      },
       "Castle.Core": {
         "type": "Transitive",
         "resolved": "5.1.1",
@@ -479,7 +484,7 @@
         "dependencies": {
           "Semver": "[3.0.0, )",
           "ViciOne.Suite.ClusterManagement.Public": "[2.0.0, )",
-          "ViciOne.TreeBuilder": "[0.6.0, )"
+          "ViciOne.TreeBuilder": "[1.1.0, )"
         }
       },
       "ViciOne.Suite.ClusterManagement.Public": {
@@ -607,10 +612,11 @@
       },
       "ViciOne.TreeBuilder": {
         "type": "CentralTransitive",
-        "requested": "[0.6.0, )",
-        "resolved": "0.6.0",
-        "contentHash": "r0jgDi3GrA+Pc56Q0Jzoxjplb0TCVBH/3wTptVCSQW9rACY9S2G3aSIlfajoXofMvAT6IwAkLEZZ97KQxlpCdQ==",
+        "requested": "[1.1.0, )",
+        "resolved": "1.1.0",
+        "contentHash": "DAyJy3VUvB8M3TEOec638c/1y+h1qelZSlozlD/4ZURUgnOsmUCcbvaxbXsCjfMFCttC1TvEeI3vET/3nIIzCQ==",
         "dependencies": {
+          "AngleSharp": "1.4.0",
           "YamlDotNet": "16.3.0"
         }
       }

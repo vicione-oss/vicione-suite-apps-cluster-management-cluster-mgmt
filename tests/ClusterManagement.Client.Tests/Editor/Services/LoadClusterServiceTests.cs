@@ -73,7 +73,8 @@ public class LoadClusterServiceTests
         // Assert
         loadMonitor.Should().Raise(nameof(LoadClusterService.ClusterLoaded));
         await _clusterEditorManagement.Received(1).LoadDataflow(
-            Arg.Is<ClusterBuilder>(b => b.Cluster.Id == builder.Cluster.Id && b.Cluster.Version == builder.Cluster.Version));
+            Arg.Is<ClusterBuilder>(b => b.Cluster.Id == builder.Cluster.Id && b.Cluster.Version == builder.Cluster.Version),
+            Xunit.TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -105,6 +106,7 @@ public class LoadClusterServiceTests
         // Assert
         loadMonitor.Should().Raise(nameof(LoadClusterService.ClusterLoaded));
         await _clusterEditorManagement.Received(1).LoadDataflow(
-            Arg.Is<ClusterBuilder>(b => b.Cluster.Id == latestCluster.Id && b.Cluster.Version == latestCluster.Version));
+            Arg.Is<ClusterBuilder>(b => b.Cluster.Id == latestCluster.Id && b.Cluster.Version == latestCluster.Version),
+            Xunit.TestContext.Current.CancellationToken);
     }
 }

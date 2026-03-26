@@ -27,8 +27,8 @@
     <PackageVersion Include="ViciOne.Suite.Sdk.Deployment" Version="$(ViciOneSuiteSdkVersion)" />
     <PackageVersion Include="ViciOne.Suite.Sdk.Client" Version="$(ViciOneSuiteSdkVersion)" />
     <PackageVersion Include="ViciOne.Suite.System.DataPort" Version="1.0.0" />
-    <PackageVersion Include="ViciOne.TreeBuilder" Version="0.6.0" />
-    <PackageVersion Include="ViciOne.Ui.ClusterEditor" Version="1.0.0-ci2387961829" />
+    <PackageVersion Include="ViciOne.TreeBuilder" Version="1.1.0" />
+    <PackageVersion Include="ViciOne.Ui.ClusterEditor" Version="1.0.0-ci2410875809" />
     <PackageVersion Include="ViciOne.Ui.Design" Version="2.0.3" />
     <PackageVersion Include="ViciOne.Ui.Localization" Version="3.2.0" />
     <PackageVersion Include="ViciOne.Ui.MonochromeIcons.Assets" Version="4.6.0" />
