@@ -16,4 +16,6 @@ public interface IEngineHostCommunication
     Task<EngineState> GetEngineState(Guid engineHostId, Guid deploymentIdentifier, CancellationToken cancellationToken);
     /// <exception cref="InvalidOperationException">Engines states can't be obtained from the engine host.</exception>
     Task<IReadOnlyDictionary<Guid, EngineState>> GetDeploymentStates(Guid engineHostId, CancellationToken cancellationToken);
+    /// <exception cref="InvalidOperationException">Packages of deployment can't be obtained from the engine host.</exception>
+    Task<IReadOnlyCollection<ClusterDependency>> GetPackages(Guid engineHostId, Guid deploymentIdentifier, CancellationToken cancellationToken);
 }

@@ -7,7 +7,7 @@ namespace ClusterManagement.Backend.Tests.Extensions;
 public class ClusterManagementOptionsExtensionsTests
 {
     private readonly string _platform = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "win" : "linux";
-    private const string RecentEngineHostVersion = "0.30.0";
+    private const string RecentEngineHostVersion = "1.0.0";
 
 #pragma warning disable CA1308
     private readonly string _architecture = RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant();

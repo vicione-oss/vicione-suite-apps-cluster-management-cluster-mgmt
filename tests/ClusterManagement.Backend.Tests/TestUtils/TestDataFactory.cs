@@ -12,12 +12,12 @@ public static class TestDataFactory
             new()
             {
                 Name = typeof(ViciOne.Suite.System.DataPort).Assembly.GetName().Name!,
-                Version = "1.1.0"
+                Version = "1.0.0"
             },
             new()
             {
                 Name = "ViciOne.Suite.DataPort.Mqtt",
-                Version = "1.2.0"
+                Version = "0.30.0"
             },
         ]);
 

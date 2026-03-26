@@ -453,5 +453,7 @@ internal sealed class DataPortTransformer
     }
 
     private static IReadOnlyCollection<CommunicationProperty> TransformProperties(DataPort dataPort)
-        => [.. dataPort.Properties.Select(p => new CommunicationProperty(p.DesignId) { Value = TypedObject.CreateOptional(p.Value), })];
+        => [.. dataPort.Properties.Select(p => new CommunicationProperty(p.DesignId) { Value = TypedObject.CreateOptional(p.Value), }),
+            new CommunicationProperty(nameof(IDataPortCommunication.Name)) { Value = TypedObject.CreateMandatory(dataPort.Name), },
+            new CommunicationProperty(nameof(IDataPortCommunication.DesignId)) { Value = TypedObject.CreateMandatory(dataPort.DesignId) }];
 }

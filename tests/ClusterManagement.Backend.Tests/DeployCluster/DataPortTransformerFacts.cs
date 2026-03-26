@@ -161,6 +161,8 @@ public class DataPortTransformerFacts
                 new("String") { Value = TypedObject.CreateMandatory("host"), },
                 new("UInt16") { Value = TypedObject.CreateMandatory((ushort)1884), },
                 new("Enum") { Value = TypedObject.CreateMandatory(MqttConnectionType.TCP), },
+                new("Name") { Value = TypedObject.CreateMandatory("dataPort"), },
+                new("DesignId") { Value = TypedObject.CreateMandatory("MQTT-Broker"), },
             });
         }
 

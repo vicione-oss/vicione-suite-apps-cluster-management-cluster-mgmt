@@ -94,6 +94,13 @@ internal sealed class MqttEngineHostCommunication : IEngineHostCommunication
         return states.ToDictionary(static state => state.Key, static state => TranslateState(state.Value));
     }
 
+    public async Task<IReadOnlyCollection<ClusterDependency>> GetPackages(Guid engineHostId, Guid deploymentIdentifier, CancellationToken cancellationToken)
+    {
+        var request = MqttRpcRequest.GZipJson("getpackages", deploymentIdentifier);
+        var response = await _mqttClient.RequestFromWorker(request, engineHostId, cancellationToken);
+        return response.GZipJson<IReadOnlyCollection<ClusterDependency>>(JsonSetup.DefaultOptions);
+    }
+
     private static EngineState TranslateState(Engines.CommunicationContracts.EngineState state)
         => state switch
         {

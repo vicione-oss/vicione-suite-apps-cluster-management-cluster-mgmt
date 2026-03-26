@@ -1,6 +1,7 @@
 ﻿using ClusterManagement.Backend.Extensions;
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Internal.Designs;
+using ClusterManagement.Internal.Extensions;
 using ClusterManagement.Public;
 using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Designs;
@@ -12,6 +13,7 @@ using Sdk.Messaging;
 using ViciOne.Cluster.Builder;
 using ViciOne.Cluster.Builder.Extensions;
 using ViciOne.Cluster.Model;
+using ViciOne.Engine.DefaultPoolings;
 
 namespace ClusterManagement.Backend.Consumers;
 
@@ -62,19 +64,28 @@ public sealed class CommitClusterChangeConsumer(
     private async Task<Cluster> ApplyClusterOptions(Cluster cluster, CommitClusterOptions options, CancellationToken cancellationToken)
     {
         if (options.IncrementVersion)
-        {
-            cluster.Version = await snapshotStore.GetLatestVersionIncrement(cluster.Id, options.IncrementType ?? VersionIncrementKind.Patch, cancellationToken);
-            cluster.VersionCreated = DateTime.UtcNow;
-            logger.LogIncreasedClusterVersion(cluster.Id, cluster.Version);
-        }
+            await IncrementVersion(cluster, options, cancellationToken);
 
-        if (!options.CleanupDependencies)
-            return cluster;
-
-        // we need a builder to modify the cluster
         var designResolver = await designProvider.CreateResolver();
-        using var builder = new ClusterBuilder(cluster, designResolver);
+        using ClusterBuilder builder = new(cluster, designResolver);
 
+        if (options.CleanupDependencies)
+            CleanupDependencies(builder);
+
+        EnsureDefaultPoolingsDependency(builder);
+
+        return builder.Cluster;
+    }
+
+    private async Task IncrementVersion(Cluster cluster, CommitClusterOptions options, CancellationToken cancellationToken)
+    {
+        cluster.Version = await snapshotStore.GetLatestVersionIncrement(cluster.Id, options.IncrementType ?? VersionIncrementKind.Patch, cancellationToken);
+        cluster.VersionCreated = DateTime.UtcNow;
+        logger.LogIncreasedClusterVersion(cluster.Id, cluster.Version);
+    }
+
+    private void CleanupDependencies(ClusterBuilder builder)
+    {
         // reduce dependencies to what is really used in the cluster
         var functionBlockDesignIds = builder.Cache.GetUsedFunctionBlockDesignIds().ToArray();
 
@@ -87,13 +98,27 @@ public sealed class CommitClusterChangeConsumer(
 
         // system dataport dependency won't be removed if it's added to the cluster as long as there's an mqtt dataport defined
         var usedDependencies = functionBlockDesignIds
-            .Select(designResolver.ResolveFunctionBlockDesignDependency)
+            .Select(builder.DependencyResolver.ResolveFunctionBlockDesignDependency)
             .Union(dataPortDependencies)
             .ToArray();
 
-        builder.Cluster.Dependencies.RemoveAll(k => !usedDependencies.Contains(k));
+        foreach (var unusedDependency in builder.Cache.ClusterDependencies.Except(usedDependencies))
+            builder.Editors.Cluster.RemoveDependency(unusedDependency);
+    }
 
-        return builder.Cluster;
+    private static void EnsureDefaultPoolingsDependency(ClusterBuilder builder)
+    {
+        var poolingType = typeof(SumPooling);
+        var assemblyName = poolingType.Assembly.GetName();
+        var assemblyVersion = assemblyName.Version ?? throw new InvalidOperationException($"Could not determine version of {assemblyName.FullName}.");
+
+        ClusterDependency defaultPoolings = new()
+        {
+            Name = assemblyName.Name!,
+            Version = $"{assemblyVersion.Major}.{assemblyVersion.Minor}.{assemblyVersion.Build}",
+        };
+
+        builder.EnsureDependencyExists(defaultPoolings);
     }
 
     /// <summary>
