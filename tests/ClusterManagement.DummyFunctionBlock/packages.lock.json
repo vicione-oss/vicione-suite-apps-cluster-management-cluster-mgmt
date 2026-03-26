@@ -4,11 +4,11 @@
     "net10.0": {
       "ViciOne.Core.Runtime": {
         "type": "Direct",
-        "requested": "[0.51.0, )",
-        "resolved": "0.51.0",
-        "contentHash": "Fx/lbcNJBM1fFWhHQse0FBJEca7b+wrY52HyR6xNASAol7adkITrXkPD1g8k+7zUoVff/fXlcdb33Z6+ytzloQ==",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "if/EBwinB6KOWxGugJj+zhctBhnKyYAFAXhGt2BOFYxPADUrXS2uC1C5Nwkodfz7JbFxmnF+iAXTioX0ap5f7A==",
         "dependencies": {
-          "ViciOne.Core.Contracts": "0.51.0"
+          "ViciOne.Core.Contracts": "1.0.0"
         }
       },
       "ViciOne.Core.Runtime.Analyzers": {
@@ -19,23 +19,23 @@
       },
       "Microsoft.Extensions.DependencyInjection.Abstractions": {
         "type": "Transitive",
-        "resolved": "9.0.7",
-        "contentHash": "iPK1FxbGFr2Xb+4Y+dTYI8Gupu9pOi8I3JPuPsrogUmEhe2hzZ9LpCmolMEBhVDo2ikcSr7G5zYiwaapHSQTew=="
+        "resolved": "10.0.3",
+        "contentHash": "bwGMrRcAMWx2s/RDgja97p27rxSz2pEQW0+rX5cWAUWVETVJ/eyxGfjAl8vuG5a+lckWmPIE+vcuaZNVB5YDdw=="
       },
       "Microsoft.Extensions.Logging.Abstractions": {
         "type": "Transitive",
-        "resolved": "9.0.7",
-        "contentHash": "sMM6NEAdUTE/elJ2wqjOi0iBWqZmSyaTByLF9e8XHv6DRJFFnOe0N+s8Uc6C91E4SboQCfLswaBIZ+9ZXA98AA==",
+        "resolved": "10.0.3",
+        "contentHash": "lxl0WLk7ROgBFAsjcOYjQ8/DVK+VMszxGBzUhgtQmAsTNldLL5pk9NG/cWTsXHq0lUhUEAtZkEE7jOGOA8bGKQ==",
         "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.7"
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.3"
         }
       },
       "ViciOne.Core.Contracts": {
         "type": "Transitive",
-        "resolved": "0.51.0",
-        "contentHash": "3uyq+x3QvdmzgGgep1Z8rUKv+s8fh/Em5RQL3hOquk+WDi9/Y48s7TuErEnPkAAzJN7zaK8NE/dIe4Qxi47U1A==",
+        "resolved": "1.0.0",
+        "contentHash": "AOr1PWoy5LCJWbb73E0+Gywh55DQFQLiJRUGZFEAknCQOZ07TuyiNxkb+f7mh/W+fyhgx1eehdN4H8L9i6s31g==",
         "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "9.0.7"
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.3"
         }
       }
     }

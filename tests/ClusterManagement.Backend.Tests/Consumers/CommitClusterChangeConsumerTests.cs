@@ -204,7 +204,6 @@ public class CommitClusterChangeConsumerTests
                     new(cluster.Id, cluster.Version, cluster.Name, true),
                 ]);
 
-
             var command = new CommitClusterChange(ClusterSerializer.Compress(cluster), new CommitClusterMetaInfo(cluster), options);
 
             // Act
@@ -233,7 +232,6 @@ public class CommitClusterChangeConsumerTests
                 [
                     new(cluster.Id, cluster.Version, cluster.Name, true),
                 ]);
-
 
             var command = new CommitClusterChange(ClusterSerializer.Compress(cluster), new CommitClusterMetaInfo(cluster), options);
 
@@ -268,13 +266,13 @@ public class CommitClusterChangeConsumerTests
 
             cluster.FunctionBlockDesignIds.Add(vseDesignId1);
             cluster.FunctionBlockDesignIds.Add(vseDesignId2);
+            cluster.Dependencies.Add(vseDesignDependency);
 
             _storage.GetClusterInfos(cluster.Id, Arg.Any<CancellationToken>())
                 .Returns(
                 [
                     new(cluster.Id, cluster.Version, cluster.Name, true),
                 ]);
-
 
             var command = new CommitClusterChange(ClusterSerializer.Compress(cluster), new CommitClusterMetaInfo(cluster), options);
 
@@ -286,7 +284,90 @@ public class CommitClusterChangeConsumerTests
             Assert.True(await tester.Harness.Published.Any<ClusterChanged>(r =>
                 r.Context.Message.ClusterId == cluster.Id, TestContext.Current.CancellationToken));
 
-            await _storage.Received(1).Store(Arg.Is<Cluster>(k => k.Dependencies.Count <= 0), Arg.Any<CancellationToken>());
+            await _storage.Received(1).Store(Arg.Is<Cluster>(k => k.Dependencies.Count == 1), Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Should_not_cleanup_dependencies_if_disabled_by_options()
+        {
+            // Arrange
+            await using MassTransitTester tester = new(_configureServices);
+            var cluster = ClusterDbContextTools.CreateCluster();
+            CommitClusterOptions options = new()
+            {
+                CleanupDependencies = false,
+            };
+
+            cluster.Version = new(1, 0, 1);
+
+            var vseDesignId1 = Guid.NewGuid();
+            var vseDesignId2 = Guid.NewGuid();
+            ClusterDependency vseDesignDependency = new()
+            {
+                Name = "VSE.IoT.Core",
+                Version = "0.8.1",
+            };
+
+            cluster.FunctionBlockDesignIds.Add(vseDesignId1);
+            cluster.FunctionBlockDesignIds.Add(vseDesignId2);
+            cluster.Dependencies.Add(vseDesignDependency);
+
+            _storage.GetClusterInfos(cluster.Id, Arg.Any<CancellationToken>())
+                .Returns(
+                [
+                    new(cluster.Id, cluster.Version, cluster.Name, true),
+                ]);
+
+            CommitClusterChange command = new(ClusterSerializer.Compress(cluster), new CommitClusterMetaInfo(cluster), options);
+
+            // Act
+            await tester.TestCommand<CommitClusterChange, CommitClusterChangeConsumer>(command);
+
+            // Assert
+            Assert.False(await tester.Harness.Published.Any<ClusterError>(TestContext.Current.CancellationToken));
+            Assert.True(await tester.Harness.Published.Any<ClusterChanged>(r =>
+                r.Context.Message.ClusterId == cluster.Id, TestContext.Current.CancellationToken));
+
+            await _storage.Received(1).Store(Arg.Is<Cluster>(k => k.Dependencies.Count == 2), Arg.Any<CancellationToken>());
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Ensures_DefaultPoolings_in_dependencies(bool cleanupDependencies)
+        {
+            // Arrange
+            await using MassTransitTester tester = new(_configureServices);
+            var cluster = ClusterDbContextTools.CreateCluster();
+            CommitClusterOptions options = new()
+            {
+                CleanupDependencies = cleanupDependencies,
+            };
+
+            cluster.Version = new(1, 0, 1);
+
+            _storage.GetClusterInfos(cluster.Id, Arg.Any<CancellationToken>())
+                .Returns(
+                [
+                    new(cluster.Id, cluster.Version, cluster.Name, true),
+                ]);
+
+            CommitClusterChange command = new(ClusterSerializer.Compress(cluster), new CommitClusterMetaInfo(cluster), options);
+
+            // Act
+            await tester.TestCommand<CommitClusterChange, CommitClusterChangeConsumer>(command);
+
+            // Assert
+            Assert.False(await tester.Harness.Published.Any<ClusterError>(TestContext.Current.CancellationToken));
+            Assert.True(await tester.Harness.Published.Any<ClusterChanged>(r =>
+                r.Context.Message.ClusterId == cluster.Id, TestContext.Current.CancellationToken));
+
+            await _storage.Received(1)
+                .Store(FluentArg.Assert<Cluster>(k => k.Dependencies.Should().ContainSingle().Which.Should().BeEquivalentTo(new ClusterDependency()
+                {
+                    Name = "ViciOne.Engine.DefaultPoolings",
+                    Version = "1.0.0",
+                }))!, Arg.Any<CancellationToken>());
         }
     }
 }

@@ -73,7 +73,7 @@ public class GetEngineHostPackageInfoConsumerTests
         // Assert
         response.RequestError.Should().BeNull();
         response.PackageInfo.Should().NotBeNull();
-        response.PackageInfo.InstalledVersion.Should().Be("0.30.0");
+        response.PackageInfo.InstalledVersion.Should().Be("1.0.0");
         response.PackageInfo.Versions.Should().HaveCount(3);
     }
 }

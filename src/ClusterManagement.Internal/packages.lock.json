@@ -218,7 +218,7 @@
       },
       "ViciOne.Core.Runtime": {
         "type": "CentralTransitive",
-        "requested": "[0.51.0, )",
+        "requested": "[1.0.0, )",
         "resolved": "1.0.0",
         "contentHash": "if/EBwinB6KOWxGugJj+zhctBhnKyYAFAXhGt2BOFYxPADUrXS2uC1C5Nwkodfz7JbFxmnF+iAXTioX0ap5f7A==",
         "dependencies": {

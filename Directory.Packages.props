@@ -18,15 +18,15 @@
     <PackageVersion Include="System.IO.Abstractions" Version="22.1.0" />
     <PackageVersion Include="System.Reflection.MetadataLoadContext" Version="$(DotNetVersion)" />
     <PackageVersion Include="ViciOne.Cluster.Builder" Version="1.0.0" />
-    <PackageVersion Include="ViciOne.Core.Dataflow.DataModel.Generation" Version="0.51.0" />
-    <PackageVersion Include="ViciOne.Core.Runtime" Version="0.51.0" />
+    <PackageVersion Include="ViciOne.Core.Dataflow.DataModel.Generation" Version="1.0.0" />
+    <PackageVersion Include="ViciOne.Core.Runtime" Version="1.0.0" />
     <PackageVersion Include="ViciOne.Core.Runtime.Analyzers" Version="0.4.0" />
-    <PackageVersion Include="ViciOne.Suite.DataPort" Version="0.29.0" />
+    <PackageVersion Include="ViciOne.Suite.DataPort" Version="0.30.0" />
     <PackageVersion Include="ViciOne.Suite.Sdk" Version="$(ViciOneSuiteSdkVersion)" />
     <PackageVersion Include="ViciOne.Suite.Sdk.Backend" Version="$(ViciOneSuiteSdkVersion)" />
     <PackageVersion Include="ViciOne.Suite.Sdk.Deployment" Version="$(ViciOneSuiteSdkVersion)" />
     <PackageVersion Include="ViciOne.Suite.Sdk.Client" Version="$(ViciOneSuiteSdkVersion)" />
-    <PackageVersion Include="ViciOne.Suite.System.DataPort" Version="0.15.0" />
+    <PackageVersion Include="ViciOne.Suite.System.DataPort" Version="1.0.0" />
     <PackageVersion Include="ViciOne.TreeBuilder" Version="0.6.0" />
     <PackageVersion Include="ViciOne.Ui.ClusterEditor" Version="1.0.0-ci2387961829" />
     <PackageVersion Include="ViciOne.Ui.Design" Version="2.0.3" />

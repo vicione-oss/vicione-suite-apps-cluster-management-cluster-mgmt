@@ -83,6 +83,7 @@
 - Update NuGet packages
   - [ ] `ViciOne.Engine.*`
   - [ ] `ViciOne.Core.*`
+- Update version in [tests](tests/ClusterManagement.Backend.Tests/Consumers/CommitClusterChangeConsumerTests.cs)
 
 ## System Tests
 
@@ -98,6 +99,7 @@
 
 - Update NuGet packages
   - [ ] `ViciOne.Suite.DataPort`
+- [ ] Update version in [tests](tests/ClusterManagement.Client.Tests/TestDataFactory.cs)
 - [ ] Update [packages.json](src/ClusterManagement.Backend/Packages/packages.json) with new/maintained/outdated Data Ports
 - [ ] Update [packages.edge-s.json](src/ClusterManagement.Backend/Packages/packages.edge-s.json) with new/maintained/outdated Data Ports
 
@@ -110,7 +112,7 @@
 
 ## FunctionBlocks
 
-### General FunctionBlocks
+### Basic FunctionBlocks
 
 [<Version>](<Link to vicione-oss/vicione/runtime-libs/basic-functionblocks release>)
 
@@ -125,7 +127,7 @@
 - [ ] Update [packages.json](src/ClusterManagement.Backend/Packages/packages.json) with new/maintained/outdated FunctionBlocks
 - [ ] Update [packages.edge-s.json](src/ClusterManagement.Backend/Packages/packages.edge-s.json) with new/maintained/outdated FunctionBlocks
 
-### Suite FunctionBlocks
+### DataPort FunctionBlock
 
 [<Version>](<Link to vicione-oss/vicione/runtime-libs/dataport-functionblock release>)
 
@@ -136,7 +138,7 @@
 
 ### moneo FunctionBlocks
 
-[<Version>](<Link to vicione-oss/addons/moneo/functionblocks release>)
+[<Version>](<Link to vicione-oss/addons/ifm/moneo/functionblocks release>)
 
 - [ ] Update [packages.json](src/ClusterManagement.Backend/Packages/packages.json) with new/maintained/outdated FunctionBlocks
 - [ ] Update [packages.edge-s.json](src/ClusterManagement.Backend/Packages/packages.edge-s.json) with new/maintained/outdated FunctionBlocks

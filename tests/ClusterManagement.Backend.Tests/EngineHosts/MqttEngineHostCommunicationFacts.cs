@@ -24,11 +24,11 @@ public class MqttEngineHostCommunicationFacts
     private readonly Guid _engineHostId = Guid.NewGuid();
     private readonly Guid _deploymentId = Guid.NewGuid();
 
-    private readonly SemVersion _latestSupportedEngineHostVersion = new(0, 30, 0);
-    private readonly SemVersion _oldestSupportedEngineHostVersion = new(0, 30, 0);
+    private readonly SemVersion _latestSupportedEngineHostVersion = new(1, 0, 0);
+    private readonly SemVersion _oldestSupportedEngineHostVersion = new(1, 0, 0);
 
-    private readonly SemVersion _latestSupportedManagedEngineVersion = new(0, 62, 0);
-    private readonly SemVersion _oldestSupportedManagedEngineVersion = new(0, 62, 0);
+    private readonly SemVersion _latestSupportedManagedEngineVersion = new(1, 0, 0);
+    private readonly SemVersion _oldestSupportedManagedEngineVersion = new(1, 0, 0);
 
     public MqttEngineHostCommunicationFacts()
     {
@@ -75,6 +75,15 @@ public class MqttEngineHostCommunicationFacts
         using GZipStream gzip = new(memory, CompressionMode.Decompress);
         using StreamReader reader = new(gzip);
         return reader.ReadToEnd();
+    }
+
+    private static T? DeserializeJsonFromGzipBytes<T>(ReadOnlySequence<byte>? bytes)
+    {
+        if (!bytes.HasValue)
+            return default;
+        using MemoryStream memory = new(bytes.Value.ToArray());
+        using GZipStream gzip = new(memory, CompressionMode.Decompress);
+        return JsonSerializer.Deserialize<T>(gzip);
     }
 
     private static JsonObject? ReadJsonObjectFromGzipBytes(ReadOnlySequence<byte>? bytes)
@@ -152,11 +161,11 @@ public class MqttEngineHostCommunicationFacts
         {
             private static SemVersion ChangeVersion(SemVersion version, int minorInterval)
             {
-                if (version.Minor - minorInterval < 0)
+                if (version.Minor + minorInterval < 0)
                 {
                     if (version.Major == 0)
                         throw new InvalidOperationException("A major version smaller than 0 is not allowed.");
-                    version = version.With(version.Major - 1, 0);
+                    version = version.With(version.Major - 1, 99);
                 }
                 else
                 {
@@ -914,6 +923,87 @@ public class MqttEngineHostCommunicationFacts
             var actual = await _communication.GetDeploymentStates(_engineHostId, CancellationToken.None);
 
             actual.Should().ContainKey(_deploymentId).WhoseValue.Should().Be(EngineState.Running);
+        }
+    }
+
+    public class GetPackages : MqttEngineHostCommunicationFacts
+    {
+        [Fact]
+        public async Task Sends_request_with_correct_topics_and_data()
+        {
+            // Arrange
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
+                .ReturnsForAnyArgs(new MqttRpcResponse("ok", PlainTextToGzipBytes("[]"), MediaTypeNames.Application.GZip));
+
+            // Act
+            await _communication.GetPackages(_engineHostId, _deploymentId, CancellationToken.None);
+
+            // Assert
+            await _mqttClient.Received(1).Request(
+                Arg.Is($"{_engineHostId}/request"),
+                FluentArg.Assert<MqttRpcRequest>(r =>
+                {
+                    r.Method.Should().Be("getpackages");
+                    DeserializeJsonFromGzipBytes<Guid>(r.Payload).Should().Be(_deploymentId);
+                    r.ContentType.Should().Be(MediaTypeNames.Application.GZip);
+                })!,
+                Arg.Is($"{_engineHostId}/response"), Arg.Is(CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task Throws_InvalidOperationException_if_response_indicates_failure()
+        {
+            // Arrange
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
+                .ReturnsForAnyArgs(new MqttRpcResponse("fail", PlainTextToBytes("not possible"), MediaTypeNames.Text.Plain));
+
+            // Act
+            var act = FluentActions.Awaiting(() => _communication.GetPackages(_engineHostId, _deploymentId, CancellationToken.None));
+
+            // Assert
+            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*could not*execute*getpackages*not possible*");
+        }
+
+        [Fact]
+        public async Task Throws_InvalidOperationException_if_received_payload_is_empty()
+        {
+            // Arrange
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
+                .ReturnsForAnyArgs(new MqttRpcResponse("ok", PlainTextToGzipBytes(string.Empty), MediaTypeNames.Application.GZip));
+
+            // Act
+            var act = FluentActions.Awaiting(() => _communication.GetPackages(_engineHostId, _deploymentId, CancellationToken.None));
+
+            // Assert
+            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*cannot*parse*response*'<gzip compressed content>'*");
+        }
+
+        [Fact]
+        public async Task Throws_InvalidOperationException_if_received_collection_is_not_parseable()
+        {
+            // Arrange
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
+                .ReturnsForAnyArgs(new MqttRpcResponse("ok", PlainTextToGzipBytes("""{"State":"Starting"}"""), MediaTypeNames.Application.GZip));
+
+            // Act
+            var act = FluentActions.Awaiting(() => _communication.GetPackages(_engineHostId, _deploymentId, CancellationToken.None));
+
+            // Assert
+            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*cannot*parse*response*'<gzip compressed content>'*");
+        }
+
+        [Fact]
+        public async Task Returns_received_packages()
+        {
+            // Arrange
+            _mqttClient.Request(default!, default!, default!, TestContext.Current.CancellationToken)
+                .ReturnsForAnyArgs(new MqttRpcResponse("ok", PlainTextToGzipBytes("""[{"Name":"PackageA","Version":"1.2.3"}]"""), MediaTypeNames.Application.GZip));
+
+            // Act
+            var actual = await _communication.GetPackages(_engineHostId, _deploymentId, CancellationToken.None);
+
+            // Assert
+            actual.Should().ContainSingle().Which.Should().BeEquivalentTo(new ClusterDependency("PackageA", "1.2.3"));
         }
     }
 }

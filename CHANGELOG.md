@@ -2,6 +2,11 @@
 
 ## 2.0.0 - Unreleased
 
+### Added
+
+- Pass DataPort name to DataPort communication
+- Pass DataPort DesignId to DataPort communication
+
 ### Changed
 
 - Improve async cancellation handling on client controls
@@ -13,6 +18,36 @@
 - `ViciOne.Ui.Design`, update to `2.0.3`
 - `ViciOne.Ui.Localization` package, update version to `3.2.0`
 - `ViciOne.Ui.MonochromeIcons.Assets` package, update version to `4.6.0`
+- Update Engine Host to `1.0.0`
+- Update Managed Engine to `1.0.0`
+- Update `ViciOne.Core.Dataflow.DataModel.Generation` to `1.0.0`
+- Update `ViciOne.Core.Runtime` to `1.0.0`
+- Update `ViciOne.Suite.DataPort.Http.Client` to `0.30.0`
+- Update `ViciOne.Suite.DataPort.InfluxDb` to `0.30.0`
+- Update `ViciOne.Suite.DataPort.MySql` to `0.30.0`
+- Update `ViciOne.Suite.DataPort.Mqtt` to `0.30.0`
+- Update `ViciOne.Suite.DataPort.OpcUa.Client` to `0.30.0`
+- Update `ViciOne.Suite.DataPort.OpcUa.Server` to `0.30.0`
+- Update `ViciOne.Suite.DataPort.PostgreSql` to `0.30.0`
+- Update `ViciOne.Suite.DataPort.Sqlite` to `0.30.0`
+- Update `ViciOne.Suite.DataPort.SqlServer` to `0.30.0`
+- Update `ifm.Anna.FunctionBlocks` to `1.0.0`
+- Update `ViciOne.Suite.DataPort.Anna` to `1.0.0`
+- Update `ViciOne.Analysis` to `1.0.0`
+- Update `ViciOne.Constant` to `1.0.0`
+- Update `ViciOne.Converter` to `1.0.0`
+- Update `ViciOne.FlowControl` to `1.0.0`
+- Update `ViciOne.Logic` to `1.0.0`
+- Update `ViciOne.Math` to `1.0.0`
+- Update `ViciOne.Time` to `1.0.0`
+- Update `ViciOne.Driver.IoTCore` to `2.0.0`
+- Update `ViciOne.Suite.System.DataPort` to `1.0.0`
+- Update `ifm.moneo.Counter.Pieces` to `1.0.0`
+- Update `ifm.moneo.Counter.Runtime` to `1.0.0`
+- Update `ifm.moneo.DataFormatter` to `1.0.0`
+- Update `ifm.moneo.Math.DecimalToIntegral` to `1.0.0`
+- Update `ifm.moneo.Publisher` to `1.0.0`
+- Update `ifm.moneo.Subscriber` to `1.0.0`
 
 ### Fixed
 
