@@ -160,7 +160,7 @@ internal sealed partial class ClusterSystemTestContext : IAsyncDisposable
             .Replace("ClusterManagement.Tests", typeof(DummyFunctionBlock).FullName, StringComparison.OrdinalIgnoreCase);
         var clusterManagementDummyFunctionBlockDepsLocation = _fileSystem.Path.ChangeExtension(clusterManagementDummyFunctionBlockAssemblyLocation, "deps.json");
 
-        var packageDirectory = dir.CreateDirectory(Backend.Designs.Extensions.IFileSystemExtensions.DependenciesDirectory, dummyFunctionBlockAssemblyName.Name!, dummyFunctionBlockAssemblyName.Version!.ToString());
+        var packageDirectory = dir.CreateDirectory(Backend.Designs.Extensions.IFileSystemExtensions.DependenciesDirectory, dummyFunctionBlockAssemblyName.Name!, dummyFunctionBlockAssemblyName.Version!.ToVersionString());
         _fileSystem.File.Copy(clusterManagementDummyFunctionBlockAssemblyLocation, _fileSystem.Path.Combine(packageDirectory, _fileSystem.Path.GetFileName(clusterManagementDummyFunctionBlockAssemblyLocation)));
         _fileSystem.File.Copy(clusterManagementDummyFunctionBlockDepsLocation, _fileSystem.Path.Combine(packageDirectory, _fileSystem.Path.GetFileName(clusterManagementDummyFunctionBlockDepsLocation)));
     }

@@ -4,6 +4,7 @@ using ClusterManagement.Backend.Designs.Extensions;
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Backend.Engines;
 using ClusterManagement.Backend.Engines.Extensions;
+using ClusterManagement.Backend.Extensions;
 using ClusterManagement.Backend.Mqtt;
 using ClusterManagement.Public.Events;
 using Microsoft.EntityFrameworkCore;
@@ -192,7 +193,7 @@ internal partial class ClusterSystemTestContext
         var deploymentWorkflow = _deploymentWorkflow[(hostId, id)];
         var containerId = _clusterBuilder.Cluster.Dataflows.First().Root.Id;
         var dummyFunctionBlockAssemblyName = typeof(DummyFunctionBlock).Assembly.GetName();
-        deploymentWorkflow.Workflow.ClusterDependencies.Add(new(dummyFunctionBlockAssemblyName.Name!, dummyFunctionBlockAssemblyName.Version!.ToString()));
+        deploymentWorkflow.Workflow.ClusterDependencies.Add(new(dummyFunctionBlockAssemblyName.Name!, dummyFunctionBlockAssemblyName.Version!.ToVersionString()));
         deploymentWorkflow.Workflow.Containers.Add(new()
         {
             Id = containerId,
