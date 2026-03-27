@@ -60,14 +60,6 @@
         "Version": "1.0.0"
     },
     {
-        "Name": "ifm.moneo.Publisher",
-        "Version": "1.0.0"
-    },
-    {
-        "Name": "ifm.moneo.Subscriber",
-        "Version": "1.0.0"
-    },
-    {
         "Name": "ViciOne.Suite.System.DataPort",
         "Version": "1.0.0"
     },
