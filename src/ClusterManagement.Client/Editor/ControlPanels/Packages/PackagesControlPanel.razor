@@ -38,6 +38,11 @@
                                           IconCssClass="@_uninstallIconCssClasses"
                                           Enabled="@CanUninstallPackages()" />
 
+                        <GridActionButton Text="@CommonVocabulary.UpdateVerb"
+                                          OnClick="@UpdatePackagesClick"
+                                          IconCssClass="@_updateIconCssClasses"
+                                          Enabled="@CanUpdatePackages()" />
+
                         <GridActionButton Text="@CommonVocabulary.ResetVerb"
                                           OnClick="@(async () => await ResetInstalledSelectedModules())"
                                           IconCssClass="@_uninstallIconCssClasses"
@@ -162,7 +167,7 @@
 
                         <GridActionButton Text="@Common.Upload"
                                           OnClick="OnPackageUploadClickAsync"
-                                          IconCssClass="@_exportIconCssClasses" />
+                                          IconCssClass="@_uploadIconCssClasses" />
                         
                         <GridActionButton Text="@CommonVocabulary.Delete"
                                           OnClick="@DeleteAvailablePackagesClick"

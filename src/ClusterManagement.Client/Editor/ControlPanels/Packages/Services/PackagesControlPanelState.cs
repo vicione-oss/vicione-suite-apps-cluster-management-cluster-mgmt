@@ -121,6 +121,33 @@ public sealed class PackagesControlPanelState : ControlPanelState
         }
     }
 
+    public void UpdateUpdateOperations(IEnumerable<ClusterPackageInfo> packages)
+    {
+        foreach (var item in packages)
+        {
+            if (item.Versions is null || item.Versions.Count == 0)
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(item.InstalledVersion)
+                || string.IsNullOrEmpty(item.AvailableUpdateVersion)
+                || InstallOperations.Any(p => p.Dependency.Name == item.Name
+                && p.Dependency.Version == item.AvailableUpdateVersion))
+            {
+                continue;
+            }
+
+            var dependecy = new ClusterDependency
+            {
+                Name = item.Name,
+                Version = item.AvailableUpdateVersion,
+            };
+
+            InstallOperations.Add(new ClusterDependencyOperation(dependecy, ClusterDependencyOperationKind.Install));
+        }
+    }
+
     public void UpdateUninstallOperations(IEnumerable<ClusterPackageInfo> packages)
     {
         foreach (var item in packages)
