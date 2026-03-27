@@ -3,6 +3,8 @@
 @using ClusterManagement.Public
 @using Sdk.Authorization
 @using ViciOne.Cluster.Model
+@using ViciOne.Ui.Blazor.Components.Button
+@using ViciOne.Ui.Blazor.Components.Button.Enums
 @using ViciOne.Ui.Blazor.Components.Toolbar.Components
 @using ViciOne.Ui.Localization.Resources
 @using ViciOne.Ui.MonochromeIcons.Core.Enums
@@ -81,40 +83,40 @@
                             Actions
                         </HeaderTemplate>
                         <CellDisplayTemplate>
-                            @if (context.DataItem is ClusterInfoModel model)
-                            {
-                                <button @onclick="@(async () => await DeployClusterVersion(model))"
-                                        class="btn"
-                                        type="button"
-                                        disabled="@(model.IsActive || Clusters.Any(k => k.IsExecuting))"
-                                        title="@CommonVocabulary.StartVerb">
-                                    <span class="mdi mdi-motion-play-outline"></span>
-                                </button>
+                            <div class="action-column">
+                                @if (context.DataItem is ClusterInfoModel model)
+                                {
+                                
+                                    <Button IconCssClass="@_deployIconCssClass"
+                                            CssClass="borderless"
+                                            OnClick="@(async () => await DeployClusterVersion(model))"
+                                            Enabled="@(!model.IsActive && Clusters.All(k => !k.IsExecuting))"
+                                            Title="@CommonVocabulary.StartVerb"
+                                            Size="@ButtonSize.Small" />
 
-                                <button @onclick="@(() => HandleEdit(model))"
-                                        class="btn"
-                                        type="button"
-                                        disabled="@(model.IsExecuting || !model.IsLatest)"
-                                        title="@CommonVocabulary.EditVerb">
-                                    <span class="mdi @(model.IsLatest ? "mdi-pencil" : "mdi-information-outline")"></span>
-                                </button>
+                                    <Button IconCssClass="@(model.IsLatest? _editIconCssClass : _infoIconCssClass)"
+                                            CssClass="borderless"
+                                            OnClick="@(() => HandleEdit(model))"
+                                            Enabled="@(!model.IsExecuting && model.IsLatest)"
+                                            Title="@CommonVocabulary.EditVerb"
+                                            Size="@ButtonSize.Small" />
 
-                                <button @onclick="@(async () => await DownloadClusterJson(model))"
-                                        class="btn"
-                                        type="button"
-                                        disabled="@(model.IsExecuting)"
-                                        title="@($"{CommonVocabulary.DownloadVerb} JSON")">
-                                    <span class="mdi mdi-cloud-download-outline"></span>
-                                </button>
+                                    <Button IconCssClass="@_downloadIconCssClass"
+                                            CssClass="borderless"
+                                            OnClick="@(() => DownloadClusterJson(model))"
+                                            Enabled="@(!model.IsExecuting)"
+                                            Title="@($"{CommonVocabulary.DownloadVerb} JSON")"
+                                            Size="@ButtonSize.Small" />
 
-                                <button @onclick="@(async () => await RemoveCluster(model))"
-                                        class="btn"
-                                        type="button"
-                                        disabled="@(model.IsExecuting || model.IsActive || model.IsDefault)"
-                                        title="@CommonVocabulary.Delete">
-                                    <span class="mdi mdi-trash-can-outline"></span>
-                                </button>
-                            }
+                                    <Button IconCssClass="@_deleteIconCssClass"
+                                            CssClass="borderless"
+                                            OnClick="@(async () => await RemoveCluster(model))"
+                                            Enabled="@(!model.IsExecuting && !model.IsActive && !model.IsDefault)"
+                                            Title="@CommonVocabulary.Delete"
+                                            Size="@ButtonSize.Small" />
+
+                                }
+                            </div>
                         </CellDisplayTemplate>
                     </DxGridCommandColumn>
                 </Columns>

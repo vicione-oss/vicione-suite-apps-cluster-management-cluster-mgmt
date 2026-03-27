@@ -8,11 +8,21 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 using Sdk.Client.Infrastructure;
 using Sdk.Messaging;
+using ViciOne.Ui.Blazor.Components.Button.Enums;
+using ViciOne.Ui.Blazor.Components.Button.Extensions;
+using ViciOne.Ui.MonochromeIcons.Core.Enums;
+using ViciOne.Ui.MonochromeIcons.Core.Extensions;
 
 namespace ClusterManagement.Client.Management;
 
 public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChanged>
 {
+    private readonly string _deployIconCssClass = MonochromeIconName.SendLight.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
+    private readonly string _editIconCssClass = MonochromeIconName.Edit.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
+    private readonly string _infoIconCssClass = MonochromeIconName.InfoLight.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
+    private readonly string _downloadIconCssClass = MonochromeIconName.Export.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
+    private readonly string _deleteIconCssClass = MonochromeIconName.Delete.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
+
     private readonly CancellationTokenSource _tokenSource = new();
 
     private bool _hasLoaded;
@@ -35,8 +45,15 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
     {
         _subscriptionHandle?.Dispose();
 
-        await _tokenSource.CancelAsync();
-        _tokenSource.Dispose();
+        try
+        {
+            await _tokenSource.CancelAsync();
+            _tokenSource.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Ignore: CancellationTokenSource was already disposed.
+        }
 
         ManagementService.OnClusterUpdateStarted -= OnClusterUpdateStarted;
         ManagementService.OnClusterUpdateChanged -= OnClusterUpdateChanged;
@@ -227,8 +244,6 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
 
         NavManager.NavigateToEditor(model);
     }
-
-
 
     private async Task ResetSagaStates()
     {

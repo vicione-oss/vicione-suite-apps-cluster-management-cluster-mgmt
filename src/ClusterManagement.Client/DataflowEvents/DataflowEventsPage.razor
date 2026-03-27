@@ -1,5 +1,7 @@
 ﻿@using ClusterManagement.Client.DataflowEvents.Models
 @using ClusterManagement.Public
+@using ViciOne.Ui.Blazor.Components.Button
+@using ViciOne.Ui.Blazor.Components.Button.Enums
 @using ViciOne.Ui.Blazor.Components.TextBox
 @using ViciOne.Ui.Blazor.Components.Toolbar.Components
 @using ViciOne.Ui.Localization.Resources
@@ -106,27 +108,25 @@
                         @CommonVocabulary.ActionPlural
                     </HeaderTemplate>
                     <CellDisplayTemplate>
-                        @if (context.DataItem is DataflowEventModel model)
-                        {
-                            if (model.Subscription is null)
+                        <div class="action-column">
+                            @if (context.DataItem is DataflowEventModel model)
                             {
-                                <button @onclick="@(() => PageService.SubscribeEvent(model))"
-                                        class="btn"
-                                        type="button"
-                                        title="@CommonVocabulary.Subscribe">
-                                    <span class="mdi mdi-access-point-plus"></span>
-                                </button>
+                                if (model.Subscription is null)
+                                {
+                                    <Button IconCssClass="@_plusIconCssClass"
+                                            OnClick="@(() => PageService.SubscribeEvent(model))"
+                                            Title="@CommonVocabulary.Subscribe"
+                                            Size="@ButtonSize.Small" />
+                                }
+                                else
+                                {
+                                    <Button IconCssClass="@_minusIconCssClass"
+                                            OnClick="@(() => PageService.UnsubscribeEvent(model))"
+                                            Title="@CommonVocabulary.Unsubscribe"
+                                            Size="@ButtonSize.Small" />
+                                }
                             }
-                            else
-                            {
-                                <button @onclick="@(() => PageService.UnsubscribeEvent(model))"
-                                        class="btn"
-                                        type="button"
-                                        title="@CommonVocabulary.Unsubscribe">
-                                    <span class="mdi mdi-access-point-minus"></span>
-                                </button>
-                            }
-                        }
+                        </div>
                     </CellDisplayTemplate>
                 </DxGridCommandColumn>
             </Columns>

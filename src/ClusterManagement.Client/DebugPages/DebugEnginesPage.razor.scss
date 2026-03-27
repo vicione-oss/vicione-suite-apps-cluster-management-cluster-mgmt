@@ -9,6 +9,10 @@
 
     .debug-engines-grid {
         @extend .cm-page-grid-base;
+
+        .action-column {
+            @extend .cm-grid-action-column;
+        }
     }
 
     .detail-container {

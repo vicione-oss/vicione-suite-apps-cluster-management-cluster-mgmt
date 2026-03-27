@@ -59,8 +59,15 @@ public sealed partial class ClusterEditorPage
         _builder?.Dispose();
         _subscriptionHandles.Dispose();
 
-        await _tokenSource.CancelAsync();
-        _tokenSource.Dispose();
+        try
+        {
+            await _tokenSource.CancelAsync();
+            _tokenSource.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Ignore: CancellationTokenSource was already disposed.
+        }
 
         LoadService.ClusterLoaded -= OnClusterLoaded;
         SaveService.ClusterChanged -= OnClusterChanged;

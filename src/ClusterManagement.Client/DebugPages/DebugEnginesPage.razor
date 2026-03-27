@@ -1,4 +1,6 @@
-﻿@using ViciOne.Ui.Blazor.Components.Toolbar.Components
+﻿@using ViciOne.Ui.Blazor.Components.Button
+@using ViciOne.Ui.Blazor.Components.Button.Enums
+@using ViciOne.Ui.Blazor.Components.Toolbar.Components
 @using ViciOne.Ui.Localization.Resources
 @using ViciOne.Ui.MonochromeIcons.Core.Enums
 
@@ -50,35 +52,32 @@
                                       FieldName="@nameof(EngineInfoModel.EngineState)" />
                     <DxGridCommandColumn Width="150px">
                         <HeaderTemplate>
-                            Actions
+                            @CommonVocabulary.ActionPlural
                         </HeaderTemplate>
                         <CellDisplayTemplate>
-                            @if (context.DataItem is EngineInfoModel model)
-                            {
-                                <button @onclick="@(async () => await StartEngine(model))"
-                                        class="btn"
-                                        type="button"
-                                        disabled="@(model.EngineState is not Internal.Requests.EngineState.Stopped)"
-                                        title="Start">
-                                    <span class="mdi mdi-motion-play-outline"></span>
-                                </button>
+                            <div class="action-column">
+                                @if (context.DataItem is EngineInfoModel model)
+                                {
+                                    <Button IconCssClass="@_startIconCssClass"
+                                            OnClick="@(async () => await StartEngine(model))"
+                                            Enabled="@(model.EngineState is Internal.Requests.EngineState.Stopped)"
+                                            Title="@CommonVocabulary.StartVerb"
+                                            Size="@ButtonSize.Small" />
 
-                                <button @onclick="@(async () => await StopEngine(model))"
-                                        class="btn"
-                                        type="button"
-                                        disabled="@(model.EngineState is not Internal.Requests.EngineState.Running)"
-                                        title="Stop">
-                                    <span class="mdi mdi-motion-pause-outline"></span>
-                                </button>
+                                    <Button IconCssClass="@_stopIconCssClass"
+                                            OnClick="@(async () => await StopEngine(model))"
+                                            Enabled="@(model.EngineState is Internal.Requests.EngineState.Running)"
+                                            Title="Stop"
+                                            Size="@ButtonSize.Small" />
 
-                                <button @onclick="@(async () => await TearDownEngine(model))"
-                                        class="btn"
-                                        type="button"
-                                        disabled="@(model.EngineState is not Internal.Requests.EngineState.Stopped)"
-                                        title="TearDown">
-                                    <span class="mdi mdi-trash-can-outline"></span>
-                                </button>
-                            }
+
+                                    <Button IconCssClass="@_trashIconCssClass"
+                                            OnClick="@(async () => await TearDownEngine(model))"
+                                            Enabled="@(model.EngineState is Internal.Requests.EngineState.Stopped)"
+                                            Title="TearDown"
+                                            Size="@ButtonSize.Small" />
+                                }
+                            </div>
                         </CellDisplayTemplate>
                     </DxGridCommandColumn>
                 </Columns>
