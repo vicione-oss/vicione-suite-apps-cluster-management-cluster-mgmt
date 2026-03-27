@@ -22,7 +22,8 @@ namespace ClusterManagement.Client.Editor.ControlPanels.Packages;
 public partial class PackagesControlPanel
 {
     private readonly string _uninstallIconCssClasses = @MonochromeIconName.UninstallLight.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated();
-    private readonly string _exportIconCssClasses = @MonochromeIconName.Export.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated();
+    private readonly string _updateIconCssClasses = @MonochromeIconName.InstallPendingLight.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated();
+    private readonly string _uploadIconCssClasses = @MonochromeIconName.Export.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated();
     private readonly string _importIconCssClasses = @MonochromeIconName.Import.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated();
     private readonly string _deleteIconCssClasses = @MonochromeIconName.Delete.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated();
 
@@ -185,6 +186,24 @@ public partial class PackagesControlPanel
         var items = InstalledItemSelection.Distinct();
 
         State.UpdateUninstallOperations(items);
+
+        if (State.HasPendingChanges())
+        {
+            await BeginEdit();
+        }
+    }
+
+    private bool CanUpdatePackages()
+        => InstalledItemSelection.Count != 0
+        && InstalledItemSelection.All(i => !string.IsNullOrEmpty(i.InstalledVersion)
+        && !string.IsNullOrEmpty(i.AvailableUpdateVersion)
+        && i.InstalledVersion != i.AvailableUpdateVersion);
+
+    private async Task UpdatePackagesClick()
+    {
+        var items = InstalledItemSelection.Distinct();
+
+        State.UpdateUpdateOperations(items);
 
         if (State.HasPendingChanges())
         {
