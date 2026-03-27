@@ -27,3 +27,13 @@
     grid-template-columns: 1fr 1fr;
     column-gap: 10px;
 }
+
+.cm-grid-action-column {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+
+    ::deep .button {
+        border-style: none !important;
+    }
+}

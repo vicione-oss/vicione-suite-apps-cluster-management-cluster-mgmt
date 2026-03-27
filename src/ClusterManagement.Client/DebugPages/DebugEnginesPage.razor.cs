@@ -10,12 +10,20 @@ using Sdk.Client.Infrastructure;
 using Sdk.Utils;
 using ViciOne.Cluster.Model;
 using ViciOne.Cluster.Model.Extensions;
+using ViciOne.Ui.Blazor.Components.Button.Enums;
+using ViciOne.Ui.Blazor.Components.Button.Extensions;
+using ViciOne.Ui.MonochromeIcons.Core.Enums;
+using ViciOne.Ui.MonochromeIcons.Core.Extensions;
 
 namespace ClusterManagement.Client.DebugPages;
 
 public sealed partial class DebugEnginesPage : IEventConsumer<ClusterChanged>, IEventConsumer<EngineStarted>,
     IEventConsumer<EngineStopped>, IEventConsumer<EngineTornDown>
 {
+    private readonly string _startIconCssClass = MonochromeIconName.SendSolid.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
+    private readonly string _stopIconCssClass = MonochromeIconName.SwitchOff.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
+    private readonly string _trashIconCssClass = MonochromeIconName.Delete.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
+
     private readonly CancellationTokenSource _tokenSource = new();
     private readonly AutoDisposeList<IDisposable> _subscriptionHandle = [];
 
@@ -48,8 +56,16 @@ public sealed partial class DebugEnginesPage : IEventConsumer<ClusterChanged>, I
 
     protected override async ValueTask DisposeInternal()
     {
-        await _tokenSource.CancelAsync();
-        _tokenSource.Dispose();
+        try
+        {
+            await _tokenSource.CancelAsync();
+            _tokenSource.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Ignore: CancellationTokenSource was already disposed.
+        }
+        
         _subscriptionHandle.Dispose();
 
         Engines.Clear();

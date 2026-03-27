@@ -1,7 +1,7 @@
 ﻿<Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <ViciOneSuiteSdkVersion>2.0.0-ci2397913518</ViciOneSuiteSdkVersion>
+    <ViciOneSuiteSdkVersion>2.0.0-ci2411067321</ViciOneSuiteSdkVersion>
     <DotNetVersion>10.0.5</DotNetVersion>
   </PropertyGroup>
   <ItemGroup>
@@ -31,7 +31,7 @@
     <PackageVersion Include="ViciOne.Ui.ClusterEditor" Version="1.0.0-ci2410875809" />
     <PackageVersion Include="ViciOne.Ui.Design" Version="2.0.3" />
     <PackageVersion Include="ViciOne.Ui.Localization" Version="3.2.0" />
-    <PackageVersion Include="ViciOne.Ui.MonochromeIcons.Assets" Version="4.6.0" />
+    <PackageVersion Include="ViciOne.Ui.MonochromeIcons.Assets" Version="4.7.0" />
     <!--Used for tests only:-->
     <PackageVersion Include="AwesomeAssertions" Version="9.3.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />

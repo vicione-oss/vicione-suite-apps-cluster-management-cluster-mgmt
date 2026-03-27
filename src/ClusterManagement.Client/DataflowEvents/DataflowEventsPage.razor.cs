@@ -2,11 +2,18 @@
 using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Client.Extensions;
 using Microsoft.AspNetCore.Components;
+using ViciOne.Ui.Blazor.Components.Button.Enums;
+using ViciOne.Ui.Blazor.Components.Button.Extensions;
+using ViciOne.Ui.MonochromeIcons.Core.Enums;
+using ViciOne.Ui.MonochromeIcons.Core.Extensions;
 
 namespace ClusterManagement.Client.DataflowEvents
 {
     public sealed partial class DataflowEventsPage
     {
+        private readonly string _plusIconCssClass = MonochromeIconName.PlusSlim.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
+        private readonly string _minusIconCssClass = MonochromeIconName.MinusSlim.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
+
         [Inject]
         private DataflowEventPageService PageService { get; set; } = default!;
 

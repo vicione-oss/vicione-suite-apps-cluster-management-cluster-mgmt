@@ -13,11 +13,11 @@
 - Prevented local reloading after the cluster was saved
 - Updated .NET to version `10.0.5`
 - `ViciOne.Cluster.Builder` package, update version to `1.0.0`
-- `ViciOne.Suite.Sdk` packages, update to version `2.0.0-ci2397913518`
+- `ViciOne.Suite.Sdk` packages, update to version `2.0.0-ci2411067321`
 - `ViciOne.Ui.ClusterEditor` package, update to `1.0.0-ci2405567130`
 - `ViciOne.Ui.Design`, update to `2.0.3`
 - `ViciOne.Ui.Localization` package, update version to `3.2.0`
-- `ViciOne.Ui.MonochromeIcons.Assets` package, update version to `4.6.0`
+- `ViciOne.Ui.MonochromeIcons.Assets` package, update version to `4.7.0`
 - `ViciOne.TreeBuilder` package, update version to `1.1.0`
 - Update Engine Host to `1.0.0`
 - Update Managed Engine to `1.0.0`
@@ -47,8 +47,6 @@
 - Update `ifm.moneo.Counter.Runtime` to `1.0.0`
 - Update `ifm.moneo.DataFormatter` to `1.0.0`
 - Update `ifm.moneo.Math.DecimalToIntegral` to `1.0.0`
-- Update `ifm.moneo.Publisher` to `1.0.0`
-- Update `ifm.moneo.Subscriber` to `1.0.0`
 
 ### Fixed
 
