@@ -309,14 +309,24 @@ public partial class PackagesControlPanel
     }
 
     private IQueryable<ClusterPackageInfo> FilterInstalledItems(IQueryable<ClusterPackageInfo> packages)
-        => packages
-            .Where(i => i.Name.Contains(State.InstalledFilterText, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(d => d.Name);
+    {
+        if (string.IsNullOrEmpty(State.InstalledFilterText))
+            return packages.OrderBy(d => d.Name);
+
+        return packages
+                .Where(i => i.Name.Contains(State.InstalledFilterText, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(d => d.Name);
+    }
 
     private IQueryable<ClusterPackageInfo> FilterAvailableItems(IQueryable<ClusterPackageInfo> packages)
-        => packages
-            .Where(i => i.Name.Contains(State.AvailableFilterText, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(d => d.Name);
+    {
+        if (string.IsNullOrEmpty(State.AvailableFilterText))
+            return packages.OrderBy(d => d.Name);
+
+        return packages
+                .Where(i => i.Name.Contains(State.AvailableFilterText, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(d => d.Name);
+    }
 
     private static string GetLatestVersion(ClusterPackageInfo? package)
         => package?.Versions?.FirstOrDefault()?.Version ?? string.Empty;
