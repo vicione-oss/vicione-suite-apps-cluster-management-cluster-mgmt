@@ -35,8 +35,8 @@ public sealed class PackagesControlPanelState : ControlPanelState
         }
     } = Enumerable.Empty<ClusterPackageInfo>().AsQueryable();
 
-    internal string InstalledFilterText { get; set; } = string.Empty;
-    internal string AvailableFilterText { get; set; } = string.Empty;
+    internal string? InstalledFilterText { get; set; }
+    internal string? AvailableFilterText { get; set; }
 
     internal List<ClusterDependencyOperation> InstallOperations { get; } = [];
 

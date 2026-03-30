@@ -157,10 +157,15 @@ public sealed partial class IoddControlPanel
     }
 
     private IQueryable<DeviceView> FilterItems(IQueryable<DeviceView> devices)
-        => devices
-            .Where(i => i.Name.Contains(State.FilterText, StringComparison.OrdinalIgnoreCase)
-                     || i.DeviceId.ToString(CultureInfo.InvariantCulture).Contains(State.FilterText, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(d => d.Name);
+    {
+        if (string.IsNullOrEmpty(State.FilterText))
+            return devices.OrderBy(d => d.Name);
+
+        return devices
+                .Where(i => i.Name.Contains(State.FilterText, StringComparison.OrdinalIgnoreCase)
+                         || i.DeviceId.ToString(CultureInfo.InvariantCulture).Contains(State.FilterText, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(d => d.Name);
+    }
 
     private void OnItemSelectionChanged(ViciOne.Ui.Blazor.Components.Grid.Services.GridItemSelectionChangedEventArgs<IoddId> obj)
         => InvokeAsync(StateHasChanged);
