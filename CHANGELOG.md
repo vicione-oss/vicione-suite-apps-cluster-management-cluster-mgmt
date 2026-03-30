@@ -6,6 +6,7 @@
 
 - Pass DataPort name to DataPort communication
 - Pass DataPort DesignId to DataPort communication
+- Added a 'Get Packegs' button to DebugEngine Page
 
 ### Changed
 
