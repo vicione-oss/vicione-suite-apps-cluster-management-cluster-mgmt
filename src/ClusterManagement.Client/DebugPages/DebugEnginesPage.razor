@@ -1,7 +1,9 @@
 ﻿@using ViciOne.Ui.Blazor.Components.Button
 @using ViciOne.Ui.Blazor.Components.Button.Enums
 @using ViciOne.Ui.Blazor.Components.Toolbar.Components
+@using ViciOne.Ui.Blazor.Components.Popup.Components
 @using ViciOne.Ui.Localization.Resources
+@using ViciOne.Ui.MonochromeIcons.Components
 @using ViciOne.Ui.MonochromeIcons.Core.Enums
 
 @inherits ModulePageBase<ClusterManagementClientModule>
@@ -76,12 +78,43 @@
                                             Enabled="@(model.EngineState is Internal.Requests.EngineState.Stopped)"
                                             Title="TearDown"
                                             Size="@ButtonSize.Small" />
+
+                                    <Button IconCssClass="@_infoIconCssClass"
+                                            OnClick="@(async () => await GetPackages(model))"
+                                            Title="Get Packages"
+                                            Size="@ButtonSize.Small" />
                                 }
                             </div>
                         </CellDisplayTemplate>
                     </DxGridCommandColumn>
                 </Columns>
             </DxGrid>
+            <Popup @bind-Visible="_showPackages"
+                   Width="300px">
+                <PopupHeaderBodyLayout HeaderText="Installed Packages">
+                    <Body>
+                        <div style="max-height:250px; overflow-y:auto;">
+                            <table class="table table-striped table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Package</th>
+                                        <th>Version</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var kv in Packages.OrderBy(p => p.Key))
+                                    {
+                                        <tr>
+                                            <td>@kv.Key</td>
+                                            <td>@kv.Value</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </Body>
+                </PopupHeaderBodyLayout>
+            </Popup>
         </div>
     }
 </div>

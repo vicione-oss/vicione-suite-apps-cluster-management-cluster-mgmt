@@ -23,6 +23,7 @@ public sealed partial class DebugEnginesPage : IEventConsumer<ClusterChanged>, I
     private readonly string _startIconCssClass = MonochromeIconName.SendSolid.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
     private readonly string _stopIconCssClass = MonochromeIconName.SwitchOff.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
     private readonly string _trashIconCssClass = MonochromeIconName.Delete.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
+    private readonly string _infoIconCssClass = MonochromeIconName.InfoLight.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
 
     private readonly CancellationTokenSource _tokenSource = new();
     private readonly AutoDisposeList<IDisposable> _subscriptionHandle = [];
@@ -36,6 +37,9 @@ public sealed partial class DebugEnginesPage : IEventConsumer<ClusterChanged>, I
     [Inject] private NavigationManager NavManager { get; set; } = default!;
 
     private List<EngineInfoModel> Engines { get; } = [];
+    private IReadOnlyDictionary<string, string> Packages { get; set; } = new Dictionary<string, string>();
+    private bool _showPackages;
+
 
     protected override string PageTitle => "Debug Engines";
 
@@ -143,6 +147,19 @@ public sealed partial class DebugEnginesPage : IEventConsumer<ClusterChanged>, I
 
     private async Task TearDownEngine(EngineInfoModel engineInfoModel)
         => await UiMediator.Send<TearDownEngineOnInstance>(new(engineInfoModel.EngineId), engineInfoModel.InstanceId);
+
+    private async Task GetPackages(EngineInfoModel engineInfoModel)
+    {
+        var respond = await UiMediator.Request<GetPackagesOnInstanceRequest, GetPackagesOnInstanceResponse>(new(engineInfoModel.EngineId), engineInfoModel.InstanceId);
+
+        if (respond != null && respond.RequestError is null && respond.Packages is not null)
+        {
+            Packages = respond.Packages;
+            _showPackages = true;
+
+            await InvokeAsync(StateHasChanged);
+        }
+    }
 
     private static Guid FindInstanceOfEngineHost(Cluster cluster, Guid engineHostId)
         => cluster.NodeGroups
