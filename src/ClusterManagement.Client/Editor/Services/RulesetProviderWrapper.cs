@@ -11,7 +11,7 @@ public class RulesetProviderWrapper(ISuiteRulesetProvider rulesetProvider) : IRu
         => rulesetProvider.GetClusterDependency(dataPortType);
 
     public Ruleset GetRuleset(RulesetIdentifier rulesetIdentifier)
-        => rulesetProvider.GetRuleset(rulesetIdentifier.Category, rulesetIdentifier.Key);
+        => rulesetProvider.GetRuleset(rulesetIdentifier.Key);
 
     public IEnumerable<RulesetIdentifier> GetRulesetIdentifiers(string category)
         => rulesetProvider.GetAllRulesets().Select(k => new RulesetIdentifier(category, k.Root!.Id)); // root is not null is ensured on load

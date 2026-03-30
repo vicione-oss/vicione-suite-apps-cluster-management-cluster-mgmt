@@ -19,9 +19,9 @@ public interface ISuiteRulesetProvider
     IEnumerable<Ruleset> GetAllRulesets();
 
     /// <summary>
-    /// Gets a specific ruleset by category and ruleset identifier.
+    /// Gets a specific ruleset by its identifier.
     /// </summary>    
-    Ruleset GetRuleset(string category, string rulesetId);
+    Ruleset GetRuleset(string rulesetId);
 
     /// <summary>
     /// Gets the cluster dependency for a specific DataPort type.

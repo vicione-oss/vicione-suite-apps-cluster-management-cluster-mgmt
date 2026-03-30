@@ -111,7 +111,7 @@ public class RulesetProviderTests
             _packageProvider.GetPackageContents().Returns(packageContents);
 
             // Act
-            var result = sut.GetRuleset("TestCategory", "TestRuleset");
+            var result = sut.GetRuleset("TestRuleset");
 
             // Assert
             result.Should().Be(expectedRuleset);
@@ -127,9 +127,9 @@ public class RulesetProviderTests
 
             // Act & Assert
             var exception = Assert.Throws<InvalidOperationException>(() =>
-                sut.GetRuleset("TestCategory", "NonExistentRuleset"));
+                sut.GetRuleset("NonExistentRuleset"));
 
-            exception.Message.Should().Be("Can't find Ruleset for category:TestCategory and rulesetId:NonExistentRuleset");
+            exception.Message.Should().Be("Can't find Ruleset for rulesetId:NonExistentRuleset");
         }
 
         [Fact]
@@ -163,7 +163,7 @@ public class RulesetProviderTests
             _packageProvider.GetPackageContents().Returns(packageContents);
 
             // Act
-            var result = sut.GetRuleset("TestCategory", "SharedRuleset");
+            var result = sut.GetRuleset("SharedRuleset");
 
             // Assert
             result.Should().BeOneOf(ruleset1, ruleset2);
