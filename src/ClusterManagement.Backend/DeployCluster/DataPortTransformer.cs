@@ -79,7 +79,7 @@ internal sealed class DataPortTransformer
 
         var inputNumber = 0;
         var outputNumber = 0;
-        var ruleset = _rulesetProvider.GetRuleset(Constants.DataPortCategory, _dataPort.RulesetId);
+        var ruleset = _rulesetProvider.GetRuleset(_dataPort.RulesetId);
         var treeBuilder = new TreeBuilder(ruleset);
         foreach (var (node, path) in _dataPort.Traverse())
         {

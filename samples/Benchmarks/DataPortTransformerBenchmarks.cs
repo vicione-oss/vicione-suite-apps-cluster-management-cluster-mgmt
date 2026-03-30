@@ -35,7 +35,7 @@ public class DataPortTransformerBenchmarks
         _dependencyResolver = new ClusterDependencyResolver(ClusterDependencyPackageFactory.CreateDependencyDesigns([_dataPortFunctionBlockDesign,]));
 
         _rulesetProvider = Substitute.For<ISuiteRulesetProvider>();
-        _rulesetProvider.GetRuleset(Constants.DataPortCategory, Arg.Any<string>()).Returns(RulesetFactory.CreateTestRulesetMqtt());
+        _rulesetProvider.GetRuleset(Arg.Any<string>()).Returns(RulesetFactory.CreateTestRulesetMqtt());
     }
 
     [GlobalSetup]

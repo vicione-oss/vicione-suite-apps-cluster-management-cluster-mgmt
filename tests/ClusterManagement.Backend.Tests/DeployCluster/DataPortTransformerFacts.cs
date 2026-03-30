@@ -41,7 +41,7 @@ public class DataPortTransformerFacts
             _builder.Editors.FunctionBlockDesign.AddFunctionBlockDesign(dataPortFunctionBlockDesign.Id);
 
             _rulesetProvider = Substitute.For<ISuiteRulesetProvider>();
-            _rulesetProvider.GetRuleset(Constants.DataPortCategory, Arg.Any<string>()).Returns(RulesetFactory.CreateTestRulesetMqtt());
+            _rulesetProvider.GetRuleset(Arg.Any<string>()).Returns(RulesetFactory.CreateTestRulesetMqtt());
 
             var engineHost = _builder.CreateTopologyToEngineHost();
             _engineHosts = [engineHost,];
@@ -95,7 +95,7 @@ public class DataPortTransformerFacts
             _builder.Editors.FunctionBlockDesign.AddFunctionBlockDesign(functionBlockDesign.Id);
 
             _rulesetProvider = Substitute.For<ISuiteRulesetProvider>();
-            _rulesetProvider.GetRuleset(Constants.DataPortCategory, Arg.Any<string>()).Returns(RulesetFactory.CreateTestRulesetMqtt());
+            _rulesetProvider.GetRuleset(Arg.Any<string>()).Returns(RulesetFactory.CreateTestRulesetMqtt());
 
             var functionBlock = _builder.Editors.Container.AddFunctionBlock(_builder.Cluster.Dataflows.First().Root, functionBlockDesign.Id);
             _sourceConnector = functionBlock.ProcessDataOutputs.First();

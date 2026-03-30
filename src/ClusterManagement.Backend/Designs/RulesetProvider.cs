@@ -22,14 +22,14 @@ internal sealed class RulesetProvider(IPackageContentProvider packageProvider, I
         return systemDataPortDependency;
     }
 
-    public Ruleset GetRuleset(string category, string rulesetId)
+    public Ruleset GetRuleset(string rulesetId)
     {
         foreach (var entry in packageProvider.GetPackageContents())
         {
             if (entry.Value.Rulesets.ContainsKey(rulesetId))
                 return entry.Value.Rulesets[rulesetId];
         }
-        throw new InvalidOperationException($"Can't find Ruleset for category:{category} and rulesetId:{rulesetId}");
+        throw new InvalidOperationException($"Can't find Ruleset for rulesetId:{rulesetId}");
     }
 
     public IEnumerable<Ruleset> GetAllRulesets()
