@@ -1,4 +1,5 @@
-﻿using System.IO.Compression;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.IO.Compression;
 
 namespace ClusterManagement.Public.Iodds;
 
@@ -40,7 +41,7 @@ public interface IIoddStore
     /// </summary>
     /// <param name="archive">The ZIP archive containing the IODD files.</param>
     /// <param name="ioddId">When this method returns, contains the IODD ID of the added device, if successful.</param>
-    bool TryAddDevice(ZipArchive archive, out IoddId ioddId);
+    bool TryAddDevice(ZipArchive archive, [NotNullWhen(true)] out IoddId? ioddId);
 
     /// <summary>
     /// Attempts to add multiple devices from an archive that contains IODDs in a structured format.

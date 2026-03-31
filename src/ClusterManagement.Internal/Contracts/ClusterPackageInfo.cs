@@ -3,7 +3,7 @@ using Sdk.Messaging;
 
 namespace ClusterManagement.Internal.Contracts;
 
-[DebuggerDisplay("{Name} installed:{InstalledVersion}, cluster-ref:{RunningClusterVersion} update: {LatestUpdateVersion}")]
+[DebuggerDisplay("{Name} installed:{InstalledVersion}, cluster-ref:{RunningClusterVersion} update: {AvailableUpdateVersion}")]
 public class ClusterPackageInfo
 {
     public required string Name { get; set; }
