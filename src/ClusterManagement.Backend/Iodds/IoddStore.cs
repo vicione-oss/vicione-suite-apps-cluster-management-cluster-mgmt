@@ -58,37 +58,36 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
 
     public bool TryAddDevice(IoddId id)
     {
-        fileSystem.Directory.CreateDirectory(_ioddDirectory);
-
-        var deviceDirectory = fileSystem.Path.Combine(_ioddDirectory, id.VendorId.ToString(CultureInfo.InvariantCulture), id.DeviceId.ToString(CultureInfo.InvariantCulture));
-
         if (_devices.ContainsKey(id))
             return false;
-        if (!TryReadDevice(id, deviceDirectory, out var device))
+
+        if (!TryReadDevice(id, GetDeviceDirectory(id), out var device))
             return false;
-        if (!_devices.TryAdd(id, device))
-            logger.DeviceAlreadyExists(id.VendorId, id.DeviceId);
-        return true;
+
+        return _devices.TryAdd(id, device);  // sole authority — false means a concurrent add won
     }
 
-    public bool TryAddDevice(ZipArchive archive, out IoddId ioddId)
+    public bool TryAddDevice(ZipArchive archive, [NotNullWhen(true)] out IoddId? ioddId)
     {
-        var ioddEntry = archive.Entries.Where(e => IoddFileNameRegex().IsMatch(e.FullName)).FirstOrDefault()
-            ?? throw new InvalidDataException("No IODD file found in the archive.");
+        ioddId = null;
+        var ioddEntry = archive.Entries.FirstOrDefault(e => IoddFileNameRegex().IsMatch(e.FullName));
+        if (ioddEntry is null)
+            return false;
 
         return TryAddDevice(archive.Entries, ioddEntry, out ioddId);
     }
 
     public bool TryAddDevices(ZipArchive archive)
     {
-        var ioddEntries = archive.Entries.Where(e => IoddFileNameRegex().IsMatch(e.FullName));
         var success = true;
+        var byDirectory = archive.Entries
+            .GroupBy(e => e.FullName[..(e.FullName.Length - e.Name.Length)]);
 
-        foreach (var ioddEntry in ioddEntries)
+        foreach (var group in byDirectory)
         {
-            var directory = ioddEntry.FullName.Replace(ioddEntry.Name, string.Empty, StringComparison.InvariantCulture);
-
-            if (!TryAddDevice(archive.Entries.Where(e => e.FullName.StartsWith(directory, StringComparison.InvariantCulture)), ioddEntry, out _))
+            var ioddEntry = group.FirstOrDefault(e => IoddFileNameRegex().IsMatch(e.Name));
+            if (ioddEntry is null) continue;
+            if (!TryAddDevice(group, ioddEntry, out _))
                 success = false;
         }
         return success;
@@ -96,27 +95,24 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
 
     public bool TryRemoveDevice(IoddId id)
     {
-        if (_devices.TryRemove(id, out _))
+        if (!_devices.TryGetValue(id, out _))
+            return false;
+
+        try
         {
-            try
-            {
-                var vendorDirectory = fileSystem.Path.Combine(_ioddDirectory, id.VendorId.ToString(CultureInfo.InvariantCulture));
-                var deviceDirectory = fileSystem.Path.Combine(vendorDirectory, id.DeviceId.ToString(CultureInfo.InvariantCulture));
+            var vendorDirectory = fileSystem.Path.Combine(_ioddDirectory, id.VendorId.ToString(CultureInfo.InvariantCulture));
+            var deviceDirectory = fileSystem.Path.Combine(vendorDirectory, id.DeviceId.ToString(CultureInfo.InvariantCulture));
 
-                if (fileSystem.Directory.Exists(deviceDirectory))
-                    fileSystem.Directory.Delete(deviceDirectory, true);
+            if (fileSystem.Directory.Exists(deviceDirectory))
+                fileSystem.Directory.Delete(deviceDirectory, true);
 
-                if (!fileSystem.Directory.EnumerateDirectories(vendorDirectory).Any())
-                    fileSystem.Directory.Delete(vendorDirectory, true);
-
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            if (!fileSystem.Directory.EnumerateDirectories(vendorDirectory).Any())
+                fileSystem.Directory.Delete(vendorDirectory, true);
         }
-        return false;
+        catch { return false; }
+
+        _devices.TryRemove(id, out _);
+        return true;
     }
 
     public bool TryRemoveDevices(IEnumerable<IoddId> ids)
@@ -151,28 +147,28 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
 
     private bool TryAddDevice(IEnumerable<ZipArchiveEntry> entries, ZipArchiveEntry ioddEntry, out IoddId id)
     {
+        IODevice device;
         using (var stream = ioddEntry.Open())
-        {
-            var device = IoddParser.ParseStream(stream);
-            id = new(device.DeviceIdentity.VendorId, device.DeviceIdentity.DeviceId);
-        }
+            device = IoddParser.ParseStream(stream);
+
+        id = new(device.DeviceIdentity.VendorId, device.DeviceIdentity.DeviceId);
 
         if (_devices.ContainsKey(id))
             return false;
 
-        try
-        {
-            ExtractDevice(entries, id);
-        }
-        catch (Exception ex)
-        {
-            logger.DeviceExtractionError(id.VendorId, id.DeviceId, ex);
-            return false;
-        }
+        try { ExtractDevice(entries, id); }
+        catch (Exception ex) { logger.DeviceExtractionError(id.VendorId, id.DeviceId, ex); return false; }
 
-        if (TryAddDevice(id))
-            return true;
-        return false;
+        // Build DeviceInfo from what we already have — no second disk parse needed
+        var fileInfo = fileSystem.FileInfo.New(fileSystem.Path.Combine(GetDeviceDirectory(id), ioddEntry.Name));
+        var info = new DeviceInfo
+        {
+            DeviceDescription = device,
+            Filename = ioddEntry.Name,
+            LastWriteTime = fileInfo.LastWriteTime.ToUniversalTime(),
+        };
+
+        return _devices.TryAdd(id, info);
     }
 
     private void ExtractDevice(IEnumerable<ZipArchiveEntry> entries, IoddId id)
@@ -181,10 +177,8 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
         var vendorDirectory = fileSystem.Path.Combine(_ioddDirectory, id.VendorId.ToString(CultureInfo.InvariantCulture));
         var deviceDirectory = fileSystem.Path.Combine(vendorDirectory, id.DeviceId.ToString(CultureInfo.InvariantCulture));
 
-        if (!fileSystem.Directory.Exists(vendorDirectory))
-            fileSystem.Directory.CreateDirectory(vendorDirectory);
-        if (!fileSystem.Directory.Exists(deviceDirectory))
-            fileSystem.Directory.CreateDirectory(deviceDirectory);
+        fileSystem.Directory.CreateDirectory(vendorDirectory);
+        fileSystem.Directory.CreateDirectory(deviceDirectory);
 
         foreach (var entry in entries)
         {
@@ -220,47 +214,44 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
 
         var stopwatch = Stopwatch.StartNew();
         var deviceCount = 0;
-        ConcurrentBag<IoddId> existingDevices = [];
+        ConcurrentDictionary<IoddId, byte> existingDevices = [];
 
-        foreach (var vendorDirectory in fileSystem.Directory.EnumerateDirectories(_ioddDirectory))
-        {
-            var vendorDirectoryName = fileSystem.Path.GetFileName(vendorDirectory);
-
-            if (!int.TryParse(vendorDirectoryName, CultureInfo.InvariantCulture, out var vendorId))
+        var allDeviceDirectories = fileSystem.Directory
+            .EnumerateDirectories(_ioddDirectory)
+            .SelectMany(vendorDirectory =>
             {
-                logger.InvalidVendorDirectoryName(vendorDirectoryName);
-                continue;
-            }
-
-            try
-            {
-                Parallel.ForEach(fileSystem.Directory.EnumerateDirectories(vendorDirectory), (deviceDirectory, _, _) =>
+                var vendorDirectoryName = fileSystem.Path.GetFileName(vendorDirectory);
+                if (!int.TryParse(vendorDirectoryName, CultureInfo.InvariantCulture, out var vendorId))
                 {
-                    var deviceDirectoryName = fileSystem.Path.GetFileName(deviceDirectory);
+                    logger.InvalidVendorDirectoryName(vendorDirectoryName);
+                    return [];
+                }
+                return fileSystem.Directory.EnumerateDirectories(vendorDirectory)
+                    .Select(d => (VendorId: vendorId, DeviceDirectory: d));
+            });
 
-                    if (!int.TryParse(deviceDirectoryName, CultureInfo.InvariantCulture, out var deviceId))
-                    {
-                        logger.InvalidDeviceDirectoryName(deviceDirectoryName);
-                        return;
-                    }
+        Parallel.ForEach(allDeviceDirectories, item =>
+        {
+            var deviceDirectoryName = fileSystem.Path.GetFileName(item.DeviceDirectory);
 
-                    existingDevices.Add(new IoddId(vendorId, deviceId));
-
-                    if (TryAddDevice(new IoddId(vendorId, deviceId)))
-                        Interlocked.Increment(ref deviceCount);
-                });
-            }
-            catch (Exception ex)
+            if (!int.TryParse(deviceDirectoryName, CultureInfo.InvariantCulture, out var deviceId))
             {
-                logger.LogError(ex, "Error processing vendor directory: {VendorDirectory}", vendorDirectory);
+                logger.InvalidDeviceDirectoryName(deviceDirectoryName);
+                return;
             }
-        }
+
+            var id = new IoddId(item.VendorId, deviceId);
+            existingDevices.TryAdd(id, 0);
+
+            if (TryAddDevice(id))
+                Interlocked.Increment(ref deviceCount);
+        });
 
         stopwatch.Stop();
         logger.AddedDevicesToStore(deviceCount, stopwatch.ElapsedMilliseconds);
 
         // Thread-safe cleanup of obsolete devices
-        var devicesToRemove = _devices.Keys.Except(existingDevices).ToArray();
+        var devicesToRemove = _devices.Keys.Except(existingDevices.Keys).ToArray();
         foreach (var id in devicesToRemove)
         {
             _devices.TryRemove(id, out _);
@@ -284,7 +275,7 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
 
         if (fileInfo is null)
         {
-            logger.IoddFileNotFound(id.VendorId, id.VendorId);
+            logger.IoddFileNotFound(id.VendorId, id.DeviceId);
             device = null;
             return false;
         }
@@ -307,6 +298,9 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
 
         return true;
     }
+
+    private string GetDeviceDirectory(IoddId id)
+        => fileSystem.Path.Combine(_ioddDirectory, id.VendorId.ToString(CultureInfo.InvariantCulture), id.DeviceId.ToString(CultureInfo.InvariantCulture));
 
     // <vendor name>-<device name>-<release date>-IODD<schema version>.xml
     [GeneratedRegex("[A-Za-z0-9_#-]+-[A-Za-z0-9_#-]+-\\d+-IODD\\d\\.\\d(?:\\.\\d+)?\\.xml$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]

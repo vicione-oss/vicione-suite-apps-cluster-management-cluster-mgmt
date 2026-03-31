@@ -100,7 +100,7 @@
                             }
                         }
 
-                        @if (context.AvailableUpdateVersion is not null)
+                        @if (!string.IsNullOrEmpty(context.AvailableUpdateVersion))
                         {
                             <div title="@string.Format(LibraryManagement.UpdateToSpecificVersionAvailable, context.AvailableUpdateVersion)" class="icon-wrapper">
                                 <MonochromeIcon Name="MonochromeIconName.UpdateAvailableLight" Size="MonochromeIconSize.SmallMedium" />

@@ -31,7 +31,7 @@ public class AddIoddConsumerTests
         var command = new AddIodd(zipData);
         var deviceInfo = DeviceInfoFactory.CreateDeviceInfo();
 
-        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId>())
+        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(x =>
             {
                 x[1] = new IoddId(310, 2);
@@ -53,7 +53,7 @@ public class AddIoddConsumerTests
         var deviceInfo = DeviceInfoFactory.CreateDeviceInfo();
         var expectedId = new IoddId(310, 2);
 
-        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId>())
+        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(x =>
             {
                 x[1] = expectedId;
@@ -65,7 +65,7 @@ public class AddIoddConsumerTests
         await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
 
         // Assert
-        _ioddStore.Received(1).TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId>());
+        _ioddStore.Received(1).TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>());
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class AddIoddConsumerTests
         var deviceInfo = DeviceInfoFactory.CreateDeviceInfo();
         var expectedId = new IoddId(310, 2);
 
-        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId>())
+        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(x =>
             {
                 x[1] = expectedId;
@@ -107,7 +107,7 @@ public class AddIoddConsumerTests
         var zipData = CreateValidZipArchive();
         var command = new AddIodd(zipData);
 
-        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId>())
+        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(false);
 
         // Act
@@ -128,7 +128,7 @@ public class AddIoddConsumerTests
         var zipData = CreateValidZipArchive();
         var command = new AddIodd(zipData);
 
-        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId>())
+        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(x =>
             {
                 x[1] = new IoddId(310, 2);
@@ -171,7 +171,7 @@ public class AddIoddConsumerTests
         var emptyZipData = CreateEmptyZipArchive();
         var command = new AddIodd(emptyZipData);
 
-        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId>())
+        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(false);
 
         // Act
@@ -193,7 +193,7 @@ public class AddIoddConsumerTests
         var deviceInfo2 = DeviceInfoFactory.CreateDeviceInfo(311, 3);
         var expectedId = new IoddId(310, 2);
 
-        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId>())
+        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(x =>
             {
                 x[1] = expectedId;
@@ -217,7 +217,7 @@ public class AddIoddConsumerTests
         var command = new AddIodd(zipData);
         var deviceInfo = DeviceInfoFactory.CreateDeviceInfo();
 
-        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId>())
+        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(x =>
             {
                 x[1] = new IoddId(310, 2);
@@ -229,7 +229,7 @@ public class AddIoddConsumerTests
         await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
 
         // Assert - Should complete without resource leaks
-        _ioddStore.Received(1).TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId>());
+        _ioddStore.Received(1).TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>());
     }
 
     private static byte[] CreateValidZipArchive()
