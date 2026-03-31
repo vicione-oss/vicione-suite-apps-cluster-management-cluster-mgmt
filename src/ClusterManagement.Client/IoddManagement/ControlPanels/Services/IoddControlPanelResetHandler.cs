@@ -14,7 +14,7 @@ internal sealed class IoddControlPanelResetHandler(IIoddService ioddService) : I
             state.Devices.Clear();
             state.DevicesMarkedForDeletion.Clear();
 
-            state.Devices.AddRange(await ioddService.GetIODevices(cancellationToken));
+            state.Devices = [.. await ioddService.GetIODevices(cancellationToken)];
             state.AutoDownload = await ioddService.GetIsAutoDownloading(cancellationToken);
         }
         finally

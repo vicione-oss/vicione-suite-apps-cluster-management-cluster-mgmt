@@ -10,6 +10,7 @@ using ClusterManagement.Public.DataflowEvents;
 using ClusterManagement.Public.Designs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
+using Sdk.Client.Infrastructure;
 using Sdk.Client.Modules.Localization;
 using Sdk.Testing.Client;
 using ViciOne.Ui.ClusterEditor.Extensions;
@@ -32,6 +33,7 @@ public class ClusterManagementModuleTests
             setup.Services.AddSingleton(Substitute.For<ISuiteRulesetProvider>());
             setup.Services.AddSingleton(Substitute.For<IDesignProvider>()); //Registered via Backend
             setup.Services.AddSingleton(Substitute.For<IJSRuntime>());
+            setup.Services.AddSingleton(Substitute.For<ILocalHttpClient>());
         });
 
         // Assert - Editor

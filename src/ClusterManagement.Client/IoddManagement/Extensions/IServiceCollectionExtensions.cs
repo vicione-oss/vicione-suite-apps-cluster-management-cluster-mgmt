@@ -21,7 +21,7 @@ internal static class IServiceCollectionExtensions
 
         services.AddScoped<IIoddService, IoddService>();
         services.AddTransient<IoddTreeAdapter>();
-        services.AddHttpClient<MonochromeIconHttpClient>();
+        services.AddScoped<MonochromeIconHttpClient>();
 
         return services;
     }

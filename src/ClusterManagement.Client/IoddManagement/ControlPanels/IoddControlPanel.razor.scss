@@ -27,7 +27,12 @@
         background-color: transparent !important;
         overflow: hidden;
 
-        .icon > svg {
+        .expand-button .icon, .guideline {
+            // necessary because bootstrap breaks the layout otherwise
+            box-sizing: unset;
+        }
+
+        .icon-container > .icon > svg {
             height: 24px;
             width: 24px;
 
@@ -36,19 +41,14 @@
             }
         }
 
-        .expand-button > .icon {
-            height: 24px;
-            width: 24px;
-        }
-
         .tree-node {
             grid-column-gap: 8px;
         }
 
         .tree-editor-container {
             height: 100%;
-        } 
-        
+        }
+
         .tree-node-display-container.selected {
             background-color: colors-staged.$color-foreground-light-dark;
         }

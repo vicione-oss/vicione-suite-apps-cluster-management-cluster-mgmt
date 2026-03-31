@@ -49,17 +49,17 @@
                 <div style="display:contents;">
                     <GridActionButton Text="@Client.Localization.Common.Upload" 
                                       OnClick="@OnIoddUploadClickAsync"
-                                      IconCssClass="@MonochromeIconName.Export.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()" />
+                                      IconCssClass="@_uploadIconCssClasses" />
 
                     <GridActionButton Text="@CommonVocabulary.DownloadVerb"
                                       Enabled="@(ItemSelection.Any())"
                                       OnClick="@OnIoddDownloadClickAsync"
-                                      IconCssClass="@MonochromeIconName.Import.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()" />
+                                      IconCssClass="@_importIconCssClasses" />
 
                     <GridActionButton Text="@CommonVocabulary.Delete"
                                       OnClick="@OnIoddDeleteClickAsync"
                                       Enabled="@(ItemSelection.Any())"
-                                      IconCssClass="@MonochromeIconName.Delete.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated()" />
+                                      IconCssClass="@_deleteIconCssClasses" />
                 </div>
             </ActionButtons>
 

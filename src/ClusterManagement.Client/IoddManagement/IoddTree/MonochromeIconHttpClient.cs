@@ -1,20 +1,19 @@
-﻿using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using Sdk.Client.Infrastructure;
 using ViciOne.Ui.MonochromeIcons.Core.Enums;
 
 namespace ClusterManagement.Client.IoddManagement.IoddTree;
 
-internal class MonochromeIconHttpClient
+internal sealed class MonochromeIconHttpClient
 {
     private readonly string _contentIconBasePath = $"_content/{typeof(IoddTreeAdapter).Assembly.GetName().Name}/icons/monochrome-icons";
-    private readonly HttpClient _httpClient;
+    private readonly ILocalHttpClient _httpClient;
     private readonly ILogger<MonochromeIconHttpClient> _logger;
 
-    public MonochromeIconHttpClient(HttpClient httpClient, NavigationManager navigationManager, ILogger<MonochromeIconHttpClient> logger)
+    public MonochromeIconHttpClient(ILocalHttpClient httpClient, ILogger<MonochromeIconHttpClient> logger)
     {
         _httpClient = httpClient;
         _logger = logger;
-        _httpClient.BaseAddress = navigationManager.ToAbsoluteUri(navigationManager.BaseUri);
     }
 
     public async Task<string?> GetIconSvgAsync(MonochromeIconName iconName)
@@ -27,7 +26,7 @@ internal class MonochromeIconHttpClient
 
         try
         {
-            var response = await _httpClient.SendAsync(request);
+            var response = await _httpClient.Client.SendAsync(request);
             if (!response.IsSuccessStatusCode)
                 return null;
 

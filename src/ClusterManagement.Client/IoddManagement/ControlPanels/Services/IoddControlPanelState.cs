@@ -16,7 +16,19 @@ public sealed class IoddControlPanelState : ControlPanelState
 
     public TreeSelectionKey? SelectedTreeNodeKey { get; set; }
 
-    public List<DeviceView> Devices { get; } = [];
+    public List<DeviceView> Devices
+    {
+        get;
+        set
+        {
+            if (value == field)
+                return;
+
+            field = value;
+
+            OnPropertyChanged(nameof(Devices));
+        }
+    } = [];
 
     internal void MarkIoddAsDeleted(IEnumerable<IoddId> ids)
     {
