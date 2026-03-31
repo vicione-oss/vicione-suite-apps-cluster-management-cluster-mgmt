@@ -56,6 +56,8 @@ internal sealed class SaveClusterService : DialogServiceBase,
 
     public event EventHandler<ClusterChanged>? ClusterChanged;
 
+    public event Action? ClusterSynchronized;
+
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "this notation is clearer")]
     public SaveClusterService(IClusterService clusterService, ILayoutService layoutService, ILogger<SaveClusterService> logger)
     {
@@ -147,6 +149,7 @@ internal sealed class SaveClusterService : DialogServiceBase,
                 Builder?.Cluster.Version = context.Message.Version;
                 Builder?.Cluster.VersionCreated = DateTime.UtcNow;
             }
+            ClusterSynchronized?.Invoke();
         }
         else
         {

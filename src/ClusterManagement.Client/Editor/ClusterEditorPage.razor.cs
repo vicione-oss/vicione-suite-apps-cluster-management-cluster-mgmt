@@ -69,13 +69,14 @@ public sealed partial class ClusterEditorPage
             // Ignore: CancellationTokenSource was already disposed.
         }
 
-        LoadService.ClusterLoaded -= OnClusterLoaded;
-        SaveService.ClusterChanged -= OnClusterChanged;
+        LoadService.ClusterLoaded -= LoadService_ClusterLoaded;
+        SaveService.ClusterChanged -= SaveService_ClusterChanged;
+        SaveService.ClusterSynchronized -= SaveService_ClusterSynchronized;
 
-        ClusterEditorManagement.ExportRequested -= OnExportRequested;
-        ClusterEditorManagement.ImportRequested -= OnImportRequested;
+        ClusterEditorManagement.ExportRequested -= Editor_ExportRequested;
+        ClusterEditorManagement.ImportRequested -= Editor_ImportRequested;
         ClusterEditorManagement.SaveRequested -= SaveService.SaveRequested;
-        ClusterEditorManagement.LoadFunctionBlockDesignsRequested -= OnLoadFunctionBlockDesignsRequested;
+        ClusterEditorManagement.LoadFunctionBlockDesignsRequested -= Editor_LoadFunctionBlockDesignsRequested;
 
         LayoutService.IsLoadingOverlayVisible = false;
 
@@ -110,35 +111,38 @@ public sealed partial class ClusterEditorPage
         _subscriptionHandles.Add(Mediator.Register<CommitClusterChangeFailed>(SaveService));
 
         // connect editor events to our services
-        LoadService.ClusterLoaded += OnClusterLoaded;
+        LoadService.ClusterLoaded += LoadService_ClusterLoaded;
 
         // will only be triggered for save executed by ourselves
-        SaveService.ClusterChanged += OnClusterChanged;
+        SaveService.ClusterChanged += SaveService_ClusterChanged;
+        SaveService.ClusterSynchronized += SaveService_ClusterSynchronized;
 
-        ClusterEditorManagement.ExportRequested += OnExportRequested;
-        ClusterEditorManagement.ImportRequested += OnImportRequested;
+        ClusterEditorManagement.ExportRequested += Editor_ExportRequested;
+        ClusterEditorManagement.ImportRequested += Editor_ImportRequested;
         ClusterEditorManagement.SaveRequested += SaveService.SaveRequested;
-        ClusterEditorManagement.LoadFunctionBlockDesignsRequested += OnLoadFunctionBlockDesignsRequested;
+        ClusterEditorManagement.LoadFunctionBlockDesignsRequested += Editor_LoadFunctionBlockDesignsRequested;
 
         await LoadService.TryLoadLatestVersion();
 
         LayoutService.IsLoadingOverlayVisible = false;
     }
 
-    private async Task OnExportRequested()
+    private async Task Editor_ExportRequested()
         => await ExportService.DownloadClusterJson(_builder?.Cluster);
 
-    private async Task OnImportRequested()
+    private async Task Editor_ImportRequested()
         => await WizardDialogService.OpenDialog<ImportWizardService>(_builder);
 
-    private async void OnClusterChanged(object? sender, ClusterChanged change)
+    private async void SaveService_ClusterChanged(object? sender, ClusterChanged change)
     {
-        Logger.LogInformation("{Name} {Action} received. triggered load latest version", nameof(OnClusterChanged), change.Action);
+        Logger.LogInformation("{Name} {Action} received. triggered load latest version", nameof(SaveService_ClusterChanged), change.Action);
 
         await LoadService.TryLoadLatestVersion();
     }
 
-    private void OnClusterLoaded(object? _, ClusterBuilder builder)
+    private void SaveService_ClusterSynchronized() => _hasUnsavedChanges = false;
+
+    private void LoadService_ClusterLoaded(object? _, ClusterBuilder builder)
     {
         if (_builder is not null)
         {
@@ -173,7 +177,7 @@ public sealed partial class ClusterEditorPage
         Logger.LogInformation("Assigned DataPort {DataPortName} to Engine {EngineName}", dataPort.Name, engine.Name);
     }
 
-    private async Task OnLoadFunctionBlockDesignsRequested()
+    private async Task Editor_LoadFunctionBlockDesignsRequested()
         => await LoadFunctionBlockService.LoadPackageReferences(_builder?.Cache.ClusterDependencies.ToArray());
 
     private async Task ConfirmLeave(LocationChangingContext context)

@@ -23,9 +23,8 @@
         }
     }
 
-    ::deep .tree-editor-container {
+    ::deep .tree-pane {
         background-color: transparent !important;
-        margin-top: 12px;
         overflow: hidden;
 
         .icon > svg {
@@ -37,10 +36,19 @@
             }
         }
 
+        .expand-button > .icon {
+            height: 24px;
+            width: 24px;
+        }
+
         .tree-node {
             grid-column-gap: 8px;
         }
 
+        .tree-editor-container {
+            height: 100%;
+        } 
+        
         .tree-node-display-container.selected {
             background-color: colors-staged.$color-foreground-light-dark;
         }

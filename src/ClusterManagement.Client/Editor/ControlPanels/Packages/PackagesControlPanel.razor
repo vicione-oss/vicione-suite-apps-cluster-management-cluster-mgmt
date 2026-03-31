@@ -106,18 +106,17 @@
                                 <MonochromeIcon Name="MonochromeIconName.UpdateAvailableLight" Size="MonochromeIconSize.SmallMedium" />
                             </div>
                         }
-
-                        @if (!string.IsNullOrEmpty(context.RunningClusterVersion))
-                        {
-                            <div title="@Editor.Localization.Common.ActiveInCluster" class="icon-wrapper">
-                                <MonochromeIcon Name="MonochromeIconName.LockActive" Size="MonochromeIconSize.SmallMedium" />
-                            </div>
-                        }
-
+                        
                         @if (context.Error is not null)
                         {
                             <div title="@context.Error.Message" class="icon-wrapper">
                                 <MonochromeIcon Name="MonochromeIconName.ErrorSolid" Size="MonochromeIconSize.SmallMedium" />
+                            </div>
+                        }
+                        else if (!string.IsNullOrEmpty(context.RunningClusterVersion))
+                        {
+                            <div title="@Editor.Localization.Common.ActiveInCluster" class="icon-wrapper">
+                                <MonochromeIcon Name="MonochromeIconName.InfoLight" Size="MonochromeIconSize.Small" />
                             </div>
                         }
                     </div>

@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Sdk.Backend.Modules;
 using Sdk.Messaging;
+using Semver;
 using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Designs;
@@ -49,19 +50,58 @@ internal sealed class ClusterDependencyStore(
     /// </summary>
     public async Task Initialize(CancellationToken stoppingToken)
     {
-        var destination = GetPackagesFilepath(workspaceProvider.Home, options.Value.PackageSet, fileSystem);
-        if (fileSystem.File.Exists(destination))
-            return;
-
         var name = string.Join('.', typeof(ClusterManagementBackendModule).Namespace, PackagesRessourceFolder, GetPackagesFilename(options.Value.PackageSet));
-        await using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name);
-        if (stream is null)
-            return;
+        var destination = GetPackagesFilepath(workspaceProvider.Home, options.Value.PackageSet, fileSystem);
 
-        await using var destinationStream = fileSystem.FileStream.New(destination, FileMode.Create);
-        await stream.CopyToAsync(destinationStream, stoppingToken);
+        await using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name)
+            ?? throw new InvalidOperationException("Failed to access internal package set resource");
 
-        logger.LogInformation("Initialized cluster packages from embedded resources");
+        if (fileSystem.File.Exists(destination))
+        {
+            var shippedPackages = await JsonSerializer.DeserializeAsync<ClusterDependency[]?>(stream, DefaultJsonSerializerSettings.Default, stoppingToken)
+                ?? throw new InvalidOperationException("Failed to deserialize internal package set");
+
+            var existingPackages = await LoadDependencies(stoppingToken);
+            var operations = new List<ClusterDependencyOperation>();
+
+            foreach (var package in existingPackages)
+            {
+                var shippedPackage = shippedPackages.FirstOrDefault(p => p.Name == package.Name);
+                if (shippedPackage is null)
+                    continue; // manually added package
+
+                if (!SemVersion.TryParse(shippedPackage.Version, out var shippedVersion))
+                {
+                    logger.LogWarning("Failed to parse version '{Version}' of package '{PackageName}' from shipped packages file, skipping version comparison",
+                        shippedPackage.Version, shippedPackage.Name);
+                    continue;
+                }
+
+                if (!SemVersion.TryParse(package.Version, out var packageVersion))
+                {
+                    logger.LogWarning("Failed to parse version '{Version}' of package '{PackageName}' from packages file, skipping version comparison",
+                        package.Version, package.Name);
+                    continue;
+                }
+
+                // Shipped versions is lower than configured one
+                if (SemVersion.CompareSortOrder(shippedVersion, packageVersion) <= 0)
+                    continue;
+
+                // add an operation to the update list
+                operations.Add(new ClusterDependencyOperation(shippedPackage, ClusterDependencyOperationKind.Install));
+            }
+
+            // enqueue package updates if there are any shipped packages with higher version than the installed ones
+            await EnqueueOperations(operations, stoppingToken);
+        }
+        else
+        {
+            await using var destinationStream = fileSystem.FileStream.New(destination, FileMode.Create);
+            await stream.CopyToAsync(destinationStream, stoppingToken);
+
+            logger.LogInformation("Initialized cluster packages from embedded resources");
+        }
     }
 
     /// <summary>
@@ -81,7 +121,7 @@ internal sealed class ClusterDependencyStore(
     {
         if (operations.Count == 0)
         {
-            logger.LogInformation("No package updates to queue");
+            logger.LogDebug("No package updates to queue");
             return [];
         }
 
