@@ -18,6 +18,8 @@ using Sdk.Client.Services;
 using Sdk.MessageBanner.Contracts;
 using Sdk.Messaging;
 using ViciOne.Ui.Localization.Resources;
+using ViciOne.Ui.MonochromeIcons.Core.Enums;
+using ViciOne.Ui.MonochromeIcons.Core.Extensions;
 using ViciOne.Ui.Shared.Dx.Components;
 using ViciOne.Ui.TreeEditor.Builder;
 
@@ -26,6 +28,10 @@ namespace ClusterManagement.Client.IoddManagement.ControlPanels;
 [ControlPanelCategory<IoddControlPanelCategoryDescriptor>]
 public sealed partial class IoddControlPanel
 {
+    private readonly string _uploadIconCssClasses = @MonochromeIconName.Export.GetCssClasses(MonochromeIconSize.Small).ToSpaceSeparated();
+    private readonly string _importIconCssClasses = @MonochromeIconName.Import.GetCssClasses(MonochromeIconSize.Small).ToSpaceSeparated();
+    private readonly string _deleteIconCssClasses = @MonochromeIconName.Delete.GetCssClasses(MonochromeIconSize.Small).ToSpaceSeparated();
+
     private IQueryable<DeviceView> _itemsQueryable = Enumerable.Empty<DeviceView>().AsQueryable();
     private readonly TreeBuilder _treeBuilder = new();
     private DxDialog? _refDeleteIoddsDialog;
@@ -44,6 +50,7 @@ public sealed partial class IoddControlPanel
     {
         IoddService.AutoIoddDownloadChanged -= IoddService_AutoIoddDownloadChanged;
         IoddService.IoddChanged -= IoddService_IoddChanged;
+        State.Changed -= State_Changed;
 
         _treeBuilder.Dispose();
 
@@ -71,12 +78,31 @@ public sealed partial class IoddControlPanel
         IoddService.IoddChanged += IoddService_IoddChanged;
 
         TreeAdapter.SelectionChanged += OnIoddTreeAdapterSelectionChanged;
+        State.Changed += State_Changed;
 
         _treeBuilder.SetAdapter(TreeAdapter);
         TreeAdapter.CoupleTreeBuilderEvents();
-        InitTreeAdapterDevices();
+
+        // Ensure to fill the tree if the async state reset was not yet completed
+        if (TreeAdapter.Builder.RootNodes.Count == 0)
+            InitTreeAdapterDevices();
 
         ItemSelection.Changed += OnItemSelectionChanged;
+    }
+
+    private async void State_Changed(ControlPanelStateChangedEventArgs args)
+    {
+        var stateHasChanged = false;
+
+        if (args.PropertyNames.Contains(nameof(State.Devices)))
+        {
+            ItemSelection.Clear();
+            InitTreeAdapterDevices();
+            stateHasChanged = true;
+        }
+
+        if (stateHasChanged)
+            await InvokeAsync(StateHasChanged);
     }
 
     private void InitTreeAdapterDevices()
@@ -100,7 +126,6 @@ public sealed partial class IoddControlPanel
 
     private async Task IoddService_IoddChanged(IoddChanged change, CancellationToken cancellationToken)
     {
-
         if (change.Error is not null)
         {
             if (change.Error.ErrorCode == IoddChanged.ExtractZipError)

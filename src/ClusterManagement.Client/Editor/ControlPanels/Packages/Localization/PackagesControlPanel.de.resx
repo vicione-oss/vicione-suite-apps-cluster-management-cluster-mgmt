@@ -133,7 +133,7 @@
     <value>Installierte Pakete</value>
   </data>
   <data name="AvailableBannerTitle" xml:space="preserve">
-    <value>Installierte Pakete</value>
+    <value>Verfügbare Pakete</value>
   </data>
   <data name="LatestVersion" xml:space="preserve">
     <value>Aktuellste Version</value>

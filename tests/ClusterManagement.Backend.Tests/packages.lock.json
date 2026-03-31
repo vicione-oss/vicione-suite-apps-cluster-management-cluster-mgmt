@@ -35,9 +35,9 @@
       },
       "ViciOne.Suite.Sdk.Testing": {
         "type": "Direct",
-        "requested": "[2.0.0-ci2411067321, )",
-        "resolved": "2.0.0-ci2411067321",
-        "contentHash": "L9TFd41NypqGIzTG0+cQBje5eha7UM/i0OPMZwX+Nce+9T0MELFT0HCztssofq0VC2CfJfWv24imrKAGFOy1RA==",
+        "requested": "[2.0.0-ci2420388812, )",
+        "resolved": "2.0.0-ci2420388812",
+        "contentHash": "mmgl+tJztu8by0MOikowijDTW30KIHx5P8VGJIH/XC+Nqt/W9W9Bxk9bW0rBfUBv7k8nmlA1I+LK07BCwySZ3A==",
         "dependencies": {
           "AwesomeAssertions": "9.4.0",
           "Extensions.Logging.NSubstitute": "1.0.0",
@@ -47,9 +47,9 @@
           "Microsoft.AspNetCore.Mvc.Testing": "10.0.5",
           "Microsoft.EntityFrameworkCore.InMemory": "10.0.5",
           "System.IO.Abstractions": "22.1.0",
-          "ViciOne.Suite.Sdk.Backend": "2.0.0-ci2411067321",
-          "ViciOne.Suite.Sdk.Client": "2.0.0-ci2411067321",
-          "ViciOne.Ui.Blazor.Components": "5.6.0",
+          "ViciOne.Suite.Sdk.Backend": "2.0.0-ci2420388812",
+          "ViciOne.Suite.Sdk.Client": "2.0.0-ci2420388812",
+          "ViciOne.Ui.Blazor.Components": "5.7.0",
           "bunit": "2.6.2",
           "xunit.v3.extensibility.core": "3.2.2"
         }
@@ -982,8 +982,8 @@
       },
       "ViciOne.Ui.Blazor.Components": {
         "type": "Transitive",
-        "resolved": "5.6.0",
-        "contentHash": "tSCstLeLB+hzgqYXR47yM+f4yzcMsN5c+y2EihS8jK9cNoO4sycKEyTTgP5DGuklU2r6j3RvEYqgSVcnq7oToA==",
+        "resolved": "5.7.0",
+        "contentHash": "F3JfPO9IXteGyCyihjGEy/Y1lbQSOpcskZrPegHyScfwLkJHUFbxV6NlROlHzlwCcJOFhWavVFVE+cXoBXgd0g==",
         "dependencies": {
           "Microsoft.AspNetCore.Components.QuickGrid": "10.0.5",
           "Microsoft.AspNetCore.Components.Web": "10.0.5",
@@ -993,17 +993,17 @@
       },
       "ViciOne.Ui.MonochromeIcons.Components": {
         "type": "Transitive",
-        "resolved": "4.5.0",
-        "contentHash": "p8TlJg+V4mPcfYC6YCTPolstxi9MMI5WkXPzMqpoYpotOuI5E/UXck+gYAl2Y3X9EXkufX1uiTxTNEu55buHZQ==",
+        "resolved": "4.7.0",
+        "contentHash": "jP1TcxjxB/ajSLaJJQ2WXEpS1KAl54gSksj4J71LbsIHFX6uu0Cvtog0WXEP74l4H4yLYyMvHYd+D5q6JCeL7g==",
         "dependencies": {
           "Microsoft.AspNetCore.Components.Web": "10.0.4",
-          "ViciOne.Ui.MonochromeIcons.Core": "4.5.0"
+          "ViciOne.Ui.MonochromeIcons.Core": "4.7.0"
         }
       },
       "ViciOne.Ui.MonochromeIcons.Core": {
         "type": "Transitive",
-        "resolved": "4.5.0",
-        "contentHash": "AURCzsnfh9/07sVma81MxulCDababdNyIaC6ITnc8pvkahf54EnM5oYFBXY9igzlk+3yvP5D3zArob+JHsMYTw=="
+        "resolved": "4.7.0",
+        "contentHash": "DqokI6wfa9GBP8zE4R1m8W7vj4shoQdqrkxU+kQ6lJA5cAo2YwjOm6wVwFg4T8HbEMnRQ1i2NNW4cKNd0TrkdQ=="
       },
       "xunit.v3.assert": {
         "type": "Transitive",
@@ -1082,7 +1082,7 @@
           "ViciOne.Core.Dataflow.DataModel.Generation": "[1.0.0, )",
           "ViciOne.Suite.ClusterManagement.Internal": "[2.0.0, )",
           "ViciOne.Suite.DataPort": "[0.30.0, )",
-          "ViciOne.Suite.Sdk.Backend": "[2.0.0-ci2411067321, )",
+          "ViciOne.Suite.Sdk.Backend": "[2.0.0-ci2420388812, )",
           "ViciOne.Suite.System.DataPort": "[1.0.0, )"
         }
       },
@@ -1104,7 +1104,7 @@
         "type": "Project",
         "dependencies": {
           "ViciOne.Cluster.Builder": "[1.0.0, )",
-          "ViciOne.Suite.Sdk": "[2.0.0-ci2411067321, )"
+          "ViciOne.Suite.Sdk": "[2.0.0-ci2420388812, )"
         }
       },
       "ViciOne.Suite.ClusterManagement.Tests.Tools": {
@@ -1233,9 +1233,9 @@
       },
       "ViciOne.Suite.Sdk": {
         "type": "CentralTransitive",
-        "requested": "[2.0.0-ci2411067321, )",
-        "resolved": "2.0.0-ci2411067321",
-        "contentHash": "lQZZd0rHKpvZkcwU/rBC5moqtcH4sBPwf2E32s7fY5UI9WNC98w/0dOLcz5r9SLmjHWUn/UtMZFSJxmMLrjZVQ==",
+        "requested": "[2.0.0-ci2420388812, )",
+        "resolved": "2.0.0-ci2420388812",
+        "contentHash": "PkitFFouAtWWUl+5elVSJhVi5wO+V68vfXvgYYdAL1UtsF++jrsoV9UTho5ucJjyh155RFGWDHs8qcFA5u5cGg==",
         "dependencies": {
           "MassTransit.Abstractions": "8.5.8",
           "Microsoft.AspNetCore.Authorization": "10.0.5",
@@ -1245,30 +1245,30 @@
       },
       "ViciOne.Suite.Sdk.Backend": {
         "type": "CentralTransitive",
-        "requested": "[2.0.0-ci2411067321, )",
-        "resolved": "2.0.0-ci2411067321",
-        "contentHash": "/KOi1Is+a41v5xc5iIe9uBw61ooghQZ6mct7Y0pXfho0oAeDu6m2vfPKfl1iM5/Lg98utYPzHk2vR3OQ/Dm95w==",
+        "requested": "[2.0.0-ci2420388812, )",
+        "resolved": "2.0.0-ci2420388812",
+        "contentHash": "EPQuL3dxmhhzMGRpCk2kkEZ1SH5L+SxwYlBUHGvfrTXZY2/pNGerwx9ItmLTt52KY8l0eCOg9ECJJOewI8P5Zg==",
         "dependencies": {
           "Microsoft.EntityFrameworkCore.Relational": "10.0.5",
           "Microsoft.EntityFrameworkCore.Sqlite": "10.0.5",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "10.0.1",
-          "ViciOne.Suite.Sdk": "2.0.0-ci2411067321"
+          "ViciOne.Suite.Sdk": "2.0.0-ci2420388812"
         }
       },
       "ViciOne.Suite.Sdk.Client": {
         "type": "CentralTransitive",
-        "requested": "[2.0.0-ci2411067321, )",
-        "resolved": "2.0.0-ci2411067321",
-        "contentHash": "qKXYPbNFiNNbSO8jFunnUNINMdRwI9JWCKOvb90spgIR4K5G6IpiiqSlhIHM1fHEe6JBGDc7ua0FHTAsuUhRSg==",
+        "requested": "[2.0.0-ci2420388812, )",
+        "resolved": "2.0.0-ci2420388812",
+        "contentHash": "U6FJbVRqJcNeKbpNwU8uPnIPpEKh1JG+r3Fv1jZJZsfSjJibUTVFUZCE4LCnI6u9N7cyOflzBGHWq9bDAKzFEw==",
         "dependencies": {
           "Microsoft.AspNetCore.Components.Authorization": "10.0.5",
           "Microsoft.AspNetCore.Components.Web": "10.0.5",
           "Microsoft.Extensions.Localization": "10.0.5",
           "ViciOne.CodeAnalysis.MustCallBase.Attributes": "1.6.0",
-          "ViciOne.Suite.Sdk": "2.0.0-ci2411067321",
-          "ViciOne.Ui.Blazor.Components": "5.6.0",
+          "ViciOne.Suite.Sdk": "2.0.0-ci2420388812",
+          "ViciOne.Ui.Blazor.Components": "5.7.0",
           "ViciOne.Ui.Localization": "3.2.0",
-          "ViciOne.Ui.MonochromeIcons.Components": "4.5.0"
+          "ViciOne.Ui.MonochromeIcons.Components": "4.7.0"
         }
       },
       "ViciOne.Suite.System.DataPort": {
