@@ -210,7 +210,7 @@
     <ItemGroup>
       <MonochromeIcon Include="dataflow-light" Size="24" />
       <MonochromeIcon Include="import" Size="24" />
-      <MonochromeIcon Include="info-light" Size="16" />
+      <MonochromeIcon Include="info-light" Size="16;24" />
       <MonochromeIcon Include="install-pending-light" Size="24" />
       <MonochromeIcon Include="edit" Size="16" />
       <MonochromeIcon Include="export" Size="16;24" />
@@ -218,8 +218,8 @@
       <MonochromeIcon Include="delete" Size="16;24" />
       <MonochromeIcon Include="folder" Size="16;24;32" />
       <MonochromeIcon Include="lock-active" Size="24" />
-      <MonochromeIcon Include="minus-slim" Size="24" />
-      <MonochromeIcon Include="plus-slim" Size="24" />
+      <MonochromeIcon Include="minus-slim" Size="16;24" />
+      <MonochromeIcon Include="plus-slim" Size="16;24" />
       <MonochromeIcon Include="properties" Size="24" />
       <MonochromeIcon Include="refresh" Size="24" />
       <MonochromeIcon Include="reload" Size="24" />

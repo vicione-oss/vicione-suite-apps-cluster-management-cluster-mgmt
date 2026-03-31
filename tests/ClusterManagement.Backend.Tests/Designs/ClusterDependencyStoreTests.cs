@@ -97,6 +97,86 @@ public class ClusterDependencyStoreTests
         }
     }
 
+    public sealed class Initialize : ClusterDependencyStoreTests
+    {
+        [Fact]
+        public async Task Should_create_packages_file_from_embedded_resources_when_no_packages_file_exists()
+        {
+            // Arrange
+            var store = _services.GetRequiredService<IClusterDependencyStore>();
+
+            // Act
+            await store.Initialize(CancellationToken.None);
+
+            // Assert
+            var packagesFile = _fileSystem.Path.Combine(HomePath, $"{ClusterDependencyStore.PackagesFileName}.{ClusterDependencyStore.PackagesFileExtension}");
+            _fileSystem.File.Exists(packagesFile).Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task Should_queue_install_when_shipped_version_is_higher_than_existing()
+        {
+            // Arrange
+            var store = _services.GetRequiredService<IClusterDependencyStore>();
+            SetupPackagesFile([new ClusterDependency { Name = "ViciOne.Engine.DefaultPoolings", Version = "0.9.0" }]);
+
+            // Act
+            await store.Initialize(CancellationToken.None);
+
+            // Assert
+            var enqueuedOps = await store.GetEnqueuedOperations(CancellationToken.None);
+            enqueuedOps.Should().ContainSingle(op =>
+                op.Dependency.Name == "ViciOne.Engine.DefaultPoolings"
+                && op.OperationKind == ClusterDependencyOperationKind.Install
+                && op.Dependency.Version == "1.0.0");
+        }
+
+        [Fact]
+        public async Task Should_not_queue_update_when_existing_version_matches_shipped()
+        {
+            // Arrange
+            var store = _services.GetRequiredService<IClusterDependencyStore>();
+            SetupPackagesFile([new ClusterDependency { Name = "ViciOne.Engine.DefaultPoolings", Version = "1.0.0" }]);
+
+            // Act
+            await store.Initialize(CancellationToken.None);
+
+            // Assert
+            var enqueuedOps = await store.GetEnqueuedOperations(CancellationToken.None);
+            enqueuedOps.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task Should_not_queue_update_when_existing_version_is_higher_than_shipped()
+        {
+            // Arrange
+            var store = _services.GetRequiredService<IClusterDependencyStore>();
+            SetupPackagesFile([new ClusterDependency { Name = "ViciOne.Engine.DefaultPoolings", Version = "2.0.0" }]);
+
+            // Act
+            await store.Initialize(CancellationToken.None);
+
+            // Assert
+            var enqueuedOps = await store.GetEnqueuedOperations(CancellationToken.None);
+            enqueuedOps.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task Should_not_queue_update_for_packages_not_in_shipped_set()
+        {
+            // Arrange
+            var store = _services.GetRequiredService<IClusterDependencyStore>();
+            SetupPackagesFile([new ClusterDependency { Name = "My.Custom.Package", Version = "1.0.0" }]);
+
+            // Act
+            await store.Initialize(CancellationToken.None);
+
+            // Assert
+            var enqueuedOps = await store.GetEnqueuedOperations(CancellationToken.None);
+            enqueuedOps.Should().BeEmpty();
+        }
+    }
+
     public sealed class LoadDependencies : ClusterDependencyStoreTests
     {
         [Fact]

@@ -36,7 +36,7 @@
                             @State.PackageInfo.RunningClusterVersion
 
                             <div title="@Editor.Localization.Common.ActiveInCluster" class="icon-wrapper">
-                                <MonochromeIcon Name="MonochromeIconName.LockActive" Size="MonochromeIconSize.SmallMedium" />
+                                <MonochromeIcon Name="MonochromeIconName.InfoLight" Size="MonochromeIconSize.SmallMedium" />
                             </div>
                         </div>
                     </SettingsField>
@@ -61,10 +61,9 @@
                     </div>
                 </SettingsField>
 
-                @if (string.IsNullOrEmpty(State.PackageInfo.RunningClusterVersion) &&
-                    ((State.PackageInfo.Versions ?? []).Count > 1 ||
+                @if ((State.PackageInfo.Versions ?? []).Count > 1 ||
                     (string.IsNullOrEmpty(State.PackageInfo.InstalledVersion) && State.PackageInfo.PendingOperation?.OperationKind is not ClusterDependencyOperationKind.Install) ||
-                    State.PackageInfo.PendingOperation?.OperationKind is ClusterDependencyOperationKind.Uninstall))
+                    State.PackageInfo.PendingOperation?.OperationKind is ClusterDependencyOperationKind.Uninstall)
                 {
                     <SettingsField Label="@UserActions.InstallVersion">
                         <div class="install-version-wrapper">

@@ -130,6 +130,6 @@
     <value>The packages have been modified. To apply these changes, please restart the application.</value>
   </data>
   <data name="ActiveInCluster" xml:space="preserve">
-    <value>The installed package is active in the cluster. This package cannot be uninstalled or updated.</value>
+    <value>The installed package is active in the cluster. Changing this package will have direct impact on the running cluster.</value>
   </data>
 </root>

@@ -130,6 +130,6 @@
     <value>Die Pakete wurden geändert. Um diese Änderungen zu übernehmen, starten Sie bitte die Anwendung neu.</value>
   </data>
   <data name="ActiveInCluster" xml:space="preserve">
-    <value>Das installierte Paket ist im Cluster aktiv. Dieses Paket kann nicht deinstalliert oder aktualisiert werden.</value>
+    <value>Das installierte Paket ist im Cluster aktiv. Änderungen an diesem Paket haben einen direkten Einfluss auf das aktive Cluster.</value>
   </data>
 </root>
