@@ -95,14 +95,9 @@ public sealed class IoddService : CompletionSourceHandlerBase<IIoddServiceResult
             return;
         }
 
-        try
-        {
-            await NotifyIoddChanged(context.Message, cancellationToken);
-        }
-        finally
-        {
-            CompleteWithSuccess(context.Message.CorrelationId);
-        }
+        CompleteWithSuccess(context.Message.CorrelationId);
+
+        await NotifyIoddChanged(context.Message, cancellationToken);
     }
 
     public async Task Consume(ClientContext<AutoIoddDownloadChanged> context, CancellationToken cancellationToken)
@@ -113,14 +108,9 @@ public sealed class IoddService : CompletionSourceHandlerBase<IIoddServiceResult
             return;
         }
 
-        try
-        {
-            await NotifyAutoIoddDownloadChanged(context.Message, cancellationToken);
-        }
-        finally
-        {
-            CompleteWithSuccess(context.Message.CorrelationId);
-        }
+        CompleteWithSuccess(context.Message.CorrelationId);
+
+        await NotifyAutoIoddDownloadChanged(context.Message, cancellationToken);
     }
 
     protected override IIoddServiceResult CreateSuccessResult() => new IoddServiceSuccessResult();
