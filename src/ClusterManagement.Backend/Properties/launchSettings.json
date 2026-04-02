@@ -5,7 +5,8 @@
         "executablePath": "\\suite\\src\\Core.OS\\bin\\Debug\\net10.0\\ViciOne.Suite.Core.OS.exe",
         "workingDirectory": "\\suite\\src\\Core.OS\\bin\\Debug\\net10.0",
         "environmentVariables": {
-            "ASPNETCORE_ENVIRONMENT": "Development"
+            "ASPNETCORE_ENVIRONMENT": "Development",
+            "ModuleLoader__ModuleDebugPaths__0": "\\cluster-mgmt\\src"
         }
     }
   }
