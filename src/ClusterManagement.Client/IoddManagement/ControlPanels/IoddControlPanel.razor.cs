@@ -84,7 +84,7 @@ public sealed partial class IoddControlPanel
         TreeAdapter.CoupleTreeBuilderEvents();
 
         // Ensure to fill the tree if the async state reset was not yet completed
-        if (TreeAdapter.Builder.RootNodes.Count == 0)
+        if (!TreeAdapter.HasDeviceNodes())
             InitTreeAdapterDevices();
 
         ItemSelection.Changed += OnItemSelectionChanged;
@@ -96,6 +96,8 @@ public sealed partial class IoddControlPanel
 
         if (args.PropertyNames.Contains(nameof(State.Devices)))
         {
+            // depending an async handling we are already connected to the state changed event before the async reset completed,
+            // so we need to ensure that the tree is filled with the devices from the state
             ItemSelection.Clear();
             InitTreeAdapterDevices();
             stateHasChanged = true;

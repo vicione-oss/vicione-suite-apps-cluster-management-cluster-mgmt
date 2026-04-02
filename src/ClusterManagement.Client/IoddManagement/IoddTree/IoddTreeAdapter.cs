@@ -206,6 +206,9 @@ internal class IoddTreeAdapter(MonochromeIconHttpClient iconService) : TreeAdapt
             _ => null
         };
 
+    public bool HasDeviceNodes()
+        => HasChildren(GetDefaultRepositoryNode());
+
     public override IEnumerable<ITreeNode> GetRootNodes()
         => _repositoryNodes.Values;
 
