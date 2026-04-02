@@ -66,14 +66,9 @@ internal class PackageService : CompletionSourceHandlerBase<IPackageServiceResul
             return;
         }
 
-        try
-        {
-            await NotifyPackageChanged(context.Message, cancellationToken);
-        }
-        finally
-        {
-            CompleteWithSuccess(context.Message.CorrelationId);
-        }
+        CompleteWithSuccess(context.Message.CorrelationId);
+
+        await NotifyPackageChanged(context.Message, cancellationToken);
     }
 
     public async Task Consume(ClientContext<ClusterDependenciesChanged> context, CancellationToken cancellationToken)
@@ -84,14 +79,9 @@ internal class PackageService : CompletionSourceHandlerBase<IPackageServiceResul
             return;
         }
 
-        try
-        {
-            await NotifyDependenciesChanged(context.Message, cancellationToken);
-        }
-        finally
-        {
-            CompleteWithSuccess(context.Message.CorrelationId);
-        }
+        CompleteWithSuccess(context.Message.CorrelationId);
+
+        await NotifyDependenciesChanged(context.Message, cancellationToken);
     }
 
     protected override IPackageServiceResult CreateSuccessResult()
