@@ -65,6 +65,8 @@ public sealed partial class LoadFunctionBlockTree
 
     private async Task OnCheckedChanged(bool? check)
     {
+        check ??= true;
+
         FunctionBlockModel.Checked = check;
 
         FunctionBlockModel.SetCheckValueToChildren(check);

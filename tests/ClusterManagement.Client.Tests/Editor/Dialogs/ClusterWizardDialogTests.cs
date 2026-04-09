@@ -9,6 +9,9 @@ using Microsoft.Extensions.Logging;
 using Sdk.Testing.Client;
 using ViciOne.Cluster.Builder;
 using ViciOne.Cluster.Builder.Abstractions;
+using ViciOne.Ui.Blazor.Components.Dialog.Components;
+using ViciOne.Ui.Blazor.Components.Dialog.Extensions;
+using ViciOne.Ui.Blazor.Components.TestingHelpers.Dialog.Extensions;
 
 namespace ClusterManagement.Client.Tests.Editor.Dialogs;
 
@@ -19,7 +22,6 @@ public class ClusterWizardDialogTests
         var dialogService = new ClusterWizardDialogService(ctx.Services, Substitute.For<ILogger<ClusterWizardDialogService>>());
 
         ctx.SetupSuiteServices();
-        ctx.SetupDevExpressBlazor();
         ctx.Services
             .AddSingleton(Substitute.For<ILogger<ClusterWizardDialogService>>)
             .AddSingleton(dialogService)
@@ -32,11 +34,12 @@ public class ClusterWizardDialogTests
     {
 
         [Fact]
-        public void Component_should_get_rendered()
+        public async Task Component_should_get_rendered()
         {
             // Arrange
-            using var ctx = new BunitContext();
+            await using var ctx = new BunitContext();
             SetupServices(ctx);
+            ctx.Services.AddDialog();
 
             // Act
             var component = ctx.Render<ClusterWizardDialog>();
@@ -49,16 +52,20 @@ public class ClusterWizardDialogTests
         public async Task Display_Dialog_set_false_on_cross_button_click()
         {
             // Arrange
-            using var ctx = new BunitContext();
+            await using var ctx = new BunitContext();
             var dialogService = SetupServices(ctx);
+            ctx.Services.AddDialog();
             var cluster = ClusterDbContextTools.CreateCluster(Guid.NewGuid());
             using var builder = new ClusterBuilder(cluster, Substitute.For<IDependencyResolver>());
 
-            // Act            
+            // Act
             var component = ctx.Render<ClusterWizardDialog>();
             await dialogService.OpenDialog<TestWizard>(builder);
 
-            component.FindAll("button")[1].Click();
+            var innerDialog = component.FindComponent<Dialog>();
+            var sectionContent = innerDialog.RenderSectionContent(ctx);
+
+            await sectionContent.FindAll("button")[1].ClickAsync();
 
             // Assert
             Assert.NotNull(component);
@@ -72,20 +79,24 @@ public class ClusterWizardDialogTests
         public async Task OpenDialog_should_set_current_wizard()
         {
             // Arrange
-            using var ctx = new BunitContext();
+            await using var ctx = new BunitContext();
             var dialogService = SetupServices(ctx);
+            ctx.Services.AddDialog();
             var cluster = ClusterDbContextTools.CreateCluster(Guid.NewGuid());
             using var builder = new ClusterBuilder(cluster, Substitute.For<IDependencyResolver>());
 
-            // Act            
+            // Act
             var component = ctx.Render<ClusterWizardDialog>();
             await dialogService.OpenDialog<TestWizard>(builder);
 
-            // Assert            
-            component.Should().NotBeNull();
+            var innerDialog = component.FindComponent<Dialog>();
+            var sectionContent = innerDialog.RenderSectionContent(ctx);
+
+            // Assert
+            sectionContent.Should().NotBeNull();
             dialogService.CurrentWizard.Should().BeOfType<TestWizard>();
 
-            component.Find(".header-bar")
+            sectionContent.Find(".header")
                 .InnerHtml.Should().Contain(TestWizard.Header);
         }
 
@@ -93,18 +104,22 @@ public class ClusterWizardDialogTests
         public async Task OpenDialog_should_render_current_wizard_component()
         {
             // Arrange
-            using var ctx = new BunitContext();
+            await using var ctx = new BunitContext();
             var dialogService = SetupServices(ctx);
+            ctx.Services.AddDialog();
             var cluster = ClusterDbContextTools.CreateCluster(Guid.NewGuid());
             using var builder = new ClusterBuilder(cluster, Substitute.For<IDependencyResolver>());
 
-            // Act            
+            // Act
             var component = ctx.Render<ClusterWizardDialog>();
             await dialogService.OpenDialog<TestWizard>(builder);
 
+            var innerDialog = component.FindComponent<Dialog>();
+            var sectionContent = innerDialog.RenderSectionContent(ctx);
+
             // Assert
-            component.Should().NotBeNull();
-            var wizardContent = component.FindComponent<TestWizardComponent>();
+            sectionContent.Should().NotBeNull();
+            var wizardContent = sectionContent.FindComponent<TestWizardComponent>();
             wizardContent.Should().NotBeNull();
             wizardContent.Nodes.Should().Satisfy(c => c.TextContent == TestWizardComponent.Content);
         }
@@ -116,21 +131,25 @@ public class ClusterWizardDialogTests
         public async Task Process_wizard_should_modify_builder()
         {
             // Arrange
-            using var ctx = new BunitContext();
+            await using var ctx = new BunitContext();
             var dialogService = SetupServices(ctx);
+            ctx.Services.AddDialog();
             var cluster = ClusterDbContextTools.CreateCluster(Guid.NewGuid());
             using var builder = new ClusterBuilder(cluster, Substitute.For<IDependencyResolver>());
 
-            // Act            
+            // Act
             var component = ctx.Render<ClusterWizardDialog>();
             await dialogService.OpenDialog<TestWizard>(builder);
+
+            var innerDialog = component.FindComponent<Dialog>();
+            var sectionContent = innerDialog.RenderSectionContent(ctx);
 
             var changed = false;
             builder.ClusterChanged += (sender, e) =>
             {
                 changed = true;
             };
-            component.FindAll("button").First(b => b.Id == ClusterWizardDialog.GenerateButtonId).Click();
+            await sectionContent.FindAll("button").First(b => b.Id == ClusterWizardDialog.GenerateButtonId).ClickAsync();
 
             // Assert
             changed.Should().BeTrue();
@@ -140,21 +159,25 @@ public class ClusterWizardDialogTests
         public async Task Cancel_wizard_should_leave_builder_unchanged()
         {
             // Arrange
-            using var ctx = new BunitContext();
+            await using var ctx = new BunitContext();
             var dialogService = SetupServices(ctx);
+            ctx.Services.AddDialog();
             var cluster = ClusterDbContextTools.CreateCluster(Guid.NewGuid());
             using var builder = new ClusterBuilder(cluster, Substitute.For<IDependencyResolver>());
 
-            // Act            
+            // Act
             var component = ctx.Render<ClusterWizardDialog>();
             await dialogService.OpenDialog<TestWizard>(builder);
+
+            var innerDialog = component.FindComponent<Dialog>();
+            var sectionContent = innerDialog.RenderSectionContent(ctx);
 
             var changed = false;
             builder.ClusterChanged += (sender, e) =>
             {
                 changed = true;
             };
-            component.FindAll("button").First(b => b.InnerHtml.Contains("Cancel", StringComparison.Ordinal)).Click();
+            await sectionContent.FindAll("button").First(b => b.InnerHtml.Contains("Cancel", StringComparison.Ordinal)).ClickAsync();
 
             // Assert
             changed.Should().BeFalse();

@@ -1,13 +1,13 @@
-﻿@using ViciOne.Ui.Shared.Dx.Components
+﻿@using ViciOne.Ui.Blazor.Components.Dialog.Components
 @using ViciOne.Ui.Blazor.Components.CheckBox
 @using ViciOne.Ui.Blazor.Components.TextBox
 @using ViciOne.Ui.Localization.Resources
 
-<DxDialog @ref="_refDialog"
-          Closing="() => SaveService.DisplayDialog = false"
-          Header="@Localization.SaveClusterDialog.Header"
-          Height="350"
-          Width="650">
+<Dialog @ref="_refDialog"
+        OnClosing="() => SaveService.DisplayDialog = false"
+        HeaderText="@Localization.SaveClusterDialog.Header"
+        Height="350"
+        Width="650">
     <Body>
         @if (!SaveService.IsWorking)
         {
@@ -37,12 +37,12 @@
     </Body>
 
     <Footer>
-        <DxDialogFooterButton OnClick="@SaveService.Save"
-                              Enabled="@(SaveService.Builder != null && !SaveService.IsWorking)"
-                              Text="@CommonVocabulary.Save" />
+        <DialogFooterButton OnClick="@SaveService.Save"
+                            Enabled="@(SaveService.Builder != null && !SaveService.IsWorking)"
+                            Text="@CommonVocabulary.Save" />
 
-        <DxDialogFooterButton OnClick="() => SaveService.DisplayDialog = false"
-                              Enabled="@(!SaveService.IsWorking)"
-                              Text="@CommonVocabulary.Cancel" />
+        <DialogFooterButton OnClick="() => SaveService.DisplayDialog = false"
+                            Enabled="@(!SaveService.IsWorking)"
+                            Text="@CommonVocabulary.Cancel" />
     </Footer>
-</DxDialog>
+</Dialog>

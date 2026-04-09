@@ -2,12 +2,11 @@
 using ClusterManagement.Client.Editor.Extensions;
 using ClusterManagement.Client.Editor.Models;
 using ClusterManagement.Client.Editor.Services;
-using DevExpress.Blazor;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 using ViciOne.Cluster.Model;
+using ViciOne.Ui.Blazor.Components.Dialog.Components;
 using ViciOne.Ui.Localization.Resources;
-using ViciOne.Ui.Shared.Dx.Components;
 
 namespace ClusterManagement.Client.Editor.Dialogs;
 
@@ -19,7 +18,7 @@ public sealed partial class LoadFunctionBlockDialog : IDisposable
 
     private bool _hasCheckedNodes;
     private bool _initialized;
-    private DxDialog? _refDialog;
+    private Dialog? _refDialog;
     private string _filter = string.Empty;
     private readonly Dictionary<string, CheckedClusterDependencyModel> _checkedFunctionBlocks = [];
 
@@ -157,17 +156,15 @@ public sealed partial class LoadFunctionBlockDialog : IDisposable
         }
     }
 
-    private async Task ShowFilteredFunctionBlocks(string filter)
+    private async Task ShowFilteredFunctionBlocks()
     {
-        _filter = filter;
-
         if (LoadService.Dependencies is not null && LoadService.SelectedDependencies is not null)
             SetTreeList(LoadService.Dependencies.Except(LoadService.SelectedDependencies).Where(d => d.Name.Contains(_filter, StringComparison.OrdinalIgnoreCase)));
 
         await InvokeAsync(StateHasChanged);
     }
 
-    private void ResetTree(PopupShowingEventArgs _)
+    private void ResetTree()
     {
         _checkedFunctionBlocks.Clear();
 
@@ -185,6 +182,8 @@ public sealed partial class LoadFunctionBlockDialog : IDisposable
 
     private void OnCheckedChanged(bool? checkValue)
     {
+        checkValue ??= true;
+
         foreach (var fb in _functionBlockTreeRoot.FunctionBlocks)
         {
             fb.Checked = checkValue;

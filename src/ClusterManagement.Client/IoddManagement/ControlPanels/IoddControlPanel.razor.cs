@@ -17,10 +17,10 @@ using Sdk.Client.ControlPanels.Services;
 using Sdk.Client.Services;
 using Sdk.MessageBanner.Contracts;
 using Sdk.Messaging;
+using ViciOne.Ui.Blazor.Components.Dialog.Components;
 using ViciOne.Ui.Localization.Resources;
 using ViciOne.Ui.MonochromeIcons.Core.Enums;
 using ViciOne.Ui.MonochromeIcons.Core.Extensions;
-using ViciOne.Ui.Shared.Dx.Components;
 using ViciOne.Ui.TreeEditor.Builder;
 
 namespace ClusterManagement.Client.IoddManagement.ControlPanels;
@@ -34,7 +34,7 @@ public sealed partial class IoddControlPanel
 
     private IQueryable<DeviceView> _itemsQueryable = Enumerable.Empty<DeviceView>().AsQueryable();
     private readonly TreeBuilder _treeBuilder = new();
-    private DxDialog? _refDeleteIoddsDialog;
+    private Dialog? _refDeleteIoddsDialog;
 
     [Inject] private IControlPanelRequest ControlPanelRequest { get; set; } = default!;
     [Inject] private IJSRuntime JavaScript { get; set; } = default!;
@@ -252,7 +252,7 @@ public sealed partial class IoddControlPanel
     }
 
     private async Task OnIoddDeleteClickAsync()
-        => await _refDeleteIoddsDialog!.OpenAsync();
+        => await _refDeleteIoddsDialog!.ShowAsync();
 
     private async Task OnIoddDownloadClickAsync()
     {

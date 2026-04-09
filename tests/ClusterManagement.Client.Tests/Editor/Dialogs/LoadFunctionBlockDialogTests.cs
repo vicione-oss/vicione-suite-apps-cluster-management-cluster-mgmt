@@ -1,17 +1,19 @@
 ﻿using AngleSharp.Dom;
 using Bunit;
 using ClusterManagement.Client.Editor.Dialogs;
-using ClusterManagement.Client.Editor.Enums;
 using ClusterManagement.Client.Editor.Services;
-using ClusterManagement.Client.Extensions;
 using ClusterManagement.Public.Designs;
 using DevExpress.Blazor.Internal.Editors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sdk.Testing.Client;
 using ViciOne.Cluster.Model;
+using ViciOne.Ui.Blazor.Components.CheckBox.Extensions;
+using ViciOne.Ui.Blazor.Components.Dialog.Extensions;
 using ViciOne.Ui.ClusterEditor.Services;
 using ViciOne.Ui.Localization.Resources;
+using ViciOne.Ui.MonochromeIcons.Core.Enums;
+using ViciOne.Ui.MonochromeIcons.Core.Extensions;
 
 namespace ClusterManagement.Client.Tests.Editor.Dialogs;
 
@@ -64,8 +66,8 @@ public class LoadFunctionBlockDialogTests
     private static IElement GetFunctionBlockByName(IRenderedComponent<LoadFunctionBlockDialog> component, string functionBlockName)
         => component.FindAll("dxbl-check").First(fb => fb.InnerHtml.Contains(functionBlockName, StringComparison.OrdinalIgnoreCase));
 
-    private static IElement FindToolbarButton(IRenderedComponent<LoadFunctionBlockDialog> component, SvgIcon icon)
-        => component.FindAll(".btn-toolbar").First(k => k.InnerHtml.Contains(icon.GetPath(), StringComparison.OrdinalIgnoreCase));
+    private static IElement FindToolbarButton(IRenderedComponent<LoadFunctionBlockDialog> component, MonochromeIconName name)
+        => component.FindAll(".toolbar-button").First(k => k.InnerHtml.Contains(name.GetName().ToDashCase(), StringComparison.OrdinalIgnoreCase));
 
     private static IElement GetCancelButton(IRenderedComponent<LoadFunctionBlockDialog> component)
         => component.FindAll("button").First(b => b.InnerHtml.Contains(CommonVocabulary.Cancel, StringComparison.Ordinal));
@@ -79,11 +81,13 @@ public class LoadFunctionBlockDialogTests
     public class RenderComponent : LoadFunctionBlockDialogTests
     {
         [Fact]
-        public void ComponentGetsRendered()
+        public async Task ComponentGetsRendered()
         {
             // Arrange
-            using var ctx = new BunitContext();
+            await using var ctx = new BunitContext();
             SetupServices(ctx);
+            ctx.Services.AddDialog();
+            ctx.Services.AddCheckBox();
 
             // Act
             var sut = ctx.Render<LoadFunctionBlockDialog>();
@@ -199,7 +203,7 @@ public class LoadFunctionBlockDialogTests
             component.WaitForAssertion(() =>
             {
                 // Act
-                var button = FindToolbarButton(component, SvgIcon.CollapseAllRows);
+                var button = FindToolbarButton(component, MonochromeIconName.CollapseAll);
                 button.Click();
 
                 // Assert
@@ -288,10 +292,10 @@ public class LoadFunctionBlockDialogTests
             component.WaitForAssertion(() =>
             {
                 // Act
-                var buttonCollapse = FindToolbarButton(component, SvgIcon.CollapseAllRows);
+                var buttonCollapse = FindToolbarButton(component, MonochromeIconName.CollapseAll);
                 buttonCollapse.Click();
 
-                var buttonExpand = FindToolbarButton(component, SvgIcon.ExpandAllRows);
+                var buttonExpand = FindToolbarButton(component, MonochromeIconName.ExpandAll);
                 buttonExpand.Click();
 
                 // Assert
