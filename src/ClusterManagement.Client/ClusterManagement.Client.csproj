@@ -208,9 +208,11 @@
 
   <Target Name="ConfigureMonochromeIcons" BeforeTargets="BeforeMonochromeIconTargets">
     <ItemGroup>
+      <MonochromeIcon Include="collapse-all" Size="24" />
       <MonochromeIcon Include="dataflow-light" Size="24" />
       <MonochromeIcon Include="delete" Size="16;24" />
       <MonochromeIcon Include="edit" Size="16" />
+      <MonochromeIcon Include="expand-all" Size="24" />
       <MonochromeIcon Include="export" Size="16;24" />
       <MonochromeIcon Include="error-solid" Size="24" />
       <MonochromeIcon Include="folder" Size="16;24;32" />

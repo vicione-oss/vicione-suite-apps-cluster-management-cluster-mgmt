@@ -22,10 +22,7 @@ internal sealed class ClusterWizardDialogService(IServiceProvider services, ILog
         {
             CurrentWizard = _services.GetRequiredService<TWizard>();
 
-            _builder = builder;
-            if (_builder is null)
-                throw new InvalidOperationException("builder is not initialized");
-
+            _builder = builder ?? throw new InvalidOperationException("builder is not initialized");
             await CurrentWizard.PrepareWizardOptions(_builder);
 
             DisplayDialog = true;

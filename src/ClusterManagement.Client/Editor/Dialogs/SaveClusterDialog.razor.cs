@@ -1,13 +1,13 @@
 ﻿using ClusterManagement.Client.Editor.Extensions;
 using ClusterManagement.Client.Editor.Services;
 using Microsoft.AspNetCore.Components;
-using ViciOne.Ui.Shared.Dx.Components;
+using ViciOne.Ui.Blazor.Components.Dialog.Components;
 
 namespace ClusterManagement.Client.Editor.Dialogs;
 
 public sealed partial class SaveClusterDialog : IDisposable
 {
-    private DxDialog? _refDialog;
+    private Dialog? _refDialog;
 
     [Inject]
     private SaveClusterService SaveService { get; set; } = default!;

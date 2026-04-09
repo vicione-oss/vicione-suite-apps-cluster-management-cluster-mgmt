@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ViciOne.Ui.Blazor.Components.TestingHelpers" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\ClusterManagement.Client\ClusterManagement.Client.csproj" />
     <ProjectReference Include="..\..\tests\ClusterManagement.Tests.Tools\ClusterManagement.Tests.Tools.csproj" />
   </ItemGroup>

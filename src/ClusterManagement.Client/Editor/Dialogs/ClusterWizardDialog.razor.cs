@@ -2,7 +2,7 @@
 using ClusterManagement.Client.Editor.Services;
 using DevExpress.Data.Helpers;
 using Microsoft.AspNetCore.Components;
-using ViciOne.Ui.Shared.Dx.Components;
+using ViciOne.Ui.Blazor.Components.Dialog.Components;
 
 namespace ClusterManagement.Client.Editor.Dialogs;
 
@@ -11,7 +11,7 @@ public sealed partial class ClusterWizardDialog : IDisposable
     internal const string GenerateButtonId = "ClusterWizardGenerate";
     internal const string CancelButtonId = "ClusterWizardCancel";
 
-    private DxDialog? _refDialog;
+    private Dialog? _refDialog;
     private DynamicComponent? _wizardComponent;
 
     [Inject]

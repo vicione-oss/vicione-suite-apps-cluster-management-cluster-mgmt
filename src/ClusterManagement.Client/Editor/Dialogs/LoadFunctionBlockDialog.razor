@@ -1,75 +1,53 @@
 ﻿@using ClusterManagement.Client.Editor.Components
-@using ClusterManagement.Client.Editor.Enums
 @using ClusterManagement.Client.Extensions
+@using ViciOne.Ui.Blazor.Components.CheckBox
+@using ViciOne.Ui.Blazor.Components.Dialog.Components
+@using ViciOne.Ui.Blazor.Components.SearchBox
+@using ViciOne.Ui.Blazor.Components.Toolbar.Components
+@using ViciOne.Ui.Blazor.Components.Toolbar.Enums
 @using ViciOne.Ui.Localization.Resources
-@using ViciOne.Ui.Shared.Dx.Components
+@using ViciOne.Ui.MonochromeIcons.Core.Enums
 
-<DxDialog @ref="_refDialog"
-          Closing="@CloseDialog"
-          CloseOnOutsideClick="false"
-          Header="@Localization.LoadFunctionBlockDialog.Header"
-          Height="70%"
-          Showing="@ResetTree"
-          Width="70%">
+<Dialog @ref="_refDialog"
+        OnClosing="@CloseDialog"
+        HeaderText="@Localization.LoadFunctionBlockDialog.Header"
+        Height="70%"
+        OnShowing="@ResetTree"
+        Width="70%">
 
-    <HeaderToolbarItems>
-        <DxToolbarItem Alignment="ToolbarItemAlignment.Right">
-            <Template Context="tplCtx">
-                 <div class="search-container">
-                     <SearchBox TextChanged="async (string f) => await ShowFilteredFunctionBlocks(f)"
-                                NullText="@CommonVocabulary.SearchVerb" />
-                 </div>
-            </Template>
-        </DxToolbarItem>
+    <HeaderSlot>
+        <Toolbar>
+            <ToolbarGroup AlignRight="true">
+                <ToolbarContent>
+                    <div class="search-container">
+                        <SearchBox @bind-Text="@_filter"
+                                   @bind-Text:after="@(async () => await ShowFilteredFunctionBlocks())"
+                                   Placeholder="@CommonVocabulary.Search" />
+                    </div>
+                </ToolbarContent>
+            </ToolbarGroup>
 
-        <DxToolbarItem AdaptiveText="@_localizeExpandAllGroups"
-                       Alignment="ToolbarItemAlignment.Right"
-                       BeginGroup=true
-                       Tooltip="@_localizeExpandAllGroups">
+            <ToolbarGroup AlignRight="true">
+                <ToolbarButton IconName="@MonochromeIconName.ExpandAll"
+                               OnClick="OnExpandAllClick"
+                               Text="@_localizeExpandAllGroups"
+                               TextVisibility="@TextVisibility.MenuOnly" />
 
-            <Template Context="tplCtx">
-                @{var adaptiveTextVisible = tplCtx.HiddenToAdaptiveMenu; }
-                <button @onclick="OnExpandAllClick"
-                        class="btn btn-toolbar @(adaptiveTextVisible ? "adaptive-hidden" : string.Empty)">
-                
-                    <img src="@SvgIcon.ExpandAllRows.GetPath()" />
-
-                    @if (adaptiveTextVisible)
-                    {
-                        <span>@tplCtx.AdaptiveText</span>
-                    }
-                </button>
-             </Template>
-        </DxToolbarItem>
-
-        <DxToolbarItem AdaptiveText="@_localizeCollapseAllGroups"
-                       Alignment="ToolbarItemAlignment.Right"
-                       Tooltip="@_localizeCollapseAllGroups">
-
-            <Template Context="tplCtx">
-                @{var adaptiveTextVisible = tplCtx.HiddenToAdaptiveMenu;}
-                <button @onclick="OnCollapseAllClick"
-                        class="btn btn-toolbar @(adaptiveTextVisible ? "adaptive-hidden" : string.Empty)">
-
-                    <img src="@SvgIcon.CollapseAllRows.GetPath()" />
-
-                    @if (adaptiveTextVisible)
-                    {
-                        <span>@tplCtx.AdaptiveText</span>
-                    }
-                </button>
-            </Template>
-        </DxToolbarItem>
-    </HeaderToolbarItems>
+                <ToolbarButton IconName="@MonochromeIconName.CollapseAll"
+                               OnClick="OnCollapseAllClick"
+                               Text="@_localizeCollapseAllGroups"
+                               TextVisibility="@TextVisibility.MenuOnly" />
+            </ToolbarGroup>
+        </Toolbar>
+    </HeaderSlot>
 
     <Body>
         <div class="content-container">
             <div class="all">
-                <DxCheckBox Checked="_functionBlockTreeRoot.Checked"
-                            CheckedChanged="((bool? b) => OnCheckedChanged(b))">
-
-                    @CommonVocabulary.All
-                </DxCheckBox>
+                <CheckBox Value="_functionBlockTreeRoot.Checked"
+                          ValueChanged="@((bool? b) => OnCheckedChanged(b))">
+                </CheckBox>
+                <span class="text">@CommonVocabulary.All</span>
             </div>
 
             @if (_functionBlockTreeRoot.FunctionBlocks.Any())
@@ -84,10 +62,10 @@
                                                    Layer="0">
 
                                 <FunctionBlockModelTemplate>
-                                    <SearchHighlighter SearchText="@_filter"
+                                    <ViciOne.Ui.Shared.Dx.Components.SearchHighlighter SearchText="@_filter"
                                                        Text="@context.Name" />
                                 </FunctionBlockModelTemplate>
-                            </LoadFunctionBlockTree>  
+                            </LoadFunctionBlockTree>
                         }
                     </div>
                 </div>
@@ -101,10 +79,10 @@
         </div>
     </Body>
     <Footer>
-        <DxDialogFooterButton OnClick="@OnOkButtonClick"
-                              Text="@CommonVocabulary.Ok" />
+        <DialogFooterButton OnClick="@OnOkButtonClick"
+                            Text="@CommonVocabulary.Ok" />
 
-        <DxDialogFooterButton OnClick="@CloseDialog"
-                              Text="@CommonVocabulary.Cancel" />
+        <DialogFooterButton OnClick="@CloseDialog"
+                            Text="@CommonVocabulary.Cancel" />
     </Footer>
-</DxDialog>
+</Dialog>

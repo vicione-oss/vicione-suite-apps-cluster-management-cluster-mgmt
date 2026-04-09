@@ -2,6 +2,8 @@
 using ClusterManagement.Client.Editor.Components;
 using ClusterManagement.Client.Editor.Models;
 using Sdk.Testing.Client;
+using ViciOne.Ui.Blazor.Components.CheckBox.Extensions;
+using ViciOne.Ui.Blazor.Components.Dialog.Extensions;
 
 namespace ClusterManagement.Client.Tests.Editor.Dialogs;
 
@@ -13,7 +15,8 @@ public class LoadFunctionBlockTreeTests
         // Arrange
         using var ctx = new BunitContext();
         ctx.SetupSuiteServices();
-        ctx.SetupDevExpressBlazor();
+        ctx.Services.AddDialog();
+        ctx.Services.AddCheckBox();
 
         // Act
         var sut = ctx.Render<LoadFunctionBlockTree>(p =>
@@ -30,11 +33,12 @@ public class LoadFunctionBlockTreeTests
     public class OnCheckedChanged
     {
         [Fact]
-        public void Checks_all_sub_function_blocks()
+        public async Task Checks_all_sub_function_blocks()
         {
-            using var ctx = new BunitContext();
+            await using var ctx = new BunitContext();
             ctx.SetupSuiteServices();
-            ctx.SetupDevExpressBlazor();
+            ctx.Services.AddDialog();
+            ctx.Services.AddCheckBox();
             var invoked = false;
             var model = CreateFunctionBlockModel();
 
@@ -46,33 +50,34 @@ public class LoadFunctionBlockTreeTests
                 p.Add(a => a.CheckChanged, () => invoked = true);
             });
 
-            var headerCheckBoxes = component.FindAll(".header-text > dxbl-check");
-            headerCheckBoxes[headerCheckBoxes.Count - 1].Change(new() { Value = true });
+            var headerCheckBoxes = component.FindAll(".header-text > .check-box > input");
+            headerCheckBoxes[headerCheckBoxes.Count - 1].Input(new() { Value = true });
 
             Assert.True(invoked);
-            var checkedNodes = component.FindAll(".dxbl-checkbox-checked");
+            var checkedNodes = component.FindAll(".check-box > input[value=\"True\"]");
             checkedNodes.Count.Should().Be(2);
-            checkedNodes[0].InnerHtml.Should().Contain("StandardFunction");
-            checkedNodes[1].InnerHtml.Should().Contain("Test1");
+            checkedNodes[0].ParentElement?.NextElementSibling?.InnerHtml.Should().Contain("StandardFunction");
+            checkedNodes[1].ParentElement?.NextElementSibling?.InnerHtml.Should().Contain("Test1");
 
-            var uncheckedNodes = component.FindAll(".dxbl-checkbox-unchecked");
+            var uncheckedNodes = component.FindAll(".check-box > input[value=\"False\"]");
             uncheckedNodes.Count.Should().Be(2);
-            uncheckedNodes[0].InnerHtml.Should().Contain("FunctionBlocks");
-            uncheckedNodes[1].InnerHtml.Should().Contain("Test");
+            uncheckedNodes[0].ParentElement?.NextElementSibling?.InnerHtml.Should().Contain("FunctionBlocks");
+            uncheckedNodes[1].ParentElement?.NextElementSibling?.InnerHtml.Should().Contain("Test");
 
-            var indeterminateNodes = component.FindAll(".dxbl-checkbox-indeterminate");
+            var indeterminateNodes = component.FindAll(".check-box > input[value=\"null\"]");
             indeterminateNodes.Count.Should().Be(3);
-            indeterminateNodes[0].InnerHtml.Should().Contain("All");
-            indeterminateNodes[1].InnerHtml.Should().Contain("ACX");
-            indeterminateNodes[2].InnerHtml.Should().Contain("ViciOne");
+            indeterminateNodes[0].ParentElement?.NextElementSibling?.InnerHtml.Should().Contain("All");
+            indeterminateNodes[1].ParentElement?.NextElementSibling?.InnerHtml.Should().Contain("ACX");
+            indeterminateNodes[2].ParentElement?.NextElementSibling?.InnerHtml.Should().Contain("ViciOne");
         }
 
         [Fact]
-        public void Unchecks_all_sub_function_blocks()
+        public async Task Unchecks_all_sub_function_blocks()
         {
-            using var ctx = new BunitContext();
+            await using var ctx = new BunitContext();
             ctx.SetupSuiteServices();
-            ctx.SetupDevExpressBlazor();
+            ctx.Services.AddDialog();
+            ctx.Services.AddCheckBox();
             var invoked = false;
             var model = CreateFunctionBlockModel(true);
 
@@ -84,25 +89,25 @@ public class LoadFunctionBlockTreeTests
                 p.Add(a => a.CheckChanged, () => invoked = true);
             });
 
-            var headerCheckBoxes = component.FindAll(".header-text > dxbl-check");
-            headerCheckBoxes[headerCheckBoxes.Count - 1].Change(new() { Value = false });
+            var headerCheckBoxes = component.FindAll(".header-text > .check-box > input");
+            headerCheckBoxes[headerCheckBoxes.Count - 1].Input(new() { Value = false });
 
             Assert.True(invoked);
-            var uncheckedNodes = component.FindAll(".dxbl-checkbox-unchecked");
+            var uncheckedNodes = component.FindAll(".check-box > input[value=\"False\"]");
             uncheckedNodes.Count.Should().Be(2);
-            uncheckedNodes[0].InnerHtml.Should().Contain("StandardFunction");
-            uncheckedNodes[1].InnerHtml.Should().Contain("Test1");
+            uncheckedNodes[0].ParentElement?.NextElementSibling?.InnerHtml.Should().Contain("StandardFunction");
+            uncheckedNodes[1].ParentElement?.NextElementSibling?.InnerHtml.Should().Contain("Test1");
 
-            var checkedNodes = component.FindAll(".dxbl-checkbox-checked");
+            var checkedNodes = component.FindAll(".check-box > input[value=\"True\"]");
             checkedNodes.Count.Should().Be(2);
-            checkedNodes[0].InnerHtml.Should().Contain("FunctionBlocks");
-            checkedNodes[1].InnerHtml.Should().Contain("Test");
+            checkedNodes[0].ParentElement?.NextElementSibling?.InnerHtml.Should().Contain("FunctionBlocks");
+            checkedNodes[1].ParentElement?.NextElementSibling?.InnerHtml.Should().Contain("Test");
 
-            var indeterminateNodes = component.FindAll(".dxbl-checkbox-indeterminate");
+            var indeterminateNodes = component.FindAll(".check-box > input[value=\"null\"]");
             indeterminateNodes.Count.Should().Be(3);
-            indeterminateNodes[0].InnerHtml.Should().Contain("All");
-            indeterminateNodes[1].InnerHtml.Should().Contain("ACX");
-            indeterminateNodes[2].InnerHtml.Should().Contain("ViciOne");
+            indeterminateNodes[0].ParentElement?.NextElementSibling?.InnerHtml.Should().Contain("All");
+            indeterminateNodes[1].ParentElement?.NextElementSibling?.InnerHtml.Should().Contain("ACX");
+            indeterminateNodes[2].ParentElement?.NextElementSibling?.InnerHtml.Should().Contain("ViciOne");
         }
     }
 
@@ -113,7 +118,8 @@ public class LoadFunctionBlockTreeTests
         {
             using var ctx = new BunitContext();
             ctx.SetupSuiteServices();
-            ctx.SetupDevExpressBlazor();
+            ctx.Services.AddDialog();
+            ctx.Services.AddCheckBox();
             var model = CreateFunctionBlockModel();
 
             var component = ctx.Render<LoadFunctionBlockTree>(p =>
@@ -164,16 +170,14 @@ public class LoadFunctionBlockTreeTests
         model.FunctionBlocks[0].FunctionBlocks[0].FunctionBlocks[1].FunctionBlocks.Add(new()
         {
             Name = "Test1",
-            Parent = model.FunctionBlocks[0].FunctionBlocks[0].FunctionBlocks[0],
+            Parent = model.FunctionBlocks[0].FunctionBlocks[0].FunctionBlocks[1],
         });
 
         if (checkValue)
         {
             model.FunctionBlocks[0].FunctionBlocks[0].FunctionBlocks[0].FunctionBlocks[0].Checked = checkValue;
-            model.FunctionBlocks[0].FunctionBlocks[0].FunctionBlocks[0].FunctionBlocks[0].CheckParent();
 
             model.FunctionBlocks[0].FunctionBlocks[0].FunctionBlocks[1].FunctionBlocks[0].Checked = checkValue;
-            model.FunctionBlocks[0].FunctionBlocks[0].FunctionBlocks[1].FunctionBlocks[0].CheckParent();
         }
 
         return model;

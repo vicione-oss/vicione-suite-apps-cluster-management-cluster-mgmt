@@ -118,9 +118,9 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Header" xml:space="preserve">
-    <value>Save Cluster As New Version</value>
+    <value>Save cluster as new version</value>
   </data>
   <data name="CleanupDependencies" xml:space="preserve">
-    <value>Cleanup Dependencies</value>
+    <value>Cleanup dependencies</value>
   </data>
 </root>
