@@ -34,6 +34,7 @@ public sealed class DataflowEditorPageTests
         ctx.Services.AddScoped<ExportClusterService>();
         ctx.Services.AddScoped<SaveClusterService>();
         ctx.Services.AddScoped<LoadFunctionBlocksService>();
+        ctx.Services.AddScoped(_ => Substitute.For<IResourceDownloadStateService>());
         ctx.Services.AddScoped<ClusterWizardDialogService>();
         ctx.Services.AddTransient(_ => HttpClientFactory.GetHttpClientWithResponse(version));
 

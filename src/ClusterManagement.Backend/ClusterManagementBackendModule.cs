@@ -44,6 +44,8 @@ public sealed class ClusterManagementBackendModule : BackendModule
             .AddMqttSupport(options)
             .AddEngineHostSupport(options)
             .AddIoddSupport();
+
+        services.AddHostedService<ResourceDownloadCompletedService>();
     }
 
     public override void ConfigureMessageBus(IServiceCollection busConfig, InstanceType instanceType)

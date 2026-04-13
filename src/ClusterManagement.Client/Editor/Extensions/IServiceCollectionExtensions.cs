@@ -25,6 +25,7 @@ internal static class IServiceCollectionExtensions
         services.AddScoped<ExportClusterService>();
         services.AddScoped<SaveClusterService>();
         services.AddScoped<LoadFunctionBlocksService>();
+        services.AddScoped<IResourceDownloadStateService, ResourceDownloadStateService>();
 
         // wizards - will be handled inside editor one day
         services.AddScoped<ClusterWizardDialogService>();

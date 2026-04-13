@@ -1,10 +1,7 @@
 ﻿using System.Diagnostics;
 using ClusterManagement.Client.Editor.Models;
 using ClusterManagement.Client.Services;
-using ClusterManagement.Public;
 using ClusterManagement.Public.Designs;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ViciOne.Cluster.Builder;
 using ViciOne.Ui.ClusterEditor.Services;
@@ -19,9 +16,7 @@ internal sealed class LoadClusterService : DialogServiceBase, IDisposable
     private readonly IClusterEditorManagement _clusterEditorManagement;
     private readonly ILogger<LoadClusterService> _logger;
     private readonly IDesignProvider _designProvider;
-    private readonly IServiceProvider _serviceProvider;
     private ClusterBuilder? _clusterBuilder;
-    private bool _resourcesLoaded;
 
     public event EventHandler<ClusterBuilder>? ClusterLoaded;
 
@@ -29,29 +24,18 @@ internal sealed class LoadClusterService : DialogServiceBase, IDisposable
     public LoadClusterService(IClusterService clusterService,
         IClusterEditorManagement clusterEditorManagement,
         ILogger<LoadClusterService> logger,
-        IDesignProvider designProvider,
-        IServiceProvider serviceProvider)
+        IDesignProvider designProvider)
     {
         _clusterService = clusterService;
         _clusterEditorManagement = clusterEditorManagement;
         _logger = logger;
         _designProvider = designProvider;
-        _serviceProvider = serviceProvider;
     }
 
     public async Task TryLoadLatestVersion(CancellationToken cancellationToken = default)
     {
         try
         {
-            if (!_resourcesLoaded)
-            {
-                var downloaders = _serviceProvider.GetServices<IHostedService>().OfType<IDownloader>();
-
-                _logger.LogInformation("Waiting for downloaders to complete before loading the latest cluster version...");
-                await Task.WhenAll(downloaders.Select(d => d.Task.WaitAsync(cancellationToken)));
-                Interlocked.Exchange(ref _resourcesLoaded, true);
-            }
-
             var versions = await LoadClusterVersions(cancellationToken);
             if (versions.Count <= 0)
                 throw new InvalidOperationException("Default cluster is not available!");

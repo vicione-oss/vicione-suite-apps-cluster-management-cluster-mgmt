@@ -6,7 +6,9 @@
 
 - Pass DataPort name to DataPort communication
 - Pass DataPort DesignId to DataPort communication
-- Added a 'Get Packegs' button to DebugEngine Page
+- Added a 'Get Packages' button to DebugEngine Page
+- Added `ResourcesDownloaded` event, published when all backend resource downloads have completed
+- Added `GetResourcesDownloadStatusRequest` query to retrieve whether backend resources have finished downloading
 
 ### Changed
 
@@ -53,6 +55,7 @@
 
 - Transfer all involved DataPort nodes to external communication
 - Design loader continues loading when individual packages fail to download
+- Cluster editor now waits for backend resources to finish loading before opening
 
 ## 1.4.1 - 2026-02-16
 

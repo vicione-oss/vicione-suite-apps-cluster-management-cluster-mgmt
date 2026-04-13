@@ -46,6 +46,8 @@ public sealed partial class ClusterEditorPage
 
     [Inject] private ISettingsService SettingsService { get; set; } = default!;
 
+    [Inject] private IResourceDownloadStateService ResourceDownloadState { get; set; } = default!;
+
     [CascadingParameter]
     public required Task<AuthenticationState> AuthState { get; set; }
 
@@ -107,6 +109,9 @@ public sealed partial class ClusterEditorPage
         // editor needs to be rendered after the js scripts were loaded!
         _resourcesLoaded = true;
         await InvokeAsync(StateHasChanged);
+
+        // Wait for backend resources before enabling the editor
+        await ResourceDownloadState.WaitForCompletion(_tokenSource.Token);
 
         _subscriptionHandles.Add(Mediator.Register<ClusterChanged>(SaveService));
         _subscriptionHandles.Add(Mediator.Register<CommitClusterChangeFailed>(SaveService));
