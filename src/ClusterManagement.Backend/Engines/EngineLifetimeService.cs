@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.IO.Abstractions;
+using ClusterManagement.Public;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

@@ -3,6 +3,7 @@ using System.IO.Abstractions;
 using ClusterManagement.Backend.EngineHosts.Extensions;
 using ClusterManagement.Backend.Extensions;
 using ClusterManagement.Internal;
+using ClusterManagement.Public;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
