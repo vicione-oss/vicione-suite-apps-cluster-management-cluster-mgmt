@@ -85,6 +85,8 @@ public sealed partial class ClusterEditorPage
 
     protected override async Task OnInitializedAsync()
     {
+        LayoutService.IsLoadingOverlayVisible = true;
+
         var username = (await AuthState).User.Identity?.Name ?? "Anonymous";
         var request = new GetClusterEditorSettingsRequest(username);
         var response = await Mediator.Request<GetClusterEditorSettingsRequest, GetClusterEditorSettingsResponse>(request, _tokenSource.Token);
@@ -97,7 +99,6 @@ public sealed partial class ClusterEditorPage
         SettingsService.SetPanBehavior(settings.PanBehavior);
         SettingsService.SetSimplifiedView(settings.SimplifiedView);
 
-        LayoutService.IsLoadingOverlayVisible = true;
         await base.OnInitializedAsync();
     }
 
