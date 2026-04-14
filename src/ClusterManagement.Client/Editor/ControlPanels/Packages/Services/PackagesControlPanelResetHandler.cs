@@ -1,8 +1,11 @@
-﻿using Sdk.Client.ControlPanels.Services;
+﻿using ClusterManagement.Client.Editor.Services;
+using Sdk.Client.ControlPanels.Services;
 
 namespace ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
 
-internal sealed class PackagesControlPanelResetHandler(IPackageService packageService) : IControlPanelResetHandler<PackagesControlPanelState>
+internal sealed class PackagesControlPanelResetHandler(
+    IPackageService packageService,
+    IResourceDownloadStateService resourceDownloadState) : IControlPanelResetHandler<PackagesControlPanelState>
 {
     public async Task Reset(PackagesControlPanelState state, CancellationToken cancellationToken)
     {
@@ -13,6 +16,8 @@ internal sealed class PackagesControlPanelResetHandler(IPackageService packageSe
 
         try
         {
+            await resourceDownloadState.WaitForCompletion(cancellationToken);
+
             state.InstallOperations.Clear();
             state.UninstallOperations.Clear();
             state.PackagesToBeDeleted.Clear();

@@ -55,7 +55,7 @@
 
 - Transfer all involved DataPort nodes to external communication
 - Design loader continues loading when individual packages fail to download
-- Cluster editor now waits for backend resources to finish loading before opening
+- Cluster editor and packages settings now wait for backend resources to finish loading before opening
 
 ## 1.4.1 - 2026-02-16
 

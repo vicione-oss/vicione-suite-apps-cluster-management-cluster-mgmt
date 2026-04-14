@@ -1,5 +1,6 @@
 ﻿using ClusterManagement.Client.Editor.ControlPanels.Packages;
 using ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
+using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Internal.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Client.ControlPanels.Services;
@@ -27,6 +28,7 @@ public sealed class PackagesControlPanelResetHandlerTests
     {
         var services = new ServiceCollection()
             .AddSingleton(_packageService)
+            .AddSingleton(Substitute.For<IResourceDownloadStateService>())
             .AddScoped<IControlPanelResetHandler<PackagesControlPanelState>, PackagesControlPanelResetHandler>();
 
         return services.BuildServiceProvider();

@@ -2,6 +2,7 @@
 using ClusterManagement.Client.Editor.ControlPanels.Packages;
 using ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
 using ClusterManagement.Client.Editor.Extensions;
+using ClusterManagement.Client.Editor.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Client.Services;
 using Sdk.Testing.Client;
@@ -22,6 +23,7 @@ public class PackagesControlPanelResetTests
 
         ctx.Services.AddSingleton(_packageService);
         ctx.Services.AddSingleton(_bannerService);
+        ctx.Services.AddScoped(_ => Substitute.For<IResourceDownloadStateService>());
         ctx.Services.AddPackagesControlPanel();
         return ctx;
     }
