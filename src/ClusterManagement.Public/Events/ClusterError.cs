@@ -64,6 +64,9 @@ public sealed record ClusterError : IEvent, CorrelatedBy<Guid?>
     /// <summary>Function block designs failed to load.</summary>
     public const int DesignsFailedToLoad = 400;
 
+    /// <summary>A dependency package failed to load.</summary>
+    public const int PackageFailedToLoad = 401;
+
     /// <summary>Editor failed to load cluster settings.</summary>
     public const int EditorLoadSettingsFailed = 500;
 

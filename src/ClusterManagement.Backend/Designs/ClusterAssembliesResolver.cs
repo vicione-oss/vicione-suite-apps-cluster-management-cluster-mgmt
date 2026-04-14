@@ -56,7 +56,6 @@ internal static class ClusterAssembliesResolver
             : packages;
     }
 
-
     private static Package GetPackageFromDirectory(string packagesDirectory, string name, string version, IFileSystem fileSystem)
     {
         if (string.IsNullOrEmpty(name))

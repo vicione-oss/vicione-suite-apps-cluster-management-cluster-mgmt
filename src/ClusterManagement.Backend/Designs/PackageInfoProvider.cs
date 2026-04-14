@@ -59,9 +59,7 @@ public class PackageInfoProvider(IClusterDependencyStore clusterDependencyStore,
             {
                 Name = package.Key.Name,
                 InstalledVersion = package.Key.Version,
-                Error = package.Value.Error is not null
-                ? new ErrorInfo(package.Value.Error.HResult, package.Value.Error.Message)
-                : null,
+                Error = package.Value.Error,
             });
 
         // Loading the packages is done async in a background service - it might not be finished yet
