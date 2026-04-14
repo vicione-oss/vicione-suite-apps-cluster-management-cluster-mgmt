@@ -59,6 +59,7 @@
 - Transfer all involved DataPort nodes to external communication
 - Design loader continues loading when individual packages fail to download
 - Cluster editor and packages settings now wait for backend resources to finish loading before opening
+- Can now uninstall packages that failed to load
 
 ## 1.4.1 - 2026-02-16
 
