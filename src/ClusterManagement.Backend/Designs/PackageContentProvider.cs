@@ -66,13 +66,13 @@ internal class PackageContentProvider(
 
             try
             {
-                var designs = _packagesLoader.Load(directory);
+                var loadResult = _packagesLoader.Load(directory);
                 var rulesets = RulesetLoader.LoadRulesets(directory);
 
-                if (designs.Count == 0 && rulesets.Count == 0)
-                    throw new InvalidOperationException($"No valid designs or rulesets were found in the provided package '{dependency.Name}' version '{dependency.Version}'.");
+                if (!loadResult.ContainsViciOneContent && rulesets.Count == 0)
+                    throw new InvalidOperationException($"Package '{dependency.Name}' version '{dependency.Version}' does not contain any ViciOne content (FunctionBlocks, Poolings, Validators or Rulesets) and cannot be loaded.");
 
-                _packages[dependency] = new(designs, rulesets, hide);
+                _packages[dependency] = new(loadResult.Designs, rulesets, hide);
                 return true;
             }
             catch (Exception ex)
@@ -84,6 +84,11 @@ internal class PackageContentProvider(
 
         return false;
     }
+
+    private static bool IsPoolingValidatorOrConversion(Type t) =>
+        typeof(ViciOne.Core.Contracts.DataModel.IAggregatingPooling).IsAssignableFrom(t) ||
+        typeof(ViciOne.Core.Contracts.DataModel.IValidator).IsAssignableFrom(t) ||
+        typeof(ViciOne.Core.Contracts.DataModel.ITypeConversion).IsAssignableFrom(t);
 
     public void AddFailedPackage(ClusterDependency dependency, ErrorInfo error)
     {
@@ -112,7 +117,7 @@ internal class PackageContentProvider(
 
                 List<FunctionBlockDesign> functionBlockDesigns = [];
 
-                foreach (var type in types)
+                foreach (var type in types.Where(t => !IsPoolingValidatorOrConversion(t)))
                 {
                     var functionBlockDesignInfo = RuntimeFunctionBlockAssemblyAnalyzer.GetFunctionBlockDesign(type);
                     var coreDesign = FunctionBlockDesignGenerator.GenerateFunctionBlockDesign(functionBlockDesignInfo, poolingFactory);
@@ -120,8 +125,9 @@ internal class PackageContentProvider(
                     functionBlockDesigns.Add(coreDesign);
                 }
 
-                if (functionBlockDesigns.Count == 0 && rulesets.Count == 0)
-                    throw new InvalidOperationException($"No valid designs or rulesets were found in the provided package '{dependency.Name}' version '{dependency.Version}'.");
+                var containsViciOneContent = functionBlockDesigns.Count > 0 || types.Any(IsPoolingValidatorOrConversion);
+                if (!containsViciOneContent && rulesets.Count == 0)
+                    throw new InvalidOperationException($"Package '{dependency.Name}' version '{dependency.Version}' does not contain any ViciOne content (FunctionBlocks, Poolings, Validators or Rulesets) and cannot be loaded.");
 
                 _packages[dependency] = new(
                     functionBlockDesigns.ToDictionary(d => d.Id),
@@ -133,7 +139,7 @@ internal class PackageContentProvider(
             catch (Exception ex)
             {
                 logger.LogError(ex, "Failed to load package '{Name}' version '{Version}' from types", dependency.Name, dependency.Version);
-                
+
                 _packages[dependency] = new PackageContent(new Dictionary<Guid, FunctionBlockDesign>(), new Dictionary<string, Ruleset>(), true) { Error = new ErrorInfo(ex.HResult, ex.Message) };
             }
         }
