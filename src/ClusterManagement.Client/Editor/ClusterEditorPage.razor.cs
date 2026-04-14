@@ -4,7 +4,6 @@ using ClusterManagement.Client.Editor.Wizards.Services;
 using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Internal.Extensions;
 using ClusterManagement.Internal.Requests;
-using ClusterManagement.Public.Events;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Routing;
@@ -72,7 +71,6 @@ public sealed partial class ClusterEditorPage
         }
 
         LoadService.ClusterLoaded -= LoadService_ClusterLoaded;
-        SaveService.ClusterChanged -= SaveService_ClusterChanged;
         SaveService.ClusterSynchronized -= SaveService_ClusterSynchronized;
 
         ClusterEditorManagement.ExportRequested -= Editor_ExportRequested;
@@ -113,14 +111,10 @@ public sealed partial class ClusterEditorPage
         // Wait for backend resources before enabling the editor
         await ResourceDownloadState.WaitForCompletion(_tokenSource.Token);
 
-        _subscriptionHandles.Add(Mediator.Register<ClusterChanged>(SaveService));
-        _subscriptionHandles.Add(Mediator.Register<CommitClusterChangeFailed>(SaveService));
-
         // connect editor events to our services
         LoadService.ClusterLoaded += LoadService_ClusterLoaded;
 
         // will only be triggered for save executed by ourselves
-        SaveService.ClusterChanged += SaveService_ClusterChanged;
         SaveService.ClusterSynchronized += SaveService_ClusterSynchronized;
 
         ClusterEditorManagement.ExportRequested += Editor_ExportRequested;
@@ -139,12 +133,14 @@ public sealed partial class ClusterEditorPage
     private async Task Editor_ImportRequested()
         => await WizardDialogService.OpenDialog<ImportWizardService>(_builder);
 
-    private async void SaveService_ClusterChanged(object? sender, ClusterChanged change)
-    {
-        Logger.LogInformation("{Name} {Action} received. triggered load latest version", nameof(SaveService_ClusterChanged), change.Action);
+    // TODO: we need a better way to handle external changes. Currently we just reload the latest version on any change, but this can lead to data loss if there are unsaved changes.
+    // We should at least show a confirmation dialog if there are unsaved changes and only reload if the user confirms.
+    //private async void SaveService_ClusterChanged(object? sender, ClusterChanged change)
+    //{
+    //    Logger.LogInformation("{Name} {Action} received. triggered load latest version", nameof(SaveService_ClusterChanged), change.Action);
 
-        await LoadService.TryLoadLatestVersion();
-    }
+    //    await LoadService.TryLoadLatestVersion();
+    //}
 
     private void SaveService_ClusterSynchronized() => _hasUnsavedChanges = false;
 

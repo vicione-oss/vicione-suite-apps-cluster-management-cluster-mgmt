@@ -1,18 +1,34 @@
 ﻿using System.Diagnostics;
+using ClusterManagement.Client.Editor.Models;
 using ClusterManagement.Public;
 using ClusterManagement.Public.Commands;
+using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
 using Microsoft.Extensions.Logging;
+using Sdk.Client.ControlPanels.Services;
 using Sdk.Client.Infrastructure;
 using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Client.Services;
 
-internal sealed class ClusterService(IUiMediator mediator,
-    ILogger<ClusterService> logger) : IClusterService
+internal sealed class ClusterService :
+    CompletionSourceHandlerBase<IClusterServiceResult>,
+    IClusterService,
+    IEventConsumer<ClusterChanged>,
+    IEventConsumer<CommitClusterChangeFailed>
 {
-    private readonly IUiMediator _mediator = mediator;
-    private readonly ILogger<ClusterService> _logger = logger;
+    private readonly ILogger<ClusterService> _logger;
+
+    public event Func<ClusterChanged, CancellationToken, Task>? ClusterChanged;
+
+    public event Func<CommitClusterChangeFailed, CancellationToken, Task>? CommitClusterChangeFailed;
+
+    public ClusterService(IUiMediator mediator, ILogger<ClusterService> logger) : base(mediator)
+    {
+        Register<ClusterChanged>();
+        Register<CommitClusterChangeFailed>();
+        _logger = logger;
+    }
 
     public async Task<List<Version>> QueryVersions(Guid clusterId, CancellationToken cancellationToken = default)
         => [.. (await QueryClusterInfos(clusterId, cancellationToken)).Select(k => k.Version)];
@@ -33,7 +49,7 @@ internal sealed class ClusterService(IUiMediator mediator,
         {
             ClusterId = clusterId
         };
-        var response = await _mediator.Request<GetClusterInfosRequest, GetClusterInfosResponse>(query, cancellationToken);
+        var response = await Mediator.Request<GetClusterInfosRequest, GetClusterInfosResponse>(query, cancellationToken);
 
         _logger.LogDebug("Result mediator query {Name} contains {Count} items",
             nameof(QueryClusterInfos),
@@ -48,7 +64,7 @@ internal sealed class ClusterService(IUiMediator mediator,
             nameof(Query),
             clusterId);
 
-        var response = await _mediator
+        var response = await Mediator
             .Request<GetClusterRequest, GetClusterResponse>(new GetClusterRequest(clusterId, version), cancellationToken);
 
         if (response.RequestError != null)
@@ -65,7 +81,7 @@ internal sealed class ClusterService(IUiMediator mediator,
         return result;
     }
 
-    public async Task<Guid> CommitChange(Cluster cluster, CommitClusterOptions? options, CancellationToken cancellationToken = default)
+    public async Task<IClusterServiceResult> CommitChange(Cluster cluster, CommitClusterOptions? options, CancellationToken cancellationToken = default)
     {
         var stopwatch = new Stopwatch();
         _logger.LogDebug("Publishing {Name} width id {Id}, version {Version}",
@@ -80,17 +96,52 @@ internal sealed class ClusterService(IUiMediator mediator,
 
         stopwatch.Restart();
         var command = new CommitClusterChange(compressedCluster, new CommitClusterMetaInfo(cluster), options);
-        await _mediator.Send(command, cancellationToken);
+        await Mediator.Send(command, cancellationToken);
         stopwatch.Stop();
 
         _logger.LogInformation("Sending {Command} command took {Elapsed}", nameof(CommitClusterChange), stopwatch.Elapsed);
 
-        return command.CorrelationId;
+        return await SendAndWaitForCompletion(command, cancellationToken);
     }
 
-    public Task Remove(Guid clusterId, Version version, CancellationToken cancellationToken = default)
+    public async Task<IClusterServiceResult> Remove(Guid clusterId, Version version, CancellationToken cancellationToken = default)
     {
         var command = new RemoveCluster(clusterId, version);
-        return _mediator.Send(command, cancellationToken);
+
+        return await SendAndWaitForCompletion(command, cancellationToken);
+    }
+
+    protected override IClusterServiceResult CreateSuccessResult()
+        => new ClusterServiceSuccessResult();
+
+    protected override IClusterServiceResult CreateErrorResult(string errorMessage, int? errorCode = null)
+        => new ClusterServiceErrorResult(errorMessage, errorCode);
+
+    public async Task Consume(ClientContext<ClusterChanged> context, CancellationToken cancellationToken)
+    {
+        if (CompleteWithSuccess(context.Message.CorrelationId))
+        {
+            await NotifyClusterChanged(context.Message, cancellationToken);
+        }
+    }
+
+    public async Task Consume(ClientContext<CommitClusterChangeFailed> context, CancellationToken cancellationToken)
+    {
+        if (CompleteWithError(context.Message.CorrelationId, context.Message.Error))
+        {
+            await NotifyCommitClusterChangeFailed(context.Message, cancellationToken);
+        }
+    }
+
+    private async Task NotifyClusterChanged(ClusterChanged change, CancellationToken cancellationToken)
+    {
+        if (ClusterChanged is not null)
+            await ClusterChanged.Invoke(change, cancellationToken);
+    }
+
+    private async Task NotifyCommitClusterChangeFailed(CommitClusterChangeFailed change, CancellationToken cancellationToken)
+    {
+        if (CommitClusterChangeFailed is not null)
+            await CommitClusterChangeFailed.Invoke(change, cancellationToken);
     }
 }

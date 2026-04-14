@@ -172,7 +172,7 @@ public class DesignLoaderFacts
             // Assert
             _packageContentProvider.Received(1).AddFailedPackage(
                 dep,
-                Arg.Is<ErrorInfo>(e => e.Message.Contains("can't be found on disk")));
+                Arg.Is<ErrorInfo>(e => e.Message!.Contains("can't be found on disk")));
         }
 
         [Fact]
@@ -187,7 +187,7 @@ public class DesignLoaderFacts
 
             _repository.DownloadAndExtract(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
                 .Returns(ci => new HttpLoaderResult($"source/{ci.ArgAt<string>(0)}", $"target/{ci.ArgAt<string>(0)}")
-                    { Error = new InvalidOperationException("fail") });
+                { Error = new InvalidOperationException("fail") });
 
             using var service = _services.GetRequiredService<DesignLoader>();
 
@@ -219,7 +219,7 @@ public class DesignLoaderFacts
             await service.Task;
 
             // Assert — verify error was logged for broken cluster state
-            _logger.ReceivedWithAnyArgs().LogError(default, default(Exception), default, default);
+            _logger.ReceivedWithAnyArgs().LogError(default, default, null, []);
         }
 
         [Fact]

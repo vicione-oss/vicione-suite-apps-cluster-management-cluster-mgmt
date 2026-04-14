@@ -14,17 +14,17 @@ namespace ClusterManagement.Client.Tests.Editor.Services;
 
 public class SaveClusterServiceTests
 {
-    private readonly IClusterService _clusterServiceMock = Substitute.For<IClusterService>();
-    private readonly IDependencyResolver _dependencyResolverMock = Substitute.For<IDependencyResolver>();
-    private readonly IDesignProvider _designProviderMock = Substitute.For<IDesignProvider>();
+    private readonly IClusterService _clusterService = Substitute.For<IClusterService>();
+    private readonly IDependencyResolver _dependencyResolver = Substitute.For<IDependencyResolver>();
+    private readonly IDesignProvider _designProvider = Substitute.For<IDesignProvider>();
 
     private SaveClusterService SetupService(BunitContext ctx)
     {
         ctx.AddAuthorization();
         ctx.SetupSuiteServices();
 
-        ctx.Services.AddSingleton(_clusterServiceMock);
-        ctx.Services.AddSingleton(_designProviderMock);
+        ctx.Services.AddSingleton(_clusterService);
+        ctx.Services.AddSingleton(_designProvider);
         ctx.Services.AddSingleton<SaveClusterService>();
         return ctx.Services.GetRequiredService<SaveClusterService>();
     }
@@ -33,7 +33,7 @@ public class SaveClusterServiceTests
     public void Save_request_by_editor_should_set_builder_and_display_dialog()
     {
         // Arrange
-        using var builder = new ClusterBuilder(_dependencyResolverMock);
+        using var builder = new ClusterBuilder(_dependencyResolver);
 
         using var ctx = new BunitContext();
         var service = SetupService(ctx);
@@ -50,7 +50,7 @@ public class SaveClusterServiceTests
     public async Task Save_should_store_current_cluster()
     {
         // Arrange
-        using var builder = new ClusterBuilder(_dependencyResolverMock);
+        using var builder = new ClusterBuilder(_dependencyResolver);
 
         using var ctx = new BunitContext();
         var service = SetupService(ctx);
@@ -65,14 +65,14 @@ public class SaveClusterServiceTests
         };
 
         // Assert
-        _ = _clusterServiceMock.Received().CommitChange(builder.Cluster, publishOptions, Arg.Any<CancellationToken>());
+        _ = _clusterService.Received().CommitChange(builder.Cluster, publishOptions, Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task Cluster_changed_event_should_hide_dialog()
     {
         // Arrange
-        using var builder = new ClusterBuilder(_dependencyResolverMock);
+        using var builder = new ClusterBuilder(_dependencyResolver);
 
         using var ctx = new BunitContext();
         var service = SetupService(ctx);
@@ -80,37 +80,20 @@ public class SaveClusterServiceTests
         await service.Save();
         service.DisplayDialog = true;
 
-        var context = ClientContextFactory.Create(new ClusterChanged(Guid.NewGuid(), builder.Cluster.Id, CrudAction.Created, new Version()));
+        var change = new ClusterChanged(Guid.NewGuid(), builder.Cluster.Id, CrudAction.Created, new Version());
 
         // Act
-        await service.Consume(context, CancellationToken.None);
+        _clusterService.ClusterChanged += Raise.Event<Func<ClusterChanged, CancellationToken, Task>>(change, Xunit.TestContext.Current.CancellationToken);
 
         // Assert
         service.DisplayDialog.Should().BeFalse();
-    }
-
-    [Fact]
-    public void Cluster_changed_event_not_correlated_should_be_ignored()
-    {
-        // Arrange
-        using var ctx = new BunitContext();
-        var service = SetupService(ctx);
-        service.DisplayDialog = true;
-
-        var context = ClientContextFactory.Create(new ClusterChanged(Guid.NewGuid(), Guid.NewGuid(), CrudAction.Created, new Version()));
-
-        // Act
-        service.Consume(context, CancellationToken.None);
-
-        // Assert
-        service.DisplayDialog.Should().BeTrue();
     }
 
     [Fact]
     public async Task Cluster_error_event_should_display_dialog()
     {
         // Arrange
-        using var builder = new ClusterBuilder(_dependencyResolverMock);
+        using var builder = new ClusterBuilder(_dependencyResolver);
         var clusterId = Guid.NewGuid();
         var clusterVersion = new Version(0, 1, 1);
         var errorInfo = CreateErrorInfo(ClusterError.PublishFailed, clusterId, clusterVersion);
@@ -120,31 +103,13 @@ public class SaveClusterServiceTests
         await service.SaveRequested(builder);
         await service.Save();
 
-        var context = ClientContextFactory.Create(new CommitClusterChangeFailed(clusterId, clusterId, clusterVersion, errorInfo));
+        var change = new CommitClusterChangeFailed(clusterId, clusterId, clusterVersion, errorInfo);
 
         // Act
-        await service.Consume(context, CancellationToken.None);
+        _clusterService.CommitClusterChangeFailed += Raise.Event<Func<CommitClusterChangeFailed, CancellationToken, Task>>(change, Xunit.TestContext.Current.CancellationToken);
 
         // Assert
         service.DisplayDialog.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task Cluster_error_event_not_correlated_should_be_ignored()
-    {
-        // Arrange
-        using var ctx = new BunitContext();
-        var service = SetupService(ctx);
-        var clusterId = Guid.NewGuid();
-        var clusterVersion = new Version(0, 1, 1);
-        var errorInfo = CreateErrorInfo(ClusterError.PublishFailed, clusterId, clusterVersion);
-        var context = ClientContextFactory.Create(new CommitClusterChangeFailed(clusterId, clusterId, clusterVersion, errorInfo));
-
-        // Act
-        await service.Consume(context, CancellationToken.None);
-
-        // Assert
-        service.DisplayDialog.Should().BeFalse();
     }
 
     private static ErrorInfo CreateErrorInfo(int code, Guid? clusterId, Version? clusterVersion = null)

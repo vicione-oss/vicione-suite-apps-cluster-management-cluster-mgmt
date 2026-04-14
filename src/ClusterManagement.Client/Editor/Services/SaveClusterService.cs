@@ -3,16 +3,12 @@ using ClusterManagement.Client.Services;
 using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Events;
 using Microsoft.Extensions.Logging;
-using Sdk.Client.Infrastructure;
 using Sdk.Client.Services;
 using ViciOne.Cluster.Builder.Abstractions;
 
 namespace ClusterManagement.Client.Editor.Services;
 
-internal sealed class SaveClusterService : DialogServiceBase,
-    IEventConsumer<ClusterChanged>,
-    IEventConsumer<CommitClusterChangeFailed>,
-    IDisposable
+internal sealed class SaveClusterService : DialogServiceBase, IDisposable
 {
     private readonly CancellationTokenSource _tokenSource = new();
 
@@ -25,38 +21,42 @@ internal sealed class SaveClusterService : DialogServiceBase,
     private IClusterBuilder? _builder;
     private string? _name;
     private string? _description;
-    private Guid? _currentCorrelationId;
+
+    public event Action? ClusterSynchronized;
 
     public bool IsWorking
     {
         get => _isWorking;
         private set => SetField(ref _isWorking, value);
     }
+
     public SaveConfirmationInfo? ConfirmationMessage
     {
         get => _confirmationMessage;
         set => SetField(ref _confirmationMessage, value);
     }
+
     public IClusterBuilder? Builder
     {
         get => _builder;
         private set => SetField(ref _builder, value);
     }
+
     public string? Name
     {
         get => _name;
         set => SetField(ref _name, value);
     }
+
     public string? Description
     {
         get => _description;
         set => SetField(ref _description, value);
     }
+
     public ClusterStoreOptions StoreOptions { get; } = new();
 
-    public event EventHandler<ClusterChanged>? ClusterChanged;
 
-    public event Action? ClusterSynchronized;
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "this notation is clearer")]
     public SaveClusterService(IClusterService clusterService, ILayoutService layoutService, ILogger<SaveClusterService> logger)
@@ -64,6 +64,24 @@ internal sealed class SaveClusterService : DialogServiceBase,
         _clusterService = clusterService;
         _layoutService = layoutService;
         _logger = logger;
+        _clusterService.ClusterChanged += ClusterService_ClusterChanged;
+        _clusterService.CommitClusterChangeFailed += ClusterService_CommitClusterChangeFailed;
+    }
+
+    public void Dispose()
+    {
+        _clusterService.ClusterChanged -= ClusterService_ClusterChanged;
+        _clusterService.CommitClusterChangeFailed -= ClusterService_CommitClusterChangeFailed;
+
+        try
+        {
+            _tokenSource.Cancel();
+            _tokenSource.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Ignore: CancellationTokenSource was already disposed.
+        }
     }
 
     /// <summary>
@@ -114,7 +132,9 @@ internal sealed class SaveClusterService : DialogServiceBase,
             };
 
             // cluster will be sent to backend and a add notification gets triggered
-            _currentCorrelationId = await _clusterService.CommitChange(Builder.Cluster, publishOptions, _tokenSource.Token).ConfigureAwait(false);
+            var result = await _clusterService.CommitChange(Builder.Cluster, publishOptions, _tokenSource.Token).ConfigureAwait(false);
+            if (result is ClusterServiceErrorResult errorResult)
+                throw new InvalidOperationException($"Failed to save cluster: {errorResult.ErrorMessage} (Err:{errorResult.ErrorCode})");
         }
         catch (Exception ex)
         {
@@ -129,47 +149,40 @@ internal sealed class SaveClusterService : DialogServiceBase,
         }
     }
 
-    public Task Consume(ClientContext<ClusterChanged> context, CancellationToken cancellationToken)
+    private Task ClusterService_ClusterChanged(ClusterChanged change, CancellationToken cancellationToken)
     {
-        if (!IsCurrentCluster(context.Message.ClusterId))
+        if (!IsCurrentCluster(change.ClusterId))
             return Task.CompletedTask;
 
         _logger.LogInformation("Handle {Event} version={Version} clusterId={ClusterId}",
-            nameof(Public.Events.ClusterChanged),
-            context.Message.Version,
-            context.Message.ClusterId);
+            nameof(ClusterChanged),
+            change.Version,
+            change.ClusterId);
 
         SetIsWorking(false);
         DisplayDialog = false;
 
-        if (context.CorrelationId == _currentCorrelationId)
+        if (change.Version is not null)
         {
-            if (context.Message.Version is not null)
-            {
-                Builder?.Cluster.Version = context.Message.Version;
-                Builder?.Cluster.VersionCreated = DateTime.UtcNow;
-            }
-            ClusterSynchronized?.Invoke();
+            Builder?.Cluster.Version = change.Version;
+            Builder?.Cluster.VersionCreated = DateTime.UtcNow;
         }
-        else
-        {
-            ClusterChanged?.Invoke(this, context.Message);
-        }
+        ClusterSynchronized?.Invoke();
 
         return Task.CompletedTask;
     }
 
-    public Task Consume(ClientContext<CommitClusterChangeFailed> context, CancellationToken cancellationToken)
+    private Task ClusterService_CommitClusterChangeFailed(CommitClusterChangeFailed change, CancellationToken cancellationToken)
     {
-        if (!IsCurrentCluster(context.Message.ClusterId))
+        if (!IsCurrentCluster(change.ClusterId))
             return Task.CompletedTask;
 
-        _logger.LogInformation("Error {Event} clusterId={ClusterId}", nameof(ClusterError), context.Message.ClusterId);
+        _logger.LogInformation("Error {Event} clusterId={ClusterId}", nameof(ClusterError), change.ClusterId);
 
         ConfirmationMessage = new SaveConfirmationInfo
         {
             IsError = true,
-            Message = $"{context.Message.Error.Message} (Err:{context.Message.Error.ErrorCode})"
+            Message = $"{change.Error.Message} (Err:{change.Error.ErrorCode})"
         };
 
         SetIsWorking(false);
@@ -183,17 +196,4 @@ internal sealed class SaveClusterService : DialogServiceBase,
 
     private void SetIsWorking(bool isWorking)
         => _layoutService.IsLoadingOverlayVisible = IsWorking = isWorking;
-
-    public void Dispose()
-    {
-        try
-        {
-            _tokenSource.Cancel();
-            _tokenSource.Dispose();
-        }
-        catch (ObjectDisposedException)
-        {
-            // Ignore: CancellationTokenSource was already disposed.
-        }
-    }
 }
