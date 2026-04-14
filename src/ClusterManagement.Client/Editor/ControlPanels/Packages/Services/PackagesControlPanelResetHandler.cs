@@ -1,4 +1,4 @@
-﻿using ClusterManagement.Client.Editor.Services;
+﻿using ClusterManagement.Public.Services;
 using Sdk.Client.ControlPanels.Services;
 
 namespace ClusterManagement.Client.Editor.ControlPanels.Packages.Services;

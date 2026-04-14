@@ -1,8 +1,9 @@
 ﻿using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
+using ClusterManagement.Public.Services;
 using Sdk.Client.Infrastructure;
 
-namespace ClusterManagement.Client.Editor.Services;
+namespace ClusterManagement.Client.Services;
 
 internal sealed class ResourceDownloadStateService : IResourceDownloadStateService, IEventConsumer<ResourcesDownloaded>, IDisposable
 {

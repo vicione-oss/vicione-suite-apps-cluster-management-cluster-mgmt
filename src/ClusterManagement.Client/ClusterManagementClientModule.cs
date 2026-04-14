@@ -5,8 +5,10 @@ using ClusterManagement.Client.Editor.Extensions;
 using ClusterManagement.Client.IoddManagement.Extensions;
 using ClusterManagement.Client.Localization;
 using ClusterManagement.Client.Management.Extensions;
+using ClusterManagement.Client.Services;
 using ClusterManagement.Internal;
 using ClusterManagement.Public;
+using ClusterManagement.Public.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Sdk.Client.Modules;
@@ -22,8 +24,9 @@ public sealed class ClusterManagementClientModule : ClientModule
     public override Action<IServiceCollection> Configure => services =>
     {
         services.AddLocalization<ClusterManagementClientModule, ClusterManagementClientLocalizer>();
-        services.AddNavTiles<ClusterManagementClientModule>();        
+        services.AddNavTiles<ClusterManagementClientModule>();
         services.AddScoped<IPackageService, PackageService>();
+        services.AddScoped<IResourceDownloadStateService, ResourceDownloadStateService>();
 
         services
             .AddClusterManagement()
