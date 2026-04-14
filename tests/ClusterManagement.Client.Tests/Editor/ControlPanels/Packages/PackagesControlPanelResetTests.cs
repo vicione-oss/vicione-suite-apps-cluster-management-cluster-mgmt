@@ -2,7 +2,7 @@
 using ClusterManagement.Client.Editor.ControlPanels.Packages;
 using ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
 using ClusterManagement.Client.Editor.Extensions;
-using ClusterManagement.Client.Editor.Services;
+using ClusterManagement.Public.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Client.Services;
 using Sdk.Testing.Client;

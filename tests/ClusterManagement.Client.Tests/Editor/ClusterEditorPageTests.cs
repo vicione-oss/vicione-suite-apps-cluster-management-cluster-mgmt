@@ -4,6 +4,7 @@ using ClusterManagement.Client.Editor;
 using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Public.Designs;
+using ClusterManagement.Public.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Testing.Client;
 using ViciOne.Ui.ClusterEditor.Extensions;

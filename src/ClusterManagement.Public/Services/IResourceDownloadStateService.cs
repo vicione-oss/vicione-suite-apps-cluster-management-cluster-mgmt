@@ -1,6 +1,6 @@
-﻿namespace ClusterManagement.Client.Editor.Services;
+﻿namespace ClusterManagement.Public.Services;
 
-internal interface IResourceDownloadStateService
+public interface IResourceDownloadStateService
 {
     bool IsCompleted { get; }
 

@@ -1,7 +1,7 @@
 ﻿using ClusterManagement.Client.Editor.ControlPanels.Packages;
 using ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
-using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Internal.Contracts;
+using ClusterManagement.Public.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Client.ControlPanels.Services;
 using ViciOne.Cluster.Model;

@@ -6,6 +6,7 @@ using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Client.Editor.Wizards.Services;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Internal.Contracts;
+using ClusterManagement.Public.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Client.ControlPanels.Extensions;
 using ViciOne.Ui.Blazor.Components.Grid.Extensions;
@@ -25,7 +26,6 @@ internal static class IServiceCollectionExtensions
         services.AddScoped<ExportClusterService>();
         services.AddScoped<SaveClusterService>();
         services.AddScoped<LoadFunctionBlocksService>();
-        services.AddScoped<IResourceDownloadStateService, ResourceDownloadStateService>();
 
         // wizards - will be handled inside editor one day
         services.AddScoped<ClusterWizardDialogService>();
