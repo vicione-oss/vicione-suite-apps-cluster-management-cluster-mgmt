@@ -49,7 +49,7 @@ internal class PackageLoader
             GetAssemblyLoadContext($"{ModuleIdResolver.ResolveId<ClusterManagementBackendModule>()}{ModuleIdResolver.ModuleSuffixBackend}"),
             fileSystem);
 
-    internal IReadOnlyDictionary<Guid, FunctionBlockDesign> Load(string directory)
+    internal PackageLoadResult Load(string directory)
     {
         var depsFile = _fileSystem.Directory.GetFiles(directory, "*.deps.json", SearchOption.AllDirectories).FirstOrDefault()
             ?? throw new InvalidOperationException($"Could not find main component in directory '{directory}'.");
@@ -66,8 +66,16 @@ internal class PackageLoader
             .GenerateFunctionBlockDesigns(functionBlockDesignInfos, poolingFactory)
             .ToDictionary(d => d.Id);
 
-        return coreDesigns;
+        var containsViciOneContent = coreDesigns.Count > 0 || assemblies.Any(a =>
+            a.GetExportedTypes().Any(t => !t.IsAbstract && IsPoolingValidatorOrConversion(t)));
+
+        return new(coreDesigns, containsViciOneContent);
     }
+
+    private static bool IsPoolingValidatorOrConversion(Type t) =>
+        typeof(ViciOne.Core.Contracts.DataModel.IAggregatingPooling).IsAssignableFrom(t) ||
+        typeof(ViciOne.Core.Contracts.DataModel.IValidator).IsAssignableFrom(t) ||
+        typeof(ViciOne.Core.Contracts.DataModel.ITypeConversion).IsAssignableFrom(t);
 
     private static AssemblyLoadContext GetAssemblyLoadContext(string name)
         => AssemblyLoadContext.All.FirstOrDefault(a => a.Name?.Equals(name, StringComparison.OrdinalIgnoreCase) is true) ?? throw new InvalidOperationException($"AssemblyLoadContext for {name} not found.");
