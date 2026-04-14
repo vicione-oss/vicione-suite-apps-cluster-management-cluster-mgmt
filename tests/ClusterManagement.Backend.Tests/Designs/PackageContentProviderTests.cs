@@ -6,7 +6,9 @@ using ClusterManagement.Backend.Designs.Extensions;
 using ClusterManagement.Tests.Tools;
 using ClusterManagement.Tests.Tools.Factories;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Sdk.Backend.Modules;
+using Sdk.Messaging;
 using ViciOne.Cluster.Model;
 using ViciOne.TreeBuilder.Rules;
 
@@ -35,6 +37,7 @@ public class PackageContentProviderTests
             .AddSingleton<IFileSystem>(_fileSystem)
             .AddSingleton(_dependencyStore)
             .AddSingleton(_workspaceProvider)
+            .AddSingleton(Substitute.For<ILogger<PackageContentProvider>>())
             .BuildServiceProvider();
     }
 
@@ -384,6 +387,123 @@ public class PackageContentProviderTests
 
             var contents = provider.GetPackageContents();
             contents.Should().HaveCount(1);
+        }
+    }
+
+    public sealed class AddFailedPackageTests : PackageContentProviderTests
+    {
+        [Fact]
+        public void Should_add_failed_package_with_error()
+        {
+            // Arrange
+            var provider = _services.GetRequiredService<PackageContentProvider>();
+            var dependency = new ClusterDependency { Name = "ViciOne.Broken", Version = "1.0.0" };
+            var error = new ErrorInfo(0, "Download failed");
+
+            // Act
+            provider.AddFailedPackage(dependency, error);
+
+            // Assert
+            var content = provider.GetPackageContent(dependency);
+            content.Error.Should().BeSameAs(error);
+            content.Designs.Should().BeEmpty();
+            content.Rulesets.Should().BeEmpty();
+            content.Hide.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Should_not_overwrite_existing_package_when_adding_failed()
+        {
+            // Arrange
+            var provider = _services.GetRequiredService<PackageContentProvider>();
+            var dependency = new ClusterDependency { Name = "ViciOne.Broken", Version = "1.0.0" };
+            var firstError = new ErrorInfo(0, "First error");
+            var secondError = new ErrorInfo(0, "Second error");
+
+            provider.AddFailedPackage(dependency, firstError);
+
+            // Act
+            provider.AddFailedPackage(dependency, secondError);
+
+            // Assert
+            var content = provider.GetPackageContent(dependency);
+            content.Error.Should().BeSameAs(firstError, "TryAdd should not overwrite existing entry");
+        }
+
+        [Fact]
+        public void Should_be_retrievable_via_GetPackageContents()
+        {
+            // Arrange
+            var provider = _services.GetRequiredService<PackageContentProvider>();
+            var dependency = new ClusterDependency { Name = "ViciOne.Missing", Version = "2.0.0" };
+            var error = new ErrorInfo(0, "Not found on disk");
+
+            // Act
+            provider.AddFailedPackage(dependency, error);
+
+            // Assert
+            var contents = provider.GetPackageContents();
+            contents.Should().ContainKey(dependency);
+            contents[dependency].Error.Should().BeSameAs(error);
+        }
+
+        [Fact]
+        public async Task Should_not_overwrite_successfully_loaded_package()
+        {
+            // Arrange
+            var provider = _services.GetRequiredService<PackageContentProvider>();
+
+            SetupClusterManagementAssemblyContext();
+
+            await provider.TryAddPackage(_constantDependency, [_systemDataPortType], [], false, TestContext.Current.CancellationToken);
+
+            // Act
+            provider.AddFailedPackage(_constantDependency, new ErrorInfo(0, "Late failure"));
+
+            // Assert
+            var content = provider.GetPackageContent(_constantDependency);
+            content.Error.Should().BeNull("the successful package should not be replaced");
+            content.Designs.Should().NotBeEmpty();
+        }
+
+        [Fact]
+        public async Task Should_prevent_TryAddPackage_from_overwriting_failed_package()
+        {
+            // Arrange
+            var provider = _services.GetRequiredService<PackageContentProvider>();
+            var dependency = new ClusterDependency { Name = "ViciOne.FailedFirst", Version = "1.0.0" };
+            var error = new ErrorInfo(0, "Download failed");
+
+            SetupClusterManagementAssemblyContext();
+
+            provider.AddFailedPackage(dependency, error);
+
+            // Act
+            var result = await provider.TryAddPackage(dependency, [_systemDataPortType], [], false, TestContext.Current.CancellationToken);
+
+            // Assert
+            result.Should().BeFalse("TryAddPackage should not overwrite a failed package entry");
+            var content = provider.GetPackageContent(dependency);
+            content.Error.Should().BeSameAs(error);
+        }
+
+        [Fact]
+        public void Should_handle_concurrent_AddFailedPackage_calls()
+        {
+            // Arrange
+            var provider = _services.GetRequiredService<PackageContentProvider>();
+            var dependencies = Enumerable.Range(0, 20)
+                .Select(i => new ClusterDependency { Name = $"ViciOne.Pkg{i}", Version = "1.0.0" })
+                .ToList();
+
+            // Act
+            Parallel.ForEach(dependencies, dep =>
+                provider.AddFailedPackage(dep, new ErrorInfo(0, $"Failed: {dep.Name}")));
+
+            // Assert
+            var contents = provider.GetPackageContents();
+            contents.Should().HaveCount(20);
+            contents.Values.Should().OnlyContain(c => c.Error != null);
         }
     }
 

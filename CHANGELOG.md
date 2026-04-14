@@ -52,6 +52,7 @@
 ### Fixed
 
 - Transfer all involved DataPort nodes to external communication
+- Design loader continues loading when individual packages fail to download
 
 ## 1.4.1 - 2026-02-16
 

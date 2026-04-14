@@ -1,4 +1,5 @@
-﻿using ViciOne.Cluster.Model;
+﻿using Sdk.Messaging;
+using ViciOne.Cluster.Model;
 using ViciOne.TreeBuilder.Rules;
 
 namespace ClusterManagement.Backend.Designs;
@@ -35,4 +36,10 @@ public interface IPackageContentProvider
     /// The default is <see langword="false"/>.
     /// </param>
     Task<bool> TryAddPackage(ClusterDependency dependency, IReadOnlyCollection<Type> types, IReadOnlyCollection<Ruleset> rulesets, bool hide = false, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Registers a package that failed to download or is missing from disk.
+    /// The error is stored in <see cref="PackageContent.Error"/> so consumers can detect the broken state.
+    /// </summary>
+    void AddFailedPackage(ClusterDependency dependency, ErrorInfo error);
 }
