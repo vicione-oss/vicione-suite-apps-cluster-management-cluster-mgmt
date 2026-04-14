@@ -76,7 +76,8 @@ public class MqttNetRpcClientFacts
             await mqttClient.Received(1).PublishAsync(
                 FluentArg.Assert<MqttApplicationMessage>(m =>
                 {
-                    m.UserProperties.Should().ContainSingle().Which.Should().BeEquivalentTo(new MqttUserProperty("Method", "greet"));
+                    m.UserProperties.Should().ContainSingle().Which.Should().BeEquivalentTo(
+                        new MqttUserProperty("Method", Encoding.UTF8.GetBytes("greet")));
                     Encoding.UTF8.GetString(m.Payload).Should().BeEquivalentTo("Moritz");
                     m.ContentType.Should().Be(MediaTypeNames.Text.Plain);
                     m.QualityOfServiceLevel.Should().Be(MqttQualityOfServiceLevel.ExactlyOnce);
@@ -120,7 +121,7 @@ public class MqttNetRpcClientFacts
                     .WithTopic("response")
                     .WithPayload("Hello Moritz.")
                     .WithContentType(MediaTypeNames.Text.Plain)
-                    .WithUserProperty("Status", "ok")
+                    .WithUserProperty("Status", Encoding.UTF8.GetBytes("ok"))
                     .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
                     .WithCorrelationData(publish.CorrelationData)));
 
@@ -141,8 +142,8 @@ public class MqttNetRpcClientFacts
                 .PublishAsync(Arg.Is<MqttApplicationMessage>(m => m.Topic == "request"), Arg.Any<CancellationToken>())).Do(x => mqttClient
                 .ReceiveApplicationMessage(x, (publish, receive) => receive
                     .WithTopic("response")
-                    .WithPayload("Hello Moritz.")
-                    .WithUserProperty("Status", "ok")
+                    .WithPayload("Hello Moritz.")                    
+                    .WithUserProperty("Status", Encoding.UTF8.GetBytes("ok"))
                     .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
                     .WithCorrelationData([])));
 
@@ -163,7 +164,7 @@ public class MqttNetRpcClientFacts
                 .ReceiveApplicationMessage(x, (publish, receive) => receive
                     .WithTopic("response")
                     .WithPayload("Hello Moritz.")
-                    .WithUserProperty("", "")
+                    .WithUserProperty("", Encoding.UTF8.GetBytes(""))
                     .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
                     .WithCorrelationData(publish.CorrelationData)));
 

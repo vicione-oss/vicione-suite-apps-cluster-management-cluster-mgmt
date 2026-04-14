@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Text;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Protocol;
@@ -34,7 +35,7 @@ internal sealed class MqttNetRpcClient(IOptions<MqttNetRpcClientOptions> options
             .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
             .WithCorrelationData(correlationData.ToByteArray())
             .WithTopic(requestTopic)
-            .WithUserProperty("Method", request.Method);
+            .WithUserProperty("Method", Encoding.UTF8.GetBytes(request.Method));
         if (request.Payload.HasValue)
         {
             requestMessageBuilder = requestMessageBuilder.WithPayload(request.Payload.Value)
