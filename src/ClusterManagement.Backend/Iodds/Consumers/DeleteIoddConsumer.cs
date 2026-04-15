@@ -7,7 +7,7 @@ using Sdk.Messaging;
 
 namespace ClusterManagement.Backend.Iodds.Consumers;
 
-public sealed class DeleteIoddConsumer(IIoddStore ioddStore, ILogger<DeleteIoddConsumer> logger) :
+public sealed partial class DeleteIoddConsumer(IIoddStore ioddStore, ILogger<DeleteIoddConsumer> logger) :
     IConsumer<DeleteIodd>
 {
     public async Task Consume(ConsumeContext<DeleteIodd> context)
@@ -27,7 +27,7 @@ public sealed class DeleteIoddConsumer(IIoddStore ioddStore, ILogger<DeleteIoddC
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting IODD {IoddId}", id);
+            LogError(logger, ex, id);
 
             var errorInfo = new ErrorInfo(IoddChanged.DeleteIoddError, ex.Message);
             var changeEvent = new IoddChanged(id, null, CrudAction.Deleted, errorInfo)
@@ -38,4 +38,7 @@ public sealed class DeleteIoddConsumer(IIoddStore ioddStore, ILogger<DeleteIoddC
             await context.Publish(changeEvent, context.CancellationToken);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error deleting IODD {IoddId}")]
+    private static partial void LogError(ILogger<DeleteIoddConsumer> logger, Exception exception, IoddId ioddId);
 }

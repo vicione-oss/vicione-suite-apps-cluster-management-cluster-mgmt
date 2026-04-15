@@ -208,7 +208,7 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to create IODD directory: {Directory}", _ioddDirectory);
+            logger.LogDirectoryCreationError(ex, _ioddDirectory);
             return;
         }
 

@@ -1,11 +1,11 @@
 ﻿using ClusterManagement.Client.Extensions;
 using ClusterManagement.Client.Management.Localization;
+using ClusterManagement.Client.Management.Logging;
 using ClusterManagement.Client.Management.Models;
 using ClusterManagement.Client.Management.Services;
 using ClusterManagement.Public.Events;
 using DevExpress.Blazor.Internal;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Logging;
 using Sdk.Client.Infrastructure;
 using Sdk.Messaging;
 using ViciOne.Ui.Blazor.Components.Button.Enums;
@@ -195,7 +195,7 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
         }
         catch (Exception e)
         {
-            Logger.LogError(e, nameof(DeployClusterVersion));
+            Logger.LogFailure(e, nameof(DeployClusterVersion));
         }
     }
 
@@ -207,7 +207,7 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
         }
         catch (Exception e)
         {
-            Logger.LogError(e, nameof(RemoveCluster));
+            Logger.LogFailure(e, nameof(RemoveCluster));
         }
     }
 
@@ -268,7 +268,7 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to reset saga state");
+            Logger.LogFailure(ex, nameof(ResetSagaStates));
             _sagaState = ex.Message;
         }
 
@@ -296,7 +296,7 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to get saga state");
+            Logger.LogFailure(ex, nameof(GetSagaState));
             _sagaState = ex.Message;
         }
 
@@ -316,7 +316,7 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Failed to download cluster {Name} version '{Version}'", model.DisplayName, model.Version);
+            Logger.LogDownloadClusterJsonFailure(e, model.DisplayName, model.Version);
         }
     }
 }

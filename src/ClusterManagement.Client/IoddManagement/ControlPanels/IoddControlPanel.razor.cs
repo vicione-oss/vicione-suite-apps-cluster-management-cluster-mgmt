@@ -219,7 +219,7 @@ public sealed partial class IoddControlPanel
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error showing details for device {VendorId}/{DeviceId}", item.VendorId, item.DeviceId);
+            LogError(Logger, ex, "showing details", item.VendorId, item.DeviceId);
         }
     }
 
@@ -271,7 +271,7 @@ public sealed partial class IoddControlPanel
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error downloading iodd for device {VendorId}/{DeviceId}", id.VendorId, id.DeviceId);
+                LogError(Logger, ex, "downloading iodd", id.VendorId, id.DeviceId);
                 break;
             }
         }
@@ -315,4 +315,7 @@ public sealed partial class IoddControlPanel
 
         return $"{_itemsQueryable.Count()} {elements} | {_itemsQueryable.Where(d => ItemSelection.Select(s => s.DeviceId).Contains(d.DeviceId)).Count()} {CommonVocabulary.Selected}";
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error {Action} for device {VendorId}/{DeviceId}")]
+    private static partial void LogError(ILogger<IoddControlPanel> logger, Exception exception, string action, int vendorId, int deviceId);
 }

@@ -10,7 +10,7 @@ namespace ClusterManagement.Backend.Consumers;
 /// after the consumer is finished. To send them independently we have to use
 /// the mediator. Otherwise the saga rans into concurrency issues!
 /// </summary>
-public sealed class AddClusterNodesConsumer(ISuiteMediator mediator, ILogger<AddClusterNodesConsumer> logger) :
+public sealed partial class AddClusterNodesConsumer(ISuiteMediator mediator, ILogger<AddClusterNodesConsumer> logger) :
     IConsumer<AddClusterNodesCommand>
 {
     //1. Add+Update Cluster nodes
@@ -20,17 +20,24 @@ public sealed class AddClusterNodesConsumer(ISuiteMediator mediator, ILogger<Add
         if (context.Message.NodesToCreate.Count <= 0)
             throw new InvalidOperationException("No nodes to be created!");
 
-        logger.LogInformation("Consuming {Command} - create nodes:{NodeIds} create apps:{AppIds}",
-            nameof(AddClusterNodesCommand),
-            string.Join(", ", context.Message.NodesToCreate.Keys),
-            string.Join(", ", context.Message.NodesToCreate.Values));
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            var nodeIds = string.Join(", ", context.Message.NodesToCreate.Keys);
+            var appIds = string.Join(", ", context.Message.NodesToCreate.Values);
+            LogConsumeCreatesNodesAndApps(
+                logger,
+                nameof(AddClusterNodesCommand),
+                nodeIds,
+                appIds);
+        }
 
         foreach (var (nodeId, applicationId) in context.Message.NodesToCreate)
         {
             //Talk to Kubernetes here!
             await Task.Delay(200, context.CancellationToken);
 
-            logger.LogInformation("Consuming {Command} - publishing {Event} for node:{NodeId}",
+            LogConsumePublishesEvent(
+                logger,
                 nameof(AddClusterNodesCommand),
                 nameof(ClusterNodeAddedEvent),
                 nodeId);
@@ -45,7 +52,8 @@ public sealed class AddClusterNodesConsumer(ISuiteMediator mediator, ILogger<Add
             {
                 await Task.Delay(200, context.CancellationToken);
 
-                logger.LogInformation("Consuming {Command} - publishing {Event} for application:{NodeId}",
+                LogConsumePublishesEvent(
+                    logger,
                     nameof(AddClusterNodesCommand),
                     nameof(ClusterApplicationStartedEvent),
                     nodeId);
@@ -57,4 +65,10 @@ public sealed class AddClusterNodesConsumer(ISuiteMediator mediator, ILogger<Add
             }
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Consuming {Command} - create nodes:{NodeIds} create apps:{AppIds}")]
+    private static partial void LogConsumeCreatesNodesAndApps(ILogger<AddClusterNodesConsumer> logger, string command, string nodeIds, string appIds);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Consuming {Command} - publishing {EventName} for node:{NodeId}")]
+    private static partial void LogConsumePublishesEvent(ILogger<AddClusterNodesConsumer> logger, string command, string eventName, Guid nodeId);
 }

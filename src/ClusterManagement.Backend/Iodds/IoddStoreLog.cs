@@ -24,4 +24,7 @@ internal static partial class IoddStoreLog
 
     [LoggerMessage(LogLevel.Warning, "Could not extract device '{VendorId}/{DeviceId}' from archive.")]
     public static partial void DeviceExtractionError(this ILogger<IoddStore> logger, int vendorId, int deviceId, Exception exception);
+
+    [LoggerMessage(LogLevel.Error, "Failed to create IODD directory: {Directory}")]
+    public static partial void LogDirectoryCreationError(this ILogger<IoddStore> logger, Exception exception, string directory);
 }

@@ -9,7 +9,6 @@ using ClusterManagement.Public.Events;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Sdk.Messaging;
 using ViciOne.Cluster.Model;
 
@@ -73,7 +72,6 @@ public sealed partial class DeployClusterStateMachine
         catch (Exception ex)
         {
             ctx.Saga.InitializeFailed = true;
-            _logger.LogError(ex, "Failed to initialize deployment saga");
 
             LogInitFailed(_logger, ex, ctx.CorrelationId, ctx.Message.ClusterId);
 

@@ -72,15 +72,13 @@ internal sealed class ClusterDependencyStore(
 
                 if (!SemVersion.TryParse(shippedPackage.Version, out var shippedVersion))
                 {
-                    logger.LogWarning("Failed to parse version '{Version}' of package '{PackageName}' from shipped packages file, skipping version comparison",
-                        shippedPackage.Version, shippedPackage.Name);
+                    logger.LogShippedParseVersionFailure(shippedPackage.Version, shippedPackage.Name);
                     continue;
                 }
 
                 if (!SemVersion.TryParse(package.Version, out var packageVersion))
                 {
-                    logger.LogWarning("Failed to parse version '{Version}' of package '{PackageName}' from packages file, skipping version comparison",
-                        package.Version, package.Name);
+                    logger.LogParseVersionFailure(package.Version, package.Name);
                     continue;
                 }
 
@@ -100,7 +98,7 @@ internal sealed class ClusterDependencyStore(
             await using var destinationStream = fileSystem.FileStream.New(destination, FileMode.Create);
             await stream.CopyToAsync(destinationStream, stoppingToken);
 
-            logger.LogInformation("Initialized cluster packages from embedded resources");
+            logger.LogInitializationFromEmbeddedResources();
         }
     }
 
@@ -121,7 +119,7 @@ internal sealed class ClusterDependencyStore(
     {
         if (operations.Count == 0)
         {
-            logger.LogDebug("No package updates to queue");
+            logger.LogNothingToQueue();
             return [];
         }
 
@@ -141,8 +139,7 @@ internal sealed class ClusterDependencyStore(
                     if (updatedPackage.OperationKind == ClusterDependencyOperationKind.Uninstall && currentDependency is not null
                         && currentDependency.Version != updatedPackage.Dependency.Version)
                     {
-                        logger.LogDebug("Removing uninstall operation from queue because '{PackageName}' version '{PackageVersion}' it's not installed yet",
-                            updatedPackage.Dependency.Name, updatedPackage.Dependency.Version);
+                        logger.LogRemovingUninstallOperation(updatedPackage.Dependency.Name, updatedPackage.Dependency.Version);
 
                         changes.Add(new ClusterDependencyChange(CrudAction.Deleted, updatedPackage));
                         return false;
@@ -150,8 +147,7 @@ internal sealed class ClusterDependencyStore(
 
                     if (updatedPackage.OperationKind == ClusterDependencyOperationKind.Install && currentDependency?.Version == updatedPackage.Dependency.Version)
                     {
-                        logger.LogDebug("Removing install operation from queue because '{PackageName}' version '{PackageVersion}' is already installed",
-                            updatedPackage.Dependency.Name, updatedPackage.Dependency.Version);
+                        logger.LogRemovingInstallOperation(updatedPackage.Dependency.Name, updatedPackage.Dependency.Version);
 
                         changes.Add(new ClusterDependencyChange(CrudAction.Deleted, updatedPackage));
                         return false;
@@ -167,12 +163,12 @@ internal sealed class ClusterDependencyStore(
 
         if (updatedPackages.Count == 0)
         {
-            logger.LogInformation("No package operations to queue, deleting existing operations file '{UpdateFile}'", updateFile);
+            logger.LogOperationsFileDeletion(updateFile);
             fileSystem.File.Delete(updateFile);
             return changes;
         }
 
-        logger.LogInformation("Enqueued {Count} package operations to '{UpdateFile}'", updatedPackages.Count, updateFile);
+        logger.LogFileEntriesCount(updatedPackages.Count, updateFile);
 
         // Rewrite file containing queued updates
         using var fileStream = fileSystem.FileStream.New(updateFile, FileMode.Create, FileAccess.Write, FileShare.None);
@@ -213,7 +209,7 @@ internal sealed class ClusterDependencyStore(
         var packageUpdates = await DeserializeQueuedUpdates(cancellationToken);
         if (packageUpdates.Count == 0)
         {
-            logger.LogDebug("No queued package operations found");
+            logger.LogNoPackagesQueued();
             return;
         }
 
@@ -235,14 +231,15 @@ internal sealed class ClusterDependencyStore(
             .OrderBy(p => p.Name)
             .ToList();
 
-        logger.LogDebug("Write {Count} packages to '{PackageFile}'", updatedPackages.Count, packagesFilename);
+        logger.LogWriteCount(updatedPackages.Count, packagesFilename);
 
         // Write updated packages file
         using var fileStream = fileSystem.FileStream.New(packagesFilename, FileMode.Create, FileAccess.Write, FileShare.None);
         await JsonSerializer.SerializeAsync(fileStream, updatedPackages, DefaultJsonSerializerSettings.Default, cancellationToken);
 
-        logger.LogDebug("Deleting queued package updates file '{UpdateFile}'", GetUpdateFilePath());
-        fileSystem.File.Delete(GetUpdateFilePath());
+        var filePath = GetUpdateFilePath();
+        logger.LogUpdateFileDeletion(filePath);
+        fileSystem.File.Delete(filePath);
     }
 
     private async Task<List<ClusterDependencyOperation>> DeserializeQueuedUpdates(CancellationToken cancellationToken)
@@ -260,7 +257,7 @@ internal sealed class ClusterDependencyStore(
         });
         var updates = await JsonSerializer.DeserializeAsync<List<ClusterDependencyOperation>>(updateFileStream, DefaultJsonSerializerSettings.Default, cancellationToken);
         if (updates is null)
-            logger.LogWarning("Failed to deserialize queued package updates from '{UpdateFile}'", updateFile);
+            logger.LogDeserializationFailure(updateFile);
 
         return updates ?? [];
     }

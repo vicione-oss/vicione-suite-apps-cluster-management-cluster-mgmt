@@ -10,15 +10,12 @@ namespace ClusterManagement.Backend.Consumers;
 public sealed class GetClusterConsumer(IClusterSnapshotStore snapshotStore, ILogger<GetClusterConsumer> logger) :
     RequestConsumer<GetClusterRequest, GetClusterResponse>
 {
-    private readonly IClusterSnapshotStore _snapshotStore = snapshotStore;
-    private readonly ILogger<GetClusterConsumer> _logger = logger;
-
     public override async Task<GetClusterResponse> Respond(GetClusterRequest message, CancellationToken cancellationToken)
     {
         var requestVersion = message.ClusterVersion
-            ?? await _snapshotStore.GetLatestVersion(message.ClusterId, cancellationToken);
+            ?? await snapshotStore.GetLatestVersion(message.ClusterId, cancellationToken);
 
-        var cluster = await _snapshotStore.LoadCompressedJson(message.ClusterId,
+        var cluster = await snapshotStore.LoadCompressedJson(message.ClusterId,
             requestVersion,
             cancellationToken);
 
@@ -41,7 +38,7 @@ public sealed class GetClusterConsumer(IClusterSnapshotStore snapshotStore, ILog
 
     public override Task<GetClusterResponse> HandleException(GetClusterRequest message, Exception e, CancellationToken cancellationToken)
     {
-        _logger.LogError(e, "Failed to handle {Request}", nameof(GetClusterRequest));
+        logger.LogHandleException(e, nameof(GetClusterRequest));
 
         return Task.FromResult(new GetClusterResponse
         {

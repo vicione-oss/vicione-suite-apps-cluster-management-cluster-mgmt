@@ -30,7 +30,7 @@ internal sealed class LoadFunctionBlocksService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, nameof(LoadPackageReferences));
+            logger.LogFailure(ex, nameof(LoadPackageReferences));
         }
     }
 
@@ -49,7 +49,7 @@ internal sealed class LoadFunctionBlocksService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, nameof(LoadSelectedFunctionBlocks));
+            logger.LogFailure(ex, nameof(LoadSelectedFunctionBlocks));
         }
         finally
         {

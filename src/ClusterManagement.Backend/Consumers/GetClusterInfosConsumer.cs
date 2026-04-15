@@ -11,14 +11,10 @@ namespace ClusterManagement.Backend.Consumers;
 public sealed class GetClusterInfosConsumer(IClusterDbContext dbContext, IClusterSnapshotStore snapshotStore,
     ILogger<GetClusterInfosConsumer> logger) : RequestConsumer<GetClusterInfosRequest, GetClusterInfosResponse>
 {
-    private readonly IClusterDbContext _dbContext = dbContext;
-    private readonly IClusterSnapshotStore _snapshotStore = snapshotStore;
-    private readonly ILogger<GetClusterInfosConsumer> _logger = logger;
-
     public override async Task<GetClusterInfosResponse> Respond(GetClusterInfosRequest message, CancellationToken cancellationToken)
     {
-        var activeInfos = await _dbContext.ActiveClusters.AsNoTracking().ToListAsync(cancellationToken);
-        var fileInfos = (await _snapshotStore.GetClusterInfos(message.ClusterId, cancellationToken))
+        var activeInfos = await dbContext.ActiveClusters.AsNoTracking().ToListAsync(cancellationToken);
+        var fileInfos = (await snapshotStore.GetClusterInfos(message.ClusterId, cancellationToken))
             .Select(k => ClusterInfoFactory.CreateInfo(k, activeInfos.Any(active => active.Id == k.Id && active.Version == k.Version)))
             .ToList();
 
@@ -32,7 +28,7 @@ public sealed class GetClusterInfosConsumer(IClusterDbContext dbContext, ICluste
 
     public override Task<GetClusterInfosResponse> HandleException(GetClusterInfosRequest message, Exception e, CancellationToken cancellationToken)
     {
-        _logger.LogError(e, "Failed to handle {NameOfGetClusterInfosResponse}", nameof(GetClusterInfosResponse));
+        logger.LogHandleException(e, nameof(GetClusterInfosResponse));
 
         return Task.FromResult(new GetClusterInfosResponse
         {

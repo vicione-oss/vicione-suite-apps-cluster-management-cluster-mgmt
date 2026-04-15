@@ -82,11 +82,26 @@ public class DesignLoaderFacts
     public sealed class DownloadFailureTolerance : DesignLoaderFacts
     {
         private readonly ClusterDependency _systemDep = new() { Name = "ViciOne.Suite.System.DataPort", Version = "1.0.0" };
+        private readonly InMemoryLogger<DesignLoader> _inMemoryLogger = new();
+        private readonly IServiceProvider _downloadServices;
 
         public DownloadFailureTolerance()
         {
             _rulesetProvider.AddSystemDataPortFunctionBlock(Arg.Any<CancellationToken>())
                 .Returns(_systemDep);
+
+            _downloadServices = new ServiceCollection()
+                .AddSingleton<DesignLoader>()
+                .AddSingleton<ClusterManagementOptions>()
+                .AddSingleton(_fileSystem)
+                .AddSingleton(_workspaceService)
+                .AddSingleton(_packageStore)
+                .AddSingleton(_repository)
+                .AddSingleton(_packageContentProvider)
+                .AddSingleton(_dependencyStore)
+                .AddSingleton(_rulesetProvider)
+                .AddTransient<ILogger<DesignLoader>>(_ => _inMemoryLogger)
+                .BuildServiceProvider();
         }
 
         [Fact]
@@ -212,14 +227,14 @@ public class DesignLoaderFacts
             _repository.DownloadAndExtract(dep.Name, dep.Version, Arg.Any<CancellationToken>())
                 .Returns(new HttpLoaderResult("source/broken", "target/broken") { Error = new InvalidOperationException("fail") });
 
-            using var service = _services.GetRequiredService<DesignLoader>();
+            using var service = _downloadServices.GetRequiredService<DesignLoader>();
 
             // Act
             await service.StartAsync(CancellationToken.None);
             await service.Task;
 
             // Assert — verify error was logged for broken cluster state
-            _logger.ReceivedWithAnyArgs().LogError(default, default, null, []);
+            _inMemoryLogger.LogEntries.Should().Contain(e => e.LogLevel == LogLevel.Error);
         }
 
         [Fact]
@@ -227,7 +242,7 @@ public class DesignLoaderFacts
         {
             // Arrange
             _dependencyStore.LoadDependencies(Arg.Any<CancellationToken>())
-                .Returns(Array.Empty<ClusterDependency>());
+                .Returns([]);
 
             using var service = _services.GetRequiredService<DesignLoader>();
 

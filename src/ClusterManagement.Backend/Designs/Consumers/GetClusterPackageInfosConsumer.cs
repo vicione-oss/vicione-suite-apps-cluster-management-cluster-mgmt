@@ -3,11 +3,12 @@ using ClusterManagement.Internal.Requests;
 using ClusterManagement.Public.Events;
 using Microsoft.Extensions.Logging;
 using Sdk.Backend.Messaging;
+using Semver;
 
 namespace ClusterManagement.Backend.Designs.Consumers;
 
 
-public sealed class GetClusterPackageInfosConsumer(
+public sealed partial class GetClusterPackageInfosConsumer(
     IPackageInfoProvider packageInfoProvider,
     ILogger<GetEngineHostPackageInfoConsumer> logger) :
     RequestConsumer<GetClusterPackageInfosRequest, GetClusterPackageInfosResponse>
@@ -24,11 +25,14 @@ public sealed class GetClusterPackageInfosConsumer(
     {
         var coreVersion = packageInfoProvider.GetCoreVersion();
 
-        logger.LogError(e, "Consume {Request} failed for core version '{CoreVersion}'", nameof(GetClusterPackageInfosRequest), coreVersion);
+        LogError(logger, e, nameof(GetClusterPackageInfosRequest), coreVersion);
 
         return Task.FromResult(new GetClusterPackageInfosResponse([], coreVersion.ToString())
         {
             RequestError = new(ClusterError.UnknownError, e.Message),
         });
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Consume {Request} failed for core version '{CoreVersion}'")]
+    private static partial void LogError(ILogger<GetEngineHostPackageInfoConsumer> logger, Exception exception, string request, SemVersion? coreVersion);
 }

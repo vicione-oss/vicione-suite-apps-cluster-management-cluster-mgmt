@@ -61,7 +61,7 @@ internal sealed partial class PackageStore(
 
         try
         {
-            using var depsJsonStream = dllEntry.Open();
+            using var depsJsonStream = await dllEntry.OpenAsync(cancellationToken);
             using var memoryStream = new MemoryStream();
 
             await depsJsonStream.CopyToAsync(memoryStream, cancellationToken);
@@ -69,14 +69,13 @@ internal sealed partial class PackageStore(
 
             var (targetFramework, runtimeVersion, platformTarget) = AssemblyMetadataProvider.GetAssemblyInfo(memoryStream);
 
-            logger.LogInformation("Package {Name} supports Framework: {TargetFramework}, Runtime Version: {RuntimeVersion}, Platform Target: {PlatformTarget}",
-            dllEntry.Name, targetFramework, runtimeVersion, platformTarget);
+            logger.LogPackageVerification(dllEntry.Name, targetFramework, runtimeVersion, platformTarget);
 
             // We could check here if the package is compatible with our system in more detail
         }
         catch (Exception)
         {
-            logger.LogWarning("Failed to verify upload package assembly for '{PackageName}'", packageName);
+            logger.LogPackageVerificationFailure(packageName);
         }
     }
 
@@ -91,12 +90,12 @@ internal sealed partial class PackageStore(
             // What if the package is still in use by engine host?
             // EH probably is able to continue with previous version loaded into memory
             // If the FB is not loaded yet, but requested afterwards by LoadContext it will be a problem
-            logger.LogWarning("Removing existing package '{PackageName}' path '{Name}'", packageName, packageDestinationPath);
+            logger.LogPackageRemovingWarning(packageName, packageDestinationPath);
             fileSystem.Directory.Delete(packageDestinationPath, true);
         }
 
         // Extract package to our packages folder. It won't be loaded from there until we add it to our dependency store.
-        logger.LogInformation("Uploading package '{PackageName}' version '{PackageVersion}' to path '{Name}'", packageName, packageVersion, packageDestinationPath);
+        logger.LogPackageUpload(packageName, packageVersion, packageDestinationPath);
         fileSystem.Directory.CreateDirectory(packageDestinationPath);
         packageArchive.ExtractToDirectory(packageDestinationPath);
     }
@@ -133,17 +132,17 @@ internal sealed partial class PackageStore(
 
             if (!fileSystem.Directory.Exists(packageVersionPath))
             {
-                logger?.LogWarning("Failed to delete missing package '{PackageName}' with path '{Name}'", dependency.Name, packageVersionPath);
+                logger.LogDeletePackageFailureWarning(dependency.Name, packageVersionPath);
                 return;
             }
 
-            logger?.LogInformation("Deleting package '{PackageName}' version '{PackageVersion}' with path '{Name}'", dependency.Name, dependency.Version, packageVersionPath);
+            logger.LogPackageVersionDeletion(dependency.Name, dependency.Version, packageVersionPath);
             fileSystem.Directory.Delete(packageVersionPath, true);
 
             var packagePath = fileSystem.Path.Combine(dependenciesPath, dependency.Name);
             if (fileSystem.Directory.GetFileSystemEntries(packagePath).Length == 0)
             {
-                logger?.LogInformation("Deleting empty package folder '{PackageName}' with path '{Name}'", dependency.Name, packagePath);
+                logger.LogEmptyPackageFolderDeletion(dependency.Name, packagePath);
                 fileSystem.Directory.Delete(packagePath, true);
             }
             return;

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ClusterManagement.Backend.Iodds;
 
-internal sealed class IoddService(IIoddStore ioddStore, IFileSystem fileSystem, ILogger<IoddService> logger) : IHostedService, IDisposable
+internal sealed partial class IoddService(IIoddStore ioddStore, IFileSystem fileSystem, ILogger<IoddService> logger) : IHostedService, IDisposable
 {
     private readonly Lock _lock = new();
     private readonly CancellationTokenSource _cancellationTokenSource = new();
@@ -36,7 +36,7 @@ internal sealed class IoddService(IIoddStore ioddStore, IFileSystem fileSystem, 
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to init IODD file watcher");
+            LogError(logger, ex);
         }
 
         return Task.CompletedTask;
@@ -119,4 +119,7 @@ internal sealed class IoddService(IIoddStore ioddStore, IFileSystem fileSystem, 
             // Ignore: CancellationTokenSource was already disposed.
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to init IODD file watcher.")]
+    private static partial void LogError(ILogger<IoddService> logger, Exception exception);
 }

@@ -4,7 +4,7 @@ using ViciOne.Ui.MonochromeIcons.Core.Enums;
 
 namespace ClusterManagement.Client.IoddManagement.IoddTree;
 
-internal sealed class MonochromeIconHttpClient
+internal sealed partial class MonochromeIconHttpClient
 {
     private readonly string _contentIconBasePath = $"_content/{typeof(IoddTreeAdapter).Assembly.GetName().Name}/icons/monochrome-icons";
     private readonly ILocalHttpClient _httpClient;
@@ -34,9 +34,12 @@ internal sealed class MonochromeIconHttpClient
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load icon {IconName} from path {IconPath}", iconName, iconPath);
+            LogError(_logger, ex, iconName, iconPath);
         }
 
         return null;
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to load icon {IconName} from path {IconPath}")]
+    private static partial void LogError(ILogger<MonochromeIconHttpClient> logger, Exception exception, MonochromeIconName iconName, string? iconPath);
 }

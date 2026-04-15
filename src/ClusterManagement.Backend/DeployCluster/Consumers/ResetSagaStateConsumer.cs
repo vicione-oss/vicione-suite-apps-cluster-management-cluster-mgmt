@@ -10,7 +10,7 @@ using Sdk.Messaging;
 
 namespace ClusterManagement.Backend.DeployCluster.Consumers;
 
-public sealed class ResetSagaStateConsumer(IClusterSagaDbContext sagaDbContext, ILogger<ResetSagaStateConsumer> logger) : IConsumer<ResetSagaState>
+public sealed partial class ResetSagaStateConsumer(IClusterSagaDbContext sagaDbContext, ILogger<ResetSagaStateConsumer> logger) : IConsumer<ResetSagaState>
 {
     public async Task Consume(ConsumeContext<ResetSagaState> context)
     {
@@ -19,7 +19,7 @@ public sealed class ResetSagaStateConsumer(IClusterSagaDbContext sagaDbContext, 
 
         if (deployState is null)
         {
-            logger.LogInformation("No deploy state found for cluster {ClusterId}, nothing to reset", context.Message.ClusterId);
+            LogDeployState(logger, context.Message.ClusterId);
             return;
         }
 
@@ -33,11 +33,11 @@ public sealed class ResetSagaStateConsumer(IClusterSagaDbContext sagaDbContext, 
     {
         try
         {
-            logger.LogWarning("Reset current deployment state: {State}", JsonSerializer.Serialize(deployState, GetSerializerOptions()));
+            LogResetClusterState(logger, JsonSerializer.Serialize(deployState, GetSerializerOptions()));
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to log serialized deployment state");
+            LogClusterStateError(logger, ex);
         }
     }
 
@@ -49,4 +49,14 @@ public sealed class ResetSagaStateConsumer(IClusterSagaDbContext sagaDbContext, 
             Converters = { DefaultJsonSerializerSettings.CreateDateTimeConverter() },
             WriteIndented = true
         };
+
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "No deploy state found for cluster {ClusterId}, nothing to reset")]
+    private static partial void LogDeployState(ILogger<ResetSagaStateConsumer> logger, Guid clusterId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Reset current deployment state: {State}")]
+    private static partial void LogResetClusterState(ILogger<ResetSagaStateConsumer> logger, string state);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to log serialized deployment state")]
+    private static partial void LogClusterStateError(ILogger<ResetSagaStateConsumer> logger, Exception exception);
 }

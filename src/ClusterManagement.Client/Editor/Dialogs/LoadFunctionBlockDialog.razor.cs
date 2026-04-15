@@ -148,7 +148,7 @@ public sealed partial class LoadFunctionBlockDialog : IDisposable
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Error occured while loading the FunctionBlock designs.");
+            LogLoadingFbDesignError(Logger, e);
         }
         finally
         {
@@ -214,4 +214,7 @@ public sealed partial class LoadFunctionBlockDialog : IDisposable
         LoadService.PropertyChanged -= OnPropertyChanged;
         FunctionBlockModel.FunctionBlockCheckChanged -= OnFunctionBlockModelCheckChanged;
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error occured while loading the FunctionBlock designs.")]
+    private static partial void LogLoadingFbDesignError(ILogger<LoadFunctionBlockDialog> logger, Exception exception);
 }

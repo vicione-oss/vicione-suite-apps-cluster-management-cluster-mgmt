@@ -10,7 +10,7 @@ using ViciOne.Ui.Localization.Extensions;
 
 namespace ClusterManagement.Client.Editor.Wizards.Services;
 
-internal sealed class ImportWizardService(ILogger<ImportWizardService> logger) : IClusterWizard
+internal sealed partial class ImportWizardService(ILogger<ImportWizardService> logger) : IClusterWizard
 {
     private const long MaxClusterSize = 1024L * 1024L * 50;//~50 mb
 
@@ -46,7 +46,8 @@ internal sealed class ImportWizardService(ILogger<ImportWizardService> logger) :
         FileSize = null;
         var result = builder.ImportCluster(_uploadedCluster, Options);
 
-        logger.LogInformation("Imported cluster {Name} v{Version} results - added:{Added} merged:{Merged} skipped={Skipped}",
+        LogImportInformation(
+            logger,
             _uploadedCluster.Name,
             _uploadedCluster.Version,
             result.TotalAdded,
@@ -72,4 +73,7 @@ internal sealed class ImportWizardService(ILogger<ImportWizardService> logger) :
             IsFileUploaded = false;
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Imported cluster {ClusterName} v{ClusterVersion} results - added:{Added} merged:{Merged} skipped={Skipped}")]
+    private static partial void LogImportInformation(ILogger<ImportWizardService> logger, string clusterName, Version clusterVersion, int added, int merged, int skipped);
 }
