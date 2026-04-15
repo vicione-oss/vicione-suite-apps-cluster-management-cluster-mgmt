@@ -44,7 +44,7 @@ public sealed partial class IoddControlPanel
     [Inject] private IMessageBannerService MessageBannerService { get; set; } = default!;
     [Inject] private ILogger<IoddControlPanel> Logger { get; set; } = default!;
 
-    private GridItemSelection<IoddId> ItemSelection { get; } = [];
+    private GridItemSelection<IoddSelectionId> ItemSelection { get; } = [];
 
     protected override async ValueTask DisposeAsyncCore()
     {
@@ -194,8 +194,34 @@ public sealed partial class IoddControlPanel
                 .OrderBy(d => d.Name);
     }
 
-    private void OnItemSelectionChanged(ViciOne.Ui.Blazor.Components.Grid.Services.GridItemSelectionChangedEventArgs<IoddId> obj)
-        => InvokeAsync(StateHasChanged);
+    private void OnItemSelectionChanged(ViciOne.Ui.Blazor.Components.Grid.Services.GridItemSelectionChangedEventArgs<IoddSelectionId> obj)
+    {
+        // Each Iodd can have multiple variants, which are distinguished by their ProductId.
+        // When an Iodd is selected or deleted, all variants with the same VendorId and DeviceId must also be selected or deleted.
+        // To prevent recursion during the add and delete operations, the event is temporarily unsubscribed.
+        ItemSelection.Changed -= OnItemSelectionChanged;
+        try
+        {
+            foreach (var added in obj.ItemsAdded.ToList())
+            {
+                var devices = _itemsQueryable
+                    .Where(d => d.VendorId == added.VendorId && d.DeviceId == added.DeviceId);
+
+                ItemSelection.AddRange(devices.Select(d => new IoddSelectionId(d.VendorId, d.DeviceId, d.ProductId)));
+            }
+
+            foreach (var removed in obj.ItemsRemoved.ToList())
+            {
+                ItemSelection.Remove(id => id.VendorId == removed.VendorId && id.DeviceId == removed.DeviceId);
+            }
+        }
+        finally
+        {
+            ItemSelection.Changed += OnItemSelectionChanged;
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
 
     private void OnIoddTreeAdapterSelectionChanged(IEnumerable<DeviceView> selection)
     {
@@ -228,7 +254,7 @@ public sealed partial class IoddControlPanel
 
     private async Task OnDeleteIoddsOkAsync()
     {
-        var ids = ItemSelection.Distinct();
+        var ids = ItemSelection.Distinct().Select(d => new IoddId(d.VendorId, d.DeviceId));
 
         State.MarkIoddAsDeleted(ids);
 
@@ -236,7 +262,7 @@ public sealed partial class IoddControlPanel
         foreach (var device in State.DevicesMarkedForDeletion)
         {
             TreeAdapter.DeleteDevice(device.VendorId, device.DeviceId);
-            ItemSelection.Remove(device);
+            ItemSelection.Where(d => d.VendorId == device.VendorId && d.DeviceId == device.DeviceId).ToList().ForEach(d => ItemSelection.Remove(d));
         }
 
         if (State.HasChanges())
