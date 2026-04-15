@@ -1,5 +1,6 @@
 ﻿using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Internal.Events;
+using ClusterManagement.Public.Events;
 using Sdk.Client.ControlPanels.Services;
 using ViciOne.Cluster.Model;
 
@@ -138,13 +139,13 @@ public sealed class PackagesControlPanelState : ControlPanelState
                 continue;
             }
 
-            var dependecy = new ClusterDependency
+            var dependency = new ClusterDependency
             {
                 Name = item.Name,
                 Version = item.AvailableUpdateVersion,
             };
 
-            InstallOperations.Add(new ClusterDependencyOperation(dependecy, ClusterDependencyOperationKind.Install));
+            InstallOperations.Add(new ClusterDependencyOperation(dependency, ClusterDependencyOperationKind.Install));
         }
     }
 
@@ -152,25 +153,40 @@ public sealed class PackagesControlPanelState : ControlPanelState
     {
         foreach (var item in packages)
         {
+            if (string.IsNullOrWhiteSpace(item.InstalledVersion))
+                continue;
+
+            if (item.Error is not null &&
+                item.Error.ErrorCode == ClusterError.PackageFailedToLoad &&
+                !UninstallOperations.Any(p => p.Dependency.Name == item.Name && p.Dependency.Version.ToString() == item.InstalledVersion))
+            {
+                UninstallItem(item);
+                continue;
+            }
+
             if (item.Versions is null || item.Versions.Count == 0)
             {
                 continue;
             }
 
-            if (string.IsNullOrWhiteSpace(item.InstalledVersion)
-                || UninstallOperations.Any(p => p.Dependency.Name == item.Name
+            if (UninstallOperations.Any(p => p.Dependency.Name == item.Name
                 && p.Dependency.Version.ToString() == item.Versions.First().Version))
             {
                 continue;
             }
 
-            var dependecy = new ClusterDependency
+            UninstallItem(item);
+        }
+
+        void UninstallItem(ClusterPackageInfo item)
+        {
+            var dependency = new ClusterDependency
             {
                 Name = item.Name,
-                Version = item.InstalledVersion,
+                Version = item.InstalledVersion ?? string.Empty,
             };
 
-            UninstallOperations.Add(new ClusterDependencyOperation(dependecy, ClusterDependencyOperationKind.Uninstall));
+            UninstallOperations.Add(new ClusterDependencyOperation(dependency, ClusterDependencyOperationKind.Uninstall));
         }
     }
 
