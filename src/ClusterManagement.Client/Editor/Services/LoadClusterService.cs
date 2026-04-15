@@ -8,29 +8,17 @@ using ViciOne.Ui.ClusterEditor.Services;
 
 namespace ClusterManagement.Client.Editor.Services;
 
-internal sealed class LoadClusterService : DialogServiceBase, IDisposable
+internal sealed partial class LoadClusterService(
+    IClusterService clusterService,
+    IClusterEditorManagement clusterEditorManagement,
+    ILogger<LoadClusterService> logger,
+    IDesignProvider designProvider) : DialogServiceBase, IDisposable
 {
     private readonly CancellationTokenSource _tokenSource = new();
 
-    private readonly IClusterService _clusterService;
-    private readonly IClusterEditorManagement _clusterEditorManagement;
-    private readonly ILogger<LoadClusterService> _logger;
-    private readonly IDesignProvider _designProvider;
     private ClusterBuilder? _clusterBuilder;
 
     public event EventHandler<ClusterBuilder>? ClusterLoaded;
-
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "this notation is clearer")]
-    public LoadClusterService(IClusterService clusterService,
-        IClusterEditorManagement clusterEditorManagement,
-        ILogger<LoadClusterService> logger,
-        IDesignProvider designProvider)
-    {
-        _clusterService = clusterService;
-        _clusterEditorManagement = clusterEditorManagement;
-        _logger = logger;
-        _designProvider = designProvider;
-    }
 
     public async Task TryLoadLatestVersion(CancellationToken cancellationToken = default)
     {
@@ -47,7 +35,7 @@ internal sealed class LoadClusterService : DialogServiceBase, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, nameof(TryLoadLatestVersion));
+            logger.LogFailure(ex, nameof(TryLoadLatestVersion));
         }
     }
 
@@ -62,10 +50,10 @@ internal sealed class LoadClusterService : DialogServiceBase, IDisposable
             // TODO - add feedback to the user? toast?
             if (ex.InnerException is not null)
             {
-                _logger.LogCritical(ex.InnerException, nameof(TryLoad));
+                logger.LogFailure(ex.InnerException, nameof(TryLoad));
             }
 
-            _logger.LogError(ex, nameof(TryLoad));
+            logger.LogFailure(ex, nameof(TryLoad));
         }
         finally
         {
@@ -76,10 +64,10 @@ internal sealed class LoadClusterService : DialogServiceBase, IDisposable
 
     private async Task Load(Guid clusterId, Version version, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Query cluster {Id} version '{Version}'", clusterId, version);
+        LogQueryCluster(logger, clusterId, version);
 
-        var cluster = await _clusterService.Query(clusterId, version, cancellationToken);
-        var resolver = await _designProvider.CreateResolver();
+        var cluster = await clusterService.Query(clusterId, version, cancellationToken);
+        var resolver = await designProvider.CreateResolver();
 
         _clusterBuilder?.Dispose();
         _clusterBuilder = new ClusterBuilder(cluster, resolver);
@@ -87,16 +75,16 @@ internal sealed class LoadClusterService : DialogServiceBase, IDisposable
         var stopwatch = new Stopwatch();
         stopwatch.Start();
 
-        var usedFunctionBlockDesignIds = await _designProvider.GetFunctionBlockDesignIds(cluster.Dependencies);
+        var usedFunctionBlockDesignIds = await designProvider.GetFunctionBlockDesignIds(cluster.Dependencies);
 
         // ensure all designs referenced by current cluster are added
         foreach (var designId in usedFunctionBlockDesignIds)
             _clusterBuilder.Editors.FunctionBlockDesign.AddFunctionBlockDesign(designId);
 
-        await _clusterEditorManagement.LoadDataflow(_clusterBuilder, cancellationToken);
+        await clusterEditorManagement.LoadDataflow(_clusterBuilder, cancellationToken);
         stopwatch.Stop();
 
-        _logger.LogInformation("Loading cluster {Id} version '{Version}' into editor took {Elapsed}", clusterId, version, stopwatch.Elapsed);
+        LogLoadingClusterDone(logger, clusterId, version, stopwatch.Elapsed);
 
         // maybe IDataManagementService should expose builder
         ClusterLoaded?.Invoke(this, _clusterBuilder);
@@ -109,14 +97,14 @@ internal sealed class LoadClusterService : DialogServiceBase, IDisposable
     private async Task<List<ClusterInfoVersionsModel>> LoadClusterVersions(CancellationToken cancellationToken = default)
     {
         var result = new List<ClusterInfoVersionsModel>();
-        var clusters = await _clusterService.QueryClusterInfos(null, cancellationToken);
+        var clusters = await clusterService.QueryClusterInfos(null, cancellationToken);
 
         foreach (var group in clusters.GroupBy(c => c.Id))
         {
             var latestInfo = group.Count() <= 1 ? group.FirstOrDefault() : group.MaxBy(k => k.Version);
             if (latestInfo is null)
             {
-                _logger.LogWarning("Failed to get latest version of cluster {Key}", group.Key);
+                LogGetLatestVersionFailed(logger, group.Key);
                 continue;
             }
 
@@ -140,4 +128,13 @@ internal sealed class LoadClusterService : DialogServiceBase, IDisposable
 
         _clusterBuilder?.Dispose();
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Query cluster {ClusterId} version '{clusterVersion}'")]
+    private static partial void LogQueryCluster(ILogger<LoadClusterService> logger, Guid clusterId, Version clusterVersion);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Loading cluster {ClusterId} version '{ClusterVersion}' into editor took {Elapsed}")]
+    private static partial void LogLoadingClusterDone(ILogger<LoadClusterService> logger, Guid clusterId, Version clusterVersion, TimeSpan elapsed);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to get latest version of cluster {ClusterId}")]
+    private static partial void LogGetLatestVersionFailed(ILogger<LoadClusterService> logger, Guid clusterId);
 }

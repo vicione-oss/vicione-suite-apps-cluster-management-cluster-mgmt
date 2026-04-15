@@ -16,21 +16,16 @@ using ViciOne.Core.Contracts.DataModel.Extensions;
 
 namespace ClusterManagement.Backend.Consumers;
 
-public sealed class GetDataflowEventsConsumer(IClusterDbContext dbContext, IClusterSnapshotStore store, IDesignProvider designProvider, ILogger<GetDataflowEventsConsumer> logger) :
+public sealed partial class GetDataflowEventsConsumer(IClusterDbContext dbContext, IClusterSnapshotStore store, IDesignProvider designProvider, ILogger<GetDataflowEventsConsumer> logger) :
     RequestConsumer<GetDataflowEventsRequest, GetDataflowEventsResponse>
 {
-    private readonly IClusterDbContext _dbContext = dbContext;
-    private readonly IClusterSnapshotStore _store = store;
-    private readonly IDesignProvider _designProvider = designProvider;
-    private readonly ILogger<GetDataflowEventsConsumer> _logger = logger;
-
     public override async Task<GetDataflowEventsResponse> Respond(GetDataflowEventsRequest message, CancellationToken cancellationToken)
     {
-        var activeVersion = await _dbContext.ActiveClusters.AsNoTracking()
+        var activeVersion = await dbContext.ActiveClusters.AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == message.ClusterId, cancellationToken)
             ?? throw new InvalidOperationException($"Cluster {message.ClusterId} is not active");
 
-        var cluster = await _store.Load(activeVersion.Id, activeVersion.Version, cancellationToken);
+        var cluster = await store.Load(activeVersion.Id, activeVersion.Version, cancellationToken);
         if (cluster is null)
         {
             return new GetDataflowEventsResponse
@@ -41,7 +36,7 @@ public sealed class GetDataflowEventsConsumer(IClusterDbContext dbContext, IClus
             };
         }
 
-        var resolver = await _designProvider.CreateResolver();
+        var resolver = await designProvider.CreateResolver();
         using var builder = new ClusterBuilder(cluster, resolver);
 
         List<IDataflowEvent>? dataflowEvents = null;
@@ -53,13 +48,13 @@ public sealed class GetDataflowEventsConsumer(IClusterDbContext dbContext, IClus
             var connectors = builder.Cache.EventEnabledConnectors;
             var dataflowConnectors = connectors.Where(k => functionBlockIds.Contains(k.FunctionBlock.Id));
 
-            dataflowEvents = GetAllEventEnabledConnectorEvents(dataflowConnectors, resolver, _logger);
+            dataflowEvents = GetAllEventEnabledConnectorEvents(dataflowConnectors, resolver, logger);
         }
         else if (message.ClusterId is not null)
         {
             var connectors = builder.Cache.EventEnabledConnectors;
 
-            dataflowEvents = GetAllEventEnabledConnectorEvents(connectors, resolver, _logger);
+            dataflowEvents = GetAllEventEnabledConnectorEvents(connectors, resolver, logger);
         }
         else
         {
@@ -101,7 +96,7 @@ public sealed class GetDataflowEventsConsumer(IClusterDbContext dbContext, IClus
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to create dataflow events for FunctionBlock {Name} {Id}", connector.Name, connector.Id);
+                LogCreateDataflowEventError(logger, ex, connector.Name, connector.Id);
             }
         }
 
@@ -138,7 +133,7 @@ public sealed class GetDataflowEventsConsumer(IClusterDbContext dbContext, IClus
 
     public override Task<GetDataflowEventsResponse> HandleException(GetDataflowEventsRequest message, Exception e, CancellationToken cancellationToken)
     {
-        _logger.LogError(e, "Failed to handle {Request}", nameof(GetClusterRequest));
+        logger.LogHandleException(e, nameof(GetClusterRequest));
 
         return Task.FromResult(new GetDataflowEventsResponse
         {
@@ -158,4 +153,7 @@ public sealed class GetDataflowEventsConsumer(IClusterDbContext dbContext, IClus
 
         public required string ValueType { get; set; }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to create dataflow events for FunctionBlock {Name} {Id}")]
+    private static partial void LogCreateDataflowEventError(ILogger logger, Exception exception, string name, Guid id);
 }

@@ -6,7 +6,7 @@ using Sdk.Backend.Messaging;
 
 namespace ClusterManagement.Backend;
 
-internal sealed class ResourceDownloadCompletedService(
+internal sealed partial class ResourceDownloadCompletedService(
     IServiceProvider services,
     ILogger<ResourceDownloadCompletedService> logger) : BackgroundService
 {
@@ -27,15 +27,21 @@ internal sealed class ResourceDownloadCompletedService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "One or more resource downloads failed");
+            LogDownloadError(logger, ex);
         }
 
         s_completed = true;
 
-        logger.LogInformation("All resource downloads completed. Publishing ResourcesDownloaded event.");
+        LogDownloadCompleted(logger);
 
         using var scope = services.CreateScope();
         var mediator = scope.ServiceProvider.GetRequiredService<ISuiteMediator>();
         await mediator.Publish(new ResourcesDownloaded(), stoppingToken);
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "One or more resource downloads failed")]
+    private static partial void LogDownloadError(ILogger<ResourceDownloadCompletedService> logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "All resource downloads completed. Publishing ResourcesDownloaded event.")]
+    private static partial void LogDownloadCompleted(ILogger<ResourceDownloadCompletedService> logger);
 }

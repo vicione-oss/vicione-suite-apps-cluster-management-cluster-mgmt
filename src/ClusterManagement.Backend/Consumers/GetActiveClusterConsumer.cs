@@ -8,16 +8,12 @@ using Sdk.Backend.Messaging;
 
 namespace ClusterManagement.Backend.Consumers;
 
-public sealed class GetActiveClusterConsumer(IClusterDbContext dbContext, IClusterSnapshotStore store, ILogger<GetActiveClusterConsumer> logger) :
+public sealed partial class GetActiveClusterConsumer(IClusterDbContext dbContext, IClusterSnapshotStore store, ILogger<GetActiveClusterConsumer> logger) :
     RequestConsumer<GetActiveClusterRequest, GetActiveClusterResponse>
 {
-    private readonly IClusterDbContext _dbContext = dbContext;
-    private readonly IClusterSnapshotStore _store = store;
-    private readonly ILogger<GetActiveClusterConsumer> _logger = logger;
-
     public override async Task<GetActiveClusterResponse> Respond(GetActiveClusterRequest message, CancellationToken cancellationToken)
     {
-        var active = await _dbContext.ActiveClusters.AsNoTracking()
+        var active = await dbContext.ActiveClusters.AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == message.ClusterId, cancellationToken);
 
         if (active is null)
@@ -30,7 +26,7 @@ public sealed class GetActiveClusterConsumer(IClusterDbContext dbContext, IClust
             };
         }
 
-        var cluster = await _store.LoadCompressedJson(active.Id, active.Version, cancellationToken);
+        var cluster = await store.LoadCompressedJson(active.Id, active.Version, cancellationToken);
         if (cluster.Length == 0)
         {
             return new GetActiveClusterResponse
@@ -46,7 +42,7 @@ public sealed class GetActiveClusterConsumer(IClusterDbContext dbContext, IClust
 
     public override Task<GetActiveClusterResponse> HandleException(GetActiveClusterRequest message, Exception e, CancellationToken cancellationToken)
     {
-        _logger.LogError(e, "Failed to handle {ReqeustName}", nameof(GetActiveClusterRequest));
+        logger.LogHandleException(e, nameof(GetActiveClusterRequest));
 
         return Task.FromResult(new GetActiveClusterResponse
         {

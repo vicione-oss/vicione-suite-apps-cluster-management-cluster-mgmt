@@ -4,12 +4,8 @@ using Sdk.Client.Services;
 
 namespace ClusterManagement.Client.DataflowEvents.Services;
 
-internal class DataflowEventPageService(IDataflowEventBroker eventBroker, IMessageBannerService bannerService, ILogger<DataflowEventPageService> logger) : IAsyncDisposable
+internal partial class DataflowEventPageService(IDataflowEventBroker eventBroker, IMessageBannerService bannerService, ILogger<DataflowEventPageService> logger) : IAsyncDisposable
 {
-    private readonly IDataflowEventBroker _eventBroker = eventBroker;
-    private readonly IMessageBannerService _bannerService = bannerService;
-    private readonly ILogger<DataflowEventPageService> _logger = logger;
-
     public List<DataflowEventModel> Events { get; private set; } = [];
     public DataflowEventModel? SelectedEvent { get; set; }
     public string? ActiveVersion { get; private set; }
@@ -23,8 +19,8 @@ internal class DataflowEventPageService(IDataflowEventBroker eventBroker, IMessa
 
     public async Task LoadDataflowEvents()
     {
-        var dataflowEvents = await _eventBroker.GetEvents();
-        var clusterInfo = await _eventBroker.GetCurrentClusterInfo();
+        var dataflowEvents = await eventBroker.GetEvents();
+        var clusterInfo = await eventBroker.GetCurrentClusterInfo();
 
         ActiveVersion = $"v{clusterInfo?.Version}";
         ActiveClusterId = clusterInfo?.Id;
@@ -48,12 +44,12 @@ internal class DataflowEventPageService(IDataflowEventBroker eventBroker, IMessa
 
         try
         {
-            await _eventBroker.SetValue(eventModel.EventId, value);
+            await eventBroker.SetValue(eventModel.EventId, value);
         }
         catch (Exception ex)
         {
-            _bannerService.ShowMessageBanner(Sdk.MessageBanner.Contracts.MessageType.Warning, ex.Message);
-            _logger.LogError(ex, "Failed to set value '{Value}' on {EventId}", value, eventModel.EventId);
+            bannerService.ShowMessageBanner(Sdk.MessageBanner.Contracts.MessageType.Warning, ex.Message);
+            LogSetValueError(logger, ex, value, eventModel.EventId);
         }
     }
 
@@ -62,7 +58,7 @@ internal class DataflowEventPageService(IDataflowEventBroker eventBroker, IMessa
         if (eventModel.Subscription is not null)
             return;
 
-        eventModel.Subscription = await _eventBroker.Subscribe(eventModel.EventId, (t, v) => OnValueChanged(eventModel, t, v));
+        eventModel.Subscription = await eventBroker.Subscribe(eventModel.EventId, (t, v) => OnValueChanged(eventModel, t, v));
     }
 
     private static async Task RemoveSubscription(DataflowEventModel eventModel)
@@ -85,7 +81,7 @@ internal class DataflowEventPageService(IDataflowEventBroker eventBroker, IMessa
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to subscribe all events");
+            LogSubscribeAllError(logger, ex);
         }
     }
 
@@ -97,8 +93,8 @@ internal class DataflowEventPageService(IDataflowEventBroker eventBroker, IMessa
         }
         catch (Exception ex)
         {
-            _bannerService.ShowMessageBanner(Sdk.MessageBanner.Contracts.MessageType.Warning, ex.Message);
-            _logger.LogError(ex, "Failed to subscribe event {Event}", eventModel.Name);
+            bannerService.ShowMessageBanner(Sdk.MessageBanner.Contracts.MessageType.Warning, ex.Message);
+            LogSubscribeEventError(logger, ex, eventModel.Name);
         }
     }
 
@@ -113,7 +109,7 @@ internal class DataflowEventPageService(IDataflowEventBroker eventBroker, IMessa
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to unsubscribe all events");
+            LogUnsubscribeAllError(logger, ex);
         }
     }
 
@@ -125,8 +121,8 @@ internal class DataflowEventPageService(IDataflowEventBroker eventBroker, IMessa
         }
         catch (Exception ex)
         {
-            _bannerService.ShowMessageBanner(Sdk.MessageBanner.Contracts.MessageType.Warning, ex.Message);
-            _logger.LogError(ex, "Failed to unsubscribe event {Event}", eventModel.Name);
+            bannerService.ShowMessageBanner(Sdk.MessageBanner.Contracts.MessageType.Warning, ex.Message);
+            LogUnsubscribeEventError(logger, ex, eventModel.Name);
         }
     }
 
@@ -149,4 +145,19 @@ internal class DataflowEventPageService(IDataflowEventBroker eventBroker, IMessa
             item.Subscription = null;
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to set value '{Value}' on {EventId}")]
+    private static partial void LogSetValueError(ILogger<DataflowEventPageService> logger, Exception exception, string value, Guid eventId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to subscribe all events")]
+    private static partial void LogSubscribeAllError(ILogger<DataflowEventPageService> logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to subscribe event {EventName}")]
+    private static partial void LogSubscribeEventError(ILogger<DataflowEventPageService> logger, Exception exception, string eventName);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to unsubscribe all events")]
+    private static partial void LogUnsubscribeAllError(ILogger<DataflowEventPageService> logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to unsubscribe event {EventName}")]
+    private static partial void LogUnsubscribeEventError(ILogger<DataflowEventPageService> logger, Exception exception, string eventName);
 }

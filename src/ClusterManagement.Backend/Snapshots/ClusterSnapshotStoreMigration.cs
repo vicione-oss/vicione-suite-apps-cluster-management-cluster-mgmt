@@ -26,16 +26,16 @@ internal class ClusterSnapshotStoreMigration(
 
             foreach (var clusterInfo in clusterInfos)
             {
-                logger.LogDebug("Migrate cluster if needed '{ClusterId}' {ClusterVersion}", clusterInfo.Id, clusterInfo.Version);
+                logger.LogMigrationStart(clusterInfo.Id, clusterInfo.Version);
                 stopwatch.Restart();
                 await ReplaceDependenciesInCluster(dependencies, clusterInfo, cancellationToken);
                 stopwatch.Stop();
-                logger.LogDebug("Migrate cluster '{ClusterId}' {ClusterVersion} took {Elapsed}ms", clusterInfo.Id, clusterInfo.Version, stopwatch.Elapsed.TotalMilliseconds);
+                logger.LogMigrationEnd(clusterInfo.Id, clusterInfo.Version, stopwatch.Elapsed.TotalMilliseconds);
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to migrate cluster snapshots.");
+            logger.LogMigrationError(ex);
         }
     }
 
@@ -56,7 +56,7 @@ internal class ClusterSnapshotStoreMigration(
 
             if (ReplaceDependencyIfNewer(dependency, version, dependencyNode))
             {
-                logger.LogInformation("Replaced dependency '{Name}' with version '{Version}' in cluster '{ClusterId}' {ClusterVersion}.", name, dependency.Version, clusterInfo.Id, clusterInfo.Version);
+                logger.LogDependencyReplaced(name, dependency.Version, clusterInfo.Id, clusterInfo.Version);
                 replacedSomething = true;
             }
         }, cancellationToken);

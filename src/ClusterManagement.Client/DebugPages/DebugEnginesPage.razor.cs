@@ -69,7 +69,7 @@ public sealed partial class DebugEnginesPage : IEventConsumer<ClusterChanged>, I
         {
             // Ignore: CancellationTokenSource was already disposed.
         }
-        
+
         _subscriptionHandle.Dispose();
 
         Engines.Clear();
@@ -109,7 +109,7 @@ public sealed partial class DebugEnginesPage : IEventConsumer<ClusterChanged>, I
                 }
                 catch (Exception e)
                 {
-                    Logger.LogError(e, "Failed to get engine {EngineId} state on instance", engine.Id);
+                    LogEngineStateError(Logger, e, engine.Id);
                 }
             }
         }
@@ -183,4 +183,7 @@ public sealed partial class DebugEnginesPage : IEventConsumer<ClusterChanged>, I
 
     private void NavigateToManagement()
         => NavManager.NavigateToManagement();
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to get engine {EngineId} state on instance")]
+    private static partial void LogEngineStateError(ILogger logger, Exception exception, Guid engineId);
 }

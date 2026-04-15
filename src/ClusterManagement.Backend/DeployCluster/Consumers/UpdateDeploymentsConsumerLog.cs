@@ -1,10 +1,23 @@
 ﻿using Microsoft.Extensions.Logging;
+using Sdk.Connections.Contracts;
 
 namespace ClusterManagement.Backend.DeployCluster.Consumers;
 
 internal static partial class UpdateDeploymentsConsumerLog
 {
     /* General */
+
+    [LoggerMessage(LogLevel.Information, "UpdateDeployments on instance:{ApplicationId} for cluster {ClusterId} version {Version}")]
+    internal static partial void LogUpdateDeployment(this ILogger<UpdateDeploymentsConsumer> logger, Guid applicationId, Guid clusterId, Version version);
+
+    [LoggerMessage(LogLevel.Information, "Use broker {Protocol} connection address {Name}:{Port} user:{User}")]
+    internal static partial void LogBrokerConnection(this ILogger<UpdateDeploymentsConsumer> logger, MqttConnectionType protocol, string name, int port, string user);
+
+    [LoggerMessage(LogLevel.Error, "Error deploying on application {ClusterApplicationId}")]
+    internal static partial void LogDeployError(this ILogger<UpdateDeploymentsConsumer> logger, Exception exception, Guid clusterApplicationId);
+
+    [LoggerMessage(LogLevel.Error, "{Message}")]
+    internal static partial void LogDeployError(this ILogger<UpdateDeploymentsConsumer> logger, string? message);
 
     [LoggerMessage(LogLevel.Information, "Deploying {engineHosts} engine hosts, {engines} engines with {functionBlocks} FunctionBlocks, and {dataPorts} data ports...")]
     internal static partial void LogDeploymentVolume(this ILogger<UpdateDeploymentsConsumer> logger, int engineHosts, int engines, int functionBlocks, int dataPorts);

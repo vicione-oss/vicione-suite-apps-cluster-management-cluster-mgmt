@@ -1,4 +1,5 @@
-﻿using ClusterManagement.Backend.Designs;
+﻿using ClusterManagement.Backend.Consumers;
+using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.Extensions;
 using ClusterManagement.Internal;
 using ClusterManagement.Internal.Contracts;
@@ -11,7 +12,7 @@ using Semver;
 
 namespace ClusterManagement.Backend.EngineHosts.Consumers;
 
-public sealed class GetEngineHostPackageInfoConsumer(IEngineHostArtifactRepository repository, IOptions<ClusterManagementOptions> options, ILogger<GetEngineHostPackageInfoConsumer> logger) :
+public sealed partial class GetEngineHostPackageInfoConsumer(IEngineHostArtifactRepository repository, IOptions<ClusterManagementOptions> options, ILogger<GetEngineHostPackageInfoConsumer> logger) :
     RequestConsumer<GetEngineHostPackageInfoRequest, GetEngineHostPackageInfoResponse>
 {
     private readonly ClusterManagementOptions _options = options.Value;
@@ -39,7 +40,7 @@ public sealed class GetEngineHostPackageInfoConsumer(IEngineHostArtifactReposito
 
     public override Task<GetEngineHostPackageInfoResponse> HandleException(GetEngineHostPackageInfoRequest message, Exception e, CancellationToken cancellationToken)
     {
-        logger.LogError(e, "Consume {Request} failed", nameof(GetEngineHostPackageInfoRequest));
+        logger.LogHandleException(e, nameof(GetEngineHostPackageInfoRequest));
 
         var coreVersion = ClusterAssembliesResolver.GetViciOneCoreAssemblyVersion();
         var installedVersion = _options.GetEngineHostVersion();

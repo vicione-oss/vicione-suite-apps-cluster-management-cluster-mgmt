@@ -8,7 +8,7 @@ using ViciOne.Cluster.Builder.Abstractions;
 
 namespace ClusterManagement.Client.Editor.Services;
 
-internal sealed class SaveClusterService : DialogServiceBase, IDisposable
+internal sealed partial class SaveClusterService : DialogServiceBase, IDisposable
 {
     private readonly CancellationTokenSource _tokenSource = new();
 
@@ -56,8 +56,6 @@ internal sealed class SaveClusterService : DialogServiceBase, IDisposable
 
     public ClusterStoreOptions StoreOptions { get; } = new();
 
-
-
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "this notation is clearer")]
     public SaveClusterService(IClusterService clusterService, ILayoutService layoutService, ILogger<SaveClusterService> logger)
     {
@@ -102,7 +100,7 @@ internal sealed class SaveClusterService : DialogServiceBase, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, nameof(SaveRequested));
+            _logger.LogFailure(ex, nameof(SaveRequested));
         }
 
         return Task.CompletedTask;
@@ -138,7 +136,7 @@ internal sealed class SaveClusterService : DialogServiceBase, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, nameof(Save));
+            _logger.LogFailure(ex, nameof(Save));
             SetIsWorking(false);
 
             ConfirmationMessage = new SaveConfirmationInfo
@@ -154,10 +152,7 @@ internal sealed class SaveClusterService : DialogServiceBase, IDisposable
         if (!IsCurrentCluster(change.ClusterId))
             return Task.CompletedTask;
 
-        _logger.LogInformation("Handle {Event} version={Version} clusterId={ClusterId}",
-            nameof(ClusterChanged),
-            change.Version,
-            change.ClusterId);
+        LogEventHandling(_logger, nameof(ClusterChanged), change.ClusterId, change.Version);
 
         SetIsWorking(false);
         DisplayDialog = false;
@@ -177,7 +172,7 @@ internal sealed class SaveClusterService : DialogServiceBase, IDisposable
         if (!IsCurrentCluster(change.ClusterId))
             return Task.CompletedTask;
 
-        _logger.LogInformation("Error {Event} clusterId={ClusterId}", nameof(ClusterError), change.ClusterId);
+        LogEventError(_logger, nameof(ClusterError), change.ClusterId, change.Version);
 
         ConfirmationMessage = new SaveConfirmationInfo
         {
@@ -196,4 +191,10 @@ internal sealed class SaveClusterService : DialogServiceBase, IDisposable
 
     private void SetIsWorking(bool isWorking)
         => _layoutService.IsLoadingOverlayVisible = IsWorking = isWorking;
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Handle {EventName} clusterId={ClusterId} version={ClusterVersion}.")]
+    private static partial void LogEventHandling(ILogger<SaveClusterService> logger, string eventName, Guid clusterId, Version? clusterVersion);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error {EventName} clusterId={ClusterId} version={ClusterVersion}.")]
+    private static partial void LogEventError(ILogger<SaveClusterService> logger, string eventName, Guid clusterId, Version? clusterVersion);
 }

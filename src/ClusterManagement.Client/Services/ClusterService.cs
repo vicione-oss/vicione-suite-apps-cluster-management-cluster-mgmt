@@ -43,7 +43,7 @@ internal sealed class ClusterService :
 
     public async Task<List<ClusterInfo>> QueryClusterInfos(Guid? clusterId = null, CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Sending mediator query {Name}", nameof(QueryClusterInfos));
+        _logger.LogQueryClusterInfos();
 
         var query = new GetClusterInfosRequest
         {
@@ -51,18 +51,14 @@ internal sealed class ClusterService :
         };
         var response = await Mediator.Request<GetClusterInfosRequest, GetClusterInfosResponse>(query, cancellationToken);
 
-        _logger.LogDebug("Result mediator query {Name} contains {Count} items",
-            nameof(QueryClusterInfos),
-            response.Results.Count);
+        _logger.LogQueryClusterInfosResult(response.Results.Count);
 
         return response.Results;
     }
 
     public async Task<Cluster> Query(Guid clusterId, Version? version, CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Sending mediator query {Name} width id {Id}",
-            nameof(Query),
-            clusterId);
+        _logger.LogQueryCluster(clusterId);
 
         var response = await Mediator
             .Request<GetClusterRequest, GetClusterResponse>(new GetClusterRequest(clusterId, version), cancellationToken);
@@ -74,9 +70,7 @@ internal sealed class ClusterService :
             throw new InvalidOperationException($"Received empty data for cluster {clusterId} v{version}");
 
         var result = await ClusterSerializer.Decompress(response.CompressedCluster, cancellationToken: cancellationToken);
-        _logger.LogDebug("Result mediator query {Name} returned item id {Id}",
-            nameof(Query),
-            result.Id);
+        _logger.LogQueryClusterResult(result.Id);
 
         return result;
     }
@@ -84,22 +78,18 @@ internal sealed class ClusterService :
     public async Task<IClusterServiceResult> CommitChange(Cluster cluster, CommitClusterOptions? options, CancellationToken cancellationToken = default)
     {
         var stopwatch = new Stopwatch();
-        _logger.LogDebug("Publishing {Name} width id {Id}, version {Version}",
-            nameof(CommitClusterChange),
-            cluster.Id,
-            cluster.Version);
+        _logger.LogCommitClusterChange(cluster.Id, cluster.Version);
 
         stopwatch.Restart();
         var compressedCluster = ClusterSerializer.Compress(cluster);
         stopwatch.Stop();
-        _logger.LogInformation("Serializing {Cluster} took {Elapsed}", nameof(Cluster), stopwatch.Elapsed);
+        _logger.LogElapsedTime("Serializing cluster", stopwatch.Elapsed);
 
         stopwatch.Restart();
         var command = new CommitClusterChange(compressedCluster, new CommitClusterMetaInfo(cluster), options);
         await Mediator.Send(command, cancellationToken);
         stopwatch.Stop();
-
-        _logger.LogInformation("Sending {Command} command took {Elapsed}", nameof(CommitClusterChange), stopwatch.Elapsed);
+        _logger.LogElapsedTime($"Sending {nameof(CommitClusterChange)} command", stopwatch.Elapsed);
 
         return await SendAndWaitForCompletion(command, cancellationToken);
     }

@@ -1,4 +1,5 @@
-﻿using ClusterManagement.Backend.DeployCluster.Persistence;
+﻿using ClusterManagement.Backend.Consumers;
+using ClusterManagement.Backend.DeployCluster.Persistence;
 using ClusterManagement.Backend.DeployCluster.StateMachines;
 using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
@@ -8,7 +9,7 @@ using Sdk.Backend.Messaging;
 
 namespace ClusterManagement.Backend.DeployCluster.Consumers;
 
-public sealed class GetDeployClusterStateConsumer(IClusterSagaDbContext sagaDbContext, ILogger<GetDeployClusterStateConsumer> logger) :
+public sealed partial class GetDeployClusterStateConsumer(IClusterSagaDbContext sagaDbContext, ILogger<GetDeployClusterStateConsumer> logger) :
     RequestConsumer<GetDeployClusterStateRequest, GetDeployClusterStateResponse>
 {
     public override async Task<GetDeployClusterStateResponse> Respond(GetDeployClusterStateRequest message, CancellationToken cancellationToken)
@@ -30,7 +31,7 @@ public sealed class GetDeployClusterStateConsumer(IClusterSagaDbContext sagaDbCo
 
     public override Task<GetDeployClusterStateResponse> HandleException(GetDeployClusterStateRequest message, Exception e, CancellationToken cancellationToken)
     {
-        logger.LogError(e, "Consume {Request} failed", nameof(GetDeployClusterStateRequest));
+        logger.LogHandleException(e, nameof(GetDeployClusterStateRequest));
 
         return Task.FromResult(new GetDeployClusterStateResponse
         {

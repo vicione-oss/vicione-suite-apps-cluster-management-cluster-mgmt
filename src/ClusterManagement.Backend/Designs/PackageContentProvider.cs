@@ -12,7 +12,7 @@ using ViciOne.TreeBuilder.Rules;
 
 namespace ClusterManagement.Backend.Designs;
 
-internal class PackageContentProvider(
+internal partial class PackageContentProvider(
     IClusterDependencyStore dependencyStore,
     IWorkspaceProvider<ClusterManagementBackendModule> workspaceProvider,
     IFileSystem fileSystem,
@@ -77,7 +77,7 @@ internal class PackageContentProvider(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to load package '{Name}' version '{Version}' from directory", dependency.Name, dependency.Version);
+                LogLoadPackageError(logger, ex, dependency.Name, dependency.Version, "directory");
                 _packages[dependency] = new PackageContent(new Dictionary<Guid, FunctionBlockDesign>(), new Dictionary<string, Ruleset>(), true) { Error = new ErrorInfo(ex.HResult, ex.Message) };
             }
         }
@@ -138,7 +138,7 @@ internal class PackageContentProvider(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to load package '{Name}' version '{Version}' from types", dependency.Name, dependency.Version);
+                LogLoadPackageError(logger, ex, dependency.Name, dependency.Version, "types");
 
                 _packages[dependency] = new PackageContent(new Dictionary<Guid, FunctionBlockDesign>(), new Dictionary<string, Ruleset>(), true) { Error = new ErrorInfo(ex.HResult, ex.Message) };
             }
@@ -146,4 +146,7 @@ internal class PackageContentProvider(
 
         return false;
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to load package '{Name}' version '{Version}' from {Source}")]
+    private static partial void LogLoadPackageError(ILogger<PackageContentProvider> logger, Exception exception, string name, string version, string source);
 }

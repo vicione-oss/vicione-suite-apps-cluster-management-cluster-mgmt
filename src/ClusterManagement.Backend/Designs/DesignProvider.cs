@@ -6,7 +6,7 @@ using ViciOne.Core.Dataflow.DataModel;
 
 namespace ClusterManagement.Backend.Designs;
 
-internal sealed class DesignProvider(IPackageContentProvider packageContentProvider, ILogger<DesignProvider> logger) : IDesignProvider
+internal sealed partial class DesignProvider(IPackageContentProvider packageContentProvider, ILogger<DesignProvider> logger) : IDesignProvider
 {
     public Task<IDependencyResolver> CreateResolver()
         => Task.FromResult<IDependencyResolver>(new ClusterDependencyResolver(GetDependencyPackages()));
@@ -70,7 +70,7 @@ internal sealed class DesignProvider(IPackageContentProvider packageContentProvi
         {
             if (item.Hide)
             {
-                logger.LogDebug("Cluster dependency {Dependency} version {Version} is hidden.", clusterDependency.Name, clusterDependency.Version);
+                LogHiddenDependency(logger, clusterDependency.Name, clusterDependency.Version);
                 yield break;
             }
 
@@ -79,6 +79,12 @@ internal sealed class DesignProvider(IPackageContentProvider packageContentProvi
             yield break;
         }
 
-        logger.LogError("Cluster dependency {Dependency} version {Version} can't be found.", clusterDependency.Name, clusterDependency.Version);
+        LogMissingDependency(logger, clusterDependency.Name, clusterDependency.Version);
     }
+
+    [LoggerMessage(LogLevel.Debug, "Cluster dependency {Name} version {Version} is hidden.")]
+    private static partial void LogHiddenDependency(ILogger<DesignProvider> logger, string name, string version);
+
+    [LoggerMessage(LogLevel.Error, "Cluster dependency {Name} version {Version} can't be found.")]
+    private static partial void LogMissingDependency(ILogger<DesignProvider> logger, string name, string version);
 }

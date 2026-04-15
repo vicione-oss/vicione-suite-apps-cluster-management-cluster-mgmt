@@ -23,14 +23,11 @@ public sealed partial class GetClusterEditorSettingsConsumer(IClusterEditorDbCon
 
     public override Task<GetClusterEditorSettingsResponse> HandleException(GetClusterEditorSettingsRequest message, Exception e, CancellationToken cancellationToken)
     {
-        LogHandleException(logger, e, nameof(GetClusterEditorSettingsRequest));
+        logger.LogHandleException(e, nameof(GetClusterEditorSettingsRequest));
 
         return Task.FromResult(new GetClusterEditorSettingsResponse
         {
             RequestError = new ErrorInfo(ClusterError.EditorLoadSettingsFailed, $"Failed to load settings for user {message.UserId}"),
         });
     }
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to handle {Request}")]
-    private static partial void LogHandleException(ILogger logger, Exception exception, string request);
 }

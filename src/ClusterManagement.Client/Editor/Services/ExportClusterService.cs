@@ -7,9 +7,6 @@ namespace ClusterManagement.Client.Editor.Services;
 
 internal class ExportClusterService(IJsInterop jsInterop, ILogger<ExportClusterService> logger)
 {
-    private readonly IJsInterop _jsInterop = jsInterop;
-    private readonly ILogger<ExportClusterService> _logger = logger;
-
     public async Task DownloadClusterJson(Cluster? cluster)
     {
         if (cluster is null)
@@ -17,11 +14,11 @@ internal class ExportClusterService(IJsInterop jsInterop, ILogger<ExportClusterS
 
         try
         {
-            await _jsInterop.DownloadClusterJson(cluster);
+            await jsInterop.DownloadClusterJson(cluster);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, nameof(DownloadClusterJson));
+            logger.LogFailure(e, nameof(DownloadClusterJson));
         }
     }
 }

@@ -23,7 +23,7 @@ public sealed class GetResourcesDownloadStatusConsumer(ILogger<GetResourcesDownl
         Exception e,
         CancellationToken cancellationToken)
     {
-        logger.LogError(e, "Failed to handle {Request}", nameof(GetResourcesDownloadStatusRequest));
+        logger.LogHandleException(e, nameof(GetResourcesDownloadStatusRequest));
 
         return Task.FromResult(new GetResourcesDownloadStatusResponse
         {

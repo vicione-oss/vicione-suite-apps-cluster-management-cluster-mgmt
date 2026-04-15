@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using Sdk.Client.Contracts;
 using Sdk.Client.Infrastructure;
+using Sdk.Messaging;
 using Sdk.Utils;
 using ViciOne.Cluster.Builder;
 using ViciOne.Cluster.Model;
@@ -138,7 +139,7 @@ public sealed partial class ClusterEditorPage
     // We should at least show a confirmation dialog if there are unsaved changes and only reload if the user confirms.
     //private async void SaveService_ClusterChanged(object? sender, ClusterChanged change)
     //{
-    //    Logger.LogInformation("{Name} {Action} received. triggered load latest version", nameof(SaveService_ClusterChanged), change.Action);
+    //    LogLoadTriggered(Logger, change.Action);
 
     //    await LoadService.TryLoadLatestVersion();
     //}
@@ -177,7 +178,7 @@ public sealed partial class ClusterEditorPage
 
         _builder.Editors.DataPort.AssignEngine(engine, dataPort);
 
-        Logger.LogInformation("Assigned DataPort {DataPortName} to Engine {EngineName}", dataPort.Name, engine.Name);
+        LogDataPortAdded(Logger, dataPort.Name, engine.Name);
     }
 
     private async Task Editor_LoadFunctionBlockDesignsRequested()
@@ -203,4 +204,10 @@ public sealed partial class ClusterEditorPage
         if (old != _hasUnsavedChanges)
             InvokeAsync(StateHasChanged);
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "SaveService_ClusterChanged {Action} received. triggered load latest version")]
+    private static partial void LogLoadTriggered(ILogger logger, CrudAction action);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Assigned DataPort {DataPortName} to Engine {EngineName}")]
+    private static partial void LogDataPortAdded(ILogger logger, string dataPortName, string engineName);
 }

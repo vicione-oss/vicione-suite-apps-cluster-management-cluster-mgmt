@@ -43,7 +43,7 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
         void DeleteInternal(string filePath)
         {
             if (!_fileSystem.File.Exists(filePath))
-                _logger.LogWarning("Delete cluster {FileName} not found", _fileSystem.Path.GetFileNameWithoutExtension(filePath));
+                _logger.LogClusterNotDeleted(_fileSystem.Path.GetFileNameWithoutExtension(filePath));
 
             _fileSystem.File.Delete(filePath);
         }
@@ -76,7 +76,7 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
             }
             catch (Exception e)
             {
-                _logger.LogError(e, nameof(GetClusterInfos));
+                _logger.LogGetClusterInfosError(e, clusterId);
             }
         }
         return result;
@@ -124,7 +124,7 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
             var storageFilePath = GetStorageFilePath(clusterId, clusterVersion);
             if (!_fileSystem.File.Exists(storageFilePath))
             {
-                _logger.LogWarning("Load cluster {ClusterId}-{ClusterVersion} not found", clusterId, clusterVersion);
+                _logger.LogClusterNotLoaded(clusterId, clusterVersion);
                 return default;
             }
 
@@ -139,7 +139,7 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Failed to load cluster {ClusterId}-{ClusterVersion}", clusterId, clusterVersion);
+            _logger.LogLoadClusterError(e, clusterId, clusterVersion);
             return null;
         }
     }
@@ -151,7 +151,7 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
             var storageFilePath = GetStorageFilePath(clusterId, clusterVersion);
             if (!_fileSystem.File.Exists(storageFilePath))
             {
-                _logger.LogWarning("Load cluster {ClusterId}-{ClusterVersion} not found", clusterId, clusterVersion);
+                _logger.LogClusterNotLoaded(clusterId, clusterVersion);
                 return [];
             }
 
@@ -159,7 +159,7 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Failed to load cluster {ClusterId}-{ClusterVersion}", clusterId, clusterVersion);
+            _logger.LogLoadClusterError(e, clusterId, clusterVersion);
             return [];
         }
     }
@@ -171,7 +171,7 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
             var storageFilePath = GetStorageFilePath(clusterId, clusterVersion);
             if (!_fileSystem.File.Exists(storageFilePath))
             {
-                _logger.LogWarning("Load cluster {ClusterId}-{ClusterVersion} not found", clusterId, clusterVersion);
+                _logger.LogClusterNotLoaded(clusterId, clusterVersion);
                 return default;
             }
 
@@ -187,7 +187,7 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Failed to load cluster {ClusterId}-{ClusterVersion}", clusterId, clusterVersion);
+            _logger.LogLoadClusterError(e, clusterId, clusterVersion);
             return default;
         }
     }
@@ -202,7 +202,7 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
         catch (Exception e)
         {
             Delete(info.Id, info.Version);
-            _logger.LogError(e, "Failed to store cluster {ClusterId}-{ClusterVersion}", info.Id, info.Version);
+            _logger.LogStoreClusterError(e, info.Id, info.Version);
             throw;
         }
     }
@@ -217,7 +217,7 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
         catch (Exception e)
         {
             Delete(clusterId, clusterVersion);
-            _logger.LogError(e, "Failed to store cluster {ClusterId}-{ClusterVersion}", clusterId, clusterVersion);
+            _logger.LogStoreClusterError(e, clusterId, clusterVersion);
             throw;
         }
 
@@ -278,7 +278,7 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
         catch (Exception e)
         {
             Delete(cluster.Id, cluster.Version);
-            _logger.LogError(e, "Failed to store cluster {ClusterId}-{ClusterVersion}", cluster.Id, cluster.Version);
+            _logger.LogStoreClusterError(e, cluster.Id, cluster.Version);
             throw;
         }
         return;

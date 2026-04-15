@@ -58,8 +58,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         {
             var targetCluster = await ClusterSerializer.Decompress(context.Message.CompressedTargetCluster);
 
-            logger.LogInformation("UpdateDeployments on instance:{ApplicationId} for cluster {ClusterId} v{Version}",
-                clusterApplicationId, targetCluster.Id, targetCluster.Version);
+            logger.LogUpdateDeployment(clusterApplicationId, targetCluster.Id, targetCluster.Version);
 
             var dependencyResolver = await designProvider.CreateResolver();
             using var builder = new ClusterBuilder(targetCluster, dependencyResolver);
@@ -68,8 +67,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
             try
             {
                 brokerConnection = await brokerConnectionCache.GetMqttConnection(context.CancellationToken);
-                logger.LogInformation("Use broker {Protocol} connection address {Name}:{Port} user:{User}",
-                    brokerConnection.Protocol, brokerConnection.Address, brokerConnection.Port, brokerConnection.Username);
+                logger.LogBrokerConnection(brokerConnection.Protocol, brokerConnection.Address, brokerConnection.Port, brokerConnection.Username);
             }
             catch (Exception e)
             {
@@ -109,7 +107,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         }
         catch (ClusterUpdateException e)
         {
-            logger.LogError(e, "Error deploying on application {ClusterApplicationId}", clusterApplicationId);
+            logger.LogDeployError(e, clusterApplicationId);
             var errorInfo = new ErrorInfo(e.ErrorCode, e.InnerException is null ? e.Message : e.InnerException.Message);
             await context.Publish(
                 new ClusterNodeDeploymentsUpdateFailedEvent(context.Message.CorrelationId,
@@ -121,7 +119,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         catch (OperationCanceledException)
         {
             var errorInfo = ClusterErrorInfos.DeploymentCancelled(clusterApplicationId);
-            logger.LogError("{Message}", errorInfo.Message);
+            logger.LogDeployError(errorInfo.Message);
             await context.Publish(
                 new ClusterNodeDeploymentsUpdateFailedEvent(context.Message.CorrelationId,
                     context.Message.ClusterId,
@@ -131,7 +129,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Unexpected error deploying on application {ClusterApplicationId}", clusterApplicationId);
+            logger.LogDeployError(e, clusterApplicationId);
             var errorInfo = new ErrorInfo(-1, e.Message);
             await context.Publish(
                 new ClusterNodeDeploymentsUpdateFailedEvent(context.Message.CorrelationId,

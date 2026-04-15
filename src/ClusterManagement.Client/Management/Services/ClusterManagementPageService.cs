@@ -1,4 +1,5 @@
-﻿using ClusterManagement.Client.Management.Models;
+﻿using ClusterManagement.Client.Management.Logging;
+using ClusterManagement.Client.Management.Models;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Events;
@@ -50,11 +51,7 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
         var command = new DeployCluster(clusterId, version);
         CorrelationId = command.CorrelationId;
 
-        _logger.LogDebug("Sending {Command} clusterId:{ClusterId} version:{Version} -> correlationId:{CorrelationId}",
-            nameof(Public.Commands.DeployCluster),
-            clusterId,
-            version,
-            CorrelationId);
+        _logger.LogDeployCluster(clusterId, version, CorrelationId);
 
         await _mediator.Send(command, cancellationToken);
     }
@@ -69,8 +66,7 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
         foreach (var group in latest)
         {
             var latestVersion = group.MaxBy(c => c.Version);
-            if (latestVersion is not null)
-                latestVersion.IsLatest = true;
+            latestVersion?.IsLatest = true;
         }
 
         return clusters;
@@ -81,66 +77,38 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
 
     public Task Consume(ClientContext<ClusterUpdateStarted> context, CancellationToken cancellationToken)
     {
-        if (CorrelationId == context.CorrelationId)
-        {
-            _logger.LogDebug("Received {Name} event triggered by us", context.CorrelationId);
-        }
-        else
-        {
-            _logger.LogDebug("Received {Name} event not started by us", context.CorrelationId);
-        }
-
+        LogReceivedEvent(nameof(ClusterUpdateStarted), context.CorrelationId);
         OnClusterUpdateStarted?.Invoke(this, context.Message);
-
         return Task.CompletedTask;
     }
 
     public Task Consume(ClientContext<ClusterUpdateChanged> context, CancellationToken cancellationToken)
     {
-        if (CorrelationId == context.CorrelationId)
-        {
-            _logger.LogDebug("Received {Name} event triggered by us", context.CorrelationId);
-        }
-        else
-        {
-            _logger.LogDebug("Received {Name} event not started by us", context.CorrelationId);
-        }
-
+        LogReceivedEvent(nameof(ClusterUpdateChanged), context.CorrelationId);
         OnClusterUpdateChanged?.Invoke(this, context.Message);
-
         return Task.CompletedTask;
     }
 
     public Task Consume(ClientContext<ClusterUpdateCompleted> context, CancellationToken cancellationToken)
     {
-        if (CorrelationId == context.CorrelationId)
-        {
-            _logger.LogDebug("Received {Name} event triggered by us", context.CorrelationId);
-        }
-        else
-        {
-            _logger.LogDebug("Received {Name} event not started by us", context.CorrelationId);
-        }
-
+        LogReceivedEvent(nameof(ClusterUpdateCompleted), context.CorrelationId);
         OnClusterUpdateCompleted?.Invoke(this, context.Message);
-
         return Task.CompletedTask;
     }
 
     public Task Consume(ClientContext<ClusterUpdateFailed> context, CancellationToken cancellationToken)
     {
-        if (CorrelationId == context.CorrelationId)
-        {
-            _logger.LogDebug("Received {Name} event triggered by us", context.CorrelationId);
-        }
-        else
-        {
-            _logger.LogDebug("Received {Name} event not started by us", context.CorrelationId);
-        }
-
+        LogReceivedEvent(nameof(ClusterUpdateFailed), context.CorrelationId);
         OnClusterUpdateFailed?.Invoke(this, context.Message);
-
         return Task.CompletedTask;
+    }
+
+    private void LogReceivedEvent(string eventName, Guid? correlationId)
+    {
+        if (CorrelationId == correlationId)
+            _logger.LogReceivedOwnEvent(eventName, correlationId);
+        else
+            _logger.LogReceivedExternalEvent(eventName, correlationId);
     }
 
     public Task<Cluster> QueryCluster(Guid clusterId, Version version, CancellationToken cancellationToken = default)
@@ -155,11 +123,10 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
         var response = await _mediator.Request<GetDeployClusterStateRequest, GetDeployClusterStateResponse>(new(clusterId), cancellationToken);
         if (response.RequestError is not null)
         {
-            _logger.LogError("Failed to query deployment state for cluster {ClusterId}: {Error}", clusterId, response.RequestError);
+            _logger.LogQueryClusterDeploymentStateError(clusterId, response.RequestError);
             return null;
         }
 
         return response.State;
     }
-
 }

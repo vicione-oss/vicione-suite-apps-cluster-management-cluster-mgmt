@@ -7,21 +7,18 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Sdk.Backend.Modules;
+using Semver;
 
 namespace ClusterManagement.Backend.EngineHosts;
 
-internal class EngineHostLoader(
+internal partial class EngineHostLoader(
     IFileSystem fileSystem,
     IWorkspaceProvider<ClusterManagementBackendModule> workspaceProvider,
     IEngineHostArtifactRepository repository,
     IOptions<ClusterManagementOptions> options,
     ILogger<EngineHostLoader> logger) : BackgroundService, IDownloader
 {
-    private readonly IFileSystem _fileSystem = fileSystem;
-    private readonly IWorkspaceProvider<ClusterManagementBackendModule> _workspaceProvider = workspaceProvider;
     private readonly ClusterManagementOptions _options = options.Value;
-    private readonly IEngineHostArtifactRepository _repository = repository;
-    private readonly ILogger<EngineHostLoader> _logger = logger;
     private readonly TaskCompletionSource _downloadProcess = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public Task Task => _downloadProcess.Task;
@@ -34,34 +31,28 @@ internal class EngineHostLoader(
             var watch = new Stopwatch();
             watch.Start();
 
-            var result = await _repository.DownloadAndExtract(stoppingToken);
+            var result = await repository.DownloadAndExtract(stoppingToken);
 
             watch.Stop();
 
+            var engineHostVersion = _options.GetEngineHostVersion();
+
             if (result.Error is not null)
             {
-                _logger.LogError(result.Error, "Failed to download EngineHost {Version}", _options.GetEngineHostVersion());
+                LogProcessDirectoryError(logger, result.Error, engineHostVersion);
                 return;
             }
+
+            LogEngineHostVersion(logger, engineHostVersion, fileSystem.GetEngineHostInstallDirectory(workspaceProvider, _options));
 
             if (result.Skipped)
             {
-                _logger.LogInformation("Skip download of EngineHost {Version}", _options.GetEngineHostVersion());
-                LogEngineHostVersion();
+                LogSkippedDownload(logger, engineHostVersion);
                 return;
             }
 
-            _logger.LogInformation("Downloading EngineHost {Version} took {TimeSpan}",
-                _options.GetEngineHostVersion(),
-                watch.Elapsed);
+            LogSuccess(logger, engineHostVersion, watch.Elapsed);
 
-
-            LogEngineHostVersion();
-
-            void LogEngineHostVersion()
-                => _logger.LogInformation("Use EngineHost {Version} from {Location}",
-                    _options.GetEngineHostVersion(),
-                    _fileSystem.GetEngineHostInstallDirectory(_workspaceProvider, _options));
         }
         catch (Exception ex)
         {
@@ -72,4 +63,16 @@ internal class EngineHostLoader(
             _downloadProcess.TrySetResult();
         }
     }
+
+    [LoggerMessage(LogLevel.Error, "Failed to download EngineHost {Version}")]
+    private static partial void LogProcessDirectoryError(ILogger<EngineHostLoader> logger, Exception exception, SemVersion version);
+
+    [LoggerMessage(LogLevel.Information, "Use EngineHost {Version} from {Location}")]
+    private static partial void LogEngineHostVersion(ILogger<EngineHostLoader> logger, SemVersion version, string location);
+
+    [LoggerMessage(LogLevel.Information, "Skip download of EngineHost {Version}")]
+    private static partial void LogSkippedDownload(ILogger<EngineHostLoader> logger, SemVersion version);
+
+    [LoggerMessage(LogLevel.Information, "Downloading EngineHost {Version} took {Elapsed}")]
+    private static partial void LogSuccess(ILogger<EngineHostLoader> logger, SemVersion version, TimeSpan elapsed);
 }

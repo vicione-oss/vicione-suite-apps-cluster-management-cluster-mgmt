@@ -5,7 +5,7 @@ using ViciOne.TreeBuilder.Rules;
 
 namespace ClusterManagement.Backend.Designs;
 
-internal sealed class RulesetProvider(IPackageContentProvider packageProvider, ILogger<RulesetProvider> logger) : ISuiteRulesetProvider
+internal sealed partial class RulesetProvider(IPackageContentProvider packageProvider, ILogger<RulesetProvider> logger) : ISuiteRulesetProvider
 {
     private ClusterDependency? _systemDataPortDependency;
 
@@ -15,7 +15,7 @@ internal sealed class RulesetProvider(IPackageContentProvider packageProvider, I
         var systemDataPortDependency = ClusterDependencyFactory.CreateDependency(dataportType);
 
         if (!await packageProvider.TryAddPackage(systemDataPortDependency, [dataportType], [], true, cancellationToken))
-            logger.LogWarning("Failed to add System DataPort package {Name} {Version} to store.", systemDataPortDependency.Name, systemDataPortDependency.Version);
+            LogAddPackageFailure(logger, systemDataPortDependency.Name, systemDataPortDependency.Version);
 
         _systemDataPortDependency = systemDataPortDependency;
 
@@ -48,4 +48,7 @@ internal sealed class RulesetProvider(IPackageContentProvider packageProvider, I
 
     public ClusterDependency GetSystemDataPortDependency()
         => _systemDataPortDependency ?? throw new InvalidOperationException($"Use {nameof(AddSystemDataPortFunctionBlock)} before adding rulesets");
+
+    [LoggerMessage(LogLevel.Warning, "Failed to add System DataPort package {Name} {Version} to store.")]
+    private static partial void LogAddPackageFailure(ILogger<RulesetProvider> logger, string name, string version);
 }

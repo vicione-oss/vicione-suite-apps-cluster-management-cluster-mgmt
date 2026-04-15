@@ -13,22 +13,17 @@ using Sdk.Instance.Events;
 
 namespace ClusterManagement.Backend.Consumers;
 
-public sealed class InstanceCreatedConsumer(IClusterSnapshotStore clusterSnapshotStore,
+public sealed partial class InstanceCreatedConsumer(IClusterSnapshotStore clusterSnapshotStore,
     IInstanceInformationProvider informationProvider,
     ISuiteMediator mediator,
     ILogger<InstanceCreatedConsumer> logger) : IConsumer<InstanceCreated>, IConsumer<InstanceSynchronizationFailed>
 {
-    private readonly IClusterSnapshotStore _clusterSnapshotStore = clusterSnapshotStore;
-    private readonly IInstanceInformationProvider _informationProvider = informationProvider;
-    private readonly ISuiteMediator _mediator = mediator;
-    private readonly ILogger<InstanceCreatedConsumer> _logger = logger;
-
     public async Task Consume(ConsumeContext<InstanceCreated> context)
     {
-        var clusters = (await _clusterSnapshotStore.GetClusterInfos(null, context.CancellationToken)).ToArray();
+        var clusters = (await clusterSnapshotStore.GetClusterInfos(null, context.CancellationToken)).ToArray();
         var clusterInfo = clusters.First(c => c.Version == clusters.Max(ci => ci.Version));
         var clusterId = clusterInfo.Id;
-        var cluster = await _clusterSnapshotStore.Load(clusterInfo.Id, clusterInfo.Version, context.CancellationToken) ??
+        var cluster = await clusterSnapshotStore.Load(clusterInfo.Id, clusterInfo.Version, context.CancellationToken) ??
             throw new InvalidOperationException($"The cluster {clusterId} cannot be loaded");
 
         var clusterNode = cluster.NodeGroups
@@ -37,7 +32,8 @@ public sealed class InstanceCreatedConsumer(IClusterSnapshotStore clusterSnapsho
 
         if (clusterNode is not null)
         {
-            _logger.LogInformation("Consumed {Name}. Cluster model ok. Instance:{InstanceId} already exists in cluster:{ClusterId} v.{Version}",
+            LogClusterNodeExists(
+                logger,
                 nameof(InstanceCreated),
                 context.Message.InstanceId,
                 cluster.Id,
@@ -51,7 +47,7 @@ public sealed class InstanceCreatedConsumer(IClusterSnapshotStore clusterSnapsho
             return;
         }
 
-        var instances = await _informationProvider.GetInstancesInCluster(context.CancellationToken);
+        var instances = await informationProvider.GetInstancesInCluster(context.CancellationToken);
         var instance = instances.FirstOrDefault(i => i.Id == context.Message.InstanceId) ??
             throw new InvalidOperationException($"The instance {context.Message.InstanceId} is created, but cannot be loaded");
 
@@ -61,20 +57,30 @@ public sealed class InstanceCreatedConsumer(IClusterSnapshotStore clusterSnapsho
 
         cluster.Version = cluster.Version.GetVersionIncrement(VersionIncrementKind.Patch);
 
-        _logger.LogInformation("Consumed {Name}. Added new {Type} application for instance:{Instance} (id:{InstanceId}) to cluster:{ClusterId} v.{Version}",
+        LogNewInstanceAdded(
+            logger,
             nameof(InstanceCreated),
             instance.Type,
-            instance.Name,
+            instance.Name ?? "Unknown instance name",
             instance.Id,
             cluster.Id,
             cluster.Version);
 
-        await _mediator.Send(new CommitClusterChange(ClusterSerializer.Compress(cluster), new CommitClusterMetaInfo(cluster), null), context.CancellationToken);
+        await mediator.Send(new CommitClusterChange(ClusterSerializer.Compress(cluster), new CommitClusterMetaInfo(cluster), null), context.CancellationToken);
     }
 
     public Task Consume(ConsumeContext<InstanceSynchronizationFailed> context)
     {
-        _logger.LogWarning("Failed to synchronize instance={InstanceId}", context.Message.InstanceId);
+        LogInstanceSynchronizationFailed(logger, context.Message.InstanceId);
         return Task.CompletedTask;
     }
+
+    [LoggerMessage(LogLevel.Debug, "Consumed {EventName}. Cluster model ok. Instance:{InstanceId} already exists in cluster:{ClusterId} v.{ClusterVersion}")]
+    private static partial void LogClusterNodeExists(ILogger<InstanceCreatedConsumer> logger, string eventName, Guid instanceId, Guid clusterId, Version clusterVersion);
+
+    [LoggerMessage(LogLevel.Information, "Consumed {EventName}. Added new {InstanceType} application for instance:{InstanceName} (id:{InstanceId}) to cluster:{ClusterId} v.{ClusterVersion}")]
+    private static partial void LogNewInstanceAdded(ILogger<InstanceCreatedConsumer> logger, string eventName, InstanceType instanceType, string instanceName, Guid instanceId, Guid clusterId, Version clusterVersion);
+
+    [LoggerMessage(LogLevel.Warning, "Failed to synchronize instance={InstanceId}")]
+    private static partial void LogInstanceSynchronizationFailed(ILogger<InstanceCreatedConsumer> logger, Guid instanceId);
 }

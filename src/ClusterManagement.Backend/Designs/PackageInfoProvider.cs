@@ -12,7 +12,7 @@ using Semver;
 
 namespace ClusterManagement.Backend.Designs;
 
-public class PackageInfoProvider(IClusterDependencyStore clusterDependencyStore,
+public partial class PackageInfoProvider(IClusterDependencyStore clusterDependencyStore,
     IClusterSnapshotStore clusterSnapshotStore,
     IClusterDbContext dbContext,
     IPackageContentProvider packageContentProvider,
@@ -204,7 +204,7 @@ public class PackageInfoProvider(IClusterDependencyStore clusterDependencyStore,
                     .ToList()
                     .AsReadOnly();
 
-                logger.LogDebug("Update package {Package} with local versions: {Versions}", packageInfo.Name, string.Join(",", versionsToAdd));
+                LogPackageUpdate(logger, packageInfo.Name, string.Join(",", versionsToAdd));
             }
         }
     }
@@ -228,4 +228,7 @@ public class PackageInfoProvider(IClusterDependencyStore clusterDependencyStore,
             packageInfo.AvailableUpdateVersion = packageInfo.GetHighestAvailableVersion();
         }
     }
+
+    [LoggerMessage(LogLevel.Warning, "Update package {Name} with local versions: {Versions}")]
+    private static partial void LogPackageUpdate(ILogger<PackageInfoProvider> logger, string name, string versions);
 }
