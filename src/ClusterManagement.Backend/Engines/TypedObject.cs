@@ -26,10 +26,10 @@ public sealed record TypedObject(string Type, [StringSyntax(StringSyntaxAttribut
 
     private static TypedObject CreateMandatory(Type type, object instance)
     {
+        var typeName = type.AssemblyQualifiedName ?? throw new InvalidOperationException("Could not get assembly qualified name for type.");
         TypeNameHandlingWrapper wrapper = new() { Instance = instance, };
         var jsonObject = (JsonObject)JsonSerializer.SerializeToNode(wrapper, JsonSetup.PreserveTypeOptions)!;
         var instanceJson = jsonObject[nameof(TypeNameHandlingWrapper.Instance)]!;
-        var typeName = type.AssemblyQualifiedName ?? throw new InvalidOperationException("Could not find 'Type' property in JSON. Maybe managed engine changed type name handling serialization.");
         var valueJson = instanceJson[nameof(Value)]?.ToString();
         return new(typeName, valueJson);
     }
