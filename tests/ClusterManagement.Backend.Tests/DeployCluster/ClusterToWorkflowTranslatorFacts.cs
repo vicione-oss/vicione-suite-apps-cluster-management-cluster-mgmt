@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using ClusterManagement.Backend.DeployCluster;
 using ClusterManagement.Backend.Engines;
 using ClusterManagement.Public.Designs;
@@ -44,7 +45,7 @@ public class ClusterToWorkflowTranslatorFacts
             functionBlockDesign.AddInput<double>(ourInputConnectorDesign);
             functionBlockDesign.AddOutput<double>(ourOutputConnectorDesign);
             functionBlockDesign.AddSetting<TimeSpan>(ourSettingDesign);
-            functionBlockDesign.AddVariable<ICollection<byte>>(ourVariableDesign);
+            functionBlockDesign.AddVariable<ICollection<IVehicle>>(ourVariableDesign);
             var emptyFunctionBlockDesign = FunctionBlockDesignBuilder.Create(emptyFunctionBlockDesignId, "Empty");
             emptyFunctionBlockDesign.SystemInputs.Clear();
             emptyFunctionBlockDesign.SystemOutputs.Clear();
@@ -104,8 +105,8 @@ public class ClusterToWorkflowTranslatorFacts
             mySetting.ValueChangedTime = new DateTime(2022, 5, 18, 15, 41, 56, DateTimeKind.Utc);
 
             var myVariable = myFunctionBlock.PersistentVariables.First(x => x.DesignId == ourVariableDesign);
-            builder.Editors.PersistentVariable.SetDefaultValue(myVariable, "\n"u8.ToArray());
-            builder.Editors.PersistentVariable.SetValue(myVariable, "\n"u8.ToArray());
+            builder.Editors.PersistentVariable.SetDefaultValue(myVariable, new List<IVehicle> { new Car(), });
+            builder.Editors.PersistentVariable.SetValue(myVariable, new List<IVehicle> { new Car(), new Truck(), });
             myVariable.ValueChangedTime = new DateTime(2022, 5, 18, 15, 39, 45, DateTimeKind.Utc);
 
             var otherFunctionBlockOnSameHost = builder.Editors.Container.AddFunctionBlock(otherContainer, ourFunctionBlockDesign, "otherFunctionBlockOnSameHost");
@@ -303,7 +304,24 @@ public class ClusterToWorkflowTranslatorFacts
                                 DesignId = ourVariableDesign,
                                 Timestamp = myVariable.ValueChangedTime,
                                 Id = myVariable.Id,
-                                Value = new(typeof(byte[]).AssemblyQualifiedName!, """{"$id":"1","$values":[{"$id":"2","Type":"System.Byte, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e","Value":"10"}]}"""),
+                                Value = new(typeof(List<IVehicle>).AssemblyQualifiedName!, MinifyJson("""
+                                {
+                                    "$id":"1",
+                                    "$values":
+                                    [
+                                        {
+                                            "$id":"2",
+                                            "Type":"ClusterManagement.Backend.Tests.DeployCluster.ClusterToWorkflowTranslatorFacts\u002BCreateWorkflow\u002BCar, ViciOne.Suite.ClusterManagement.Backend.Tests, Version=1.2.3.4, Culture=neutral, PublicKeyToken=null",
+                                            "Value":"{\u0022$id\u0022:\u00221\u0022}"
+                                        },
+                                        {
+                                            "$id":"3",
+                                            "Type":"ClusterManagement.Backend.Tests.DeployCluster.ClusterToWorkflowTranslatorFacts\u002BCreateWorkflow\u002BTruck, ViciOne.Suite.ClusterManagement.Backend.Tests, Version=1.2.3.4, Culture=neutral, PublicKeyToken=null",
+                                            "Value":"{\u0022$id\u0022:\u00221\u0022}"
+                                        }
+                                    ]
+                                }
+                                """)),
                             },
                         ],
                     },
@@ -481,6 +499,12 @@ public class ClusterToWorkflowTranslatorFacts
             });
             metadata.MqttRetainTopics.Should().HaveCount(3); // An andere Engine auf anderen Host senden + Setting + Variable
         }
+
+        private static string MinifyJson([StringSyntax(StringSyntaxAttribute.Json)] string input) => JsonSerializer.Serialize(JsonDocument.Parse(input));
+
+        public interface IVehicle { }
+        public sealed class Car : IVehicle { }
+        public sealed class Truck : IVehicle { }
 
         [Theory]
         [MemberData(nameof(ContainerStructures))]
