@@ -14,12 +14,12 @@
 
 - Improve async cancellation handling on client controls
 - Prevented local reloading after the cluster was saved
-- Updated .NET to version `10.0.5`
+- Updated .NET to version `10.0.6`
 - `AspNetCore.SassCompiler` package, update version to `1.99.0`
 - `MQTTnet` package, update to version `5.1.0.1559`
 - `System.IO.Abstractions`, updated to version `22.1.1`
 - `ViciOne.Cluster.Builder` package, update version to `1.0.0`
-- `ViciOne.Suite.Sdk` packages, update to version `2.0.0-ci2451533346`
+- `ViciOne.Suite.Sdk` packages, update to version `2.0.0-ci2455538948`
 - `ViciOne.Ui.ClusterEditor` package, update to `1.0.0-ci2451711671`
 - `ViciOne.Ui.Design`, update to `2.0.3`
 - `ViciOne.Ui.Localization` package, update version to `3.3.0`
