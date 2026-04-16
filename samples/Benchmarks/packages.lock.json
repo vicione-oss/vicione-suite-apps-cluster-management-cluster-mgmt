@@ -584,7 +584,7 @@
         "dependencies": {
           "Semver": "[3.0.0, )",
           "ViciOne.Suite.ClusterManagement.Public": "[2.0.0, )",
-          "ViciOne.TreeBuilder": "[1.1.0, )"
+          "ViciOne.TreeBuilder": "[1.1.1, )"
         }
       },
       "ViciOne.Suite.ClusterManagement.Public": {
@@ -735,9 +735,9 @@
       },
       "ViciOne.TreeBuilder": {
         "type": "CentralTransitive",
-        "requested": "[1.1.0, )",
-        "resolved": "1.1.0",
-        "contentHash": "DAyJy3VUvB8M3TEOec638c/1y+h1qelZSlozlD/4ZURUgnOsmUCcbvaxbXsCjfMFCttC1TvEeI3vET/3nIIzCQ==",
+        "requested": "[1.1.1, )",
+        "resolved": "1.1.1",
+        "contentHash": "MmqmvFwdFMAU0UjnAq4RS0Wwj1bN2+ySB80VIEwkp2iWZTDzT09tV8x//t9DerOfgRwlBJAp/NsrtuAPAmfu0w==",
         "dependencies": {
           "AngleSharp": "1.4.0",
           "YamlDotNet": "16.3.0"
