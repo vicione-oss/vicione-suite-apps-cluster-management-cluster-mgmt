@@ -24,7 +24,7 @@
 - `ViciOne.Ui.Design`, update to `2.0.3`
 - `ViciOne.Ui.Localization` package, update version to `3.3.0`
 - `ViciOne.Ui.MonochromeIcons.Assets` package, update version to `4.7.0`
-- `ViciOne.TreeBuilder` package, update version to `1.1.0`
+- `ViciOne.TreeBuilder` package, update version to `1.1.1`
 - Update Engine Host to `1.0.0`
 - Update Managed Engine to `1.0.0`
 - Update `ViciOne.Core.Dataflow.DataModel.Generation` to `1.0.0`
