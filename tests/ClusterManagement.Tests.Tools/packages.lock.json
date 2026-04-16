@@ -475,7 +475,7 @@
           "ViciOne.Core.Dataflow.DataModel.Generation": "[1.0.0, )",
           "ViciOne.Suite.ClusterManagement.Internal": "[2.0.0, )",
           "ViciOne.Suite.DataPort": "[0.30.0, )",
-          "ViciOne.Suite.Sdk.Backend": "[2.0.0-ci2455538948, )",
+          "ViciOne.Suite.Sdk.Backend": "[2.0.0, )",
           "ViciOne.Suite.System.DataPort": "[1.0.0, )"
         }
       },
@@ -491,7 +491,7 @@
         "type": "Project",
         "dependencies": {
           "ViciOne.Cluster.Builder": "[1.0.0, )",
-          "ViciOne.Suite.Sdk": "[2.0.0-ci2455538948, )"
+          "ViciOne.Suite.Sdk": "[2.0.0, )"
         }
       },
       "MassTransit.EntityFrameworkCore": {
@@ -577,9 +577,9 @@
       },
       "ViciOne.Suite.Sdk": {
         "type": "CentralTransitive",
-        "requested": "[2.0.0-ci2455538948, )",
-        "resolved": "2.0.0-ci2455538948",
-        "contentHash": "3edRhD4PVhuq0UHY7b/645h+0K4pKKgx+Bd+GnwcHhoubkY9qUlZxW2Dm0nZwBouE4ubB5e2aCnZXSV+kk5I5Q==",
+        "requested": "[2.0.0, )",
+        "resolved": "2.0.0",
+        "contentHash": "ZROvOnpFhLwIeYPY4UrbEtYlU3qNHflcwL6FrXoraR5h9r6H4d4lJ13Up50IdZ135KXRVQTQJOpDeidtUiKPUQ==",
         "dependencies": {
           "MassTransit.Abstractions": "8.5.9",
           "Microsoft.AspNetCore.Authorization": "10.0.6",
@@ -589,14 +589,14 @@
       },
       "ViciOne.Suite.Sdk.Backend": {
         "type": "CentralTransitive",
-        "requested": "[2.0.0-ci2455538948, )",
-        "resolved": "2.0.0-ci2455538948",
-        "contentHash": "btSAjJ7ehLkTMVhA5uHfZUXQmLgE6t/DJhhUaiDmRgKg4WWQH5uboKjV2sn+74FFKb7+/pUOPxV2k/ZKaGknHA==",
+        "requested": "[2.0.0, )",
+        "resolved": "2.0.0",
+        "contentHash": "JcToElzR6alVVsN7x21yfTJ/gT9ll3/QAW4vgECfNa8AqXiEXdSC7XgfHTmyKR9qEmnD7iQ+ykmny03aXKjs6Q==",
         "dependencies": {
           "Microsoft.EntityFrameworkCore.Relational": "10.0.6",
           "Microsoft.EntityFrameworkCore.Sqlite": "10.0.6",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "10.0.1",
-          "ViciOne.Suite.Sdk": "2.0.0-ci2455538948"
+          "ViciOne.Suite.Sdk": "2.0.0"
         }
       },
       "ViciOne.Suite.System.DataPort": {

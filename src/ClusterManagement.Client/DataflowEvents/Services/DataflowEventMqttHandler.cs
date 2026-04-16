@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using ClusterManagement.Client.Management.Extensions;
 using ClusterManagement.Public.DataflowEvents;
@@ -156,9 +157,9 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
             .WithRetainFlag()
             .WithJsonPayload(serializedPaylod)
             .WithUserProperty(MqttUserProperties.Timestamp, DateTime.UtcNow)
-            .WithUserProperty(MqttUserProperties.Type, valueType)
-            .WithUserProperty(MqttUserProperties.Validity, "1")
-            .WithUserProperty(MqttUserProperties.EngineCycle, "1")
+            .WithUserProperty(MqttUserProperties.Type, Encoding.UTF8.GetBytes(valueType))
+            .WithUserProperty(MqttUserProperties.Validity, Encoding.UTF8.GetBytes("1"))
+            .WithUserProperty(MqttUserProperties.EngineCycle, Encoding.UTF8.GetBytes("1"))
             .WithTopic(eventId.ToString())
             .Build();
 

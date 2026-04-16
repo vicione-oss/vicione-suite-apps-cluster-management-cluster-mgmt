@@ -142,7 +142,7 @@ public class MqttNetRpcClientFacts
                 .PublishAsync(Arg.Is<MqttApplicationMessage>(m => m.Topic == "request"), Arg.Any<CancellationToken>())).Do(x => mqttClient
                 .ReceiveApplicationMessage(x, (publish, receive) => receive
                     .WithTopic("response")
-                    .WithPayload("Hello Moritz.")                    
+                    .WithPayload("Hello Moritz.")
                     .WithUserProperty("Status", Encoding.UTF8.GetBytes("ok"))
                     .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
                     .WithCorrelationData([])));

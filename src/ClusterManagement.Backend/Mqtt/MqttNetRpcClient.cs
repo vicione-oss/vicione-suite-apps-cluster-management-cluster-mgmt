@@ -2,6 +2,7 @@
 using System.Text;
 using Microsoft.Extensions.Options;
 using MQTTnet;
+using MQTTnet.Packets;
 using MQTTnet.Protocol;
 
 namespace ClusterManagement.Backend.Mqtt;
@@ -87,7 +88,7 @@ internal sealed class MqttNetRpcClient(IOptions<MqttNetRpcClientOptions> options
         catch { }
         if (_waitingCalls.TryRemove(correlationData, out var awaitable))
         {
-            var status = eventArgs.ApplicationMessage.UserProperties.Find(_ => string.CompareOrdinal(_.Name, "Status") == 0)?.Value;
+            var status = eventArgs.ApplicationMessage.UserProperties.Find(_ => string.CompareOrdinal(_.Name, "Status") == 0)?.ReadValueAsString();
             if (status is null)
             {
                 awaitable.TrySetException(new InvalidOperationException("MqttRpcResponse does not contain status."));
