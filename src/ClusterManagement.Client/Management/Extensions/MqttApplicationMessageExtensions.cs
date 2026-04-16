@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Text;
 using MQTTnet;
 using MQTTnet.Packets;
 using MQTTnet.Protocol;
@@ -22,11 +23,11 @@ public static class MqttApplicationMessageExtensions
         return userProperties.FirstOrDefault(_ => _.Name.Equals(name2, comparison));
     }
     public static MqttApplicationMessageBuilder WithUserProperty(this MqttApplicationMessageBuilder builder, string name, DateTime dateTime)
-        => builder.WithUserProperty(name, dateTime.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+        => builder.WithUserProperty(name, Encoding.UTF8.GetBytes(dateTime.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture)));
 
     public static MqttApplicationMessageBuilder WithJsonPayload(this MqttApplicationMessageBuilder builder, byte[] json)
         => builder.WithPayload(json).WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData).WithContentType("application/json");
 
     public static DateTime GetDateTime(this MqttUserProperty userProperty)
-        => DateTime.ParseExact(userProperty.Value, "O", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+        => DateTime.ParseExact(userProperty.ReadValueAsString(), "O", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
 }

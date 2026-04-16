@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 - Unreleased
+## 2.0.0 - 2026-04-16
 
 ### Added
 
@@ -19,8 +19,8 @@
 - `MQTTnet` package, update to version `5.1.0.1559`
 - `System.IO.Abstractions`, updated to version `22.1.1`
 - `ViciOne.Cluster.Builder` package, update version to `1.0.0`
-- `ViciOne.Suite.Sdk` packages, update to version `2.0.0-ci2455538948`
-- `ViciOne.Ui.ClusterEditor` package, update to `1.0.0-ci2451711671`
+- `ViciOne.Suite.Sdk` packages, update to version `2.0.0`
+- `ViciOne.Ui.ClusterEditor` package, update to `1.0.0-ci2457140352`
 - `ViciOne.Ui.Design`, update to `2.0.3`
 - `ViciOne.Ui.Localization` package, update version to `3.3.0`
 - `ViciOne.Ui.MonochromeIcons.Assets` package, update version to `4.7.0`
