@@ -45,6 +45,10 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
             foreach (var availableEvent in _availableEvents.Values)
                 await _mqttHandler.Unsubscribe(availableEvent);
         }
+
+        foreach (var runtimeEvent in _dataflowRuntimeEvents.Values)
+            runtimeEvent.Dispose();
+
         _dataflowRuntimeEvents.Clear();
 
         await _mqttHandler.Disconnect();
@@ -114,10 +118,12 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
             throw new ArgumentException($"Event '{eventId}' is not readable");
 
         var dataflowRuntimeEvent = _dataflowRuntimeEvents.GetOrAdd(eventId, new DataflowRuntimeEvent() { EventId = eventId, });
-        dataflowRuntimeEvent.Subscriptions.Add(handler);
+
+        var wasFirstSubscription = dataflowRuntimeEvent.SubscriptionCount == 0;
+        dataflowRuntimeEvent.AddSubscription(handler);
 
         // only subscribe the topic if we have not done it for another handle already
-        if (dataflowRuntimeEvent.Subscriptions.Count == 1)
+        if (wasFirstSubscription)
         {
             await _mqttHandler.Subscribe(dataflowEvent);
 
@@ -133,33 +139,35 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
 
     private async Task OnEventReceivedAsync(DataflowEventArgs arg)
     {
-        if (_dataflowRuntimeEvents.TryGetValue(arg.EventId, out var dataflowRuntimeEvent))
-        {
-            dataflowRuntimeEvent.Timestamp = arg.Timestamp;
-            try
-            {
-                var message = Encoding.UTF8.GetString(arg.Message.Payload);
-                dataflowRuntimeEvent.Value = message;
-                await Task.WhenAll([.. dataflowRuntimeEvent.Subscriptions.Select(h => h(arg.Timestamp, message))]);
-            }
-            catch (Exception ex)
-            {
-                LogReceivedEvent(_logger, ex, arg.EventId);
-            }
-        }
-        else
+        if (!_dataflowRuntimeEvents.TryGetValue(arg.EventId, out var dataflowRuntimeEvent))
         {
             LogMissingEventHandle(_logger, arg.EventId);
+            return;
+        }
+
+        dataflowRuntimeEvent.Timestamp = arg.Timestamp;
+
+        try
+        {
+            var message = Encoding.UTF8.GetString(arg.Message.Payload);
+            dataflowRuntimeEvent.Value = message;
+
+            var subscriptionSnapshot = dataflowRuntimeEvent.GetSubscriptionSnapshot();
+            await Task.WhenAll([.. subscriptionSnapshot.Select(h => h(arg.Timestamp, message))]);
+        }
+        catch (Exception ex)
+        {
+            LogReceivedEvent(_logger, ex, arg.EventId);
         }
     }
 
     private async Task Unsubscribe((DataflowRuntimeEvent, Func<DateTime, string?, Task>) subscription)
     {
         var (dataflowRuntimeEvent, handler) = subscription;
-        dataflowRuntimeEvent.Subscriptions.Remove(handler);
+        dataflowRuntimeEvent.RemoveSubscription(handler);
 
         // only unsubscribe if we remove the last subscription for the topic
-        if (dataflowRuntimeEvent.Subscriptions.Count == 0)
+        if (dataflowRuntimeEvent.SubscriptionCount == 0)
         {
             if (_availableEvents?.TryGetValue(dataflowRuntimeEvent.EventId, out var dataflowEvent) == true)
             {

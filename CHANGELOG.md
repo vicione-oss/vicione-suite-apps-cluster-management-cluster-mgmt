@@ -6,6 +6,11 @@
 
 - `ViciOne.Ui.ClusterEditor` package, update to `1.0.0-ci2471022525`
 
+### Fixed
+
+- Thread-safety race conditions in event subscriptions when rapidly changing tree selections
+- 'NullReferenceException' and 'InvalidOperationException' in 'DataflowEventBroker' by adding SafeInvokeHandler and ReaderWriterLockSlim protection
+
 ## 2.0.0 - 2026-04-16
 
 ### Added
