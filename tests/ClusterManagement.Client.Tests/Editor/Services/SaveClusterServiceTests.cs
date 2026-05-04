@@ -65,7 +65,7 @@ public class SaveClusterServiceTests
         };
 
         // Assert
-        _ = _clusterService.Received().CommitChange(builder.Cluster, publishOptions, Arg.Any<CancellationToken>());
+        _ = _clusterService.Received(1).CommitChange(builder.Cluster, publishOptions, Arg.Any<CancellationToken>());
     }
 
     [Fact]
