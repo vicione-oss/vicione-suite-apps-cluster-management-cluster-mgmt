@@ -86,12 +86,16 @@ internal sealed class ClusterService :
         _logger.LogElapsedTime("Serializing cluster", stopwatch.Elapsed);
 
         stopwatch.Restart();
-        var command = new CommitClusterChange(compressedCluster, new CommitClusterMetaInfo(cluster), options);
-        await Mediator.Send(command, cancellationToken);
-        stopwatch.Stop();
-        _logger.LogElapsedTime($"Sending {nameof(CommitClusterChange)} command", stopwatch.Elapsed);
-
-        return await SendAndWaitForCompletion(command, cancellationToken);
+        try
+        {
+            var command = new CommitClusterChange(compressedCluster, new CommitClusterMetaInfo(cluster), options);
+            return await SendAndWaitForCompletion(command, cancellationToken);
+        }
+        finally
+        {
+            stopwatch.Stop();
+            _logger.LogElapsedTime($"Sending {nameof(CommitClusterChange)} command", stopwatch.Elapsed);
+        }
     }
 
     public async Task<IClusterServiceResult> Remove(Guid clusterId, Version version, CancellationToken cancellationToken = default)

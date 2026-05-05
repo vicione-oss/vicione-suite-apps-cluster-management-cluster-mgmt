@@ -10,6 +10,7 @@
 
 - Thread-safety race conditions in event subscriptions when rapidly changing tree selections
 - 'NullReferenceException' and 'InvalidOperationException' in 'DataflowEventBroker' by adding SafeInvokeHandler and ReaderWriterLockSlim protection
+- Creates two new cluster versions on save in cluster editor
 
 ## 2.0.0 - 2026-04-16
 
