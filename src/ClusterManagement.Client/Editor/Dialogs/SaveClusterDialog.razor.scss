@@ -1,18 +1,10 @@
-.controls-container {
-    align-items: center;
-    display: grid;
-    justify-items: end;
-    padding: 32px;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: repeat(3, 24px);
-    grid-row-gap: 16px;
-
-    & span {
-        justify-self: start;
+.layout-container {
+    ::deep .settings-field .content-container {
+        padding-right: 32px;
     }
 
-    > ::deep input {
-        justify-self: stretch;
-        text-align: right;
+    ::deep .settings-information {
+        padding-right: 32px;
+        max-width: 415px; /* long text resizes dialog otherwise */
     }
 }
