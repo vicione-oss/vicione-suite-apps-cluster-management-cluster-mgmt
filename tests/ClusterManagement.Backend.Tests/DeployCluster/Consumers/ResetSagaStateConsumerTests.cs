@@ -1,7 +1,7 @@
 ﻿using ClusterManagement.Backend.DeployCluster.Consumers;
 using ClusterManagement.Backend.DeployCluster.Persistence;
 using ClusterManagement.Backend.DeployCluster.StateMachines;
-using ClusterManagement.Public.Iodds.Commands;
+using ClusterManagement.Internal.Commands;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

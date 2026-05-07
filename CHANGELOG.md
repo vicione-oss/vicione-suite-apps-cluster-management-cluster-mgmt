@@ -5,6 +5,7 @@
 ### Changed
 
 - `ViciOne.Ui.ClusterEditor` package, update to `1.0.0-ci2471022525`
+- `SaveClusterDialog`, all fields get disabled while saving in progress
 
 ### Fixed
 

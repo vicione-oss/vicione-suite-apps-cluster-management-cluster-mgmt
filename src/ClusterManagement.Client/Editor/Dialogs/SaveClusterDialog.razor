@@ -1,6 +1,6 @@
-﻿@using ViciOne.Ui.Blazor.Components.Dialog.Components
+﻿@using Sdk.Client.Components.Settings
+@using ViciOne.Ui.Blazor.Components.Dialog.Components
 @using ViciOne.Ui.Blazor.Components.CheckBox
-@using ViciOne.Ui.Blazor.Components.TextBox
 @using ViciOne.Ui.Localization.Resources
 
 <Dialog @ref="_refDialog"
@@ -8,32 +8,34 @@
         HeaderText="@Localization.SaveClusterDialog.Header"
         Height="350"
         Width="650">
-    <Body>
-        @if (!SaveService.IsWorking)
-        {
-            <div class="save-dialog-content">
-                <div class="controls-container">
-                    <span>
-                        @CommonVocabulary.Name
-                    </span>
-                    <TextBox @bind-Value="SaveService.Name" />
+    <Body>        
+        <div class="layout-container">
+            <SettingsLayout>
+                <SettingsGroup Title="@CommonVocabulary.PropertyPlural">
+                    <SettingsField Label="@CommonVocabulary.Name">
+                        <SettingsFieldTextBox Placeholder="@CommonVocabulary.Name" @bind-Value="SaveService.Name" Enabled="@(!SaveService.IsWorking)" />
+                    </SettingsField>
 
-                    <span>
-                        @CommonVocabulary.Description
-                    </span>
-                    <TextBox @bind-Value="SaveService.Description" />
+                    <SettingsField Label="@CommonVocabulary.Description">
+                        <SettingsFieldTextBox Placeholder="@CommonVocabulary.Description" @bind-Value="SaveService.Description" Enabled="@(!SaveService.IsWorking)" />
+                    </SettingsField>
 
-                    <span>
-                        @Localization.SaveClusterDialog.CleanupDependencies
-                    </span>
-                    <CheckBox @bind-Value="SaveService.StoreOptions.CleanupDependencies" />
-                </div>
-            </div>
-        }
-        @if (SaveService.ConfirmationMessage?.IsError == true)
-        {
-            <div class="alert alert-warning mx-3 mb-0 p-2" role="alert">@SaveService.ConfirmationMessage?.Message</div>
-        }
+                    <SettingsField Label="@Localization.SaveClusterDialog.CleanupDependencies">
+                        <CheckBox @bind-Value="SaveService.StoreOptions.CleanupDependencies" Enabled="@(!SaveService.IsWorking)" />
+                    </SettingsField>                    
+                </SettingsGroup>
+                
+                @if (SaveService.ConfirmationMessage?.IsError == true)
+                {
+                    <SettingsGroup Title="@CommonVocabulary.Error">
+                        <SettingsInformation>
+                            @SaveService.ConfirmationMessage?.Message
+                        </SettingsInformation>
+                    </SettingsGroup>
+                }
+            </SettingsLayout>
+        </div>
+        
     </Body>
 
     <Footer>
