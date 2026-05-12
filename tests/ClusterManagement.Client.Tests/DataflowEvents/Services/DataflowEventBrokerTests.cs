@@ -1,5 +1,6 @@
 ﻿using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Public.DataflowEvents;
+using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
@@ -201,6 +202,97 @@ public class DataflowEventBrokerTests
 
             // Assert
             await _mqttHandler.Received().PublishValue(_inputEvent.EventId, value, _inputEvent.ValueType, Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Should_throw_for_non_writable_event()
+        {
+            // Arrange
+            var broker = CreateEventBroker(_inputEvent, _outputEvent);
+
+            // Act
+            var action = () => broker.SetValue(_outputEvent.EventId, "value", TestContext.Current.CancellationToken);
+
+            // Assert
+            await action.Should().ThrowAsync<ArgumentException>().WithMessage("*not writable*");
+        }
+
+        [Fact]
+        public async Task Should_throw_for_unknown_event()
+        {
+            // Arrange
+            var broker = CreateEventBroker(_inputEvent, _outputEvent);
+
+            // Act
+            var action = () => broker.SetValue(Guid.NewGuid(), "value", TestContext.Current.CancellationToken);
+
+            // Assert
+            await action.Should().ThrowAsync<ArgumentException>().WithMessage("*does not exist*");
+        }
+    }
+
+    public class SubscribeNegativePaths : DataflowEventBrokerTests
+    {
+        [Fact]
+        public async Task Should_throw_for_non_readable_event()
+        {
+            // Arrange
+            var broker = CreateEventBroker(_inputEvent, _outputEvent);
+
+            // Act
+            var action = () => broker.Subscribe(_inputEvent.EventId, _handler);
+
+            // Assert
+            await action.Should().ThrowAsync<ArgumentException>().WithMessage("*not readable*");
+        }
+
+        [Fact]
+        public async Task Should_throw_for_unknown_event()
+        {
+            // Arrange
+            var broker = CreateEventBroker(_inputEvent, _outputEvent);
+
+            // Act
+            var action = () => broker.Subscribe(Guid.NewGuid(), _handler);
+
+            // Assert
+            await action.Should().ThrowAsync<ArgumentException>().WithMessage("*does not exist*");
+        }
+    }
+
+    public class ConsumeClusterUpdate : DataflowEventBrokerTests
+    {
+        [Fact]
+        public async Task Should_invalidate_cache_and_trigger_reconnect()
+        {
+            // Arrange
+            var broker = CreateEventBroker(_inputEvent, _outputEvent);
+            _ = await broker.GetEvents(); // prime cache
+            var statusEvent = new ClusterUpdateCompleted(Guid.NewGuid(), Guid.NewGuid(), new Version(0, 1, 0), TimeSpan.FromSeconds(1));
+            var context = new ClientContext<ClusterUpdateCompleted>(statusEvent, Guid.NewGuid());
+
+            // Act
+            await broker.Consume(context, CancellationToken.None);
+
+            // Assert — reconnect is triggered on the mqtt handler
+            await _mqttHandler.Received(1).ResetAndReconnect(Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Should_reload_events_after_cache_invalidation()
+        {
+            // Arrange
+            var broker = CreateEventBroker(_inputEvent, _outputEvent);
+            _ = await broker.GetEvents(); // prime cache
+            var statusEvent = new ClusterUpdateCompleted(Guid.NewGuid(), Guid.NewGuid(), new Version(0, 1, 0), TimeSpan.FromSeconds(1));
+            var context = new ClientContext<ClusterUpdateCompleted>(statusEvent, Guid.NewGuid());
+
+            // Act — Consume fires reconnect; since mock returns synchronously, task completes immediately
+            await broker.Consume(context, CancellationToken.None);
+            var events = await broker.GetEvents();
+
+            // Assert — mediator should have been called again (2 total: initial + after invalidation)
+            await _mediator.Received(2).Request<GetDataflowEventsRequest, GetDataflowEventsResponse>(Arg.Any<GetDataflowEventsRequest>(), Arg.Any<CancellationToken>());
         }
     }
 }
