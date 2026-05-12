@@ -7,4 +7,6 @@ internal interface IDataflowEventMqttClientProvider
     IMqttClient CreateMqttClient();
 
     Task<MqttClientOptions> CreateSystemMqttClientOptions();
+
+    void ResetConnection();
 }

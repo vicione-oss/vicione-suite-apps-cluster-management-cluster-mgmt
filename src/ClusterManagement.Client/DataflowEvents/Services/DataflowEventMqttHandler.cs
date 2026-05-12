@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -16,6 +17,9 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
     private const int ReconnectIntervalSeconds = 5;
     private static readonly TimeSpan s_reconnectInterval = TimeSpan.FromSeconds(ReconnectIntervalSeconds);
 
+    private static readonly byte[] s_validityOne = "1"u8.ToArray();
+    private static readonly byte[] s_engineCycleOne = "1"u8.ToArray();
+
     private PeriodicTimer? _reconnectTimer;
     private Task? _reconnectLoopTask;
     private CancellationTokenSource? _reconnectCancellation;
@@ -23,6 +27,8 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
     private readonly ILogger<DataflowEventMqttHandler> _logger = logger;
     private readonly MqttQualityOfServiceLevel _subscriptionServiceLevel = MqttQualityOfServiceLevel.AtMostOnce;
     private readonly MqttQualityOfServiceLevel _writeServiceLevel = MqttQualityOfServiceLevel.AtMostOnce;
+    private readonly ConcurrentDictionary<string, IDataflowEvent> _activeTopics = new();
+    private readonly SemaphoreSlim _resetSemaphore = new(1, 1);
 
     private IMqttClient? _client;
     private MqttClientOptions? _options;
@@ -47,24 +53,8 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
 
     public async ValueTask DisposeAsync()
     {
-        if (_client is null)
-            return;
-
-        await StopReconnectLoop();
-        _client.Dispose();
-
-        try
-        {
-            if (_reconnectCancellation is not null)
-            {
-                await _reconnectCancellation.CancelAsync();
-                _reconnectCancellation.Dispose();
-            }
-        }
-        catch (ObjectDisposedException)
-        {
-            // Ignore: CancellationTokenSource was already disposed.
-        }
+        await Disconnect();
+        _resetSemaphore.Dispose();
     }
 
     private async Task<bool> EnsureConnected(CancellationToken cancellationToken = default)
@@ -131,8 +121,18 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
         if (!await EnsureConnected(cancellationToken))
             throw new InvalidOperationException($"Failed to subscribe to topic {dataflowEvent.EventId} because connection to event broker failed");
 
-        // todo check result items for success?
-        _ = await _client!.SubscribeAsync(dataflowEvent.EventId.ToString(), _subscriptionServiceLevel, cancellationToken).ConfigureAwait(false);
+        var topic = dataflowEvent.EventId.ToString();
+        _activeTopics[topic] = dataflowEvent;
+
+        var result = await _client!.SubscribeAsync(topic, _subscriptionServiceLevel, cancellationToken).ConfigureAwait(false);
+        if (result?.Items is not null)
+        {
+            foreach (var item in result.Items)
+            {
+                if (item.ResultCode > MqttClientSubscribeResultCode.GrantedQoS2)
+                    LogSubscribeResultCodeFailed(_logger, topic, item.ResultCode);
+            }
+        }
     }
 
     public async Task Unsubscribe(IDataflowEvent dataflowEvent, CancellationToken cancellationToken = default)
@@ -140,8 +140,18 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
         if (!await EnsureConnected(cancellationToken))
             throw new InvalidOperationException($"Failed to unsubscribe topic {dataflowEvent.EventId} because connection to event broker failed");
 
-        // todo check result items for success?
-        _ = await _client!.UnsubscribeAsync(dataflowEvent.EventId.ToString(), cancellationToken).ConfigureAwait(false);
+        var topic = dataflowEvent.EventId.ToString();
+        _activeTopics.TryRemove(topic, out _);
+
+        var result = await _client!.UnsubscribeAsync(topic, cancellationToken).ConfigureAwait(false);
+        if (result?.Items is not null)
+        {
+            foreach (var item in result.Items)
+            {
+                if (item.ResultCode != MqttClientUnsubscribeResultCode.Success)
+                    LogUnsubscribeResultCodeFailed(_logger, topic, item.ResultCode);
+            }
+        }
     }
 
     public async Task PublishValue(Guid eventId, string? value, string valueType, CancellationToken cancellationToken = default)
@@ -149,22 +159,23 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
         if (!await EnsureConnected(cancellationToken))
             throw new InvalidOperationException($"Failed to set value on topic {eventId} because connection to event broker failed");
 
-        if (!CanSerializeValueType(value, valueType, out var serializedPaylod))
+        if (!CanSerializeValueType(value, valueType, out var serializedPayload))
             return;
 
         var message = new MqttApplicationMessageBuilder()
             .WithQualityOfServiceLevel(_writeServiceLevel)
             .WithRetainFlag()
-            .WithJsonPayload(serializedPaylod)
+            .WithJsonPayload(serializedPayload)
             .WithUserProperty(MqttUserProperties.Timestamp, DateTime.UtcNow)
             .WithUserProperty(MqttUserProperties.Type, Encoding.UTF8.GetBytes(valueType))
-            .WithUserProperty(MqttUserProperties.Validity, Encoding.UTF8.GetBytes("1"))
-            .WithUserProperty(MqttUserProperties.EngineCycle, Encoding.UTF8.GetBytes("1"))
+            .WithUserProperty(MqttUserProperties.Validity, s_validityOne)
+            .WithUserProperty(MqttUserProperties.EngineCycle, s_engineCycleOne)
             .WithTopic(eventId.ToString())
             .Build();
 
-        // todo check result items for success?
-        _ = await _client!.PublishAsync(message, cancellationToken).ConfigureAwait(false);
+        var result = await _client!.PublishAsync(message, cancellationToken).ConfigureAwait(false);
+        if (result is not null && !result.IsSuccess)
+            LogPublishResultCodeFailed(_logger, eventId, result.ReasonCode);
     }
 
     /// <summary>
@@ -222,7 +233,10 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
                     try
                     {
                         if (!await _client.TryPingAsync(token))
+                        {
                             await _client.ConnectAsync(_options, token);
+                            await ResubscribeActiveTopics(token);
+                        }
                     }
                     catch (OperationCanceledException)
                     {
@@ -281,6 +295,54 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
         _reconnectCancellation = null;
     }
 
+    private async Task ResubscribeActiveTopics(CancellationToken cancellationToken)
+    {
+        foreach (var (topic, _) in _activeTopics)
+        {
+            try
+            {
+                _ = await _client!.SubscribeAsync(topic, _subscriptionServiceLevel, cancellationToken).ConfigureAwait(false);
+                LogResubscribedTopic(_logger, topic);
+            }
+            catch (Exception ex)
+            {
+                LogResubscribeTopicFailed(_logger, ex, topic);
+            }
+        }
+    }
+
+    public async Task ResetAndReconnect(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await _resetSemaphore.WaitAsync(cancellationToken);
+            try
+            {
+                await Disconnect();
+
+                _options = null;
+                mqttProvider.ResetConnection();
+
+                if (!await EnsureConnected(cancellationToken))
+                    return;
+
+                await ResubscribeActiveTopics(cancellationToken);
+            }
+            finally
+            {
+                _resetSemaphore.Release();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Nothing to do here, return gracefully
+        }
+        catch (ObjectDisposedException)
+        {
+            // Semaphore or CancellationTokenSource already disposed, nothing we can do, return gracefully
+        }
+    }
+
     /// <summary>
     /// copy of https://gitlab.com/vicione-oss/vicione/runtime/engine-host/-/blob/master/src/CommunicationProviders/Communication/MqttUserProperties.cs
     /// </summary>
@@ -321,4 +383,19 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
 
     [LoggerMessage(LogLevel.Error, "Received message on '{Topic}' without UserProperties.")]
     private static partial void UserPropertiesMissing(ILogger logger, string topic);
+
+    [LoggerMessage(LogLevel.Debug, "Resubscribed to topic '{Topic}' after reconnect.")]
+    private static partial void LogResubscribedTopic(ILogger logger, string topic);
+
+    [LoggerMessage(LogLevel.Warning, "Failed to resubscribe to topic '{Topic}' after reconnect.")]
+    private static partial void LogResubscribeTopicFailed(ILogger logger, Exception exception, string topic);
+
+    [LoggerMessage(LogLevel.Warning, "MQTT subscribe failed for topic '{Topic}' with result code {ResultCode}.")]
+    private static partial void LogSubscribeResultCodeFailed(ILogger logger, string topic, MqttClientSubscribeResultCode resultCode);
+
+    [LoggerMessage(LogLevel.Warning, "MQTT unsubscribe failed for topic '{Topic}' with result code {ResultCode}.")]
+    private static partial void LogUnsubscribeResultCodeFailed(ILogger logger, string topic, MqttClientUnsubscribeResultCode resultCode);
+
+    [LoggerMessage(LogLevel.Warning, "MQTT publish failed for event '{EventId}' with reason code {ReasonCode}.")]
+    private static partial void LogPublishResultCodeFailed(ILogger logger, Guid eventId, MqttClientPublishReasonCode reasonCode);
 }

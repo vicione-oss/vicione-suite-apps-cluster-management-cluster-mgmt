@@ -18,11 +18,14 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
     private readonly IUiMediator _mediator;
     private readonly IDataflowEventMqttHandler _mqttHandler;
     private readonly ILogger<DataflowEventBroker> _logger;
+    private readonly SemaphoreSlim _cacheSemaphore = new(1, 1);
     private Dictionary<Guid, IDataflowEvent>? _availableEvents;
     private ClusterInfo? _currentClusterInfo;
     private readonly ConcurrentDictionary<Guid, DataflowRuntimeEvent> _dataflowRuntimeEvents = [];
     private readonly AutoDisposeList<IDisposable> _mediatorHandles = [];
-    private bool _isCacheInvalid;
+    private CancellationTokenSource? _reconnectCts;
+    private Task? _reconnectTask;
+    private volatile bool _isCacheInvalid;
 
     public DataflowEventBroker(IUiMediator mediator, IDataflowEventMqttHandler mqttHandler, ILogger<DataflowEventBroker> logger)
     {
@@ -38,49 +41,99 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
     {
         _mediatorHandles.Dispose();
 
+        var cts = Interlocked.Exchange(ref _reconnectCts, null);
+        cts?.Cancel();
+        cts?.Dispose();
+
+        var pendingReconnect = Interlocked.Exchange(ref _reconnectTask, null);
+        if (pendingReconnect is not null)
+        {
+            try { await pendingReconnect; }
+            catch (OperationCanceledException) { }
+        }
+
         _mqttHandler.EventReceivedAsync -= OnEventReceivedAsync;
 
         if (_availableEvents is not null)
         {
-            foreach (var availableEvent in _availableEvents.Values)
-                await _mqttHandler.Unsubscribe(availableEvent);
-        }
+            foreach (var runtimeEvent in _dataflowRuntimeEvents.Values)
+            {
+                if (!_availableEvents.TryGetValue(runtimeEvent.EventId, out var dataflowEvent))
+                    continue;
 
-        foreach (var runtimeEvent in _dataflowRuntimeEvents.Values)
-            runtimeEvent.Dispose();
+                try
+                {
+                    await _mqttHandler.Unsubscribe(dataflowEvent);
+                }
+                catch (Exception ex)
+                {
+                    LogUnsubscribeDuringDisposeFailed(_logger, ex, dataflowEvent.EventId);
+                }
+            }
+        }
 
         _dataflowRuntimeEvents.Clear();
 
         await _mqttHandler.Disconnect();
+
+        _cacheSemaphore.Dispose();
     }
 
     public async Task<ClusterInfo?> GetCurrentClusterInfo()
-        => _currentClusterInfo ??= await LoadActiveClusterInfo();
-
-    private async Task<IEnumerable<IDataflowEvent>> UpdateEventCache()
     {
-        // todo check cluster id + version when deployment changed
+        if (_currentClusterInfo is not null)
+            return _currentClusterInfo;
+
+        await _cacheSemaphore.WaitAsync();
+        try
+        {
+#pragma warning disable CA1508 // False positive: concurrent double-check pattern
+            if (_currentClusterInfo is not null)
+                return _currentClusterInfo;
+#pragma warning restore CA1508
+
+            return _currentClusterInfo = await LoadActiveClusterInfo();
+        }
+        finally
+        {
+            _cacheSemaphore.Release();
+        }
+    }
+
+    private async Task<IReadOnlyCollection<IDataflowEvent>> UpdateEventCache(CancellationToken cancellationToken = default)
+    {
         if (_availableEvents is not null && !_isCacheInvalid)
             return _availableEvents.Values;
 
-        var clusterInfo = await GetCurrentClusterInfo();
-        if (clusterInfo is null)
-            return [];
+        await _cacheSemaphore.WaitAsync(cancellationToken);
+        try
+        {
+            if (_availableEvents is not null && !_isCacheInvalid)
+                return _availableEvents.Values;
 
-        // later on we could select events related to a dataflow
-        var request = new GetDataflowEventsRequest { ClusterId = clusterInfo.Id };
-        var response = await _mediator.Request<GetDataflowEventsRequest, GetDataflowEventsResponse>(request);
-        if (response.RequestError is not null)
-            return [];
+            _currentClusterInfo ??= await LoadActiveClusterInfo();
+            if (_currentClusterInfo is null)
+                return [];
 
-        var keyValuePairs = response.Results
-            .OrderBy(k => k.Name)
-            .Select(k => new KeyValuePair<Guid, IDataflowEvent>(k.EventId, k));
+            // later on we could select events related to a dataflow
+            var request = new GetDataflowEventsRequest { ClusterId = _currentClusterInfo.Id };
+            var response = await _mediator.Request<GetDataflowEventsRequest, GetDataflowEventsResponse>(request, cancellationToken);
+            if (response.RequestError is not null)
+                return [];
 
-        _availableEvents = new Dictionary<Guid, IDataflowEvent>(keyValuePairs);
-        _isCacheInvalid = false;
+            var keyValuePairs = response.Results
+                .OrderBy(k => k.Name)
+                .Select(k => new KeyValuePair<Guid, IDataflowEvent>(k.EventId, k));
 
-        return _availableEvents.Values;
+            _availableEvents = new Dictionary<Guid, IDataflowEvent>(keyValuePairs);
+            _isCacheInvalid = false;
+
+            return _availableEvents.Values;
+        }
+        finally
+        {
+            _cacheSemaphore.Release();
+        }
     }
 
     private async Task<ClusterInfo?> LoadActiveClusterInfo()
@@ -96,17 +149,15 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
         return response.Results.FirstOrDefault(k => k.IsActive);
     }
 
-    public async Task<IReadOnlyCollection<IDataflowEvent>> GetEvents()
+    public async Task<IReadOnlyCollection<IDataflowEvent>> GetEvents(CancellationToken cancellationToken = default)
     {
         // retrieve events (connectors with EventEnabled=true)
-        var clusterEvents = await UpdateEventCache();
-
-        return clusterEvents.ToList().AsReadOnly();
+        return await UpdateEventCache(cancellationToken);
     }
 
-    public async Task<IAsyncDisposable> Subscribe(Guid eventId, Func<DateTime, string?, Task> handler)
+    public async Task<IAsyncDisposable> Subscribe(Guid eventId, Func<DateTime, string?, Task> handler, CancellationToken cancellationToken = default)
     {
-        _ = await UpdateEventCache();
+        _ = await UpdateEventCache(cancellationToken);
 
         if (_availableEvents is null)
             throw new InvalidOperationException($"Failed to init events");
@@ -117,43 +168,68 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
         if (!dataflowEvent.CanRead)
             throw new ArgumentException($"Event '{eventId}' is not readable");
 
-        var dataflowRuntimeEvent = _dataflowRuntimeEvents.GetOrAdd(eventId, new DataflowRuntimeEvent() { EventId = eventId, });
+        var runtimeEvent = _dataflowRuntimeEvents.GetOrAdd(eventId, _ => new DataflowRuntimeEvent { EventId = eventId });
+        var count = runtimeEvent.AddSubscription(handler);
 
-        var wasFirstSubscription = dataflowRuntimeEvent.SubscriptionCount == 0;
-        dataflowRuntimeEvent.AddSubscription(handler);
-
-        // only subscribe the topic if we have not done it for another handle already
-        if (wasFirstSubscription)
+        if (count == 1)
         {
-            await _mqttHandler.Subscribe(dataflowEvent);
+            await _mqttHandler.Subscribe(dataflowEvent, cancellationToken);
 
             LogSubscribedEvent(_logger, dataflowEvent.EventId);
         }
-        else if (dataflowRuntimeEvent.Timestamp.HasValue)
+        else if (runtimeEvent.Timestamp.HasValue)
         {
-            await handler(dataflowRuntimeEvent.Timestamp.Value, dataflowRuntimeEvent.Value);
+            await handler(runtimeEvent.Timestamp.Value, runtimeEvent.Value);
         }
 
-        return AsyncDisposable.Create((dataflowRuntimeEvent, handler), Unsubscribe);
+        return AsyncDisposable.Create((runtimeEvent, handler), Unsubscribe);
     }
 
     private async Task OnEventReceivedAsync(DataflowEventArgs arg)
     {
-        if (!_dataflowRuntimeEvents.TryGetValue(arg.EventId, out var dataflowRuntimeEvent))
+        if (!_dataflowRuntimeEvents.TryGetValue(arg.EventId, out var runtimeEvent))
         {
             LogMissingEventHandle(_logger, arg.EventId);
             return;
         }
 
-        dataflowRuntimeEvent.Timestamp = arg.Timestamp;
-
         try
         {
-            var message = Encoding.UTF8.GetString(arg.Message.Payload);
-            dataflowRuntimeEvent.Value = message;
+            var payload = arg.Message.Payload;
+            var payloadArray = System.Buffers.BuffersExtensions.ToArray(in payload);
+            string? message;
 
-            var subscriptionSnapshot = dataflowRuntimeEvent.GetSubscriptionSnapshot();
-            await Task.WhenAll([.. subscriptionSnapshot.Select(h => h(arg.Timestamp, message))]);
+            if (runtimeEvent.LastPayload.Span.SequenceEqual(payloadArray))
+            {
+                // Payload unchanged — reuse cached string, only update timestamp
+                message = runtimeEvent.Value;
+            }
+            else
+            {
+                runtimeEvent.LastPayload = payloadArray;
+                message = Encoding.UTF8.GetString(payloadArray);
+                runtimeEvent.Value = message;
+            }
+
+            runtimeEvent.Timestamp = arg.Timestamp;
+
+            var subs = runtimeEvent.Subscriptions;
+            if (subs.IsEmpty) return;
+
+            if (subs.Length == 1)
+            {
+                await subs[0](arg.Timestamp, message);
+                return;
+            }
+
+            var tasks = new Task[subs.Length];
+            for (var i = 0; i < subs.Length; i++)
+                tasks[i] = subs[i](arg.Timestamp, message);
+            await Task.WhenAll(tasks);
+        }
+        catch (ObjectDisposedException)
+        {
+            LogSubscriberDisposed(_logger, arg.EventId);
         }
         catch (Exception ex)
         {
@@ -163,25 +239,25 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
 
     private async Task Unsubscribe((DataflowRuntimeEvent, Func<DateTime, string?, Task>) subscription)
     {
-        var (dataflowRuntimeEvent, handler) = subscription;
-        dataflowRuntimeEvent.RemoveSubscription(handler);
+        var (runtimeEvent, handler) = subscription;
+        var wasLast = runtimeEvent.RemoveSubscription(handler);
 
-        // only unsubscribe if we remove the last subscription for the topic
-        if (dataflowRuntimeEvent.SubscriptionCount == 0)
+        if (wasLast)
         {
-            if (_availableEvents?.TryGetValue(dataflowRuntimeEvent.EventId, out var dataflowEvent) == true)
+            if (_availableEvents?.TryGetValue(runtimeEvent.EventId, out var dataflowEvent) == true)
             {
                 await _mqttHandler.Unsubscribe(dataflowEvent);
 
                 LogUnsubscribedEvent(_logger, dataflowEvent.EventId);
             }
-            _dataflowRuntimeEvents.TryRemove(dataflowRuntimeEvent.EventId, out _);
+
+            _dataflowRuntimeEvents.TryRemove(runtimeEvent.EventId, out _);
         }
     }
 
     public async Task SetValue(Guid eventId, string? value, CancellationToken cancellationToken = default)
     {
-        _ = await UpdateEventCache();
+        _ = await UpdateEventCache(cancellationToken);
 
         if (_availableEvents is null)
             throw new InvalidOperationException($"Failed to init events");
@@ -199,34 +275,59 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
 
     public Task Consume(ClientContext<ClusterUpdateCompleted> context, CancellationToken cancellationToken)
     {
-        // a new cluster got deployed - invalidate cache
-        if (_currentClusterInfo is null)
-        {
-            _isCacheInvalid = true;
-            return Task.CompletedTask;
-        }
-
-        // trigger refresh cache
-        _isCacheInvalid = _currentClusterInfo.Version != context.Message.NewVersion;
+        _isCacheInvalid = true;
         _currentClusterInfo = null;
+
+        var newCts = new CancellationTokenSource();
+        var oldCts = Interlocked.Exchange(ref _reconnectCts, newCts);
+        oldCts?.Cancel();
+        oldCts?.Dispose();
+
+        _reconnectTask = ReconnectAfterClusterUpdateAsync(newCts.Token);
+
         return Task.CompletedTask;
+    }
+
+    private async Task ReconnectAfterClusterUpdateAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _mqttHandler.ResetAndReconnect(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            // Shutting down or new cluster update arrived
+        }
+        catch (Exception ex)
+        {
+            LogReconnectAfterClusterUpdateFailed(_logger, ex);
+        }
     }
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Debug, Message = "Set value='{value}' type='{valueType}' on event '{EventId}'")]
     internal static partial void LogSetValue(ILogger logger, string? value, string valueType, Guid eventId);
 
-    [LoggerMessage(EventId = 2, Level = LogLevel.Debug, Message = "Subscribed to '{eventId}'")]
+    [LoggerMessage(EventId = 2, Level = LogLevel.Debug, Message = "Subscribed to '{EventId}'")]
     internal static partial void LogSubscribedEvent(ILogger logger, Guid eventId);
 
-    [LoggerMessage(EventId = 3, Level = LogLevel.Debug, Message = "Unsubscribed from '{eventId}'")]
+    [LoggerMessage(EventId = 3, Level = LogLevel.Debug, Message = "Unsubscribed from '{EventId}'")]
     internal static partial void LogUnsubscribedEvent(ILogger logger, Guid eventId);
 
-    [LoggerMessage(EventId = 4, Level = LogLevel.Warning, Message = "No dataflow event handle registered for topic {eventId}")]
+    [LoggerMessage(EventId = 4, Level = LogLevel.Debug, Message = "No dataflow event handle registered for topic '{EventId}'")]
     internal static partial void LogMissingEventHandle(ILogger logger, Guid eventId);
 
-    [LoggerMessage(EventId = 5, Level = LogLevel.Error, Message = "Failed to update handle from topic {eventId}")]
+    [LoggerMessage(EventId = 5, Level = LogLevel.Error, Message = "Failed to update handle from topic '{EventId}'")]
     internal static partial void LogReceivedEvent(ILogger logger, Exception exception, Guid eventId);
 
-    [LoggerMessage(EventId = 6, Level = LogLevel.Warning, Message = "Request cluster infos failed with reason {Code}:{Reason}")]
+    [LoggerMessage(EventId = 7, Level = LogLevel.Debug, Message = "Subscriber for topic '{EventId}' was disposed during event delivery")]
+    internal static partial void LogSubscriberDisposed(ILogger logger, Guid eventId);
+
+    [LoggerMessage(EventId = 8, Level = LogLevel.Warning, Message = "Request cluster infos failed with reason {Code}:{Reason}")]
     internal static partial void LogClusterRequestFailed(ILogger logger, int code, string? reason);
+
+    [LoggerMessage(EventId = 9, Level = LogLevel.Error, Message = "Failed to reconnect after cluster update")]
+    internal static partial void LogReconnectAfterClusterUpdateFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(EventId = 10, Level = LogLevel.Warning, Message = "Failed to unsubscribe event '{EventId}' during dispose")]
+    internal static partial void LogUnsubscribeDuringDisposeFailed(ILogger logger, Exception exception, Guid eventId);
 }

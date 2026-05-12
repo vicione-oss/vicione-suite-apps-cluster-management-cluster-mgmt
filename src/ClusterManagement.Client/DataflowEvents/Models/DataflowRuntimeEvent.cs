@@ -1,69 +1,40 @@
-﻿namespace ClusterManagement.Client.DataflowEvents.Models;
+﻿using System.Collections.Immutable;
 
-internal sealed class DataflowRuntimeEvent : IDisposable
+namespace ClusterManagement.Client.DataflowEvents.Models;
+
+internal sealed class DataflowRuntimeEvent
 {
-    private readonly ReaderWriterLockSlim _lock = new();
-    private readonly List<Func<DateTime, string?, Task>> _subscriptions = [];
-
     internal required Guid EventId { get; init; }
     internal DateTime? Timestamp { get; set; }
     internal string? Value { get; set; }
+    internal ReadOnlyMemory<byte> LastPayload { get; set; }
 
-    internal int SubscriptionCount
+    private ImmutableArray<Func<DateTime, string?, Task>> _subscriptions = [];
+
+    internal ImmutableArray<Func<DateTime, string?, Task>> Subscriptions => _subscriptions;
+
+    /// <summary>Returns new length after add (thread-safe CAS).</summary>
+    internal int AddSubscription(Func<DateTime, string?, Task> handler)
     {
-        get
+        ImmutableArray<Func<DateTime, string?, Task>> before, after;
+        do
         {
-            _lock.EnterReadLock();
-            try
-            {
-                return _subscriptions.Count;
-            }
-            finally
-            {
-                _lock.ExitReadLock();
-            }
-        }
+            before = _subscriptions;
+            after = before.Add(handler);
+        } while (ImmutableInterlocked.InterlockedCompareExchange(ref _subscriptions, after, before) != before);
+        return after.Length;
     }
 
-    internal void AddSubscription(Func<DateTime, string?, Task> handler)
-    {
-        _lock.EnterWriteLock();
-        try
-        {
-            _subscriptions.Add(handler);
-        }
-        finally
-        {
-            _lock.ExitWriteLock();
-        }
-    }
-
+    /// <summary>Returns true when the last subscriber was removed (1→0).</summary>
     internal bool RemoveSubscription(Func<DateTime, string?, Task> handler)
     {
-        _lock.EnterWriteLock();
-        try
+        ImmutableArray<Func<DateTime, string?, Task>> before, after;
+        do
         {
-            return _subscriptions.Remove(handler);
-        }
-        finally
-        {
-            _lock.ExitWriteLock();
-        }
+            before = _subscriptions;
+            after = before.Remove(handler);
+            if (after == before) return false;
+        } while (ImmutableInterlocked.InterlockedCompareExchange(ref _subscriptions, after, before) != before);
+        return after.IsEmpty;
     }
-
-    internal List<Func<DateTime, string?, Task>> GetSubscriptionSnapshot()
-    {
-        _lock.EnterReadLock();
-        try
-        {
-            return [.. _subscriptions];
-        }
-        finally
-        {
-            _lock.ExitReadLock();
-        }
-    }
-
-    public void Dispose()
-        => _lock?.Dispose();
 }

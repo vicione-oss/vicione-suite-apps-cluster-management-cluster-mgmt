@@ -15,7 +15,7 @@ internal static class DataflowEventTestUtils
 
     public static IUiMediator SetupDataflowEventRequest(this IUiMediator mediator, params IDataflowEvent[] clusterEvents)
     {
-        mediator.Request<GetDataflowEventsRequest, GetDataflowEventsResponse>(Arg.Any<GetDataflowEventsRequest>(), CancellationToken.None)
+        mediator.Request<GetDataflowEventsRequest, GetDataflowEventsResponse>(Arg.Any<GetDataflowEventsRequest>(), Arg.Any<CancellationToken>())
                 .Returns(new GetDataflowEventsResponse()
                 {
                     Results = [.. clusterEvents]

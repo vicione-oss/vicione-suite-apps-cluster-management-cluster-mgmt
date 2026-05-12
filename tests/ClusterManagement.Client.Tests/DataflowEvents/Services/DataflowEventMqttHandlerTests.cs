@@ -88,7 +88,7 @@ public class DataflowEventMqttHandlerTests
         {
             // Arrange
             await using var handler = CreateHandler(false);
-            var action = () => handler.Subscribe(_outputEvent);
+            var action = () => handler.Unsubscribe(_outputEvent);
 
             // Act + Assert
             await action.Should().ThrowAsync<InvalidOperationException>();
@@ -101,7 +101,7 @@ public class DataflowEventMqttHandlerTests
             await using var handler = CreateHandler();
 
             // Act
-            await handler.Subscribe(_outputEvent, TestContext.Current.CancellationToken);
+            await handler.Unsubscribe(_outputEvent, TestContext.Current.CancellationToken);
 
             // Assert
             await _mqttClient.Received().ConnectAsync(Arg.Any<MqttClientOptions>(), Arg.Any<CancellationToken>());

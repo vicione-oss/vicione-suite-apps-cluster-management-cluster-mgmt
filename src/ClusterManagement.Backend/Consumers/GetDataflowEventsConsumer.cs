@@ -43,7 +43,8 @@ public sealed partial class GetDataflowEventsConsumer(IClusterDbContext dbContex
 
         if (message.DataflowId is not null)
         {
-            var dataflow = builder.Cache.Dataflows.First(k => k.Id == message.DataflowId);
+            var dataflow = builder.Cache.Dataflows.FirstOrDefault(k => k.Id == message.DataflowId)
+                ?? throw new InvalidOperationException($"Dataflow {message.DataflowId} not found in cluster {message.ClusterId}");
             var functionBlockIds = dataflow.Root.GetAllNestedFunctionBlocks().Select(k => k.Id);
             var connectors = builder.Cache.EventEnabledConnectors;
             var dataflowConnectors = connectors.Where(k => functionBlockIds.Contains(k.FunctionBlock.Id));
@@ -106,7 +107,8 @@ public sealed partial class GetDataflowEventsConsumer(IClusterDbContext dbContex
     private static DataflowEvent CreateDataflowEvent(IDependencyResolver dependencyResolver, FunctionBlock functionBlock, ConnectorInput input)
     {
         var functionBlockDesign = dependencyResolver.ResolveFunctionBlockDesign(functionBlock.DesignId);
-        var connectorDesign = functionBlockDesign.GetInputs().First(x => x.Id == input.DesignId);
+        var connectorDesign = functionBlockDesign.GetInputs().FirstOrDefault(x => x.Id == input.DesignId)
+            ?? throw new InvalidOperationException($"Input connector design '{input.DesignId}' not found for function block '{functionBlock.Name}'");
 
         return new DataflowEvent
         {
@@ -120,7 +122,8 @@ public sealed partial class GetDataflowEventsConsumer(IClusterDbContext dbContex
     private static DataflowEvent CreateDataflowEvent(IDependencyResolver dependencyResolver, FunctionBlock functionBlock, ConnectorOutput output)
     {
         var functionBlockDesign = dependencyResolver.ResolveFunctionBlockDesign(functionBlock.DesignId);
-        var connectorDesign = functionBlockDesign.GetOutputs().First(x => x.Id == output.DesignId);
+        var connectorDesign = functionBlockDesign.GetOutputs().FirstOrDefault(x => x.Id == output.DesignId)
+            ?? throw new InvalidOperationException($"Output connector design '{output.DesignId}' not found for function block '{functionBlock.Name}'");
 
         return new DataflowEvent
         {

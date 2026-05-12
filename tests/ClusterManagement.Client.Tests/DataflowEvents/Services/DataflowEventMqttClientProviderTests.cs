@@ -18,7 +18,7 @@ public class DataflowEventMqttClientProviderTests
         public async Task Should_throw_if_system_connection_cant_be_loaded()
         {
             // Arrange
-            var provider = CreateProvider();
+            using var provider = CreateProvider();
             var action = () => provider.CreateSystemMqttClientOptions();
 
             _mediator.SetupGetConnections([]);
@@ -31,7 +31,7 @@ public class DataflowEventMqttClientProviderTests
         public async Task Should_load_system_mqtt_connection()
         {
             // Arrange
-            var provider = CreateProvider();
+            using var provider = CreateProvider();
             var tcpConnection = ConnectionFactory.CreateMqttServiceConnection("mqtt");
             var webSocketConnection = ConnectionFactory.CreateMqttServiceConnection("wsmqtt", protocol: Sdk.Connections.Contracts.MqttConnectionType.WebSocket);
 

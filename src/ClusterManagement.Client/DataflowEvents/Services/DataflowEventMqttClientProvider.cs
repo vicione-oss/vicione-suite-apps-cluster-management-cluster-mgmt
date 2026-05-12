@@ -8,9 +8,10 @@ using Sdk.Connections.Requests;
 
 namespace ClusterManagement.Client.DataflowEvents.Services;
 
-internal sealed class DataflowEventMqttClientProvider(IUiMediator mediator) : IDataflowEventMqttClientProvider
+internal sealed class DataflowEventMqttClientProvider(IUiMediator mediator) : IDataflowEventMqttClientProvider, IDisposable
 {
     private readonly IUiMediator _mediator = mediator;
+    private readonly SemaphoreSlim _connectionSemaphore = new(1, 1);
     private MqttConnection? _connection;
 
     /// <summary>
@@ -22,7 +23,19 @@ internal sealed class DataflowEventMqttClientProvider(IUiMediator mediator) : ID
 
     public async Task<MqttClientOptions> CreateSystemMqttClientOptions()
     {
-        _connection ??= await LoadSystemMqttConnection();
+        if (_connection is null)
+        {
+            await _connectionSemaphore.WaitAsync();
+            try
+            {
+                _connection ??= await LoadSystemMqttConnection();
+            }
+            finally
+            {
+                _connectionSemaphore.Release();
+            }
+        }
+
         if (_connection is null)
             throw new InvalidOperationException("Failed to load system mqtt connection");
 
@@ -31,6 +44,12 @@ internal sealed class DataflowEventMqttClientProvider(IUiMediator mediator) : ID
                 .WithClientId($"cm-events-{Guid.NewGuid()}")
                 .Build();
     }
+
+    public void ResetConnection()
+        => _connection = null;
+
+    public void Dispose()
+        => _connectionSemaphore.Dispose();
 
     private async Task<MqttConnection?> LoadSystemMqttConnection()
     {
