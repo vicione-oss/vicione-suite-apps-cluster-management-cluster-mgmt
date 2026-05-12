@@ -28,7 +28,7 @@ internal sealed class DataflowEventMqttClientProvider(IUiMediator mediator) : ID
             await _connectionSemaphore.WaitAsync();
             try
             {
-                _connection ??= await LoadSystemMqttConnection();
+                _connection = await LoadSystemMqttConnection();
             }
             finally
             {

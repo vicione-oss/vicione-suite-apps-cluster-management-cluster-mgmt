@@ -28,10 +28,10 @@
     <PackageVersion Include="ViciOne.Suite.Sdk.Client" Version="$(ViciOneSuiteSdkVersion)" />
     <PackageVersion Include="ViciOne.Suite.System.DataPort" Version="1.0.0" />
     <PackageVersion Include="ViciOne.TreeBuilder" Version="1.1.1" />
-    <PackageVersion Include="ViciOne.Ui.ClusterEditor" Version="1.0.0-ci2471022525" />
+    <PackageVersion Include="ViciOne.Ui.ClusterEditor" Version="1.0.0-ci2515372500" />
     <PackageVersion Include="ViciOne.Ui.Design" Version="2.0.3" />
     <PackageVersion Include="ViciOne.Ui.Localization" Version="3.3.0" />
-    <PackageVersion Include="ViciOne.Ui.MonochromeIcons.Assets" Version="4.7.0" />
+    <PackageVersion Include="ViciOne.Ui.MonochromeIcons.Assets" Version="4.10.0" />
     <!--Used for tests only:-->
     <PackageVersion Include="AwesomeAssertions" Version="9.3.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />

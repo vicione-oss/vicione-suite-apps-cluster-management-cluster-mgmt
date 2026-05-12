@@ -75,6 +75,7 @@ public class DataflowEventPageServiceTests
     public class SubscribeEvent : DataflowEventPageServiceTests
     {
         [Fact]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "xUnit1051:Calls to methods which accept CancellationToken should use TestContext.Current.CancellationToken", Justification = "Overload method")]
         public async Task Should_add_subscription_to_model()
         {
             // Arrange
