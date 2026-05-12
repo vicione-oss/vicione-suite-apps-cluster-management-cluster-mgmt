@@ -39,7 +39,7 @@ public class DataflowEventBrokerTests
             var broker = CreateEventBroker(_inputEvent, _outputEvent);
 
             // Act
-            var events = await broker.GetEvents();
+            var events = await broker.GetEvents(TestContext.Current.CancellationToken);
 
             // Assert
             events.Should().ContainSingle(k => k.CanWrite, "input");
@@ -56,7 +56,7 @@ public class DataflowEventBrokerTests
             var broker = CreateEventBroker(_inputEvent, _outputEvent);
 
             // Act
-            var subscription = await broker.Subscribe(_outputEvent.EventId, _handler);
+            var subscription = await broker.Subscribe(_outputEvent.EventId, _handler, TestContext.Current.CancellationToken);
 
             // Assert
             subscription.Should().NotBeNull();
@@ -69,7 +69,7 @@ public class DataflowEventBrokerTests
             var broker = CreateEventBroker(_inputEvent, _outputEvent);
 
             // Act
-            _ = await broker.Subscribe(_outputEvent.EventId, _handler);
+            _ = await broker.Subscribe(_outputEvent.EventId, _handler, TestContext.Current.CancellationToken);
 
             // Assert
             await _mqttHandler.ReceivedWithAnyArgs(1).Subscribe(default!, Arg.Any<CancellationToken>());
@@ -82,8 +82,8 @@ public class DataflowEventBrokerTests
             var broker = CreateEventBroker(_inputEvent, _outputEvent);
 
             // Act
-            _ = await broker.Subscribe(_outputEvent.EventId, _handler);
-            _ = await broker.Subscribe(_outputEvent.EventId, _handler);
+            _ = await broker.Subscribe(_outputEvent.EventId, _handler, TestContext.Current.CancellationToken);
+            _ = await broker.Subscribe(_outputEvent.EventId, _handler, TestContext.Current.CancellationToken);
 
             // Assert
             await _mqttHandler.ReceivedWithAnyArgs(1).Subscribe(default!, Arg.Any<CancellationToken>());
@@ -95,12 +95,12 @@ public class DataflowEventBrokerTests
             // Arrange
             var broker = CreateEventBroker(_inputEvent, _outputEvent);
             var fakeEvent = CreateEventArgs(_outputEvent.EventId, "[some json data]");
-            await using var subscription1 = await broker.Subscribe(_outputEvent.EventId, _handler);
+            await using var subscription1 = await broker.Subscribe(_outputEvent.EventId, _handler, TestContext.Current.CancellationToken);
             _mqttHandler.EventReceivedAsync += Raise.Event<Func<DataflowEventArgs, Task>>(fakeEvent);
             var valueChanged = false;
 
             // Act
-            await using var subscription2 = await broker.Subscribe(_outputEvent.EventId, (_, _) => { valueChanged = true; return Task.CompletedTask; });
+            await using var subscription2 = await broker.Subscribe(_outputEvent.EventId, (_, _) => { valueChanged = true; return Task.CompletedTask; }, TestContext.Current.CancellationToken);
 
             // Assert
             valueChanged.Should().BeTrue();
@@ -116,7 +116,7 @@ public class DataflowEventBrokerTests
             var broker = CreateEventBroker(_inputEvent, _outputEvent);
             var fakeEvent = CreateEventArgs(_outputEvent.EventId, payload);
             var valueChanged = false;
-            await using var subscription = await broker.Subscribe(_outputEvent.EventId, (_, _) => { valueChanged = true; return Task.CompletedTask; });
+            await using var subscription = await broker.Subscribe(_outputEvent.EventId, (_, _) => { valueChanged = true; return Task.CompletedTask; }, TestContext.Current.CancellationToken);
 
             // Act
             _mqttHandler.EventReceivedAsync += Raise.Event<Func<DataflowEventArgs, Task>>(fakeEvent);
@@ -133,8 +133,8 @@ public class DataflowEventBrokerTests
             var fakeEvent = CreateEventArgs(_outputEvent.EventId, "[some json data]");
             var valueChanged1 = false;
             var valueChanged2 = false;
-            await using var subscription1 = await broker.Subscribe(_outputEvent.EventId, (_, _) => { valueChanged1 = true; return Task.CompletedTask; });
-            await using var subscription2 = await broker.Subscribe(_outputEvent.EventId, (_, _) => { valueChanged2 = true; return Task.CompletedTask; });
+            await using var subscription1 = await broker.Subscribe(_outputEvent.EventId, (_, _) => { valueChanged1 = true; return Task.CompletedTask; }, TestContext.Current.CancellationToken);
+            await using var subscription2 = await broker.Subscribe(_outputEvent.EventId, (_, _) => { valueChanged2 = true; return Task.CompletedTask; }, TestContext.Current.CancellationToken);
 
             // Act
             _mqttHandler.EventReceivedAsync += Raise.Event<Func<DataflowEventArgs, Task>>(fakeEvent);
@@ -161,8 +161,8 @@ public class DataflowEventBrokerTests
         {
             // Arrange
             var broker = CreateEventBroker(_inputEvent, _outputEvent);
-            var subscription1 = await broker.Subscribe(_outputEvent.EventId, _handler);
-            _ = await broker.Subscribe(_outputEvent.EventId, _handler);
+            var subscription1 = await broker.Subscribe(_outputEvent.EventId, _handler, TestContext.Current.CancellationToken);
+            _ = await broker.Subscribe(_outputEvent.EventId, _handler, TestContext.Current.CancellationToken);
 
             // Act
             await subscription1.DisposeAsync();
@@ -176,8 +176,8 @@ public class DataflowEventBrokerTests
         {
             // Arrange
             var broker = CreateEventBroker(_inputEvent, _outputEvent);
-            var subscription1 = await broker.Subscribe(_outputEvent.EventId, _handler);
-            var subscription2 = await broker.Subscribe(_outputEvent.EventId, _handler);
+            var subscription1 = await broker.Subscribe(_outputEvent.EventId, _handler, TestContext.Current.CancellationToken);
+            var subscription2 = await broker.Subscribe(_outputEvent.EventId, _handler, TestContext.Current.CancellationToken);
 
             // Act
             await subscription1.DisposeAsync();
@@ -267,7 +267,7 @@ public class DataflowEventBrokerTests
         {
             // Arrange
             var broker = CreateEventBroker(_inputEvent, _outputEvent);
-            _ = await broker.GetEvents(); // prime cache
+            _ = await broker.GetEvents(TestContext.Current.CancellationToken); // prime cache
             var statusEvent = new ClusterUpdateCompleted(Guid.NewGuid(), Guid.NewGuid(), new Version(0, 1, 0), TimeSpan.FromSeconds(1));
             var context = new ClientContext<ClusterUpdateCompleted>(statusEvent, Guid.NewGuid());
 
@@ -283,13 +283,13 @@ public class DataflowEventBrokerTests
         {
             // Arrange
             var broker = CreateEventBroker(_inputEvent, _outputEvent);
-            _ = await broker.GetEvents(); // prime cache
+            _ = await broker.GetEvents(TestContext.Current.CancellationToken); // prime cache
             var statusEvent = new ClusterUpdateCompleted(Guid.NewGuid(), Guid.NewGuid(), new Version(0, 1, 0), TimeSpan.FromSeconds(1));
             var context = new ClientContext<ClusterUpdateCompleted>(statusEvent, Guid.NewGuid());
 
             // Act — Consume fires reconnect; since mock returns synchronously, task completes immediately
             await broker.Consume(context, CancellationToken.None);
-            var events = await broker.GetEvents();
+            _ = await broker.GetEvents(TestContext.Current.CancellationToken);
 
             // Assert — mediator should have been called again (2 total: initial + after invalidation)
             await _mediator.Received(2).Request<GetDataflowEventsRequest, GetDataflowEventsResponse>(Arg.Any<GetDataflowEventsRequest>(), Arg.Any<CancellationToken>());

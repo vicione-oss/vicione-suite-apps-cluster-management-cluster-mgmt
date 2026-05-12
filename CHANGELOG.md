@@ -4,8 +4,9 @@
 
 ### Changed
 
-- `ViciOne.Ui.ClusterEditor` package, update to `1.0.0-ci2471022525`
+- `ViciOne.Ui.ClusterEditor` package, update to `1.0.0-ci2515372500`
 - `ViciOne.Driver.IoTCore`, updated to version `2.0.1`
+- `ViciOne.Ui.MonochromeIcons.Assets` package, update version to `4.10.0`
 - `SaveClusterDialog`, all fields get disabled while saving in progress
 
 ### Fixed
