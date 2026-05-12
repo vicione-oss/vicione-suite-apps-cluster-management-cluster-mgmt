@@ -7,7 +7,7 @@
     "Company": "ifm software",
     "ProjectUrl": "https://gitlab.com/vicione-oss/vicione/suite-apps/cluster-management/cluster-mgmt",
     "ReadmeUrl": "https://gitlab.com/vicione-oss/vicione/suite-apps/cluster-management/cluster-mgmt/-/blob/master/README.md",
-    "Published": "2026-04-16T12:00:00",
+    "Published": "2026-05-12T12:00:00",
     "Options": [
         {
             "Key": "MqttRpcTimeout",
