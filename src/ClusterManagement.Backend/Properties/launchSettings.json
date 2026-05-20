@@ -6,7 +6,7 @@
         "workingDirectory": "\\suite\\src\\Core.OS\\bin\\Debug\\net10.0",
         "environmentVariables": {
             "ASPNETCORE_ENVIRONMENT": "Development",
-            "ModuleLoader__ModuleDebugPaths__0": "\\cluster-mgmt\\src"
+            "ModuleLoader__ModuleDebugPaths__0": "$(SolutionDir)\\src"
         }
     }
   }
