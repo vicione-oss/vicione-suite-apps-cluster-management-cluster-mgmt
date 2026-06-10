@@ -52,17 +52,17 @@
       },
       "ViciOne.Ui.ClusterEditor": {
         "type": "Direct",
-        "requested": "[1.0.0-ci2532983113, )",
-        "resolved": "1.0.0-ci2532983113",
-        "contentHash": "maG7lvM33zTU5ug93N4qI4qTaOfgL9H04sJEo+cG8jjPQpy2p5HWygtaFRxAygrbdmaVBJ5t0cZuJCodguJsXQ==",
+        "requested": "[1.1.0, )",
+        "resolved": "1.1.0",
+        "contentHash": "PdR8Nb1tRR4l17Df6+TTgAeHZKOvOGK3xHqL9DBM4qiV7j+Nid8ju5zkiCptL9RNgk60caLkmURO8KKITZMBqg==",
         "dependencies": {
           "Markdig": "0.42.0",
-          "Microsoft.Extensions.Localization": "10.0.7",
+          "Microsoft.Extensions.Localization": "10.0.8",
           "ViciOne.Cluster.Builder": "1.0.0",
           "ViciOne.TreeBuilder": "1.1.1",
-          "ViciOne.Ui.Blazor.Components": "5.9.0",
+          "ViciOne.Ui.Blazor.Components": "5.13.0",
           "ViciOne.Ui.Localization": "3.3.0",
-          "ViciOne.Ui.MonochromeIcons.Components": "4.7.0",
+          "ViciOne.Ui.MonochromeIcons.Components": "4.10.0",
           "ViciOne.Ui.Shared.Dx": "0.19.1",
           "ViciOne.Ui.TreeEditor": "2.0.1",
           "Z.Blazor.Diagrams": "3.0.4"
@@ -336,10 +336,10 @@
       },
       "Microsoft.AspNetCore.Components.QuickGrid": {
         "type": "Transitive",
-        "resolved": "10.0.7",
-        "contentHash": "Ij60ebCcvCihyDUHkPdEdSZFC8yhtD1gMFFmTLE56W+Nzj4DggZ2seqNVGdepg8J6qUU6rXshtbUrRwfQtILKw==",
+        "resolved": "10.0.8",
+        "contentHash": "eRU9wbb/lnDX82JcZUsbAHNcO3dhzzewqlhiZZZwp1fO6eeyDk/DW/w3FLxpnCWSXV48Lt4VGetRucJ0xe25WQ==",
         "dependencies": {
-          "Microsoft.AspNetCore.Components.Web": "10.0.7"
+          "Microsoft.AspNetCore.Components.Web": "10.0.8"
         }
       },
       "Microsoft.AspNetCore.Components.Web": {
@@ -647,11 +647,11 @@
       },
       "ViciOne.Ui.Blazor.Components": {
         "type": "Transitive",
-        "resolved": "5.12.0",
-        "contentHash": "MHNLrPBHAFh17RdnmALG81hDQCeyNAYMo/CanWVBTFrxoP1tjXNkuyGJkqdQX0U8Jf5bFXefr6myd8Oy2GFs/Q==",
+        "resolved": "5.13.0",
+        "contentHash": "nid1OXPMsAslsf6yv8bXKlCl5f/BBjjL7ZAhC+2Mdug/L2fOSDGo2QbR2Eqzeuiqh4V0VGiOy9dWFfVp0wVzdA==",
         "dependencies": {
-          "Microsoft.AspNetCore.Components.QuickGrid": "10.0.7",
-          "Microsoft.AspNetCore.Components.Web": "10.0.7",
+          "Microsoft.AspNetCore.Components.QuickGrid": "10.0.8",
+          "Microsoft.AspNetCore.Components.Web": "10.0.8",
           "ViciOne.Ui.Localization": "3.0.1",
           "ViciOne.Ui.MonochromeIcons.Components": "4.10.0"
         }

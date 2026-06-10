@@ -6,7 +6,7 @@
 
 - Updated .NET to version `10.0.8`
 - `ViciOne.Suite.Sdk` packages, update to version `2.0.1`
-- `ViciOne.Ui.ClusterEditor` package, update to `1.0.0-ci2532983113`
+- `ViciOne.Ui.ClusterEditor` package, update to `1.1.0`
 
 ## 2.1.0 - 2026-05-12
 
