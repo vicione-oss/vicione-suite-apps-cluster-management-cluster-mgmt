@@ -1,22 +1,21 @@
 ﻿@using ClusterManagement.Client.Editor.ControlPanels.Packages.Services
 @using ClusterManagement.Client.Editor.Extensions
-@using ClusterManagement.Client.Extensions
 @using ClusterManagement.Client.Localization
 @using ClusterManagement.Internal.Contracts
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
+@using Sdk.Authorization
 @using Sdk.Client.Components.Settings
 @using Sdk.Client.ControlPanels.Components
-@using Sdk.Client.ControlPanels.Services
 @using ViciOne.Ui.Blazor.Components.Grid.Components
 @using ViciOne.Ui.Blazor.Components.Grid.Components.ActionButtons
 @using ViciOne.Ui.Blazor.Components.Grid.Components.Columns
 @using ViciOne.Ui.Blazor.Components.Grid.Components.Footers
-@using ViciOne.Ui.Blazor.Components.Grid.Components.Panes
 @using ViciOne.Ui.Localization.Resources
 @using ViciOne.Ui.MonochromeIcons.Components
 @using ViciOne.Ui.MonochromeIcons.Core.Enums
-@using ViciOne.Ui.MonochromeIcons.Core.Extensions
+
+@attribute [ModuleAuthorize<ClusterManagementClientModule>(AccessLevel.Full)]
 
 @inherits ControlPanelBase<PackagesControlPanelState>
 

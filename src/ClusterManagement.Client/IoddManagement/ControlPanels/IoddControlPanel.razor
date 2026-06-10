@@ -1,25 +1,21 @@
-﻿@using ClusterManagement.Client.Editor.Extensions
-@using ClusterManagement.Client.Editor.Localization
-@using ClusterManagement.Client.Editor.Services
+﻿@using System.Globalization
+@using ClusterManagement.Client.Editor.Extensions
 @using ClusterManagement.Client.IoddManagement.ControlPanels.Services
-@using ClusterManagement.Client.Localization
-@using ClusterManagement.Public.Iodds
+@using ClusterManagement.Client.IoddManagement.Models
 @using Microsoft.AspNetCore.Components.Forms
+@using Sdk.Authorization
 @using Sdk.Client.Components.Settings
 @using Sdk.Client.Components.Settings.Expanders
 @using Sdk.Client.ControlPanels.Components
-@using Sdk.Client.ControlPanels.Services
-@using System.Globalization
-@using ClusterManagement.Client.IoddManagement.Models
 @using ViciOne.Ui.Blazor.Components.Dialog.Components
 @using ViciOne.Ui.Blazor.Components.Grid.Components
 @using ViciOne.Ui.Blazor.Components.Grid.Components.ActionButtons
 @using ViciOne.Ui.Blazor.Components.Grid.Components.Columns
 @using ViciOne.Ui.Blazor.Components.Grid.Components.Panes
 @using ViciOne.Ui.Localization.Resources
-@using ViciOne.Ui.MonochromeIcons.Core.Enums
-@using ViciOne.Ui.MonochromeIcons.Core.Extensions
 @using ViciOne.Ui.TreeEditor
+
+@attribute [ModuleAuthorize<ClusterManagementClientModule>(AccessLevel.Full)]
 
 @inherits ControlPanelBase<IoddControlPanelState>
 
