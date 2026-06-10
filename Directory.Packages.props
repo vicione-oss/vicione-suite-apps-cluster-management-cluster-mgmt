@@ -1,13 +1,13 @@
 ﻿<Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <ViciOneSuiteSdkVersion>2.0.1</ViciOneSuiteSdkVersion>
+    <ViciOneSuiteSdkVersion>2.1.0</ViciOneSuiteSdkVersion>
     <DotNetVersion>10.0.8</DotNetVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="AspNetCore.SassCompiler" Version="1.99.0" />
+    <PackageVersion Include="AspNetCore.SassCompiler" Version="1.100.0" />
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
-    <PackageVersion Include="MassTransit.EntityFrameworkCore" Version="8.5.8" />
+    <PackageVersion Include="MassTransit.EntityFrameworkCore" Version="8.5.10" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.Authorization" Version="$(DotNetVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.Components" Version="$(DotNetVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(DotNetVersion)" />
@@ -30,8 +30,8 @@
     <PackageVersion Include="ViciOne.TreeBuilder" Version="1.1.1" />
     <PackageVersion Include="ViciOne.Ui.ClusterEditor" Version="1.1.0" />
     <PackageVersion Include="ViciOne.Ui.Design" Version="2.0.3" />
-    <PackageVersion Include="ViciOne.Ui.Localization" Version="3.3.0" />
-    <PackageVersion Include="ViciOne.Ui.MonochromeIcons.Assets" Version="4.10.0" />
+    <PackageVersion Include="ViciOne.Ui.Localization" Version="3.4.0" />
+    <PackageVersion Include="ViciOne.Ui.MonochromeIcons.Assets" Version="4.11.0" />
     <!--Used for tests only:-->
     <PackageVersion Include="AwesomeAssertions" Version="9.4.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
@@ -41,7 +41,7 @@
     <PackageVersion Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" />
     <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="22.1.1" />
     <PackageVersion Include="ViciOne.Suite.Sdk.Testing" Version="$(ViciOneSuiteSdkVersion)" />
-    <PackageVersion Include="ViciOne.Ui.Blazor.Components.TestingHelpers" Version="5.12.0" />
+    <PackageVersion Include="ViciOne.Ui.Blazor.Components.TestingHelpers" Version="5.14.0" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
     <PackageVersion Include="xunit.analyzers" Version="1.27.0" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
