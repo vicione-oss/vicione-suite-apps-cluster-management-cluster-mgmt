@@ -1415,7 +1415,7 @@
           "System.Reflection.MetadataLoadContext": "[10.0.8, )",
           "ViciOne.Core.Dataflow.DataModel.Generation": "[1.0.0, )",
           "ViciOne.Suite.ClusterManagement.Internal": "[2.2.0, )",
-          "ViciOne.Suite.DataPort": "[0.30.0, )",
+          "ViciOne.Suite.DataPort": "[0.32.0, )",
           "ViciOne.Suite.Sdk.Backend": "[2.1.0, )",
           "ViciOne.Suite.System.DataPort": "[1.0.0, )"
         }
@@ -1578,9 +1578,9 @@
       },
       "ViciOne.Suite.DataPort": {
         "type": "CentralTransitive",
-        "requested": "[0.30.0, )",
-        "resolved": "0.30.0",
-        "contentHash": "NMcsdypSh0BwLjXyAlZXSMkBQ/JJf8+dHBfyzUzvgGRbBt6Gpvq+I5Lb8cWcvGHjxQmcGmljRzce9aE/hrtQ0A==",
+        "requested": "[0.32.0, )",
+        "resolved": "0.32.0",
+        "contentHash": "xFJKSmxkPwlXPQcdouNDdbmaJTdFZkVjZmSn2kHVP4YQFUe3n4p7DZRkxUPsyk7ls0jf7G9RHMXqxqxvsKS71w==",
         "dependencies": {
           "ViciOne.ManagedEngine.Contracts": "1.0.0"
         }
