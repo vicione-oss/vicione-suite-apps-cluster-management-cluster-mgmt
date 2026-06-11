@@ -21,7 +21,7 @@
     <PackageVersion Include="ViciOne.Core.Dataflow.DataModel.Generation" Version="1.0.0" />
     <PackageVersion Include="ViciOne.Core.Runtime" Version="1.0.0" />
     <PackageVersion Include="ViciOne.Core.Runtime.Analyzers" Version="0.4.0" />
-    <PackageVersion Include="ViciOne.Suite.DataPort" Version="0.30.0" />
+    <PackageVersion Include="ViciOne.Suite.DataPort" Version="0.32.0" />
     <PackageVersion Include="ViciOne.Suite.Sdk" Version="$(ViciOneSuiteSdkVersion)" />
     <PackageVersion Include="ViciOne.Suite.Sdk.Backend" Version="$(ViciOneSuiteSdkVersion)" />
     <PackageVersion Include="ViciOne.Suite.Sdk.Deployment" Version="$(ViciOneSuiteSdkVersion)" />
@@ -29,7 +29,7 @@
     <PackageVersion Include="ViciOne.Suite.System.DataPort" Version="1.0.0" />
     <PackageVersion Include="ViciOne.TreeBuilder" Version="1.1.1" />
     <PackageVersion Include="ViciOne.Ui.ClusterEditor" Version="1.1.0" />
-    <PackageVersion Include="ViciOne.Ui.Design" Version="2.0.3" />
+    <PackageVersion Include="ViciOne.Ui.Design" Version="2.1.0" />
     <PackageVersion Include="ViciOne.Ui.Localization" Version="3.4.0" />
     <PackageVersion Include="ViciOne.Ui.MonochromeIcons.Assets" Version="4.11.0" />
     <!--Used for tests only:-->

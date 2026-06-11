@@ -9,9 +9,21 @@
 - `AspNetCore.SassCompiler` package, update version to `1.100.0`
 - `MassTransit.EntityFrameworkCore` package, update version to `8.5.10`
 - `ViciOne.Suite.Sdk` packages, update to version `2.1.0`
+- `ViciOne.Suite.DataPort` package, update to version `0.32.0`
+- `ViciOne.Ui.Design` package, update to `2.1.0`
 - `ViciOne.Ui.ClusterEditor` package, update to `1.1.0`
 - `ViciOne.Ui.Localization` package, update version to `3.4.0`
 - `ViciOne.Ui.MonochromeIcons.Assets` package, update version to `4.11.0`
+
+- Update `ViciOne.Suite.DataPort.Http.Client` to `0.32.0`
+- Update `ViciOne.Suite.DataPort.InfluxDb` to `0.32.0`
+- Update `ViciOne.Suite.DataPort.MySql` to `0.32.0`
+- Update `ViciOne.Suite.DataPort.Mqtt` to `1.0.0`
+- Update `ViciOne.Suite.DataPort.OpcUa.Client` to `0.32.0`
+- Update `ViciOne.Suite.DataPort.OpcUa.Server` to `0.32.0`
+- Update `ViciOne.Suite.DataPort.PostgreSql` to `0.32.0`
+- Update `ViciOne.Suite.DataPort.Sqlite` to `0.32.0`
+- Update `ViciOne.Suite.DataPort.SqlServer` to `0.32.0`
 
 ## 2.1.0 - 2026-05-12
 

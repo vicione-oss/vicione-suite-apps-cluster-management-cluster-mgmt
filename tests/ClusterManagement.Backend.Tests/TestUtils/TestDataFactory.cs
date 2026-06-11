@@ -17,7 +17,7 @@ public static class TestDataFactory
             new()
             {
                 Name = "ViciOne.Suite.DataPort.Mqtt",
-                Version = "0.30.0"
+                Version = "1.0.0"
             },
         ]);
 

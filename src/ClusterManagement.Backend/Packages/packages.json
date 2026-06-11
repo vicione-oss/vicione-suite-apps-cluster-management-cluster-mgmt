@@ -65,38 +65,38 @@
     },
     {
         "Name": "ViciOne.Suite.DataPort.Http.Client",
-        "Version": "0.30.0"
+        "Version": "0.32.0"
     },
     {
         "Name": "ViciOne.Suite.DataPort.InfluxDb",
-        "Version": "0.30.0"
+        "Version": "0.32.0"
     },
     {
         "Name": "ViciOne.Suite.DataPort.MySql",
-        "Version": "0.30.0"
+        "Version": "0.32.0"
     },
     {
         "Name": "ViciOne.Suite.DataPort.Mqtt",
-        "Version": "0.30.0"
+        "Version": "1.0.0"
     },
     {
         "Name": "ViciOne.Suite.DataPort.OpcUa.Client",
-        "Version": "0.30.0"
+        "Version": "0.32.0"
     },
     {
         "Name": "ViciOne.Suite.DataPort.OpcUa.Server",
-        "Version": "0.30.0"
+        "Version": "0.32.0"
     },
     {
         "Name": "ViciOne.Suite.DataPort.PostgreSql",
-        "Version": "0.30.0"
+        "Version": "0.32.0"
     },
     {
         "Name": "ViciOne.Suite.DataPort.Sqlite",
-        "Version": "0.30.0"
+        "Version": "0.32.0"
     },
     {
         "Name": "ViciOne.Suite.DataPort.SqlServer",
-        "Version": "0.30.0"
+        "Version": "0.32.0"
     }
 ]
