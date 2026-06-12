@@ -89,23 +89,22 @@ internal sealed partial class DesignLoader(
     private async Task<HashSet<ClusterDependency>> DownloadClusterDependencies(IReadOnlyCollection<ClusterDependency> dependencies, CancellationToken stoppingToken)
     {
         var watch = Stopwatch.StartNew();
-        var downloadTasks = dependencies.Select(async fb => (Dependency: fb, Result: await repository.DownloadAndExtract(fb.Name, fb.Version, stoppingToken)));
-        var results = await Task.WhenAll(downloadTasks);
+        var results = await repository.DownloadAndExtract(dependencies, stoppingToken);
 
         watch.Stop();
 
         LogDownloadStatistics(
             logger,
-            results.Count(r => r.Result is { Skipped: false, Error: null }),
-            results.Count(r => r.Result.Skipped),
-            results.Count(r => r.Result.Error is not null),
+            results.Count(r => r is { Skipped: false, Error: null }),
+            results.Count(r => r.Skipped),
+            results.Count(r => r.Error is not null),
             watch.Elapsed);
 
         HashSet<ClusterDependency> failed = [];
-        foreach (var (dependency, result) in results.Where(k => k.Result.Error is not null))
+        foreach (var result in results.Where(k => k.Error is not null))
         {
-            LogUpdateClusterDependencyError(logger, result.Error, dependency.Name, dependency.Version, result.SourcePath);
-            failed.Add(dependency);
+            LogUpdateClusterDependencyError(logger, result.Error, result.PackageName, result.PackageVersion, result.SourcePath);
+            failed.Add(new ClusterDependency { Name = result.PackageName, Version = result.PackageVersion });
         }
 
         return failed;

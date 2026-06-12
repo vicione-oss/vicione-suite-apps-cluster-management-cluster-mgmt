@@ -1,6 +1,7 @@
 ﻿using ClusterManagement.Backend.Contracts;
 using Sdk.Backend.Artifacts;
 using Semver;
+using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Designs;
 
@@ -17,9 +18,21 @@ public interface IPackageArtifactRepository
     /// A token to monitor for cancellation requests. The default value is <see cref="CancellationToken.None"/>.
     /// </param>
     /// <returns>
-    /// A task that returns an array of <see cref="HttpLoaderResult"/> values representing the results of the download and extraction operation.
+    /// A task that returns an array of <see cref="PackageDownloadResult"/> values representing the results of the download and extraction operation.
     /// </returns>
-    Task<HttpLoaderResult[]> DownloadAndExtract(string dependencyFile, CancellationToken cancellationToken = default);
+    Task<PackageDownloadResult[]> DownloadAndExtract(string dependencyFile, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Downloads all cluster packages specified by <param name="dependencies"> and extracts them to the local file system.
+    /// </summary>
+    /// <param name="dependencies">The collection of packages to download.</param>
+    /// <param name="cancellationToken">
+    /// A token to monitor for cancellation requests. The default value is <see cref="CancellationToken.None"/>.
+    /// </param>
+    /// <returns>
+    /// A task that returns an array of <see cref="PackageDownloadResult"/> values representing the results of the download and extraction operation.
+    /// </returns>
+    Task<PackageDownloadResult[]> DownloadAndExtract(IReadOnlyCollection<ClusterDependency> dependencies, CancellationToken cancellationToken);
 
     /// <summary>
     /// Downloads the specified cluster package by name and version and extracts it to the local file system.
@@ -30,9 +43,9 @@ public interface IPackageArtifactRepository
     /// A token to monitor for cancellation requests. The default value is <see cref="CancellationToken.None"/>.
     /// </param>
     /// <returns>
-    /// A task that returns an <see cref="HttpLoaderResult"/> representing the result of the download and extraction operation.
+    /// A task that returns an <see cref="PackageDownloadResult"/> representing the result of the download and extraction operation.
     /// </returns>
-    Task<HttpLoaderResult> DownloadAndExtract(string functionBlockName, string version, CancellationToken cancellationToken = default);
+    Task<PackageDownloadResult> DownloadAndExtract(string functionBlockName, string version, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Queries the latest ZIP package artifact for the specified core version.
@@ -63,9 +76,23 @@ public interface IPackageArtifactRepository
     /// A token to monitor for cancellation requests. The default value is <see cref="CancellationToken.None"/>.
     /// </param>
     /// <returns>
-    /// A task that returns an <see cref="IEnumerable{T}"/> of <see cref="IArtifact"/> representing the metadata artifacts.
+    /// A task that returns an <see cref="IReadOnlyCollection{T}"/> of <see cref="IArtifact"/> representing the metadata artifacts.
     /// </returns>
-    Task<IEnumerable<IArtifact>> QueryMetadataArtifacts(SemVersion? coreVersion, string? packageName = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<IArtifact>> QueryMetadataArtifacts(SemVersion? coreVersion, string? packageName = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Queries all cluster package metadata artifacts (JSON), or only artifacts supporting a given core version.
+    /// Use <paramref name="packageNames"/> to filter by a list of specific packages.
+    /// </summary>
+    /// <param name="packageNames">The package names to filter by.</param>
+    /// <param name="coreVersion">The core version to filter by, or <see langword="null"/> to return all artifacts.</param>
+    /// <param name="cancellationToken">
+    /// A token to monitor for cancellation requests. The default value is <see cref="CancellationToken.None"/>.
+    /// </param>
+    /// <returns>
+    /// A task that returns an <see cref="IReadOnlyCollection{T}"/> of <see cref="IArtifact"/> representing the metadata artifacts.
+    /// </returns>
+    Task<IReadOnlyCollection<IArtifact>> QueryMetadataArtifacts(IReadOnlyCollection<string> packageNames, SemVersion? coreVersion, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Queries the ZIP package artifact related to the specified metadata artifact (JSON).

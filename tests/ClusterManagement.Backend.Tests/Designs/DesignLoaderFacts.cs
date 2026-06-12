@@ -114,11 +114,11 @@ public class DesignLoaderFacts
             _dependencyStore.LoadDependencies(Arg.Any<CancellationToken>())
                 .Returns([dep1, dep2]);
 
-            _repository.DownloadAndExtract(dep1.Name, dep1.Version, Arg.Any<CancellationToken>())
-                .Returns(new HttpLoaderResult("source/dep1", "target/dep1"));
-
-            _repository.DownloadAndExtract(dep2.Name, dep2.Version, Arg.Any<CancellationToken>())
-                .Returns(new HttpLoaderResult("source/dep2", "target/dep2") { Error = new InvalidOperationException("Artifact not found") });
+            _repository.DownloadAndExtract(Arg.Any<IReadOnlyCollection<ClusterDependency>>(), Arg.Any<CancellationToken>())
+                .Returns([
+                    new PackageDownloadResult("source/dep1", "target/dep1") { PackageName = dep1.Name, PackageVersion = dep1.Version },
+                    new PackageDownloadResult("source/dep2", "target/dep2") { PackageName = dep2.Name, PackageVersion = dep2.Version, Error = new InvalidOperationException("Artifact not found") }
+                    ]);
 
             using var service = _services.GetRequiredService<DesignLoader>();
 
@@ -143,10 +143,10 @@ public class DesignLoaderFacts
                 .Returns([dep1, depFailed]);
 
             _repository.DownloadAndExtract(dep1.Name, dep1.Version, Arg.Any<CancellationToken>())
-                .Returns(new HttpLoaderResult("source/dep1", "target/dep1"));
+                .Returns(new PackageDownloadResult("source/dep1", "target/dep1") { PackageName = dep1.Name, PackageVersion = dep1.Version });
 
             _repository.DownloadAndExtract(depFailed.Name, depFailed.Version, Arg.Any<CancellationToken>())
-                .Returns(new HttpLoaderResult("source/depFailed", "target/depFailed") { Error = new InvalidOperationException("fail") });
+                .Returns(new PackageDownloadResult("source/depFailed", "target/depFailed") { PackageName = depFailed.Name, PackageVersion = depFailed.Version, Error = new InvalidOperationException("fail") });
 
             SetupPackageOnDisk(dep1, "cache/Dependencies");
 
@@ -174,7 +174,7 @@ public class DesignLoaderFacts
                 .Returns([dep]);
 
             _repository.DownloadAndExtract(dep.Name, dep.Version, Arg.Any<CancellationToken>())
-                .Returns(new HttpLoaderResult("source/dep", "target/dep"));
+                .Returns(new PackageDownloadResult("source/dep", "target/dep") { PackageName = dep.Name, PackageVersion = dep.Version });
 
             // Package downloaded but not found on disk (no .deps.json files)
 
@@ -201,8 +201,8 @@ public class DesignLoaderFacts
                 .Returns([dep1, dep2]);
 
             _repository.DownloadAndExtract(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-                .Returns(ci => new HttpLoaderResult($"source/{ci.ArgAt<string>(0)}", $"target/{ci.ArgAt<string>(0)}")
-                { Error = new InvalidOperationException("fail") });
+                .Returns(ci => new PackageDownloadResult($"source/{ci.ArgAt<string>(0)}", $"target/{ci.ArgAt<string>(0)}")
+                { PackageName = ci.ArgAt<string>(0), PackageVersion = ci.ArgAt<string>(1), Error = new InvalidOperationException("fail") });
 
             using var service = _services.GetRequiredService<DesignLoader>();
 
@@ -224,8 +224,8 @@ public class DesignLoaderFacts
             _dependencyStore.LoadDependencies(Arg.Any<CancellationToken>())
                 .Returns([dep]);
 
-            _repository.DownloadAndExtract(dep.Name, dep.Version, Arg.Any<CancellationToken>())
-                .Returns(new HttpLoaderResult("source/broken", "target/broken") { Error = new InvalidOperationException("fail") });
+            _repository.DownloadAndExtract(Arg.Any<IReadOnlyCollection<ClusterDependency>>(), Arg.Any<CancellationToken>())
+                .Returns([new PackageDownloadResult("source/broken", "target/broken") { PackageName = dep.Name, PackageVersion = dep.Version, Error = new InvalidOperationException("fail") }]);
 
             using var service = _downloadServices.GetRequiredService<DesignLoader>();
 
@@ -290,7 +290,7 @@ public class DesignLoaderFacts
                 .Returns([dep]);
 
             _repository.DownloadAndExtract(dep.Name, dep.Version, Arg.Any<CancellationToken>())
-                .Returns(new HttpLoaderResult("source/dep", "target/dep"));
+                .Returns(new PackageDownloadResult("source/dep", "target/dep") { PackageName = dep.Name, PackageVersion = dep.Version });
 
             // Package downloaded but not found on disk (no .deps.json files set up)
 
@@ -316,8 +316,8 @@ public class DesignLoaderFacts
             _dependencyStore.LoadDependencies(Arg.Any<CancellationToken>())
                 .Returns([dep]);
 
-            _repository.DownloadAndExtract(dep.Name, dep.Version, Arg.Any<CancellationToken>())
-                .Returns(new HttpLoaderResult("source/broken", "target/broken") { Error = new InvalidOperationException("download failed") });
+            _repository.DownloadAndExtract(Arg.Any<IReadOnlyCollection<ClusterDependency>>(), Arg.Any<CancellationToken>())
+                .Returns([new PackageDownloadResult("source/broken", "target/broken") { PackageName = dep.Name, PackageVersion = dep.Version, Error = new InvalidOperationException("download failed") }]);
 
             using var service = _loggingServices.GetRequiredService<DesignLoader>();
 
@@ -343,10 +343,10 @@ public class DesignLoaderFacts
                 .Returns([depDownloadFail1, depDownloadFail2]);
 
             _repository.DownloadAndExtract(depDownloadFail1.Name, depDownloadFail1.Version, Arg.Any<CancellationToken>())
-                .Returns(new HttpLoaderResult("source/fail1", "target/fail1") { Error = new InvalidOperationException("fail") });
+                .Returns(new PackageDownloadResult("source/fail1", "target/fail1") { PackageName = depDownloadFail1.Name, PackageVersion = depDownloadFail1.Version, Error = new InvalidOperationException("fail") });
 
             _repository.DownloadAndExtract(depDownloadFail2.Name, depDownloadFail2.Version, Arg.Any<CancellationToken>())
-                .Returns(new HttpLoaderResult("source/fail2", "target/fail2") { Error = new InvalidOperationException("fail") });
+                .Returns(new PackageDownloadResult("source/fail2", "target/fail2") { PackageName = depDownloadFail2.Name, PackageVersion = depDownloadFail2.Version, Error = new InvalidOperationException("fail") });
 
             using var service = _loggingServices.GetRequiredService<DesignLoader>();
 
@@ -375,7 +375,7 @@ public class DesignLoaderFacts
                 .Returns([dep]);
 
             _repository.DownloadAndExtract(dep.Name, dep.Version, Arg.Any<CancellationToken>())
-                .Returns(new HttpLoaderResult("source/good", "target/good"));
+                .Returns(new PackageDownloadResult("source/good", "target/good") { PackageName = dep.Name, PackageVersion = dep.Version });
 
             SetupPackageOnDisk(dep, "cache/Dependencies");
 
