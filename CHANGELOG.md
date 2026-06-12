@@ -5,6 +5,7 @@
 ### Changed
 
 - Added authorization requirement to have full access to control panels
+- Throttle parallel package artifact downloads to avoid client pool exhaustion
 - Updated .NET to version `10.0.8`
 - `AspNetCore.SassCompiler` package, update version to `1.100.0`
 - `MassTransit.EntityFrameworkCore` package, update version to `8.5.10`

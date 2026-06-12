@@ -48,8 +48,7 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
 
     public PackageInfoProviderTests()
     {
-        _dependencyStore.BuildStoredPackageVersionMap()
-            .Returns(new Dictionary<string, IEnumerable<string>>());
+        _dependencyStore.BuildStoredPackageVersionMap().Returns([]);
     }
 
     public sealed class GetClusterPackageInfos : PackageInfoProviderTests
@@ -480,17 +479,14 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
             var chocolate = CreateArtifact(_chocolate);
             var cheese = CreateArtifact(_cheese);
 
-            _repository.QueryMetadataArtifacts(_coreVersion, _chocolate.Name, Arg.Any<CancellationToken>())
-                .Returns([chocolate]);
-            _repository.QueryMetadataArtifacts(_coreVersion, _cheese.Name, Arg.Any<CancellationToken>())
-                .Returns([cheese]);
+            _repository.QueryMetadataArtifacts(Arg.Any<IReadOnlyCollection<string>>(), _coreVersion, Arg.Any<CancellationToken>())
+                .Returns([chocolate, cheese]);
 
             // Act
             await provider.GetClusterPackageInfos(CancellationToken.None, [_chocolate.Name, _cheese.Name]);
 
             // Assert
-            await _repository.Received(1).QueryMetadataArtifacts(Arg.Any<SemVersion>(), _chocolate.Name, Arg.Any<CancellationToken>());
-            await _repository.Received(1).QueryMetadataArtifacts(Arg.Any<SemVersion>(), _cheese.Name, Arg.Any<CancellationToken>());
+            await _repository.Received(1).QueryMetadataArtifacts(Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<SemVersion>(), Arg.Any<CancellationToken>());
             await _repository.DidNotReceive().QueryMetadataArtifacts(Arg.Any<SemVersion>(), null, Arg.Any<CancellationToken>());
         }
     }

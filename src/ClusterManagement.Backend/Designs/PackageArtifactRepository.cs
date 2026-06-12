@@ -18,6 +18,7 @@ internal sealed class PackageArtifactRepository(
     IArtifactRepository repository) : IPackageArtifactRepository
 {
     private const string FunctionBlockFolder = "fbs";
+    private const int MaxConcurrentRequests = 20;
 
     internal static async Task<ClusterDependency[]> DeserializeClusterDependencies(IFileSystem fileSystem, string dependencyFile, CancellationToken cancellationToken)
     {
@@ -28,20 +29,48 @@ internal sealed class PackageArtifactRepository(
     }
 
     /// <inheritdoc/>
-    public async Task<HttpLoaderResult[]> DownloadAndExtract(string dependencyFile, CancellationToken cancellationToken)
+    public async Task<PackageDownloadResult[]> DownloadAndExtract(string dependencyFile, CancellationToken cancellationToken)
     {
         var dependencies = await DeserializeClusterDependencies(fileSystem, dependencyFile, cancellationToken);
 
-        return await Task.WhenAll(dependencies.Select(fb => DownloadAndExtract(fb.Name, fb.Version, cancellationToken)));
+        return await DownloadAndExtract(dependencies, cancellationToken);
+    }
+
+    public async Task<PackageDownloadResult[]> DownloadAndExtract(IReadOnlyCollection<ClusterDependency> dependencies, CancellationToken cancellationToken)
+    {
+        using var throttle = new SemaphoreSlim(MaxConcurrentRequests, MaxConcurrentRequests);
+        var tasks = dependencies.Select(fb => ThrottledDownload(fb, throttle, cancellationToken)).ToArray();
+        return await Task.WhenAll(tasks);
+
+        async Task<PackageDownloadResult> ThrottledDownload(ClusterDependency fb, SemaphoreSlim semaphore, CancellationToken ct)
+        {
+            await semaphore.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                return await DownloadAndExtract(fb.Name, fb.Version, ct);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
     }
 
     /// <inheritdoc/>
-    public Task<HttpLoaderResult> DownloadAndExtract(string functionBlockName, string version, CancellationToken cancellationToken)
+    public async Task<PackageDownloadResult> DownloadAndExtract(string functionBlockName, string version, CancellationToken cancellationToken)
     {
         var dependenciesPath = fileSystem.GetDependenciesPath(workspaceProvider);
         var targetPath = fileSystem.Path.Combine(dependenciesPath, functionBlockName, version.ToString());
 
-        return ProcessDownload(functionBlockName, version, targetPath, () => FunctionBlockVersionExists(fileSystem, targetPath), cancellationToken);
+        var result = await ProcessDownload(functionBlockName, version, targetPath, () => FunctionBlockVersionExists(fileSystem, targetPath), cancellationToken);
+
+        return new PackageDownloadResult(result.SourcePath, result.TargetPath)
+        {
+            PackageName = functionBlockName,
+            PackageVersion = version,
+            Error = result.Error,
+            Skipped = result.Skipped
+        };
 
         static bool FunctionBlockVersionExists(IFileSystem fs, string functionBlockPath)
             => fs.Directory.Exists(functionBlockPath) && fs.Directory.GetFiles(functionBlockPath).Length > 0;
@@ -85,8 +114,29 @@ internal sealed class PackageArtifactRepository(
         return artifacts.Artifacts.FirstOrDefault();
     }
 
+    public async Task<IReadOnlyCollection<IArtifact>> QueryMetadataArtifacts(IReadOnlyCollection<string> packageNames, SemVersion? coreVersion, CancellationToken cancellationToken = default)
+    {
+        using var throttle = new SemaphoreSlim(MaxConcurrentRequests, MaxConcurrentRequests);
+        var availableTasks = packageNames.Select(k => ThrottledMetadataQuery(coreVersion, k, throttle, cancellationToken));
+        var availableResults = await Task.WhenAll(availableTasks);
+        return [.. availableResults.SelectMany(r => r)];
+
+        async Task<IEnumerable<IArtifact>> ThrottledMetadataQuery(SemVersion? version, string packageName, SemaphoreSlim semaphore, CancellationToken ct)
+        {
+            await semaphore.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                return await QueryMetadataArtifacts(version, packageName, ct);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+    }
+
     /// <inheritdoc/>
-    public async Task<IEnumerable<IArtifact>> QueryMetadataArtifacts(SemVersion? coreVersion, string? packageName = null, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<IArtifact>> QueryMetadataArtifacts(SemVersion? coreVersion, string? packageName = null, CancellationToken cancellationToken = default)
     {
         // artifact items e.g. name=1.18.0-linux-x64_0.48.0.json, path=fbs/ViciOne.Driver.IoTCore
         // * because they are in subfolders (fb name)

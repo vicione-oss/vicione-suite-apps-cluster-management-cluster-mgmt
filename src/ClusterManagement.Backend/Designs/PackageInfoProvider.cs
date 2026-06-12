@@ -7,7 +7,6 @@ using ClusterManagement.Public.Requests;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Sdk.Backend.Artifacts;
-using Sdk.Messaging;
 using Semver;
 
 namespace ClusterManagement.Backend.Designs;
@@ -93,9 +92,7 @@ public partial class PackageInfoProvider(IClusterDependencyStore clusterDependen
         else
         {
             // Query only the artifacts for the wanted packages
-            var availableTasks = packagesOfInterest.Select(k => repository.QueryMetadataArtifacts(coreVersion, k, cancellationToken));
-            var availableResults = await Task.WhenAll(availableTasks);
-            var available = availableResults.SelectMany(k => k);
+            var available = await repository.QueryMetadataArtifacts(packagesOfInterest, coreVersion, cancellationToken);
 
             UpdateAvailablePackageVersions(packageInfos, available);
         }

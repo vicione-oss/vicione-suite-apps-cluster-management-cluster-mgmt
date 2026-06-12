@@ -181,6 +181,82 @@ public class PackageArtifactRepositoryTests
         }
     }
 
+    public sealed class QueryMetadataArtifactsByPackageNames : PackageArtifactRepositoryTests
+    {
+        private readonly SemVersion _coreVersion = new(0, 48, 0);
+
+        [Fact]
+        public async Task Should_return_empty_when_no_package_names_provided()
+        {
+            // Arrange
+            var packageRepo = SetupPackageArtifactRepository();
+
+            // Act
+            var result = await packageRepo.QueryMetadataArtifacts([], null, TestContext.Current.CancellationToken);
+
+            // Assert
+            result.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task Should_return_artifacts_for_single_package()
+        {
+            // Arrange
+            var packageRepo = SetupPackageArtifactRepository();
+            _repository.SetupExecuteQuery(
+                "items.find({\"repo\":\"vicione-suite\",\"$and\":[{\"path\":{\"$match\":\"fbs/ViciOne.Driver.IoTCore\"}},{\"name\":{\"$match\":\"*-win-x64_*.json\"}}]}).sort({\"$desc\":[\"updated\"]})",
+                [
+                    Substitute.For<IArtifact>().Setup("1.18.0-win-x64_0.48.0.json", "fbs/ViciOne.Driver.IoTCore"),
+                    Substitute.For<IArtifact>().Setup("1.17.0-win-x64_0.48.0.json", "fbs/ViciOne.Driver.IoTCore"),
+                ]);
+
+            // Act
+            var result = await packageRepo.QueryMetadataArtifacts(["ViciOne.Driver.IoTCore"], null, TestContext.Current.CancellationToken);
+
+            // Assert
+            result.Should().HaveCount(2);
+            result.Should().AllSatisfy(a => a.Path.Should().Contain("ViciOne.Driver.IoTCore"));
+        }
+
+        [Fact]
+        public async Task Should_aggregate_artifacts_from_multiple_packages()
+        {
+            // Arrange
+            var packageRepo = SetupPackageArtifactRepository();
+            var artifacts = new List<IArtifact> { Substitute.For<IArtifact>().Setup("1.18.0-win-x64_0.48.0.json", "fbs/ViciOne.Driver.IoTCore") };
+            var queryResult = Substitute.For<IArtifactQueryResult>();
+            queryResult.Artifacts.Returns(artifacts.AsReadOnly());
+            _repository.Query(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(queryResult);
+
+            // Act
+            var result = await packageRepo.QueryMetadataArtifacts(
+                ["ViciOne.Driver.IoTCore", "ViciOne.Suite.DataPort.Anna"], null, TestContext.Current.CancellationToken);
+
+            // Assert — 1 artifact per package query × 2 packages
+            result.Should().HaveCount(2);
+            await _repository.Received(2).Query(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Should_filter_by_core_version_for_each_package()
+        {
+            // Arrange
+            var packageRepo = SetupPackageArtifactRepository();
+            _repository.SetupExecuteQuery(
+                "items.find({\"repo\":\"vicione-suite\",\"$and\":[{\"path\":{\"$match\":\"fbs/ViciOne.Driver.IoTCore\"}},{\"name\":{\"$match\":\"*-win-x64_0.48.*.json\"}}]}).sort({\"$desc\":[\"updated\"]})",
+                [
+                    Substitute.For<IArtifact>().Setup("1.18.0-win-x64_0.48.0.json", "fbs/ViciOne.Driver.IoTCore"),
+                ]);
+
+            // Act
+            var result = await packageRepo.QueryMetadataArtifacts(["ViciOne.Driver.IoTCore"], _coreVersion, TestContext.Current.CancellationToken);
+
+            // Assert
+            result.Should().HaveCount(1);
+            result.Should().AllSatisfy(a => a.Name.Should().Contain("_0.48."));
+        }
+    }
+
     public class QueryZipArtifact : PackageArtifactRepositoryTests
     {
         [Fact]
