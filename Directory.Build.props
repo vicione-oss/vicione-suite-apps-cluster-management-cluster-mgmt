@@ -1,21 +1,4 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <!-- Versioning -->
-    <PropertyGroup>
-        <VersionWithSuffix>$([System.IO.File]::ReadAllText('$(MsBuildThisFileDirectory)VERSION').Trim())</VersionWithSuffix>
-        <!-- Default is 0.1.0 -->
-        <VersionPrefix Condition="$(VersionWithSuffix) == ''">0.1.0</VersionPrefix>
-        <VersionPrefix Condition="$(VersionWithSuffix.Contains('-')) == true">$(VersionWithSuffix.Substring(0, $(VersionWithSuffix.IndexOf('-'))))</VersionPrefix>
-        <VersionPrefix Condition="$(VersionWithSuffix.Contains('-')) == false">$(VersionWithSuffix)</VersionPrefix>
-        <!-- Add suffix if available -->
-        <VersionSuffix></VersionSuffix>
-        <VersionSuffix Condition="$(VersionWithSuffix.Contains('-')) == true">$(VersionWithSuffix.Substring($(VersionWithSuffix.IndexOf('-'))))</VersionSuffix>
-        <VersionSuffix Condition="$(VersionSuffix.Contains('-')) == true">$(VersionSuffix.Substring(1))</VersionSuffix>
-        <!-- PackageVersion -->
-        <PackageVersion>$(VersionPrefix)</PackageVersion>
-        <PackageVersion Condition="$(PackageVersionSuffix) != ''">$(PackageVersion).$(PackageVersionSuffix)</PackageVersion>
-        <PackageVersion Condition="$(VersionSuffix) != ''">$(PackageVersion)-$(VersionSuffix)</PackageVersion>
-    </PropertyGroup>
-
     <PropertyGroup>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -44,9 +27,17 @@
 
     <!-- NuGet packages -->
     <PropertyGroup>
+        <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
         <!-- https://docs.microsoft.com/de-de/nuget/reference/msbuild-targets -->
         <PackageProjectUrl>https://gitlab.com/vicione-oss/vicione/suite-apps/cluster-management/cluster-mgmt</PackageProjectUrl>
         <Authors>$(Company)</Authors>
+    </PropertyGroup>
+
+    <!-- Performance optimization for CI pipelines -->
+    <PropertyGroup Condition="'$(CI)' != ''">
+        <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+        <RunAnalyzersDuringLiveAnalysis>false</RunAnalyzersDuringLiveAnalysis>
+        <RunAnalyzers>true</RunAnalyzers>
     </PropertyGroup>
 
     <!-- Don't publish test projects -->
@@ -56,6 +47,11 @@
         <RunSettingsFilePath>$(MsBuildThisFileDirectory)\tests.runsettings</RunSettingsFilePath>
     </PropertyGroup>
 
+    <!-- Configure output type according to xUnit 3 documentation for test projects -->
+    <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">
+        <OutputType>Exe</OutputType>
+    </PropertyGroup>
+    
     <ItemGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">
         <PackageReference Include="Microsoft.Testing.Platform" />
         <PackageReference Include="coverlet.collector">
