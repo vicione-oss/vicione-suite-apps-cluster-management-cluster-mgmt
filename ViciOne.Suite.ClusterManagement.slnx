@@ -14,6 +14,7 @@
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
     <File Path="global.json" />
+    <File Path="LICENSE.txt" />
     <File Path="module-metadata.json" />
     <File Path="NuGet.Config" />
     <File Path="README.md" />

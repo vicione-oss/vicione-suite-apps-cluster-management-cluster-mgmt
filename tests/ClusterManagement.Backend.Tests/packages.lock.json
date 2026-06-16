@@ -1080,7 +1080,7 @@
           "System.IO.Abstractions": "[22.1.1, )",
           "System.Reflection.MetadataLoadContext": "[10.0.8, )",
           "ViciOne.Core.Dataflow.DataModel.Generation": "[1.0.0, )",
-          "ViciOne.Suite.ClusterManagement.Internal": "[2.2.0, )",
+          "ViciOne.Suite.ClusterManagement.Internal": "[1.0.0, )",
           "ViciOne.Suite.DataPort": "[0.32.0, )",
           "ViciOne.Suite.Sdk.Backend": "[2.1.0, )",
           "ViciOne.Suite.System.DataPort": "[1.0.0, )"
@@ -1096,7 +1096,7 @@
         "type": "Project",
         "dependencies": {
           "Semver": "[3.0.0, )",
-          "ViciOne.Suite.ClusterManagement.Public": "[2.2.0, )",
+          "ViciOne.Suite.ClusterManagement.Public": "[1.0.0, )",
           "ViciOne.TreeBuilder": "[1.1.1, )"
         }
       },
@@ -1112,7 +1112,7 @@
         "dependencies": {
           "AwesomeAssertions": "[9.4.0, )",
           "NSubstitute": "[5.3.0, )",
-          "ViciOne.Suite.ClusterManagement.Backend": "[2.2.0, )"
+          "ViciOne.Suite.ClusterManagement.Backend": "[1.0.0, )"
         }
       },
       "AwesomeAssertions": {

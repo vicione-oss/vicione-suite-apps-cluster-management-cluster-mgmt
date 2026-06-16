@@ -729,7 +729,7 @@
         "type": "Project",
         "dependencies": {
           "Semver": "[3.0.0, )",
-          "ViciOne.Suite.ClusterManagement.Public": "[2.2.0, )",
+          "ViciOne.Suite.ClusterManagement.Public": "[1.0.0, )",
           "ViciOne.TreeBuilder": "[1.1.1, )"
         }
       },

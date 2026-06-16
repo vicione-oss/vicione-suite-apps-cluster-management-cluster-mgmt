@@ -1,17 +1,217 @@
-include:
-  - project: "vicione-oss/tooling/ci-templates"
-    file: "module/v2/dotnet.yml"
+### Scripts ###
+.activate_mise: &activate_mise
+  - mise install
+  - eval "$(mise env)"
 
+.update_nuget_source_ro: &update_nuget_source_ro
+  - dotnet nuget update source JFrogNuGetProxy --configfile NuGet.Config -u $NuGet_User_JFrog -p $NuGet_PW_JFrog --store-password-in-clear-text
+  - dotnet nuget update source JFrogViciOne --configfile NuGet.Config -u $NuGet_User_JFrog -p $NuGet_PW_JFrog --store-password-in-clear-text
+  - dotnet nuget update source JFrogDevExpressProxy --configfile NuGet.Config -u $NuGet_User_JFrog -p $NuGet_PW_JFrog --store-password-in-clear-text
+
+.update_nuget_source_rw: &update_nuget_source_rw
+  - dotnet nuget update source JFrogViciOne --configfile NuGet.Config -u $NuGet_User_RW_JFrog -p $NuGet_PW_RW_JFrog --store-password-in-clear-text
+
+.rule_tag: &rule_tag
+  if: "$CI_COMMIT_TAG"
+
+.rule_default_branch: &rule_default_branch
+  if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+
+.rule_mr: &rule_mr
+  if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+.rule_web: &rule_web
+  if: '$CI_PIPELINE_SOURCE == "web"'
+
+.rules: &rules
+  - *rule_tag
+  - *rule_default_branch
+  - *rule_mr
+  - *rule_web
+
+.rules_manual: &rules_manual
+  - <<: *rule_tag
+    when: manual
+    allow_failure: true
+  - <<: *rule_default_branch
+    when: manual
+    allow_failure: true
+  - <<: *rule_mr
+    when: manual
+    allow_failure: true
+  - <<: *rule_web
+    when: manual
+    allow_failure: true
+
+.rules_manual_tag: &rules_manual_tag
+  - <<: *rule_tag
+    when: manual
+    allow_failure: true
+  - <<: *rule_default_branch
+    when: manual
+    allow_failure: true
+
+.npm_install: &npm_install
+  - cd src/Ping.Client
+  - npm install
+  - cd -
+
+.npm_run_eslint: &npm_run_eslint
+  - cd src/Ping.Client
+  - npx eslint .
+  - cd -
+
+### Defaults ###
 variables:
+  IMAGE_NAME: registry.gitlab.com/vicione-oss/tooling/base-image:vicione-stable
+  RUNNER_TAG: saas-linux-small-amd64
   PROJECT_NAME: ClusterManagement
   MODULE_FULLNAME: ViciOne.Suite.ClusterManagement
-  IMAGE_NAME: mcr.microsoft.com/dotnet/sdk:10.0
   TEST_FILTER: "Category!=System"
 
-default:
-  image: ${IMAGE_NAME}
+stages:
+  - metadata
+  - build
+  - test
+  - pack
+  - publish
+  - release-dev
+  - release-staging
+  - release-public
 
-# Reference for pre build actions.
-# Do not remove! It's used/referenced in the downstream CI config.
-.before_build_script: &before_build_script
-  - echo "Before build actions"
+### CI Components ###
+include:
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/version/version-calc@v1.1.0
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/module-packaging/runtime-identifier@v0.1.0
+    inputs:
+      project: "src/${PROJECT_NAME}.Deployment/${PROJECT_NAME}.Deployment.csproj"
+      rules: *rules
+      tags:
+        - saas-linux-small-amd64
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-restore@2
+    inputs:
+      image: ${IMAGE_NAME}
+      rules: *rules
+      before_script:
+        - *activate_mise
+        - *update_nuget_source_ro
+      tags:
+        - ${RUNNER_TAG}
+  ### Metadata for Module ###
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/module-packaging/metadata@v0.1.0
+    inputs:
+      project: "src/${PROJECT_NAME}.Deployment/${PROJECT_NAME}.Deployment.csproj"
+      module_version: "${Version}"
+      name: "Module Metadata"
+      rules: *rules
+      stage: metadata
+      tags:
+        - saas-linux-small-amd64
+  ### Test & Build ###
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-build@2
+    inputs:
+      image: ${IMAGE_NAME}
+      rules: *rules
+      before_script:
+        - *activate_mise
+        - *update_nuget_source_ro
+      tags:
+        - ${RUNNER_TAG}
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-test@1.1.0
+    inputs:
+      image: ${IMAGE_NAME}
+      rules: *rules
+      no_build: false
+      filter: ${TEST_FILTER}
+      build_job_name: "dotnet Build"
+      before_script:
+        - *activate_mise
+        - *update_nuget_source_ro
+      tags:
+        - ${RUNNER_TAG}
+  ### Pack & Push NuGet ###
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-pack@2
+    inputs:
+      name: "Pack NuGet ClusterManagement.Public"
+      stage: "publish"
+      image: ${IMAGE_NAME}
+      project: "src/ClusterManagement.Public/ClusterManagement.Public.csproj"
+      rules: *rules
+      before_script:
+        - *activate_mise
+        - *update_nuget_source_ro
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-nuget-push@2
+    inputs:
+      pack_job_name: "Pack NuGet ClusterManagement.Public"
+      name: "Push NuGet ClusterManagement.Public"
+      stage: "release-dev"
+      image: ${IMAGE_NAME}
+      source: "JFrogViciOne"
+      filename_pattern: "./src/ClusterManagement.Public/*"
+      rules: *rules
+      before_script: 
+        - *activate_mise
+        - *update_nuget_source_rw
+  ### Publish Module ###
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/module-packaging/publish-module@v0.1.0
+    inputs:
+      module_name: "${PROJECT_NAME}"
+      rules: *rules_manual
+      image: "${IMAGE_NAME}"
+      build_job: "dotnet Build"
+      before_script:
+        - *activate_mise
+        - *update_nuget_source_ro
+        - apt update && apt install -y jq
+      tags:
+        - saas-linux-small-amd64
+  ### Package Module ###
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/module-packaging/package-module@v0.1.0
+    inputs:
+      rules: *rules
+      image: "${IMAGE_NAME}"
+      before_script:
+        - *activate_mise
+        - apt update && apt install -y jq zip
+      tags:
+        - saas-linux-small-amd64
+  # Prerelease to dev repository ###
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/release@v1.0.0
+    inputs:
+      name: "Prerelease to JFrog"
+      stage: release-dev
+      rules: *rules_manual
+      repository: "vicione-suite-dev"
+      upload_path: "modules/${MODULE_FULLNAME}"
+      needs:
+        - "Package Module"
+      artifacts:
+        - "build/**/*"
+  # Release to staging (on tag) ###
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/release@v1.0.0
+    inputs:
+      name: "Release to JFrog"
+      stage: release-staging
+      rules: *rules_manual_tag
+      repository: "vicione-suite-staging"
+      upload_path: "modules/${MODULE_FULLNAME}"
+      needs:
+        - "Package Module"
+      artifacts:
+        - "build/**/*"
+  # Promote staging to production (on tag) ###
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/promote@v1.0.0
+    inputs:
+      name: "Public Release"
+      stage: release-public
+      rules: *rules_manual_tag
+      source_repository: "vicione-suite-staging"
+      destination_repository: "vicione-suite"
+      artifacts:
+        - "build/**/*"
+
+### Override needs for "Pack NuGet ClusterManagement.Public"
+Pack NuGet ClusterManagement.Public:
+  needs:
+    - "dotnet Build"
+    - "Publish Module"
