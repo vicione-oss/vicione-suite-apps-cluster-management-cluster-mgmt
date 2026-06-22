@@ -2,6 +2,10 @@
 
 ## 2.3.0 - Unreleased
 
+### Changed
+
+- `ViciOne.Ui.ClusterEditor` package, update to `1.2.0`
+
 ## 2.2.0 - 2026-06-12
 
 ### Changed
