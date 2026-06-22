@@ -1427,7 +1427,7 @@
           "Microsoft.Extensions.Http": "[10.0.8, )",
           "ViciOne.Suite.ClusterManagement.Internal": "[1.0.0, )",
           "ViciOne.Suite.Sdk.Client": "[2.1.0, )",
-          "ViciOne.Ui.ClusterEditor": "[1.1.0, )",
+          "ViciOne.Ui.ClusterEditor": "[1.2.0, )",
           "ViciOne.Ui.Localization": "[3.4.0, )",
           "ViciOne.Ui.MonochromeIcons.Assets": "[4.11.0, )"
         }
@@ -1648,17 +1648,17 @@
       },
       "ViciOne.Ui.ClusterEditor": {
         "type": "CentralTransitive",
-        "requested": "[1.1.0, )",
-        "resolved": "1.1.0",
-        "contentHash": "PdR8Nb1tRR4l17Df6+TTgAeHZKOvOGK3xHqL9DBM4qiV7j+Nid8ju5zkiCptL9RNgk60caLkmURO8KKITZMBqg==",
+        "requested": "[1.2.0, )",
+        "resolved": "1.2.0",
+        "contentHash": "EcbQ5m9a0yC59Oi2vJKpzNPf0V1THOcaGNoQzmjoj2DEesBGo+7NGpL0c3A5iyIalS3xMgXzppPjsQTcbfW+3w==",
         "dependencies": {
           "Markdig": "0.42.0",
           "Microsoft.Extensions.Localization": "10.0.8",
           "ViciOne.Cluster.Builder": "1.0.0",
           "ViciOne.TreeBuilder": "1.1.1",
-          "ViciOne.Ui.Blazor.Components": "5.13.0",
-          "ViciOne.Ui.Localization": "3.3.0",
-          "ViciOne.Ui.MonochromeIcons.Components": "4.10.0",
+          "ViciOne.Ui.Blazor.Components": "5.14.0",
+          "ViciOne.Ui.Localization": "3.4.0",
+          "ViciOne.Ui.MonochromeIcons.Components": "4.11.0",
           "ViciOne.Ui.Shared.Dx": "0.19.1",
           "ViciOne.Ui.TreeEditor": "2.0.1",
           "Z.Blazor.Diagrams": "3.0.4"
