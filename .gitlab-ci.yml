@@ -51,16 +51,6 @@
     when: manual
     allow_failure: true
 
-.npm_install: &npm_install
-  - cd src/Ping.Client
-  - npm install
-  - cd -
-
-.npm_run_eslint: &npm_run_eslint
-  - cd src/Ping.Client
-  - npx eslint .
-  - cd -
-
 ### Defaults ###
 variables:
   IMAGE_NAME: registry.gitlab.com/vicione-oss/tooling/base-image:vicione-stable
