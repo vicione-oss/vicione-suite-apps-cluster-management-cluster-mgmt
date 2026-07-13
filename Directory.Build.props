@@ -33,6 +33,11 @@
         <Authors>$(Company)</Authors>
     </PropertyGroup>
 
+    <!-- Configuration for resulting NuGet package -->
+    <ItemGroup Condition="'$(IsPackable)' == 'true'">
+        <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="" />
+    </ItemGroup>
+
     <!-- Performance optimization for CI pipelines -->
     <PropertyGroup Condition="'$(CI)' != ''">
         <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
