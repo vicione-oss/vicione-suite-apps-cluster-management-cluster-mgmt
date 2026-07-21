@@ -190,15 +190,14 @@ include:
       artifacts:
         - "build/**/*"
   # Promote staging to production (on tag) ###
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/promote@v1.0.0
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/promote@v2.0.1
     inputs:
       name: "Public Release"
       stage: release-public
       rules: *rules_manual_tag
       source_repository: "vicione-suite-staging"
       destination_repository: "vicione-suite"
-      artifacts:
-        - "build/**/*"
+      remote_path: "modules/${MODULE_FULLNAME}"
 
 ### Override needs for "Pack NuGet ClusterManagement.Public"
 Pack NuGet ClusterManagement.Public:
