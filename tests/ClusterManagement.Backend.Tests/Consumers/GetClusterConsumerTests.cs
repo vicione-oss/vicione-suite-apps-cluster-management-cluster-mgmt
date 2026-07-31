@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Sdk.Testing.Backend;
 
 namespace ClusterManagement.Backend.Tests.Consumers;
+
 public class GetClusterConsumerTests : TestWithDbContextSqlite<ClusterDbContextSqlite>
 {
     private readonly Action<IBusRegistrationConfigurator> _configureServices;
@@ -43,7 +44,8 @@ public class GetClusterConsumerTests : TestWithDbContextSqlite<ClusterDbContextS
         //Arrange
         await using var tester = new MassTransitTester(_configureServices);
         using var builder = ClusterFactory.CreateComplexCluster(ClusterComplexity.Complex);
-        var clusterCompressed = ClusterSerializer.Compress(builder.Cluster);
+
+        var clusterCompressed = await ClusterSerializer.CompressAsync(builder.Cluster, cancellationToken: TestContext.Current.CancellationToken);
         _snapshotStoreMock
             .LoadCompressedJson(Arg.Is(builder.Cluster.Id), Arg.Is(builder.Cluster.Version), Arg.Any<CancellationToken>())
             .Returns(clusterCompressed);

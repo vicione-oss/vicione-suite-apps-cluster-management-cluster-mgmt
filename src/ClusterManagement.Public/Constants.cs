@@ -11,7 +11,7 @@ public static class Constants
     public const string EditorNavTileId = "cluster-editor";
     public const string DeployClusterState = "DeployClusterState";
     public const string EngineMonitoringTopicPostFix = "cycle";
-    
+
     // these have to match yaml ruleset values!!
     public const string MqttRuleSetId = "MQTTDataPort";
     public const string MqttDataPortDesignId = "MQTT-Broker";

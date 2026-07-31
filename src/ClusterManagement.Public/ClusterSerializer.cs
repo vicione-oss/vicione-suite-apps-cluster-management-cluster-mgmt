@@ -58,12 +58,34 @@ public static class ClusterSerializer
         return ms.ToArray();
     }
 
+    public static async Task<byte[]> CompressAsync(Cluster cluster, JsonSerializerOptions? serializerOptions = null, CancellationToken cancellationToken = default)
+    {
+        using MemoryStream ms = new();
+        GZipStream gs = new(ms, CompressionMode.Compress);
+        await using (gs.ConfigureAwait(false))
+            await JsonSerializer.SerializeAsync(gs, cluster, serializerOptions ?? UntypedSerializerOptions, cancellationToken).ConfigureAwait(false);
+        return ms.ToArray();
+    }
+
     public static byte[] Compress(string str)
     {
         using MemoryStream ms = new();
-        using GZipStream gs = new(ms, CompressionMode.Compress);
+        using (GZipStream gs = new(ms, CompressionMode.Compress))
         using (StreamWriter writer = new(gs))
-            writer.WriteAsync(str);
+            writer.Write(str);
+        return ms.ToArray();
+    }
+
+    public static async Task<byte[]> CompressAsync(string str, CancellationToken cancellationToken = default)
+    {
+        using MemoryStream ms = new();
+        GZipStream gs = new(ms, CompressionMode.Compress);
+        await using (gs.ConfigureAwait(false))
+        {
+            StreamWriter writer = new(gs);
+            await using (writer.ConfigureAwait(false))
+                await writer.WriteAsync(str.AsMemory(), cancellationToken).ConfigureAwait(false);
+        }
         return ms.ToArray();
     }
 

@@ -39,9 +39,10 @@ public class CommitClusterChangeConsumerTests
         {
             await using var tester = new MassTransitTester(_configureServices);
             var cluster = ClusterDbContextTools.CreateCluster();
+            var compressed = await ClusterSerializer.CompressAsync(cluster, cancellationToken: TestContext.Current.CancellationToken);
 
             // Arrange
-            var command = new CommitClusterChange(ClusterSerializer.Compress(cluster), new CommitClusterMetaInfo(cluster), null);
+            var command = new CommitClusterChange(compressed, new CommitClusterMetaInfo(cluster), null);
 
             // Act + Assert
             await tester.TestCommand<CommitClusterChange, CommitClusterChangeConsumer>(command);
@@ -55,7 +56,8 @@ public class CommitClusterChangeConsumerTests
             var cluster = ClusterDbContextTools.CreateCluster();
 
             cluster.Version = new Version(1, 0, 1);
-            var command = new CommitClusterChange(ClusterSerializer.Compress(cluster), new CommitClusterMetaInfo(cluster), null);
+            var compressed = await ClusterSerializer.CompressAsync(cluster, cancellationToken: TestContext.Current.CancellationToken);
+            var command = new CommitClusterChange(compressed, new CommitClusterMetaInfo(cluster), null);
 
             // Act
             await tester.TestCommand<CommitClusterChange, CommitClusterChangeConsumer>(command);
@@ -77,7 +79,8 @@ public class CommitClusterChangeConsumerTests
             var options = new CommitClusterOptions();
 
             cluster.Version = new Version(1, 0, 1);
-            var command = new CommitClusterChange(ClusterSerializer.Compress(cluster), new CommitClusterMetaInfo(cluster), options);
+            var compressed = await ClusterSerializer.CompressAsync(cluster, cancellationToken: TestContext.Current.CancellationToken);
+            var command = new CommitClusterChange(compressed, new CommitClusterMetaInfo(cluster), options);
 
             // Act
             await tester.TestCommand<CommitClusterChange, CommitClusterChangeConsumer>(command);
@@ -96,8 +99,9 @@ public class CommitClusterChangeConsumerTests
             // Arrange
             await using var tester = new MassTransitTester(_configureServices);
             var cluster = ClusterDbContextTools.CreateCluster();
+            var compressed = await ClusterSerializer.CompressAsync(cluster, cancellationToken: TestContext.Current.CancellationToken);
             var command = new CommitClusterChange(
-                ClusterSerializer.Compress(cluster),
+                compressed,
                 new CommitClusterMetaInfo(cluster),
                 null);
 
@@ -128,8 +132,9 @@ public class CommitClusterChangeConsumerTests
                 ClusterVersion = new Version(1, 0, 5)
             };
 
+            var compressed = await ClusterSerializer.CompressAsync(cluster, cancellationToken: TestContext.Current.CancellationToken);
             var command = new CommitClusterChange(
-                ClusterSerializer.Compress(cluster),
+                compressed,
                 metaInfo,
                 null); // Options is null to trigger version sync logic
 
@@ -164,8 +169,9 @@ public class CommitClusterChangeConsumerTests
                 ClusterVersion = new Version(1, 5, 0)
             };
 
+            var compressed = await ClusterSerializer.CompressAsync(cluster, cancellationToken: TestContext.Current.CancellationToken);
             var command = new CommitClusterChange(
-                ClusterSerializer.Compress(cluster),
+                compressed,
                 metaInfo,
                 null);
 
@@ -204,7 +210,8 @@ public class CommitClusterChangeConsumerTests
                     new(cluster.Id, cluster.Version, cluster.Name, true),
                 ]);
 
-            var command = new CommitClusterChange(ClusterSerializer.Compress(cluster), new CommitClusterMetaInfo(cluster), options);
+            var compressed = await ClusterSerializer.CompressAsync(cluster, cancellationToken: TestContext.Current.CancellationToken);
+            var command = new CommitClusterChange(compressed, new CommitClusterMetaInfo(cluster), options);
 
             // Act
             var changeEvent = await tester.TestCommand<CommitClusterChange, CommitClusterChangeConsumer, ClusterChanged>(command);
@@ -233,7 +240,8 @@ public class CommitClusterChangeConsumerTests
                     new(cluster.Id, cluster.Version, cluster.Name, true),
                 ]);
 
-            var command = new CommitClusterChange(ClusterSerializer.Compress(cluster), new CommitClusterMetaInfo(cluster), options);
+            var compressed = await ClusterSerializer.CompressAsync(cluster, cancellationToken: TestContext.Current.CancellationToken);
+            var command = new CommitClusterChange(compressed, new CommitClusterMetaInfo(cluster), options);
 
             // Act
             var changeEvent = await tester.TestCommand<CommitClusterChange, CommitClusterChangeConsumer, ClusterChanged>(command);
@@ -274,7 +282,8 @@ public class CommitClusterChangeConsumerTests
                     new(cluster.Id, cluster.Version, cluster.Name, true),
                 ]);
 
-            var command = new CommitClusterChange(ClusterSerializer.Compress(cluster), new CommitClusterMetaInfo(cluster), options);
+            var compressed = await ClusterSerializer.CompressAsync(cluster, cancellationToken: TestContext.Current.CancellationToken);
+            var command = new CommitClusterChange(compressed, new CommitClusterMetaInfo(cluster), options);
 
             // Act
             await tester.TestCommand<CommitClusterChange, CommitClusterChangeConsumer>(command);
@@ -318,7 +327,8 @@ public class CommitClusterChangeConsumerTests
                     new(cluster.Id, cluster.Version, cluster.Name, true),
                 ]);
 
-            CommitClusterChange command = new(ClusterSerializer.Compress(cluster), new CommitClusterMetaInfo(cluster), options);
+            var compressed = await ClusterSerializer.CompressAsync(cluster, cancellationToken: TestContext.Current.CancellationToken);
+            CommitClusterChange command = new(compressed, new CommitClusterMetaInfo(cluster), options);
 
             // Act
             await tester.TestCommand<CommitClusterChange, CommitClusterChangeConsumer>(command);
@@ -352,7 +362,8 @@ public class CommitClusterChangeConsumerTests
                     new(cluster.Id, cluster.Version, cluster.Name, true),
                 ]);
 
-            CommitClusterChange command = new(ClusterSerializer.Compress(cluster), new CommitClusterMetaInfo(cluster), options);
+            var compressed = await ClusterSerializer.CompressAsync(cluster, cancellationToken: TestContext.Current.CancellationToken);
+            CommitClusterChange command = new(compressed, new CommitClusterMetaInfo(cluster), options);
 
             // Act
             await tester.TestCommand<CommitClusterChange, CommitClusterChangeConsumer>(command);

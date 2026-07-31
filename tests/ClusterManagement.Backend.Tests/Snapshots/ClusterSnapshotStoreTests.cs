@@ -98,7 +98,8 @@ public class ClusterSnapshotStoreTests
             using var builder = ClusterFactory.CreateComplexCluster();
             var clusterFilePath = GetClusterFilePath(builder.Cluster.Id, builder.Cluster.Version);
             await using var fileStream = _fileSystem.FileStream.New(clusterFilePath, FileMode.Create);
-            await fileStream.WriteAsync(ClusterSerializer.Compress(builder.Cluster), TestContext.Current.CancellationToken);
+            var clusterCompressed = await ClusterSerializer.CompressAsync(builder.Cluster, cancellationToken: TestContext.Current.CancellationToken);
+            await fileStream.WriteAsync(clusterCompressed, TestContext.Current.CancellationToken);
             fileStream.Close();
 
             // Act
@@ -117,7 +118,7 @@ public class ClusterSnapshotStoreTests
             var snapshotStore = _serviceProvider.GetRequiredService<IClusterSnapshotStore>();
             using var builder = ClusterFactory.CreateComplexCluster();
             var clusterFilePath = GetClusterFilePath(builder.Cluster.Id, builder.Cluster.Version);
-            var clusterCompressed = ClusterSerializer.Compress(builder.Cluster);
+            var clusterCompressed = await ClusterSerializer.CompressAsync(builder.Cluster, cancellationToken: TestContext.Current.CancellationToken);
 
             await using var fileStream = _fileSystem.FileStream.New(clusterFilePath, FileMode.Create);
             await fileStream.WriteAsync(clusterCompressed, TestContext.Current.CancellationToken);

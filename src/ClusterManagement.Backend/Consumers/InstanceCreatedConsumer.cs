@@ -66,7 +66,8 @@ public sealed partial class InstanceCreatedConsumer(IClusterSnapshotStore cluste
             cluster.Id,
             cluster.Version);
 
-        await mediator.Send(new CommitClusterChange(ClusterSerializer.Compress(cluster), new CommitClusterMetaInfo(cluster), null), context.CancellationToken);
+        var compressed = await ClusterSerializer.CompressAsync(cluster, cancellationToken: context.CancellationToken);
+        await mediator.Send(new CommitClusterChange(compressed, new CommitClusterMetaInfo(cluster), null), context.CancellationToken);
     }
 
     public Task Consume(ConsumeContext<InstanceSynchronizationFailed> context)
