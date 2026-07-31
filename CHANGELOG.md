@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.4.0 - Unreleased
+
+### Added
+
+- `Public`
+  - `ClusterSerializer` class, added asynchronous compress methods
+
 ## 2.3.0 - 2026-07-13
 
 ### Changed

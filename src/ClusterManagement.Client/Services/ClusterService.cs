@@ -81,7 +81,7 @@ internal sealed class ClusterService :
         _logger.LogCommitClusterChange(cluster.Id, cluster.Version);
 
         stopwatch.Restart();
-        var compressedCluster = ClusterSerializer.Compress(cluster);
+        var compressedCluster = await ClusterSerializer.CompressAsync(cluster, cancellationToken: cancellationToken);
         stopwatch.Stop();
         _logger.LogElapsedTime("Serializing cluster", stopwatch.Elapsed);
 

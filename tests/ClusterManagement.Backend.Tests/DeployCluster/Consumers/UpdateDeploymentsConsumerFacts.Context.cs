@@ -131,7 +131,7 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
         _events.Clear();
 
         var clusterVersion = version is not null ? new Version(version) : _clusterBuilder.Cluster.Version;
-        var clusterCompressed = ClusterSerializer.Compress(_clusterBuilder.Cluster);
+        var clusterCompressed = await ClusterSerializer.CompressAsync(_clusterBuilder.Cluster, cancellationToken: TestContext.Current.CancellationToken);
         var clusterInfo = new ClusterSnapshotInfo(_clusterBuilder.Cluster.Id, clusterVersion, _clusterBuilder.Cluster.Name);
 
         var cancellationToken = TestContext.Current.CancellationToken;
