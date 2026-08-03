@@ -20,26 +20,26 @@
       },
       "Microsoft.Testing.Platform": {
         "type": "Direct",
-        "requested": "[2.2.3, )",
-        "resolved": "2.2.3",
-        "contentHash": "LhM1/Qoi8Ams5QcD4r3f09CSOono9iQr3NEJQItFtyzWB55nWTgEOsVqXqMWWWIwk3nkPqc+XfnlJmp8xUI5fg=="
+        "requested": "[2.3.0, )",
+        "resolved": "2.3.0",
+        "contentHash": "gsmLQaUN3Ddh0S4B0x0Q7IfBue7FNytJ8Bjec1JPad+9vqwIQvkgUS6fgmAJX/o3POu2xVbVbcaGhMV/2Ov9pg=="
       },
       "System.IO.Abstractions.TestingHelpers": {
         "type": "Direct",
-        "requested": "[22.1.1, )",
-        "resolved": "22.1.1",
-        "contentHash": "/fJ2F9N8Q7ZL7l7TQRcFtgaBdLBOj4+XL8ipc9sZC8tLMjoNBJtuyxMise5utraozm3KDAzPls5iWIcDCwpawQ==",
+        "requested": "[22.2.0, )",
+        "resolved": "22.2.0",
+        "contentHash": "yVy8HIx57CFwf9Z5UMYbrokQtLdwf7f004UiR8XhA70Q3BWlIAYDaOUk7ZhDp3BtIgh739dgJkqGmSN0LUA50Q==",
         "dependencies": {
-          "TestableIO.System.IO.Abstractions.TestingHelpers": "22.1.1"
+          "TestableIO.System.IO.Abstractions.TestingHelpers": "22.2.0"
         }
       },
       "ViciOne.Suite.Sdk.Testing": {
         "type": "Direct",
-        "requested": "[2.2.0-ci2689717416, )",
-        "resolved": "2.2.0-ci2689717416",
-        "contentHash": "pvorPTbMRdpufdFwrB2bfK/DEURyZXRhC2y9buShH8n4J9IFjlKY/LHBgYgvLiKJSfmHZqWrU8Gj05o01owKHw==",
+        "requested": "[2.2.0, )",
+        "resolved": "2.2.0",
+        "contentHash": "o0ymUpOVKthHfpOWfNRn7QPeYWD8LgRa6B5X6f+se0wJ0TXr2HYOwrnumPufrG+iLqFfl1TCoy9bbpmWc3U+OQ==",
         "dependencies": {
-          "AwesomeAssertions": "9.4.0",
+          "AwesomeAssertions": "9.5.0",
           "Extensions.Logging.NSubstitute": "1.0.0",
           "MassTransit.TestFramework": "8.5.10",
           "Microsoft.AspNetCore.Identity.EntityFrameworkCore": "10.0.10",
@@ -47,10 +47,10 @@
           "Microsoft.AspNetCore.Mvc.Testing": "10.0.10",
           "Microsoft.EntityFrameworkCore.InMemory": "10.0.10",
           "System.IO.Abstractions": "22.2.0",
-          "ViciOne.Suite.Sdk.Backend": "2.2.0-ci2689717416",
-          "ViciOne.Suite.Sdk.Client": "2.2.0-ci2689717416",
-          "ViciOne.Ui.Blazor.Components": "5.18.0",
-          "bunit": "2.7.2",
+          "ViciOne.Suite.Sdk.Backend": "2.2.0",
+          "ViciOne.Suite.Sdk.Client": "2.2.0",
+          "ViciOne.Ui.Blazor.Components": "5.19.0",
+          "bunit": "2.8.6",
           "xunit.v3.extensibility.core": "3.2.2"
         }
       },
@@ -77,15 +77,15 @@
       },
       "AngleSharp": {
         "type": "Transitive",
-        "resolved": "1.4.0",
-        "contentHash": "6ph8mpaQx0KL0COYRt0kI8MB9gSp1PtKijKMhJU//+aVFgKAJLKDesG/+26JSaVCOrHNgPf12wpfoyRcMYOeXg=="
+        "resolved": "1.5.2",
+        "contentHash": "LVZ7rrr6GHbhERhTgVDarVygl1e6KwE96pronA90LBOMacDhxR4lB+xYLjn/vlnUu+xbOB2RM9fuCPEx5bdyWA=="
       },
       "AngleSharp.Css": {
         "type": "Transitive",
-        "resolved": "1.0.0-beta.157",
-        "contentHash": "yptHmuGt2tzNGCeD7Orh6HRs4j7MH3IUhI+FM640OlmSwWRMd1yjKnicVcNG147IdF/tjOvgqtvpTU0pH6wVpA==",
+        "resolved": "1.0.0-beta.224",
+        "contentHash": "BF/hPs8sRjhR+rYkBom7WaMLN0w36Qvnu+WvoHK/gL67MrQOONkkivBTGilvta4sNix5Y8T9XVlZsRI8IU2/vA==",
         "dependencies": {
-          "AngleSharp": "[1.0.0, 2.0.0)"
+          "AngleSharp": "[1.5.0, 2.0.0)"
         }
       },
       "AngleSharp.Diffing": {
@@ -99,21 +99,21 @@
       },
       "bunit": {
         "type": "Transitive",
-        "resolved": "2.7.2",
-        "contentHash": "Oe8AI7KU1tPNM1VHTtfdfcxbC2bWnrTW9rAcrEEuZ7JlvsY2NZHvWRa/I2PvfAQifTJf0moe+wZqt8OLbJRklw==",
+        "resolved": "2.8.6",
+        "contentHash": "kBGHiCrn0LvUGRiDaqLxBewZXAOIIqYlJTcfh/+yaMc5XOzWm2eeuDl2+3ksK3AuLSSnVitmCLu8n1RV9CXpSQ==",
         "dependencies": {
-          "AngleSharp": "1.4.0",
-          "AngleSharp.Css": "1.0.0-beta.157",
+          "AngleSharp": "1.5.2",
+          "AngleSharp.Css": "1.0.0-beta.224",
           "AngleSharp.Diffing": "1.1.1",
-          "Microsoft.AspNetCore.Components": "10.0.0",
-          "Microsoft.AspNetCore.Components.Authorization": "10.0.0",
-          "Microsoft.AspNetCore.Components.Web": "10.0.0",
-          "Microsoft.AspNetCore.Components.WebAssembly": "10.0.0",
-          "Microsoft.AspNetCore.Components.WebAssembly.Authentication": "10.0.0",
-          "Microsoft.Extensions.Caching.Memory": "10.0.0",
-          "Microsoft.Extensions.Localization.Abstractions": "10.0.0",
-          "Microsoft.Extensions.Logging": "10.0.0",
-          "Microsoft.Extensions.Logging.Abstractions": "10.0.0"
+          "Microsoft.AspNetCore.Components": "10.0.10",
+          "Microsoft.AspNetCore.Components.Authorization": "10.0.10",
+          "Microsoft.AspNetCore.Components.Web": "10.0.10",
+          "Microsoft.AspNetCore.Components.WebAssembly": "10.0.10",
+          "Microsoft.AspNetCore.Components.WebAssembly.Authentication": "10.0.10",
+          "Microsoft.Extensions.Caching.Memory": "10.0.10",
+          "Microsoft.Extensions.Localization.Abstractions": "10.0.10",
+          "Microsoft.Extensions.Logging": "10.0.10",
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.10"
         }
       },
       "Castle.Core": {
@@ -198,10 +198,10 @@
       },
       "Microsoft.AspNetCore.Components.QuickGrid": {
         "type": "Transitive",
-        "resolved": "10.0.9",
-        "contentHash": "HAdLHvQ3h9z6vxVty3MKG9X/6aV+MXgaYxWzPrMQpa8lk128SogJMQ4nk1FjUYLt85MD6l9a1HVHVdJsMCP+uQ==",
+        "resolved": "10.0.10",
+        "contentHash": "1wIaj1TJwKaZ8uqMypLZggnLra2jxeXLivgx1ZwUwFXdzN2o2+uZZWH6yqVcFUM0OGdGFyd4GCMrXcHH5cu7fw==",
         "dependencies": {
-          "Microsoft.AspNetCore.Components.Web": "10.0.9"
+          "Microsoft.AspNetCore.Components.Web": "10.0.10"
         }
       },
       "Microsoft.AspNetCore.Components.Web": {
@@ -218,23 +218,23 @@
       },
       "Microsoft.AspNetCore.Components.WebAssembly": {
         "type": "Transitive",
-        "resolved": "10.0.0",
-        "contentHash": "ens4WMX0PBTHxRDYpS3i//VktXi+24my01qXI0P91q2rDMHcIKRN0/sdE+4kB1ZwJpHec9vYxDmmnw/JOcXCwQ==",
+        "resolved": "10.0.10",
+        "contentHash": "0Zib7U6HmGw4Noj/+yJz1YuEJwo3XOV0iLezXDLFsrHTaC8L+KUOR/1+1tX7AAeipDG6jP3gPZOwpirk6G3LYQ==",
         "dependencies": {
-          "Microsoft.AspNetCore.Components.Web": "10.0.0",
-          "Microsoft.Extensions.Configuration.Binder": "10.0.0",
-          "Microsoft.Extensions.Configuration.Json": "10.0.0",
-          "Microsoft.Extensions.Logging": "10.0.0",
-          "Microsoft.JSInterop.WebAssembly": "10.0.0"
+          "Microsoft.AspNetCore.Components.Web": "10.0.10",
+          "Microsoft.Extensions.Configuration.Binder": "10.0.10",
+          "Microsoft.Extensions.Configuration.Json": "10.0.10",
+          "Microsoft.Extensions.Logging": "10.0.10",
+          "Microsoft.JSInterop.WebAssembly": "10.0.10"
         }
       },
       "Microsoft.AspNetCore.Components.WebAssembly.Authentication": {
         "type": "Transitive",
-        "resolved": "10.0.0",
-        "contentHash": "u4cqo7IdawVPAPHDBlyiTmEodGom6m/OnqXnioz71ASA2l7pAebLed5vaErtsGT9Ud0Z1Nudthy+3FBk0BmHjQ==",
+        "resolved": "10.0.10",
+        "contentHash": "D2GIsqVJ2+tVDViJmbEF4tc+gxhdAl5xkBAMZHWCJV7Pt+oBkU2omBSRbgVTq3N2OgreVNSp7w+FrZNgu97d5A==",
         "dependencies": {
-          "Microsoft.AspNetCore.Components.Authorization": "10.0.0",
-          "Microsoft.AspNetCore.Components.Web": "10.0.0"
+          "Microsoft.AspNetCore.Components.Authorization": "10.0.10",
+          "Microsoft.AspNetCore.Components.Web": "10.0.10"
         }
       },
       "Microsoft.AspNetCore.Cryptography.Internal": {
@@ -757,10 +757,10 @@
       },
       "Microsoft.JSInterop.WebAssembly": {
         "type": "Transitive",
-        "resolved": "10.0.0",
-        "contentHash": "j0lrmG+7X4OZh75IzOX00nkwAEjXSgt2Ul6kjwmVkAOBzd8JC1Q/yJ/fC4jWcIXe4h22881Qq1o46p/TnSNaRQ==",
+        "resolved": "10.0.10",
+        "contentHash": "FjPAGQWbCP85FWY2Wl9opHSsY+u9nZb8Ui6eTVHEMY/RJateOhW78jEtC4QOQ/6slkS1MKyIAF6ZHIrUR1fX/w==",
         "dependencies": {
-          "Microsoft.JSInterop": "10.0.0"
+          "Microsoft.JSInterop": "10.0.10"
         }
       },
       "Microsoft.Testing.Extensions.Telemetry": {
@@ -877,11 +877,11 @@
       },
       "TestableIO.System.IO.Abstractions.TestingHelpers": {
         "type": "Transitive",
-        "resolved": "22.1.1",
-        "contentHash": "To7oYx68nrl0tu8duRSO9SyRHrNOVYSYIUlvfqNnoX9X2X9thIdJGmM3W3ZINtT4xqKuSy1Tb4hJK35Umhtfqg==",
+        "resolved": "22.2.0",
+        "contentHash": "mmsYxNRoxsimceoqImCPVf+LuqJJSd8esDQVP5uONDUZ8envfrKen8I+fRtwsoyt+GVrKvf+XiZJgKWns+t9eg==",
         "dependencies": {
-          "TestableIO.System.IO.Abstractions.Wrappers": "22.1.1",
-          "Testably.Abstractions.FileSystem.Interface": "10.1.0"
+          "TestableIO.System.IO.Abstractions.Wrappers": "22.2.0",
+          "Testably.Abstractions.FileSystem.Interface": "10.3.0"
         }
       },
       "TestableIO.System.IO.Abstractions.Wrappers": {
@@ -982,29 +982,29 @@
       },
       "ViciOne.Ui.Blazor.Components": {
         "type": "Transitive",
-        "resolved": "5.18.0",
-        "contentHash": "4i8LzkI9qJaY3wPpRSqIqMwds/QCstgkMaymUDFTepHXLYBcFdUCzEl3geQVWLVsBCEWLQp0s09nC93iIM+8Tw==",
+        "resolved": "5.19.0",
+        "contentHash": "nBMdBplB/3GPu66CL4H17gbrIl7E/BsMJhgcy3IEfrIOWy7xC1mLXFuWFb41yqbepfG4ZVRf8Tt3NLr/2JemSw==",
         "dependencies": {
-          "Microsoft.AspNetCore.Components.QuickGrid": "10.0.9",
-          "Microsoft.AspNetCore.Components.Web": "10.0.9",
+          "Microsoft.AspNetCore.Components.QuickGrid": "10.0.10",
+          "Microsoft.AspNetCore.Components.Web": "10.0.10",
           "ViciOne.Ui.Localization": "3.0.1",
-          "ViciOne.Ui.MonochromeIcons.Components": "4.14.0"
+          "ViciOne.Ui.MonochromeIcons.Components": "4.15.0"
         }
       },
       "ViciOne.Ui.MonochromeIcons.Assets": {
         "type": "Transitive",
-        "resolved": "4.14.0",
-        "contentHash": "8cVkBIXTtM/Lr72OgmtNTx0j2nNuKK2ykcrb3PlEekc7ARKAIflPhvn/rsr67uOumKd8Q2WX1RyxM0W74zGqqg==",
+        "resolved": "4.15.0",
+        "contentHash": "16UHEPy4EohHTgM85Hs0lOdEAxWOY6CK4WYHxHZOOZfD+2zQdMhxZrnSui9CNkaiykkJrYLeNQyDVIkkSv0C/g==",
         "dependencies": {
           "Microsoft.AspNetCore.Components.Web": "10.0.8",
           "Microsoft.Extensions.Logging": "10.0.9",
-          "ViciOne.Ui.MonochromeIcons.Core": "4.14.0"
+          "ViciOne.Ui.MonochromeIcons.Core": "4.15.0"
         }
       },
       "ViciOne.Ui.MonochromeIcons.Core": {
         "type": "Transitive",
-        "resolved": "4.14.0",
-        "contentHash": "riISEHUux7PiDhiMt20iczp3COUxbniAqz1MiqBdAZtcQEfV+4SzWeC9xHd7UaQEk1aQM5wMZ9nafV2XHFI2og=="
+        "resolved": "4.15.0",
+        "contentHash": "054WmujygCqVLehdSuidb4fpVZ+8z44O5bPSvx2Vn6HgjlE2LhzrK9AkIA+KnVMBFbMu54TY26zmxL44W9FbLg=="
       },
       "xunit.v3.assert": {
         "type": "Transitive",
@@ -1076,14 +1076,13 @@
       "ViciOne.Suite.ClusterManagement.Backend": {
         "type": "Project",
         "dependencies": {
-          "MQTTnet": "[5.1.0.1559, )",
           "MassTransit.EntityFrameworkCore": "[8.5.10, )",
-          "System.IO.Abstractions": "[22.1.1, )",
-          "System.Reflection.MetadataLoadContext": "[10.0.8, )",
+          "System.IO.Abstractions": "[22.2.0, )",
+          "System.Reflection.MetadataLoadContext": "[10.0.10, )",
           "ViciOne.Core.Dataflow.DataModel.Generation": "[1.0.0, )",
           "ViciOne.Suite.ClusterManagement.Internal": "[1.0.0, )",
           "ViciOne.Suite.DataPort": "[0.32.0, )",
-          "ViciOne.Suite.Sdk.Backend": "[2.2.0-ci2689717416, )",
+          "ViciOne.Suite.Sdk.Backend": "[2.2.0, )",
           "ViciOne.Suite.System.DataPort": "[1.0.0, )"
         }
       },
@@ -1096,6 +1095,7 @@
       "ViciOne.Suite.ClusterManagement.Internal": {
         "type": "Project",
         "dependencies": {
+          "MQTTnet": "[5.2.0.1603, )",
           "Semver": "[3.0.0, )",
           "ViciOne.Suite.ClusterManagement.Public": "[1.0.0, )",
           "ViciOne.TreeBuilder": "[1.1.1, )"
@@ -1105,22 +1105,22 @@
         "type": "Project",
         "dependencies": {
           "ViciOne.Cluster.Builder": "[1.0.0, )",
-          "ViciOne.Suite.Sdk": "[2.2.0-ci2689717416, )"
+          "ViciOne.Suite.Sdk": "[2.2.0, )"
         }
       },
       "ViciOne.Suite.ClusterManagement.Tests.Tools": {
         "type": "Project",
         "dependencies": {
-          "AwesomeAssertions": "[9.4.0, )",
+          "AwesomeAssertions": "[9.5.0, )",
           "NSubstitute": "[5.3.0, )",
           "ViciOne.Suite.ClusterManagement.Backend": "[1.0.0, )"
         }
       },
       "AwesomeAssertions": {
         "type": "CentralTransitive",
-        "requested": "[9.4.0, )",
-        "resolved": "9.4.0",
-        "contentHash": "dJxkWiQ8D+xT6Gr2sSL83+Mar+Vpy2JTcUPxFcckpPJ8VYBfSgnk+zqpS6t7kcGnjz8NLyF14qfuoL4bKzzoew=="
+        "requested": "[9.5.0, )",
+        "resolved": "9.5.0",
+        "contentHash": "F92MsjoF8B7IdcWETru4QGZx6VAl38qQPKNGS3kwPwlLB5lb0O4bhFqG8a8sz2estQJWkKmZkVy1r19HTaFcpg=="
       },
       "MassTransit.EntityFrameworkCore": {
         "type": "CentralTransitive",
@@ -1135,7 +1135,7 @@
       },
       "Microsoft.AspNetCore.Components": {
         "type": "CentralTransitive",
-        "requested": "[10.0.8, )",
+        "requested": "[10.0.10, )",
         "resolved": "10.0.10",
         "contentHash": "wlCBFU9YxqhUc2kVbl/FCGNFSbRjS312WVk9YRVjs/OcZ+Yqa9QsD7z+UcBzNNAbcPpEM98f/PaaD6lHt5rmIg==",
         "dependencies": {
@@ -1145,7 +1145,7 @@
       },
       "Microsoft.AspNetCore.Components.Authorization": {
         "type": "CentralTransitive",
-        "requested": "[10.0.8, )",
+        "requested": "[10.0.10, )",
         "resolved": "10.0.10",
         "contentHash": "em2xVQkvtn3BHFT3J9pp4K3yDgPnp0S5a+gcGxb6xkjqy+81yDa8XEEaQnkruCVRusFMltORFFmnlrnHa/A90w==",
         "dependencies": {
@@ -1155,9 +1155,9 @@
       },
       "MQTTnet": {
         "type": "CentralTransitive",
-        "requested": "[5.1.0.1559, )",
-        "resolved": "5.1.0.1559",
-        "contentHash": "9mkk0H+76CToIzp9ru5Uj5BuC3P5hQdkhvXM+CLmmTDdZWqajjICCHuUMbDd1yVBt9BWL77Rvzt0A+/PA4WMCA=="
+        "requested": "[5.2.0.1603, )",
+        "resolved": "5.2.0.1603",
+        "contentHash": "iNuWVo/568aRo2ExEN2qkC4J5b07ckKqt+9Uok2kIbbK7PMBsXvYiKVENPHmOBWFB5ExhlNQb/qQ8M9/IYRTdQ=="
       },
       "NSubstitute": {
         "type": "CentralTransitive",
@@ -1179,7 +1179,7 @@
       },
       "System.IO.Abstractions": {
         "type": "CentralTransitive",
-        "requested": "[22.1.1, )",
+        "requested": "[22.2.0, )",
         "resolved": "22.2.0",
         "contentHash": "fwnNXyIPb7ABPLae6K9YZz0FAkRjb2s/nElRWrg73usMveY/qdOHjKaNvAF7iAfmzTl1W4wa7S/SnmIc4LDvTg==",
         "dependencies": {
@@ -1189,9 +1189,9 @@
       },
       "System.Reflection.MetadataLoadContext": {
         "type": "CentralTransitive",
-        "requested": "[10.0.8, )",
-        "resolved": "10.0.8",
-        "contentHash": "w9sjhVDe4AKkyswUctVK3oCmZHaA7g+ZUG/xDmzgbsOGxmeRQA6lCQeAh6r75K0lcsLlfBzZXmsNblndyNJhxw=="
+        "requested": "[10.0.10, )",
+        "resolved": "10.0.10",
+        "contentHash": "7f8JfUA85nD2yOrTX9fhuHPp8P01qqnbGTtRiMK6rwNhS1jNLqoCJfdzLMOIZY8b9sBoAX3eOH04k1fWeCgOYQ=="
       },
       "ViciOne.Cluster.Builder": {
         "type": "CentralTransitive",
@@ -1234,9 +1234,9 @@
       },
       "ViciOne.Suite.Sdk": {
         "type": "CentralTransitive",
-        "requested": "[2.2.0-ci2689717416, )",
-        "resolved": "2.2.0-ci2689717416",
-        "contentHash": "ScrVBoA8fNRdfdB//Wix97EkYJl0YET2URtdaSytPJIuXOMVJabhcVk7EQDOwtx4i7f4JOUTxQYyFr3ex0Bc+w==",
+        "requested": "[2.2.0, )",
+        "resolved": "2.2.0",
+        "contentHash": "fsu9C+yhGdZHZPlBTSNt0R5LIYiitmYvkNa+qqmKRNZXESEbYCjwczmoQ9WmnPKVVb+8N4xqzzP169lXKcB57A==",
         "dependencies": {
           "MassTransit.Abstractions": "8.5.10",
           "Microsoft.AspNetCore.Authorization": "10.0.10",
@@ -1246,30 +1246,30 @@
       },
       "ViciOne.Suite.Sdk.Backend": {
         "type": "CentralTransitive",
-        "requested": "[2.2.0-ci2689717416, )",
-        "resolved": "2.2.0-ci2689717416",
-        "contentHash": "uZ+tQxA2Wk40LLCHiKlGfCc7tIHbp475uDOO4/mt9EhX4r0ZFflS6qrWY+xSzNf+/es+BWwDBy9gWbFOpIZdiA==",
+        "requested": "[2.2.0, )",
+        "resolved": "2.2.0",
+        "contentHash": "AA/0gTiUFq6r72eVA2CfyWPSqPtuzXbIcBSW4Ady6rW6FlRy3qKgViPCsI6rnSsZ7AD5UnS7Dl/Hlt/1qDv6Qw==",
         "dependencies": {
           "Microsoft.EntityFrameworkCore.Relational": "10.0.10",
           "Microsoft.EntityFrameworkCore.Sqlite": "10.0.10",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "10.0.3",
-          "ViciOne.Suite.Sdk": "2.2.0-ci2689717416"
+          "ViciOne.Suite.Sdk": "2.2.0"
         }
       },
       "ViciOne.Suite.Sdk.Client": {
         "type": "CentralTransitive",
-        "requested": "[2.2.0-ci2689717416, )",
-        "resolved": "2.2.0-ci2689717416",
-        "contentHash": "8ImTbdlpbyhdBOZ9Ok9ELL3a+46QbVjcE5+7s0XEvjxcTqiadZi7jhz8mkXpHoqSqvlh7Dl9XHqmrYoHswIyDA==",
+        "requested": "[2.2.0, )",
+        "resolved": "2.2.0",
+        "contentHash": "u+DcrrpQDzc4peHNjoIXGc3GRahBKHDphvbjkb4b6E/uhBnZdVIewc5Hs2C6pQkJRakFD0H8mXlk67f238WCWA==",
         "dependencies": {
           "Microsoft.AspNetCore.Components.Authorization": "10.0.10",
           "Microsoft.AspNetCore.Components.Web": "10.0.10",
           "Microsoft.Extensions.Localization": "10.0.10",
           "ViciOne.CodeAnalysis.MustCallBase.Attributes": "1.6.0",
-          "ViciOne.Suite.Sdk": "2.2.0-ci2689717416",
-          "ViciOne.Ui.Blazor.Components": "5.18.0",
+          "ViciOne.Suite.Sdk": "2.2.0",
+          "ViciOne.Ui.Blazor.Components": "5.19.0",
           "ViciOne.Ui.Localization": "3.5.0",
-          "ViciOne.Ui.MonochromeIcons.Components": "4.14.0"
+          "ViciOne.Ui.MonochromeIcons.Components": "4.15.0"
         }
       },
       "ViciOne.Suite.System.DataPort": {
@@ -1301,13 +1301,13 @@
       },
       "ViciOne.Ui.MonochromeIcons.Components": {
         "type": "CentralTransitive",
-        "requested": "[4.14.0, )",
-        "resolved": "4.14.0",
-        "contentHash": "J9sEpqH7vi+q6eurW2N2kpeIqg4s9IZihIr06yCNRVbXrBhvYDg3pQT31MCFpUZiLeFQ/prribigEvycInxjUg==",
+        "requested": "[4.15.0, )",
+        "resolved": "4.15.0",
+        "contentHash": "PpyOL0Ed0KklTNUV4SoOI3hymOsYSBDhn3PXWe7XYAJvyrjNLghVR5ThR5/DsfQPvtwnURnoOekcK/7PquQVYg==",
         "dependencies": {
           "Microsoft.AspNetCore.Components.Web": "10.0.8",
-          "ViciOne.Ui.MonochromeIcons.Assets": "4.14.0",
-          "ViciOne.Ui.MonochromeIcons.Core": "4.14.0"
+          "ViciOne.Ui.MonochromeIcons.Assets": "4.15.0",
+          "ViciOne.Ui.MonochromeIcons.Core": "4.15.0"
         }
       }
     }

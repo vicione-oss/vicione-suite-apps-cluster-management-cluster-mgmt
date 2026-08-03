@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="ViciOne.TreeBuilder" />
+    <PackageReference Include="MQTTnet" />
     <PackageReference Include="Semver" />
   </ItemGroup>
 

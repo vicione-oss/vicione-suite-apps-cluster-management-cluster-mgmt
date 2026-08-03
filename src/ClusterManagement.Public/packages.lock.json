@@ -15,9 +15,9 @@
       },
       "ViciOne.Suite.Sdk": {
         "type": "Direct",
-        "requested": "[2.2.0-ci2689717416, )",
-        "resolved": "2.2.0-ci2689717416",
-        "contentHash": "ScrVBoA8fNRdfdB//Wix97EkYJl0YET2URtdaSytPJIuXOMVJabhcVk7EQDOwtx4i7f4JOUTxQYyFr3ex0Bc+w==",
+        "requested": "[2.2.0, )",
+        "resolved": "2.2.0",
+        "contentHash": "fsu9C+yhGdZHZPlBTSNt0R5LIYiitmYvkNa+qqmKRNZXESEbYCjwczmoQ9WmnPKVVb+8N4xqzzP169lXKcB57A==",
         "dependencies": {
           "MassTransit.Abstractions": "8.5.10",
           "Microsoft.AspNetCore.Authorization": "10.0.10",

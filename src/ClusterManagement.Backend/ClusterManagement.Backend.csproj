@@ -13,8 +13,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="MQTTnet" />
+    </PackageReference>    
     <PackageReference Include="System.IO.Abstractions" />
     <PackageReference Include="System.Reflection.MetadataLoadContext" />
     <PackageReference Include="ViciOne.Core.Dataflow.DataModel.Generation" />

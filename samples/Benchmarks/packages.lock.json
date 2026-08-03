@@ -463,24 +463,24 @@
       },
       "TestableIO.System.IO.Abstractions": {
         "type": "Transitive",
-        "resolved": "22.1.1",
-        "contentHash": "EJmXIKfwvJHvSHWP+NjA213avUdofV4SmBx2aWxc3SzPkrHHVKxUMC3fSa/epzk/SVITwuU2EAntgQTvobAqwQ==",
+        "resolved": "22.2.0",
+        "contentHash": "BQPyr0A1s2HvpVTZIyolrZ3ZdPn8DU2tqciaK1oco3pjm76fiKIk75eup4R9reZjNS75M+WJIICOlNX5OFt50g==",
         "dependencies": {
-          "Testably.Abstractions.FileSystem.Interface": "10.1.0"
+          "Testably.Abstractions.FileSystem.Interface": "10.3.0"
         }
       },
       "TestableIO.System.IO.Abstractions.Wrappers": {
         "type": "Transitive",
-        "resolved": "22.1.1",
-        "contentHash": "J91zmSwuMY75ybtkqAFMC3vDNMkLJ/kiDDLhORITEwTKNhEwEYfxAQGv+f0jGYZg/H0YbnGcx5Ky0FgFJwrrWQ==",
+        "resolved": "22.2.0",
+        "contentHash": "0GW9i46ozm687WGAWsBHWMhLR7l1HmKwhiSU2hQrbFnI5m2YRfqXwqTQNjnOwT8BdbvcGqwMr97/zlnPWa1u1Q==",
         "dependencies": {
-          "Testably.Abstractions.FileSystem.Interface": "10.1.0"
+          "Testably.Abstractions.FileSystem.Interface": "10.3.0"
         }
       },
       "Testably.Abstractions.FileSystem.Interface": {
         "type": "Transitive",
-        "resolved": "10.1.0",
-        "contentHash": "0R+m7DvS2QuDcFOfDGtyGErRrgXOl4/z2tbNLX2RfvlYJjlVcKG+wMIBfZO8vxGtTNwNxffTG4ibFRwd0jkM7w=="
+        "resolved": "10.3.0",
+        "contentHash": "5ebMaoADkzjfW7GnZYKaUebV8XmUn++C/4sKk1PTzCiddEgbSKBq3pW4EWEi70rYJAK0gA1yDWrYFeHq18FvHQ=="
       },
       "ViciOne.Cluster.Model": {
         "type": "Transitive",
@@ -568,20 +568,20 @@
       "ViciOne.Suite.ClusterManagement.Backend": {
         "type": "Project",
         "dependencies": {
-          "MQTTnet": "[5.1.0.1559, )",
           "MassTransit.EntityFrameworkCore": "[8.5.10, )",
-          "System.IO.Abstractions": "[22.1.1, )",
-          "System.Reflection.MetadataLoadContext": "[10.0.8, )",
+          "System.IO.Abstractions": "[22.2.0, )",
+          "System.Reflection.MetadataLoadContext": "[10.0.10, )",
           "ViciOne.Core.Dataflow.DataModel.Generation": "[1.0.0, )",
           "ViciOne.Suite.ClusterManagement.Internal": "[1.0.0, )",
           "ViciOne.Suite.DataPort": "[0.32.0, )",
-          "ViciOne.Suite.Sdk.Backend": "[2.2.0-ci2689717416, )",
+          "ViciOne.Suite.Sdk.Backend": "[2.2.0, )",
           "ViciOne.Suite.System.DataPort": "[1.0.0, )"
         }
       },
       "ViciOne.Suite.ClusterManagement.Internal": {
         "type": "Project",
         "dependencies": {
+          "MQTTnet": "[5.2.0.1603, )",
           "Semver": "[3.0.0, )",
           "ViciOne.Suite.ClusterManagement.Public": "[1.0.0, )",
           "ViciOne.TreeBuilder": "[1.1.1, )"
@@ -591,22 +591,22 @@
         "type": "Project",
         "dependencies": {
           "ViciOne.Cluster.Builder": "[1.0.0, )",
-          "ViciOne.Suite.Sdk": "[2.2.0-ci2689717416, )"
+          "ViciOne.Suite.Sdk": "[2.2.0, )"
         }
       },
       "ViciOne.Suite.ClusterManagement.Tests.Tools": {
         "type": "Project",
         "dependencies": {
-          "AwesomeAssertions": "[9.4.0, )",
+          "AwesomeAssertions": "[9.5.0, )",
           "NSubstitute": "[5.3.0, )",
           "ViciOne.Suite.ClusterManagement.Backend": "[1.0.0, )"
         }
       },
       "AwesomeAssertions": {
         "type": "CentralTransitive",
-        "requested": "[9.4.0, )",
-        "resolved": "9.4.0",
-        "contentHash": "dJxkWiQ8D+xT6Gr2sSL83+Mar+Vpy2JTcUPxFcckpPJ8VYBfSgnk+zqpS6t7kcGnjz8NLyF14qfuoL4bKzzoew=="
+        "requested": "[9.5.0, )",
+        "resolved": "9.5.0",
+        "contentHash": "F92MsjoF8B7IdcWETru4QGZx6VAl38qQPKNGS3kwPwlLB5lb0O4bhFqG8a8sz2estQJWkKmZkVy1r19HTaFcpg=="
       },
       "MassTransit.EntityFrameworkCore": {
         "type": "CentralTransitive",
@@ -621,9 +621,9 @@
       },
       "MQTTnet": {
         "type": "CentralTransitive",
-        "requested": "[5.1.0.1559, )",
-        "resolved": "5.1.0.1559",
-        "contentHash": "9mkk0H+76CToIzp9ru5Uj5BuC3P5hQdkhvXM+CLmmTDdZWqajjICCHuUMbDd1yVBt9BWL77Rvzt0A+/PA4WMCA=="
+        "requested": "[5.2.0.1603, )",
+        "resolved": "5.2.0.1603",
+        "contentHash": "iNuWVo/568aRo2ExEN2qkC4J5b07ckKqt+9Uok2kIbbK7PMBsXvYiKVENPHmOBWFB5ExhlNQb/qQ8M9/IYRTdQ=="
       },
       "NSubstitute": {
         "type": "CentralTransitive",
@@ -645,19 +645,19 @@
       },
       "System.IO.Abstractions": {
         "type": "CentralTransitive",
-        "requested": "[22.1.1, )",
-        "resolved": "22.1.1",
-        "contentHash": "nm4sNhAoN1NyiIVT6MS3EEzNjnir3PC1HE0mKGGUFg6RBW1HmRvWKuRDPkij1etOoQkpyIFmjVGcM6TpBGF3qQ==",
+        "requested": "[22.2.0, )",
+        "resolved": "22.2.0",
+        "contentHash": "fwnNXyIPb7ABPLae6K9YZz0FAkRjb2s/nElRWrg73usMveY/qdOHjKaNvAF7iAfmzTl1W4wa7S/SnmIc4LDvTg==",
         "dependencies": {
-          "TestableIO.System.IO.Abstractions": "22.1.1",
-          "TestableIO.System.IO.Abstractions.Wrappers": "22.1.1"
+          "TestableIO.System.IO.Abstractions": "22.2.0",
+          "TestableIO.System.IO.Abstractions.Wrappers": "22.2.0"
         }
       },
       "System.Reflection.MetadataLoadContext": {
         "type": "CentralTransitive",
-        "requested": "[10.0.8, )",
-        "resolved": "10.0.8",
-        "contentHash": "w9sjhVDe4AKkyswUctVK3oCmZHaA7g+ZUG/xDmzgbsOGxmeRQA6lCQeAh6r75K0lcsLlfBzZXmsNblndyNJhxw=="
+        "requested": "[10.0.10, )",
+        "resolved": "10.0.10",
+        "contentHash": "7f8JfUA85nD2yOrTX9fhuHPp8P01qqnbGTtRiMK6rwNhS1jNLqoCJfdzLMOIZY8b9sBoAX3eOH04k1fWeCgOYQ=="
       },
       "ViciOne.Cluster.Builder": {
         "type": "CentralTransitive",
@@ -700,9 +700,9 @@
       },
       "ViciOne.Suite.Sdk": {
         "type": "CentralTransitive",
-        "requested": "[2.2.0-ci2689717416, )",
-        "resolved": "2.2.0-ci2689717416",
-        "contentHash": "ScrVBoA8fNRdfdB//Wix97EkYJl0YET2URtdaSytPJIuXOMVJabhcVk7EQDOwtx4i7f4JOUTxQYyFr3ex0Bc+w==",
+        "requested": "[2.2.0, )",
+        "resolved": "2.2.0",
+        "contentHash": "fsu9C+yhGdZHZPlBTSNt0R5LIYiitmYvkNa+qqmKRNZXESEbYCjwczmoQ9WmnPKVVb+8N4xqzzP169lXKcB57A==",
         "dependencies": {
           "MassTransit.Abstractions": "8.5.10",
           "Microsoft.AspNetCore.Authorization": "10.0.10",
@@ -712,14 +712,14 @@
       },
       "ViciOne.Suite.Sdk.Backend": {
         "type": "CentralTransitive",
-        "requested": "[2.2.0-ci2689717416, )",
-        "resolved": "2.2.0-ci2689717416",
-        "contentHash": "uZ+tQxA2Wk40LLCHiKlGfCc7tIHbp475uDOO4/mt9EhX4r0ZFflS6qrWY+xSzNf+/es+BWwDBy9gWbFOpIZdiA==",
+        "requested": "[2.2.0, )",
+        "resolved": "2.2.0",
+        "contentHash": "AA/0gTiUFq6r72eVA2CfyWPSqPtuzXbIcBSW4Ady6rW6FlRy3qKgViPCsI6rnSsZ7AD5UnS7Dl/Hlt/1qDv6Qw==",
         "dependencies": {
           "Microsoft.EntityFrameworkCore.Relational": "10.0.10",
           "Microsoft.EntityFrameworkCore.Sqlite": "10.0.10",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "10.0.3",
-          "ViciOne.Suite.Sdk": "2.2.0-ci2689717416"
+          "ViciOne.Suite.Sdk": "2.2.0"
         }
       },
       "ViciOne.Suite.System.DataPort": {

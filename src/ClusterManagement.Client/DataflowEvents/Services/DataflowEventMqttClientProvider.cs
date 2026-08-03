@@ -1,4 +1,4 @@
-﻿using ClusterManagement.Client.Management.Extensions;
+﻿using ClusterManagement.Internal.Extensions;
 using MQTTnet;
 using Sdk.Client.Infrastructure;
 using Sdk.Connections;
