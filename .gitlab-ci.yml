@@ -204,3 +204,13 @@ Pack NuGet ClusterManagement.Public:
   needs:
     - "dotnet Build"
     - "Publish Module"
+
+### Renovate ###
+Validate renovate.json:
+  stage: .pre
+  image: renovate/renovate:43.272.5
+  script:
+    - renovate-config-validator --strict
+  rules:
+    - changes:
+        - renovate.json

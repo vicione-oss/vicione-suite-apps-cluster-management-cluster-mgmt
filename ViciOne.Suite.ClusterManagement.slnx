@@ -18,6 +18,7 @@
     <File Path="module-metadata.json" />
     <File Path="NuGet.Config" />
     <File Path="README.md" />
+    <File Path="renovate.json" />
     <File Path="VERSION" />
   </Folder>
   <Folder Name="/Tests/">

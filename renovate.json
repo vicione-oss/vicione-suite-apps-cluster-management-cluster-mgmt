@@ -1,0 +1,43 @@
+﻿{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "local>vicione-oss/tooling/renovate-orchestrator"
+  ],
+  "enabledManagers": [
+    "gitlabci",
+    "nuget"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["gitlabci"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["gitlabci"],
+      "matchDepTypes": ["repository"],
+      "enabled": true
+    },
+    {
+      "matchManagers": ["nuget"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["nuget"],
+      "matchFileNames": ["Directory.Packages.props"],
+      "matchJsonata": ["sharedVariableName = 'ViciOneSuiteSdkVersion'"],
+      "enabled": true,
+      "dependencyDashboard": true,
+      "dependencyDashboardApproval": true,
+      "rebaseWhen": "never",
+      "groupName": "ViciOne.Suite.Sdk packages",
+      "separateMajorMinor": true,
+      "semanticCommits": "disabled",
+      "commitMessagePrefix": "",
+      "commitMessageAction": "Update to",
+      "commitMessageTopic": "ViciOne.Suite.Sdk",
+      "commitMessageExtra": "{{newVersion}}",
+      "branchTopic": "update-to-vicione-suite-sdk-{{newMajor}}-{{newMinor}}-{{newPatch}}",
+      "addLabels": ["Dependencies"]
+    }
+  ]
+}
