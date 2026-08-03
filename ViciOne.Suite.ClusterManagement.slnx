@@ -22,6 +22,8 @@
     <File Path="VERSION" />
   </Folder>
   <Folder Name="/Tests/">
+    <File Path="tests/testconfig.json" />
+    <File Path="tests/xunit.runner.json" />
     <Project Path="tests/ClusterManagement.Backend.Tests/ClusterManagement.Backend.Tests.csproj" />
     <Project Path="tests/ClusterManagement.Client.Tests/ClusterManagement.Client.Tests.csproj" />
     <Project Path="tests/ClusterManagement.DummyFunctionBlock/ClusterManagement.DummyFunctionBlock.csproj" />

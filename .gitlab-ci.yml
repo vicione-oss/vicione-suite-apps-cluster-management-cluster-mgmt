@@ -57,7 +57,6 @@ variables:
   RUNNER_TAG: saas-linux-small-amd64
   PROJECT_NAME: ClusterManagement
   MODULE_FULLNAME: ViciOne.Suite.ClusterManagement
-  TEST_FILTER: "Category!=System"
 
 stages:
   - metadata
@@ -107,13 +106,12 @@ include:
         - *update_nuget_source_ro
       tags:
         - ${RUNNER_TAG}
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-test@1.1.0
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-test@2
     inputs:
       image: ${IMAGE_NAME}
       rules: *rules
       no_build: false
-      filter: ${TEST_FILTER}
-      build_job_name: "dotnet Build"
+      filter: "/[(Category!=System)]"
       before_script:
         - *activate_mise
         - *update_nuget_source_ro
