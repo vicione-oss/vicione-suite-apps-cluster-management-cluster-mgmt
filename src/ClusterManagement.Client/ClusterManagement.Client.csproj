@@ -19,7 +19,7 @@
       <PrivateAssets>all</PrivateAssets>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="ViciOne.Ui.MonochromeIcons.Assets" />
+    <PackageReference Include="ViciOne.Ui.MonochromeIcons.Components" />
     <PackageReference Include="ViciOne.Ui.Localization" />
   </ItemGroup>
 
@@ -206,68 +206,11 @@
     </EmbeddedResource>
   </ItemGroup>
 
-  <Target Name="ConfigureMonochromeIcons" BeforeTargets="BeforeMonochromeIconTargets">
-    <ItemGroup>
-      <MonochromeIcon Include="collapse-all" Size="24" />
-      <MonochromeIcon Include="dataflow-light" Size="24" />
-      <MonochromeIcon Include="delete" Size="16;24" />
-      <MonochromeIcon Include="edit" Size="16" />
-      <MonochromeIcon Include="expand-all" Size="24" />
-      <MonochromeIcon Include="export" Size="16;24" />
-      <MonochromeIcon Include="error-solid" Size="24" />
-      <MonochromeIcon Include="folder" Size="16;24;32" />
-      <MonochromeIcon Include="import" Size="16;24" />
-      <MonochromeIcon Include="info-light" Size="16;24" />
-      <MonochromeIcon Include="install-pending-light" Size="16;24" />
-      <MonochromeIcon Include="minus-slim" Size="16;24" />
-      <MonochromeIcon Include="plus-slim" Size="16;24" />
-      <MonochromeIcon Include="properties" Size="24" />
-      <MonochromeIcon Include="refresh" Size="24" />
-      <MonochromeIcon Include="reload" Size="24" />
-      <MonochromeIcon Include="send-light" Size="16" />
-      <MonochromeIcon Include="send-solid" Size="16" />
-      <MonochromeIcon Include="switch-off" Size="16" />
-      <MonochromeIcon Include="uninstall-light" Size="16;24" />
-      <MonochromeIcon Include="uninstall-pending-light" Size="16;24" />
-      <MonochromeIcon Include="update-available-light" Size="24" />
-    </ItemGroup>
-
-    <PropertyGroup>
-      <MonochromeIconSvgOutputFolder>$(MSBuildProjectDirectory)/wwwroot/icons/monochrome-icons</MonochromeIconSvgOutputFolder>
-      <MonochromeIconScssOutputFolder>$(MSBuildProjectDirectory)/Styles/icons/monochrome-icons</MonochromeIconScssOutputFolder>
-    </PropertyGroup>
-  </Target>
-
   <Target Name="ConfigureDesignTargets" BeforeTargets="BeforeDesignTargets">
     <PropertyGroup>
       <ColorsScssOutputFolder>$(MSBuildProjectDirectory)/Styles/design/colors</ColorsScssOutputFolder>
       <ScrollbarScssOutputFolder>$(MSBuildProjectDirectory)/Styles/design/scrollbar</ScrollbarScssOutputFolder>
     </PropertyGroup>
-  </Target>
-  
-  <!-- We need to inject import of bundle.css into the generated module styles bundle -->
-  <UsingTask TaskName="InjectCssImports" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
-    <ParameterGroup>
-      <FilePath ParameterType="System.String" Required="true" />
-    </ParameterGroup>
-
-    <Task>
-      <Using Namespace="System" />
-      <Using Namespace="System.IO" />
-      <Code Type="Fragment" Language="cs">
-        <![CDATA[
-        var css = File.ReadAllText(FilePath);
-        
-        var cssWithInjectedImports = "@import './icons/bundle.css';" + Environment.NewLine + css;
-        
-        File.WriteAllText(FilePath, cssWithInjectedImports);
-        ]]>
-      </Code>
-    </Task>
-  </UsingTask>
-
-  <Target Name="InjectImportsIntoCssBundle" AfterTargets="BundleScopedCssFiles">
-    <InjectCssImports FilePath="$(_ScopedCssOutputPath)" />
   </Target>
 
 </Project>

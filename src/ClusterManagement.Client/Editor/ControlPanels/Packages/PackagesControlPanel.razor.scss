@@ -1,9 +1,4 @@
-﻿@use "./../../../Styles/icons/monochrome-icons" with (
-    $svg-base-url: "./icons/monochrome-icons",
-    $base-selector: "::deep"
-);
-
-.packages-control-panel-page {
+﻿.packages-control-panel-page {
     display: contents;
 
     .input {

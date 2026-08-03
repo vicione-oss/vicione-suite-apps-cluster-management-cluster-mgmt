@@ -72,7 +72,7 @@ public sealed partial class IoddControlPanel
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        await TreeAdapter.InitializeTreeIconsFromHttp();
+        await TreeAdapter.InitializeAsync();
 
         IoddService.AutoIoddDownloadChanged += IoddService_AutoIoddDownloadChanged;
         IoddService.IoddChanged += IoddService_IoddChanged;

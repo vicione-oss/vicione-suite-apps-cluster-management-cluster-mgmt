@@ -5,6 +5,7 @@ using ClusterManagement.Client.IoddManagement.IoddTree;
 using ClusterManagement.Client.IoddManagement.Services;
 using ClusterManagement.Client.Management.Services;
 using ClusterManagement.Client.Services;
+using ClusterManagement.Client.Tests.Services;
 using ClusterManagement.Internal.Designs;
 using ClusterManagement.Public.DataflowEvents;
 using ClusterManagement.Public.Designs;
@@ -15,6 +16,7 @@ using Sdk.Client.Modules.Localization;
 using Sdk.Testing.Client;
 using ViciOne.Ui.ClusterEditor.Extensions;
 using ViciOne.Ui.ClusterEditor.Services;
+using ViciOne.Ui.MonochromeIcons.Assets.Extensions;
 
 namespace ClusterManagement.Client.Tests;
 
@@ -29,6 +31,9 @@ public class ClusterManagementModuleTests
         // Act
         await using var serviceProvider = module.TestModuleInitialization(setup =>
         {
+            setup.Services.AddStaticWebAssetsRuntimeJsonPathProvider<StaticWebAssetsRuntimeJsonPathProvider>();
+            setup.Services.AddFileSystemBasedMonochromeIconSvgMarkupProvider();
+
             setup.Services.AddClusterEditor(s => Substitute.For<IRulesetProvider>());
             setup.Services.AddSingleton(Substitute.For<ISuiteRulesetProvider>());
             setup.Services.AddSingleton(Substitute.For<IDesignProvider>()); //Registered via Backend
@@ -58,7 +63,6 @@ public class ClusterManagementModuleTests
         Assert.NotNull(serviceProvider.GetRequiredService<IEventBroker>());
 
         // Assert - Iodd
-        Assert.NotNull(serviceProvider.GetRequiredService<MonochromeIconHttpClient>());
         Assert.NotNull(serviceProvider.GetRequiredService<IIoddService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IoddTreeAdapter>());
     }
