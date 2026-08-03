@@ -1,9 +1,4 @@
-﻿@use "./../../../Styles/icons/monochrome-icons" with (
-    $svg-base-url: "./icons/monochrome-icons",
-    $base-selector: "::deep"
-);
-
-.package-detail-control-panel-page {
+﻿.package-detail-control-panel-page {
     ::deep .installed-version-wrapper, .active-cluster-version-wrapper {
         display: flex;
         gap: 8px;

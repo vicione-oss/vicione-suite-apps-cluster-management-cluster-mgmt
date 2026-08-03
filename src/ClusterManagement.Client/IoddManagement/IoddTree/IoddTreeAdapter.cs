@@ -1,14 +1,17 @@
 ﻿using ClusterManagement.Client.IoddManagement.Models;
+using ViciOne.Ui.MonochromeIcons.Assets.Services;
 using ViciOne.Ui.MonochromeIcons.Core.Enums;
+using ViciOne.Ui.MonochromeIcons.Core.Extensions;
 using ViciOne.Ui.TreeEditor.Builder.Interface;
 using ViciOne.Ui.TreeEditor.Builder.Interface.Icons;
 using ViciOne.Ui.TreeEditor.Builder.Interface.Nodes;
 
 namespace ClusterManagement.Client.IoddManagement.IoddTree;
 
-internal class IoddTreeAdapter(MonochromeIconHttpClient iconService) : TreeAdapter, IDisposable
+internal class IoddTreeAdapter(IMonochromeIconSvgMarkupProvider iconMarkupProvider) : TreeAdapter, IDisposable
 {
-    private readonly Dictionary<MonochromeIconName, string> _treeIconCache = [];
+    private readonly Dictionary<(MonochromeIconName Name, MonochromeIconSize Size), IIcon> _icons = [];
+    private Task? _initializeTask;
 
     private readonly Dictionary<int, RepositoryNode> _repositoryNodes = new()
     {
@@ -24,6 +27,26 @@ internal class IoddTreeAdapter(MonochromeIconHttpClient iconService) : TreeAdapt
             repositoryNode.VendorNodes.Clear();
             Builder.Reset();
         }
+    }
+
+    public Task InitializeAsync(CancellationToken cancellationToken = default)
+        => _initializeTask ??= InitializeCore(cancellationToken);
+
+    private async Task InitializeCore(CancellationToken cancellationToken) 
+        => await LoadIcon(MonochromeIconName.Folder, MonochromeIconSize.Medium, cancellationToken);
+
+    private async Task LoadIcon(MonochromeIconName iconName, MonochromeIconSize iconSize, CancellationToken cancellationToken)
+    {
+        var key = (iconName, iconSize);
+
+        if (_icons.ContainsKey(key))
+            return;
+
+        var svgMarkup = await iconMarkupProvider.GetSvgMarkupAsync(iconName, iconSize, cancellationToken);
+
+        _icons[(iconName, iconSize)] = string.IsNullOrEmpty(svgMarkup)
+            ? new SvgIcon(string.Empty) { CssClasses = iconName.GetCssClasses(iconSize) }
+            : new SvgIcon(svgMarkup);
     }
 
     public TreeSelectionKey? SelectedNodeKey
@@ -193,8 +216,8 @@ internal class IoddTreeAdapter(MonochromeIconHttpClient iconService) : TreeAdapt
 
     public override IEnumerable<IIcon> GetIcons(ITreeNode node)
     {
-        if (node is RepositoryNode or VendorNode or DeviceFamilyNode && _treeIconCache.TryGetValue(MonochromeIconName.Folder, out var icon))
-            return [new SvgIcon(icon)];
+        if (node is RepositoryNode or VendorNode or DeviceFamilyNode && _icons.TryGetValue((MonochromeIconName.Folder, MonochromeIconSize.Medium), out var icon))
+            return [icon];
         return [];
     }
 
@@ -236,16 +259,6 @@ internal class IoddTreeAdapter(MonochromeIconHttpClient iconService) : TreeAdapt
             VendorNode n => n.DeviceFamilyNodes.Count > 0,
             _ => false
         };
-
-    public async Task InitializeTreeIconsFromHttp()
-    {
-        if (_treeIconCache.ContainsKey(MonochromeIconName.Folder))
-            return;
-
-        var icon = await iconService.GetIconSvgAsync(MonochromeIconName.Folder);
-        if (!string.IsNullOrEmpty(icon))
-            _treeIconCache[MonochromeIconName.Folder] = icon;
-    }
 
     private RepositoryNode GetDefaultRepositoryNode()
         => _repositoryNodes[0];

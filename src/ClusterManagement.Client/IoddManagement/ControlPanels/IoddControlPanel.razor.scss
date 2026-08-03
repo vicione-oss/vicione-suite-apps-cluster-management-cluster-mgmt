@@ -2,10 +2,6 @@
 @use "./../../Styles/design/scrollbar";
 @use "./../../../../shared/styles/colors-staged";
 @use "./../../../../shared/styles/typography";
-@use "./../../Styles/icons/monochrome-icons" with (
-    $svg-base-url: "./icons/monochrome-icons",
-    $base-selector: "::deep"
-);
 
 @use 'sass:color';
 

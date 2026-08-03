@@ -1,11 +1,4 @@
 ﻿{
     "Arguments": "--no-source-map --style=compressed",
-    "ScopedCssFolders": [ "." ],
-
-    "Compilations": [
-        {
-            "Source": "Styles/icons/_bundle.scss",
-            "Target": "wwwroot/icons/bundle.css"
-        }
-    ]
+    "ScopedCssFolders": [ "." ]
 }
