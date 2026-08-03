@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System.IO.Abstractions;
+using ClusterManagement.Backend.Mqtt.Extensions;
 using ClusterManagement.Internal.Extensions;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,18 +24,11 @@ public sealed class MqttBrokerConnectionCache(IServiceProvider services) : IMqtt
 
     public async Task<MqttClientOptionsBuilder> GetClientOptionsBuilder(CancellationToken cancellationToken)
     {
-        var conn = await GetMqttConnection(cancellationToken);
-        var builder = new MqttClientOptionsBuilder()
-            .WithCredentials(conn.Username, conn.Password)
-            .WithProtocolVersion(MQTTnet.Formatter.MqttProtocolVersion.V500);
-
-        return conn.Protocol switch
-        {
-            MqttConnectionType.WebSocket => builder.WithWebSocketServer(b => b.WithUri(conn.Address)),
-            MqttConnectionType.TCP => builder.WithTcpServer(conn.Address, conn.Port),
-            MqttConnectionType.TCPWithTLS => builder.WithTcpServer(conn.Address, conn.Port).WithTlsOptions(tls => tls.UseTls()),
-            _ => throw new InvalidEnumArgumentException(nameof(MqttConnection.Protocol), (int)conn.Protocol, typeof(MqttConnectionType))
-        };
+        var fileSystem = services.GetRequiredService<IFileSystem>();
+        var connection = await GetMqttConnection(cancellationToken);
+        return new MqttClientOptionsBuilder()
+            .WithSuiteConnection(connection)
+            .WithSslProtocol(connection, fileSystem);
     }
 
     public async Task<MqttConnection> GetMqttConnection(CancellationToken cancellationToken)

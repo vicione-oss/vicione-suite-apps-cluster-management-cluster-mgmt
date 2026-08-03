@@ -9,8 +9,12 @@
   
 ### Changed
 
-- `ViciOne.Suite.Sdk` packages, update to version `2.2.0-ci2689717416`
-- `ViciOne.Ui.MonochromeIcons.Assets` package, update version to `4.14.0`
+- `AspNetCore.SassCompiler` package, update version to `1.102.0`
+- `MQTTnet` package, update version to `5.2.0.1603`
+- `System.IO.Abstractions`, updated to version `22.2.0`
+- `ViciOne.Suite.Sdk` packages, update to version `2.2.0`
+- `ViciOne.Ui.Design` package, update version to `2.3.0`
+- `ViciOne.Ui.MonochromeIcons.Assets` package, update version to `4.15.0`
 - `ViciOne.Ui.Localization` package, update version to `3.5.0`
 
 ## 2.3.0 - 2026-07-13
