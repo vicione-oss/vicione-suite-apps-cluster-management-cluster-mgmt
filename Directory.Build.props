@@ -45,39 +45,35 @@
         <RunAnalyzers>true</RunAnalyzers>
     </PropertyGroup>
 
+    <!-- Configure xunit runner for test projects -->
+    <ItemGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">
+        <Content Include="$(MSBuildThisFileDirectory)/tests/xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
     <!-- Don't publish test projects -->
     <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('Tests')) And $(MSBuildProjectDirectory.Contains('tests'))">
+        <OutputType>Exe</OutputType>
         <IsPackable>false</IsPackable>
-        <IsPublishable>false</IsPublishable>
-        <RunSettingsFilePath>$(MsBuildThisFileDirectory)\tests.runsettings</RunSettingsFilePath>
+        <IsPublishable>true</IsPublishable>
+        <!-- Microsoft Testing Platform command line experience -->
+        <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+        <!--
+          Newer Microsoft.Testing.Platform versions default the results directory to a single
+          'TestResults' folder at the working directory root instead of each project's output folder.
+          Force the previous per-project location so the CI report pattern 'tests/**/TestResults/*.cobertura.xml' keeps matching.
+        -->
+        <TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --results-directory "$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/TestResults"</TestingPlatformCommandLineArguments>
+        <TestingPlatformConfigurationFilePath>$(MSBuildThisFileDirectory)/tests/testconfig.json</TestingPlatformConfigurationFilePath>
     </PropertyGroup>
 
-    <!-- Configure output type according to xUnit 3 documentation for test projects -->
-    <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">
-        <OutputType>Exe</OutputType>
-    </PropertyGroup>
-    
     <ItemGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">
-        <PackageReference Include="Microsoft.Testing.Platform" />
-        <PackageReference Include="coverlet.collector">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" />
         <PackageReference Include="System.IO.Abstractions.TestingHelpers" />
         <PackageReference Include="ViciOne.Suite.Sdk.Testing" />
-        <PackageReference Include="xunit.v3" />
-        <PackageReference Include="xunit.analyzers">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="xunit.runner.visualstudio">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        
+        <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+        <PackageReference Include="xunit.v3.mtp-v2" />
+
         <!-- Global usings for all test projects -->
-        <Using Include="Xunit" />        
+        <Using Include="Xunit" />
         <Using Include="NSubstitute" />
         <Using Include="AwesomeAssertions" />
     </ItemGroup>
