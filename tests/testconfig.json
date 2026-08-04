@@ -1,4 +1,4 @@
-﻿{
+{
     "codeCoverage": {
         "Configuration": {
             "CodeCoverage": {
@@ -10,11 +10,17 @@
                         ]
                     }
                 },
+                "Sources": {
+                    "Exclude": [
+                        ".*\\.g\\.cs$",
+                        ".*\\.nt\\.cs$"
+                    ]
+                },
                 "ModulePaths": {
                     "Exclude": {
                         "ModulePath": [
-                            ".*Facts.dll",
-                            ".*Tests.dll"
+                            ".*Facts\\.dll$",
+                            ".*Tests\\.dll$"
                         ]
                     }
                 }
