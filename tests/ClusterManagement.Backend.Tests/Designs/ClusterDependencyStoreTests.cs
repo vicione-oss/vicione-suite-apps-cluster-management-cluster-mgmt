@@ -8,6 +8,7 @@ using ClusterManagement.Internal.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Sdk.Backend.IO;
 using Sdk.Backend.Modules;
 using Sdk.Messaging;
 using ViciOne.Cluster.Model;
@@ -45,6 +46,7 @@ public class ClusterDependencyStoreTests
             .AddSingleton(_workspaceProvider)
             .AddSingleton(_options)
             .AddSingleton(_logger)
+            .AddSingleton<IAtomicFileWriter, TestAtomicFileWriter>()
             .AddSingleton<IClusterDependencyStore, ClusterDependencyStore>()
             .BuildServiceProvider();
     }
@@ -215,6 +217,7 @@ public class ClusterDependencyStoreTests
                 .AddSingleton(_workspaceProvider)
                 .AddSingleton(options)
                 .AddSingleton(_logger)
+                .AddSingleton<IAtomicFileWriter, TestAtomicFileWriter>()
                 .AddSingleton<IClusterDependencyStore, ClusterDependencyStore>()
                 .BuildServiceProvider();
 

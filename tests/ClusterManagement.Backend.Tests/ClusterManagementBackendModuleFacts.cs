@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Sdk.Backend.Artifacts;
+using Sdk.Backend.IO;
 using Sdk.Backend.Messaging;
 using Sdk.Instance;
 using Sdk.Modules;
@@ -44,6 +45,7 @@ public class ClusterManagementBackendModuleFacts
                         return mvcBuilderMock;
                     });
                     serviceCollection.AddSingleton(_ => Substitute.For<IFileSystem>());
+                    serviceCollection.AddSingleton(_ => Substitute.For<IAtomicFileWriter>());
                     serviceCollection.AddSingleton(_ => Substitute.For<IArtifactRepository>());
                     serviceCollection.AddSingleton(_ => Substitute.For<IInstanceInformationProvider>());
                     serviceCollection.AddSingleton(_ => Substitute.For<ISuiteMediator>());

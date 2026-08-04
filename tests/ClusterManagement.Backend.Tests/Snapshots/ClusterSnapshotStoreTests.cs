@@ -8,6 +8,7 @@ using ClusterManagement.Tests.Tools.Factories;
 using ClusterManagement.Backend.Snapshots.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Sdk.Backend.IO;
 using Sdk.Backend.Modules;
 using ViciOne.Cluster.Model;
 
@@ -29,6 +30,7 @@ public class ClusterSnapshotStoreTests
             .AddSingleton(_ => _wsProvider)
             .AddSingleton<IFileSystem>(_ => _fileSystem)
             .AddSingleton(_ => _options)
+            .AddSingleton<IAtomicFileWriter, TestAtomicFileWriter>()
             .AddTransient<IClusterSnapshotStore, ClusterSnapshotStore>()
             .BuildServiceProvider();
     }

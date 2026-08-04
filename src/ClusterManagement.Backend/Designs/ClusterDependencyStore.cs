@@ -8,6 +8,7 @@ using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Internal.Events;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Sdk.Backend.IO;
 using Sdk.Backend.Modules;
 using Sdk.Messaging;
 using Semver;
@@ -19,6 +20,7 @@ internal sealed class ClusterDependencyStore(
     IFileSystem fileSystem,
     IWorkspaceProvider<ClusterManagementBackendModule> workspaceProvider,
     IOptions<ClusterManagementOptions> options,
+    IAtomicFileWriter atomicFileWriter,
     ILogger<ClusterDependencyStore> logger) : IClusterDependencyStore
 {
     internal const string PackagesFileName = "packages";
@@ -56,12 +58,17 @@ internal sealed class ClusterDependencyStore(
         await using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name)
             ?? throw new InvalidOperationException("Failed to access internal package set resource");
 
-        if (fileSystem.File.Exists(destination))
+        // A corrupted packages file (e.g. caused by a power loss during a write) must not brick startup,
+        // in that case the file is restored from the embedded resources.
+        var existingPackages = fileSystem.File.Exists(destination)
+            ? await TryLoadDependencies(destination, stoppingToken)
+            : null;
+
+        if (existingPackages is not null)
         {
             var shippedPackages = await JsonSerializer.DeserializeAsync<ClusterDependency[]?>(stream, DefaultJsonSerializerSettings.Default, stoppingToken)
                 ?? throw new InvalidOperationException("Failed to deserialize internal package set");
 
-            var existingPackages = await LoadDependencies(stoppingToken);
             var operations = new List<ClusterDependencyOperation>();
 
             foreach (var package in existingPackages)
@@ -95,10 +102,25 @@ internal sealed class ClusterDependencyStore(
         }
         else
         {
-            await using var destinationStream = fileSystem.FileStream.New(destination, FileMode.Create);
-            await stream.CopyToAsync(destinationStream, stoppingToken);
+            await atomicFileWriter.WriteAsync(destination, destinationStream => stream.CopyToAsync(destinationStream, stoppingToken), stoppingToken);
 
             logger.LogInitializationFromEmbeddedResources();
+        }
+    }
+
+    /// <summary>
+    /// Reads the packages file and returns <see langword="null"/> if its content is corrupted or incomplete.
+    /// </summary>
+    private async Task<IReadOnlyCollection<ClusterDependency>?> TryLoadDependencies(string packagesFilename, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await DeserializePackagesFile(packagesFilename, DefaultJsonSerializerSettings.Default, cancellationToken);
+        }
+        catch (Exception e) when (e is JsonException or InvalidOperationException)
+        {
+            logger.LogCorruptedPackagesFile(e, packagesFilename);
+            return null;
         }
     }
 
@@ -171,8 +193,9 @@ internal sealed class ClusterDependencyStore(
         logger.LogFileEntriesCount(updatedPackages.Count, updateFile);
 
         // Rewrite file containing queued updates
-        using var fileStream = fileSystem.FileStream.New(updateFile, FileMode.Create, FileAccess.Write, FileShare.None);
-        await JsonSerializer.SerializeAsync(fileStream, updatedPackages, DefaultJsonSerializerSettings.Default, cancellationToken);
+        await atomicFileWriter.WriteAsync(updateFile,
+            stream => JsonSerializer.SerializeAsync(stream, updatedPackages, DefaultJsonSerializerSettings.Default, cancellationToken),
+            cancellationToken);
         return changes;
     }
 
@@ -234,8 +257,9 @@ internal sealed class ClusterDependencyStore(
         logger.LogWriteCount(updatedPackages.Count, packagesFilename);
 
         // Write updated packages file
-        using var fileStream = fileSystem.FileStream.New(packagesFilename, FileMode.Create, FileAccess.Write, FileShare.None);
-        await JsonSerializer.SerializeAsync(fileStream, updatedPackages, DefaultJsonSerializerSettings.Default, cancellationToken);
+        await atomicFileWriter.WriteAsync(packagesFilename,
+            stream => JsonSerializer.SerializeAsync(stream, updatedPackages, DefaultJsonSerializerSettings.Default, cancellationToken),
+            cancellationToken);
 
         var filePath = GetUpdateFilePath();
         logger.LogUpdateFileDeletion(filePath);
@@ -248,18 +272,28 @@ internal sealed class ClusterDependencyStore(
         if (!fileSystem.File.Exists(updateFile))
             return [];
 
-        using var updateFileStream = fileSystem.FileStream.New(updateFile, new FileStreamOptions
+        try
         {
-            Mode = FileMode.Open,
-            Access = FileAccess.Read,
-            Share = FileShare.Read,
-            Options = FileOptions.Asynchronous,
-        });
-        var updates = await JsonSerializer.DeserializeAsync<List<ClusterDependencyOperation>>(updateFileStream, DefaultJsonSerializerSettings.Default, cancellationToken);
-        if (updates is null)
-            logger.LogDeserializationFailure(updateFile);
+            using var updateFileStream = fileSystem.FileStream.New(updateFile, new FileStreamOptions
+            {
+                Mode = FileMode.Open,
+                Access = FileAccess.Read,
+                Share = FileShare.Read,
+                Options = FileOptions.Asynchronous,
+            });
+            var updates = await JsonSerializer.DeserializeAsync<List<ClusterDependencyOperation>>(updateFileStream, DefaultJsonSerializerSettings.Default, cancellationToken);
+            if (updates is null)
+                logger.LogDeserializationFailure(updateFile);
 
-        return updates ?? [];
+            return updates ?? [];
+        }
+        catch (JsonException e)
+        {
+            // A partially written operations file must not brick startup, the queued operations get discarded.
+            logger.LogCorruptedOperationsFile(e, updateFile);
+            fileSystem.File.Delete(updateFile);
+            return [];
+        }
     }
 
     internal async Task<ClusterDependency[]> DeserializePackagesFile(string filename, JsonSerializerOptions serializerOptions, CancellationToken cancellationToken)

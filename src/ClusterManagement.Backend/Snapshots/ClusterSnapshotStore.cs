@@ -6,6 +6,7 @@ using ClusterManagement.Backend.Snapshots.Extensions;
 using ClusterManagement.Public;
 using ClusterManagement.Public.Requests;
 using Microsoft.Extensions.Logging;
+using Sdk.Backend.IO;
 using Sdk.Backend.Modules;
 using ViciOne.Cluster.Model;
 
@@ -16,15 +17,18 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
     private const char Separator = '_';
 
     private readonly IFileSystem _fileSystem;
+    private readonly IAtomicFileWriter _atomicFileWriter;
     private readonly ILogger<ClusterSnapshotStore> _logger;
     private readonly string _storageDirectory;
 
     public ClusterSnapshotStore(
         IWorkspaceProvider<ClusterManagementBackendModule> workspaceProvider,
         IFileSystem fileSystem,
+        IAtomicFileWriter atomicFileWriter,
         ILogger<ClusterSnapshotStore> logger)
     {
         _fileSystem = fileSystem;
+        _atomicFileWriter = atomicFileWriter;
         _logger = logger;
         _storageDirectory = _fileSystem.GetSnapshotsPath(workspaceProvider);
 
@@ -227,14 +231,9 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
             if (!replace && _fileSystem.File.Exists(storageInfoPath))
                 throw new InvalidOperationException($"Cluster info {clusterId}-{clusterVersion} already exists");
 
-            await using var fileStream = _fileSystem.FileStream.New(storageInfoPath, new FileStreamOptions()
-            {
-                Mode = FileMode.Create,
-                Access = FileAccess.Write,
-                Share = FileShare.Read,
-                Options = FileOptions.Asynchronous,
-            });
-            await JsonSerializer.SerializeAsync(fileStream, info, serializerOptions, cancellationToken);
+            await _atomicFileWriter.WriteAsync(storageInfoPath,
+                stream => JsonSerializer.SerializeAsync(stream, info, serializerOptions, cancellationToken),
+                cancellationToken);
         }
 
         async Task StoreJson()
@@ -243,15 +242,11 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
             if (!replace && !_fileSystem.File.Exists(storageFilePath))
                 throw new InvalidOperationException($"Cluster {clusterId}-{clusterVersion} already exists");
 
-            await using var fs = _fileSystem.FileStream.New(storageFilePath, new FileStreamOptions()
+            await _atomicFileWriter.WriteAsync(storageFilePath, async stream =>
             {
-                Mode = FileMode.OpenOrCreate,
-                Access = FileAccess.Write,
-                Share = FileShare.Read,
-                Options = FileOptions.Asynchronous,
-            });
-            using GZipStream compressedStream = new(fs, CompressionMode.Compress);
-            await write(compressedStream, value, cancellationToken);
+                await using GZipStream compressedStream = new(stream, CompressionMode.Compress);
+                await write(compressedStream, value, cancellationToken);
+            }, cancellationToken);
         }
     }
 
@@ -261,7 +256,9 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
         if (!replace && _fileSystem.File.Exists(storageFilePath))
             throw new InvalidOperationException($"Cluster {clusterId}-{clusterVersion} already exists");
 
-        await _fileSystem.File.WriteAllBytesAsync(storageFilePath, compressedClusterJson, cancellationToken);
+        await _atomicFileWriter.WriteAsync(storageFilePath,
+            async stream => await stream.WriteAsync(compressedClusterJson, cancellationToken),
+            cancellationToken);
     }
 
     public async Task Store(Cluster cluster, CancellationToken cancellationToken)
@@ -290,15 +287,11 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
         if (_fileSystem.File.Exists(storageFilePath))
             throw new InvalidOperationException($"Cluster {clusterId}-{clusterVersion} already exists");
 
-        await using var fs = _fileSystem.FileStream.New(storageFilePath, new FileStreamOptions
+        await _atomicFileWriter.WriteAsync(storageFilePath, async stream =>
         {
-            Mode = FileMode.Create,
-            Access = FileAccess.Write,
-            Share = FileShare.Read,
-            Options = FileOptions.Asynchronous,
-        });
-        await using GZipStream gs = new(fs, CompressionMode.Compress);
-        await JsonSerializer.SerializeAsync(gs, cluster, options, cancellationToken);
+            await using GZipStream gs = new(stream, CompressionMode.Compress);
+            await JsonSerializer.SerializeAsync(gs, cluster, options, cancellationToken);
+        }, cancellationToken);
     }
 
     private Task StoreInfo(Cluster cluster, JsonSerializerOptions serializerOptions, CancellationToken cancellationToken)
@@ -318,13 +311,8 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
         if (_fileSystem.File.Exists(storageInfoPath))
             throw new InvalidOperationException($"Cluster info {info.Id}-{info.Version} already exists");
 
-        await using var fileStream = _fileSystem.FileStream.New(storageInfoPath, new FileStreamOptions()
-        {
-            Mode = FileMode.Create,
-            Access = FileAccess.Write,
-            Share = FileShare.Read,
-            Options = FileOptions.Asynchronous,
-        });
-        await JsonSerializer.SerializeAsync(fileStream, info, serializerOptions, cancellationToken);
+        await _atomicFileWriter.WriteAsync(storageInfoPath,
+            stream => JsonSerializer.SerializeAsync(stream, info, serializerOptions, cancellationToken),
+            cancellationToken);
     }
 }

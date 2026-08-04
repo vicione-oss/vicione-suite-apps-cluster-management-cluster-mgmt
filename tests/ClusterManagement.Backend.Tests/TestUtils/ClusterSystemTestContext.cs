@@ -15,6 +15,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Sdk.Backend.IO;
 using Sdk.Backend.Messaging;
 using Sdk.Backend.Modules;
 using Sdk.Backend.Persistence;
@@ -88,6 +89,7 @@ internal sealed partial class ClusterSystemTestContext : IAsyncDisposable
         module.ConfigureServices(services, configuration.BuildConfiguration(), Substitute.For<IMvcBuilder>());
 
         services.AddSingleton<IFileSystem>(_fileSystem);
+        services.AddSingleton<IAtomicFileWriter, TestAtomicFileWriter>();
 
         services.AddLogging(builder => builder.AddProvider(_inMemoryLogging));
 

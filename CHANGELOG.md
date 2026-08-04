@@ -9,6 +9,7 @@
   
 ### Changed
 
+- Updated .NET to version `10.0.10`
 - `AspNetCore.SassCompiler` package, update version to `1.102.0`
 - `MQTTnet` package, update version to `5.2.0.1603`
 - `System.IO.Abstractions`, updated to version `22.2.0`
@@ -16,6 +17,12 @@
 - `ViciOne.Ui.Design` package, update version to `2.3.0`
 - `ViciOne.Ui.MonochromeIcons.Assets` package, update version to `4.15.0`
 - `ViciOne.Ui.Localization` package, update version to `3.5.0`
+
+### Fixed
+
+- Write `packages.json`, `packages-ops.json` and cluster snapshots atomically so a crash or power loss during a write cannot leave corrupt files behind
+- Recover from corrupted or partially written package files on startup instead of failing module initialization
+- Replacing a cluster snapshot no longer leaves trailing data of the previous version in the file
 
 ## 2.3.0 - 2026-07-13
 

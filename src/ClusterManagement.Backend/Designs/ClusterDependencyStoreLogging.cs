@@ -39,4 +39,10 @@ internal static partial class ClusterDependencyStoreLogging
 
     [LoggerMessage(LogLevel.Warning, "Failed to deserialize queued package updates from '{FilePath}'")]
     internal static partial void LogDeserializationFailure(this ILogger<ClusterDependencyStore> logger, string? filePath);
+
+    [LoggerMessage(LogLevel.Warning, "Queued package operations file '{FilePath}' is corrupted and gets discarded")]
+    internal static partial void LogCorruptedOperationsFile(this ILogger<ClusterDependencyStore> logger, Exception exception, string? filePath);
+
+    [LoggerMessage(LogLevel.Warning, "Packages file '{FilePath}' is corrupted and gets restored from embedded resources")]
+    internal static partial void LogCorruptedPackagesFile(this ILogger<ClusterDependencyStore> logger, Exception exception, string? filePath);
 }
