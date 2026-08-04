@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Sdk.Backend.Artifacts;
+using Sdk.Backend.IO;
 using Sdk.Backend.Modules;
 
 namespace ClusterManagement.Backend.Tests.Designs.Extensions;
@@ -24,6 +25,7 @@ public class IServiceCollectionExtensionsTests
             services.AddLogging();
             services.AddSingleton(Substitute.For<IArtifactRepository>());
             services.AddSingleton(Substitute.For<IFileSystem>());
+            services.AddSingleton(Substitute.For<IAtomicFileWriter>());
             services.AddSingleton(Options.Create(new ClusterManagementOptions()));
             services.AddSingleton(Substitute.For<IWorkspaceProvider<ClusterManagementBackendModule>>());
 
@@ -48,6 +50,7 @@ public class IServiceCollectionExtensionsTests
             services.AddLogging();
             services.AddSingleton(Substitute.For<IArtifactRepository>());
             services.AddSingleton(Substitute.For<IFileSystem>());
+            services.AddSingleton(Substitute.For<IAtomicFileWriter>());
             services.AddSingleton(Options.Create(new ClusterManagementOptions()));
             services.AddSingleton(Substitute.For<IWorkspaceProvider<ClusterManagementBackendModule>>());
 
