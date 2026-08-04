@@ -71,7 +71,7 @@ stages:
 ### CI Components ###
 include:
   - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/version/version-calc@v1.2.0
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/module-packaging/runtime-identifier@v0.1.0
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/module-packaging/runtime-identifier@v0.2.0
     inputs:
       project: "src/${PROJECT_NAME}.Deployment/${PROJECT_NAME}.Deployment.csproj"
       rules: *rules
@@ -87,7 +87,7 @@ include:
       tags:
         - ${RUNNER_TAG}
   ### Metadata for Module ###
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/module-packaging/metadata@v0.1.0
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/module-packaging/metadata@v0.2.0
     inputs:
       project: "src/${PROJECT_NAME}.Deployment/${PROJECT_NAME}.Deployment.csproj"
       module_version: "${Version}"
@@ -112,6 +112,7 @@ include:
       rules: *rules
       no_build: false
       filter: "/[(Category!=System)]"
+      coverage: true
       before_script:
         - *activate_mise
         - *update_nuget_source_ro
@@ -141,7 +142,7 @@ include:
         - *activate_mise
         - *update_nuget_source_rw
   ### Publish Module ###
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/module-packaging/publish-module@v0.1.0
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/module-packaging/publish-module@v0.2.0
     inputs:
       module_name: "${PROJECT_NAME}"
       rules: *rules_manual
@@ -154,7 +155,7 @@ include:
       tags:
         - saas-linux-small-amd64
   ### Package Module ###
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/module-packaging/package-module@v0.1.0
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/module-packaging/package-module@v0.2.0
     inputs:
       rules: *rules
       image: "${IMAGE_NAME}"
