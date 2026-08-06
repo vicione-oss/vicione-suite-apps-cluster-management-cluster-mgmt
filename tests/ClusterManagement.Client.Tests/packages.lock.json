@@ -1391,7 +1391,7 @@
           "Microsoft.Extensions.Http": "[10.0.10, )",
           "ViciOne.Suite.ClusterManagement.Internal": "[1.0.0, )",
           "ViciOne.Suite.Sdk.Client": "[2.2.0, )",
-          "ViciOne.Ui.ClusterEditor": "[1.3.0-ci2685098454, )",
+          "ViciOne.Ui.ClusterEditor": "[1.3.0, )",
           "ViciOne.Ui.Localization": "[3.5.0, )",
           "ViciOne.Ui.MonochromeIcons.Components": "[4.15.0, )"
         }
@@ -1402,7 +1402,7 @@
           "MQTTnet": "[5.2.0.1603, )",
           "Semver": "[3.0.0, )",
           "ViciOne.Suite.ClusterManagement.Public": "[1.0.0, )",
-          "ViciOne.TreeBuilder": "[1.1.1, )"
+          "ViciOne.TreeBuilder": "[2.0.0, )"
         }
       },
       "ViciOne.Suite.ClusterManagement.Public": {
@@ -1603,7 +1603,7 @@
       },
       "ViciOne.TreeBuilder": {
         "type": "CentralTransitive",
-        "requested": "[1.1.1, )",
+        "requested": "[2.0.0, )",
         "resolved": "2.0.0",
         "contentHash": "8vTcFghqVukpOkaRmCc17XH1jIMqAni/FmtbsNSUAAqEZoE7WUVv0I9+2oBHlOAwQgczyWSE+va/dbtE4HzEcA==",
         "dependencies": {
@@ -1613,17 +1613,17 @@
       },
       "ViciOne.Ui.ClusterEditor": {
         "type": "CentralTransitive",
-        "requested": "[1.3.0-ci2685098454, )",
-        "resolved": "1.3.0-ci2685098454",
-        "contentHash": "pvzpJNBPAxlw+4hQEG+/j3I7PgVqDuEC4D6NIjL4Z/2ECLeQsaNb3aDRgZT4Bt5qaytg5TajCoiDHlp8C/zrYQ==",
+        "requested": "[1.3.0, )",
+        "resolved": "1.3.0",
+        "contentHash": "OE4BUdJvnf8kNIftcZRnJFnyxxd3u5ksZ4LWL9xpR0VGw0swWWamCXLP/ZVZQtfNQdfkHVjIQm29GTHL+7ANow==",
         "dependencies": {
           "Markdig": "0.42.0",
-          "Microsoft.Extensions.Localization": "10.0.9",
+          "Microsoft.Extensions.Localization": "10.0.10",
           "ViciOne.Cluster.Builder": "1.0.0",
           "ViciOne.TreeBuilder": "2.0.0",
-          "ViciOne.Ui.Blazor.Components": "5.18.0",
+          "ViciOne.Ui.Blazor.Components": "5.19.0",
           "ViciOne.Ui.Localization": "3.4.0",
-          "ViciOne.Ui.MonochromeIcons.Components": "4.14.0",
+          "ViciOne.Ui.MonochromeIcons.Components": "4.15.0",
           "ViciOne.Ui.Shared.Dx": "0.19.1",
           "ViciOne.Ui.TreeEditor": "2.0.1",
           "Z.Blazor.Diagrams": "3.0.4"
