@@ -12,6 +12,12 @@
         display: none;
     }
 
+    ::deep .iodd-action-buttons {
+        display: grid;
+        grid-template-columns: max-content max-content max-content;
+        grid-column-gap: 8px;
+    }
+
     ::deep .iodds-grid {
         height: 100%;
 

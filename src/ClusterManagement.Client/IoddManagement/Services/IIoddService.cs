@@ -52,8 +52,9 @@ public interface IIoddService
     Task<IIoddServiceResult> SetIsAutoDownloading(bool value, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Sends an upload command for the provided IODD data and waits for a correlating
+    /// Sends an <see cref="AddIodd"/>  command for the uploaded IODD file and waits for a correlating
     /// <see cref="IoddChanged"/> event or a timeout.
-    /// </summary>    
-    Task<IIoddServiceResult> UploadIodd(byte[] data, CancellationToken cancellationToken = default);
+    /// </summary>
+    /// <param name="filename"> The name of the uploaded IODD file.</param>
+    Task<IIoddServiceResult> AddIodd(string filename, CancellationToken cancellationToken = default);
 }

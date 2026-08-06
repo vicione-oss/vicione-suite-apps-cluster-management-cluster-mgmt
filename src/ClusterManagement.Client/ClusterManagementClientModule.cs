@@ -32,7 +32,7 @@ public sealed class ClusterManagementClientModule : ClientModule
             .AddClusterManagement()
             .AddDataflowEvents()
             .AddEditor()
-            .AddIoddManagement();
+            .AddIoddManagement(ModuleId);
     };
 
     public override Func<IServiceProvider, Task>? InitializeServices => services =>

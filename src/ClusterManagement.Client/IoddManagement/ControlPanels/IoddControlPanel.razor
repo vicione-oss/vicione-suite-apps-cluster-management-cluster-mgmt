@@ -1,15 +1,13 @@
-﻿@using System.Globalization
+﻿﻿@using System.Globalization
 @using ClusterManagement.Client.Editor.Extensions
 @using ClusterManagement.Client.IoddManagement.ControlPanels.Services
 @using ClusterManagement.Client.IoddManagement.Models
-@using Microsoft.AspNetCore.Components.Forms
 @using Sdk.Authorization
 @using Sdk.Client.Components.Settings
 @using Sdk.Client.Components.Settings.Expanders
 @using Sdk.Client.ControlPanels.Components
 @using ViciOne.Ui.Blazor.Components.Dialog.Components
 @using ViciOne.Ui.Blazor.Components.Grid.Components
-@using ViciOne.Ui.Blazor.Components.Grid.Components.ActionButtons
 @using ViciOne.Ui.Blazor.Components.Grid.Components.Columns
 @using ViciOne.Ui.Blazor.Components.Grid.Components.Panes
 @using ViciOne.Ui.Localization.Resources
@@ -24,38 +22,35 @@
         <DescriptionBanner Title="@Localization.IoddControlPanel.ManualIoLinkConfiguration">
             @Localization.IoddControlPanel.ManualIoLinkConfigurationDescription
         </DescriptionBanner>
-        <div class="input">
-
-            <script>
-                window.triggerUploadClick = () => { let label = window.document.getElementById("uploadtrigger"); label.click(); }
-            </script>
-
-            <label id="uploadtrigger"
-                    for="item-upload">
-                UPLOAD
-            </label>
-
-            <InputFile id="item-upload"
-                       accept=".zip"
-                       OnChange="OnFileChange" />
-        </div>
 
         <Grid Items="@FilterItems(_itemsQueryable)" Virtualize="true" CssClass="iodds-grid">
             <ActionButtons>
-                <div style="display:contents;">
-                    <GridActionButton Text="@Client.Localization.Common.Upload" 
-                                      OnClick="@OnIoddUploadClickAsync"
-                                      IconCssClass="@_uploadIconCssClasses" />
+                <div class="iodd-action-buttons">
+                    <SettingsFieldFileUpload @ref="_fileUpload"
+                                             @bind-Filename="_uploadedFilename"
+                                             Accept=".zip"
+                                             ChooseButtonText="@Client.Localization.Common.Upload"
+                                             ChooseButtonIconCssClasses="@_uploadIconCssClasses"
+                                             HideFilename="true"
+                                             MaximumAllowedSize="@ControlPanelConstants.TwoMB"
+                                             OnUploadStart="@OnIoddUploadStart"
+                                             OnUploadSuccess="@OnIoddUploadSuccess"
+                                             OnUploadError="@OnIoddUploadError"
+                                             OnUploadCancel="@OnIoddUploadCancel"
+                                             Placeholder="@Client.Localization.Common.Upload"
+                                             UploadTicketFactory="@UploadTicketFactory"
+                                             UploadTicket="@UploadTicket"
+                                             UploadHandler="@StreamUploadHandler" />
 
-                    <GridActionButton Text="@CommonVocabulary.DownloadVerb"
-                                      Enabled="@(ItemSelection.Any())"
-                                      OnClick="@OnIoddDownloadClickAsync"
-                                      IconCssClass="@_importIconCssClasses" />
+                    <SettingsFieldButton Text="@CommonVocabulary.DownloadVerb"
+                                         Enabled="@(ItemSelection.Any())"
+                                         OnClick="@OnIoddDownloadClickAsync"
+                                         IconCssClass="@_importIconCssClasses" />
 
-                    <GridActionButton Text="@CommonVocabulary.Delete"
-                                      OnClick="@OnIoddDeleteClickAsync"
-                                      Enabled="@(ItemSelection.Any())"
-                                      IconCssClass="@_deleteIconCssClasses" />
+                    <SettingsFieldButton Text="@CommonVocabulary.Delete"
+                                         OnClick="@OnIoddDeleteClickAsync"
+                                         Enabled="@(ItemSelection.Any())"
+                                         IconCssClass="@_deleteIconCssClasses" />
                 </div>
             </ActionButtons>
 

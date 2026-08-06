@@ -16,6 +16,7 @@ public sealed class IoddService : CompletionSourceHandlerBase<IIoddServiceResult
     IEventConsumer<AutoIoddDownloadChanged>,
     IIoddService
 {
+    public static readonly string UploadedIoddDirectoryName = "newIodd";
 
     public event Func<IoddChanged, CancellationToken, Task>? IoddChanged;
 
@@ -26,6 +27,12 @@ public sealed class IoddService : CompletionSourceHandlerBase<IIoddServiceResult
     {
         Register<IoddChanged>();
         Register<AutoIoddDownloadChanged>();
+    }
+
+    public async Task<IIoddServiceResult> AddIodd(string filename, CancellationToken cancellationToken = default)
+    {
+        var command = new AddIodd(filename);
+        return await SendAndWaitForCompletion(command, cancellationToken);
     }
 
     public async Task<IIoddServiceResult> DeleteIodd(int vendorId, int deviceId, CancellationToken cancellationToken = default)
@@ -65,13 +72,6 @@ public sealed class IoddService : CompletionSourceHandlerBase<IIoddServiceResult
             return string.Empty;
 
         return response.ImageAsBase64;
-    }
-
-    public async Task<IIoddServiceResult> UploadIodd(byte[] data, CancellationToken cancellationToken = default)
-    {
-        var command = new AddIodd(data);
-
-        return await SendAndWaitForCompletion(command, cancellationToken);
     }
 
     public async Task<bool> GetIsAutoDownloading(CancellationToken cancellationToken = default)
