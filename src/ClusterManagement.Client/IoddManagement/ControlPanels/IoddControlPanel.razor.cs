@@ -1,19 +1,20 @@
 ﻿using System.Globalization;
-using ClusterManagement.Client.Extensions;
 using ClusterManagement.Client.IoddManagement.ControlPanels.Services;
 using ClusterManagement.Client.IoddManagement.Extensions;
 using ClusterManagement.Client.IoddManagement.IoddTree;
 using ClusterManagement.Client.IoddManagement.Models;
 using ClusterManagement.Client.IoddManagement.Services;
 using ClusterManagement.Client.Localization;
+using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Public.Iodds;
 using ClusterManagement.Public.Iodds.Events;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.Logging;
-using Microsoft.JSInterop;
+using Sdk.Client.Components.Settings;
+using Sdk.Client.Contracts;
 using Sdk.Client.ControlPanels.Attributes;
 using Sdk.Client.ControlPanels.Services;
+using Sdk.Client.Models;
 using Sdk.Client.Services;
 using Sdk.MessageBanner.Contracts;
 using Sdk.Messaging;
@@ -32,19 +33,23 @@ public sealed partial class IoddControlPanel
     private readonly string _importIconCssClasses = @MonochromeIconName.Import.GetCssClasses(MonochromeIconSize.Small).ToSpaceSeparated();
     private readonly string _deleteIconCssClasses = @MonochromeIconName.Delete.GetCssClasses(MonochromeIconSize.Small).ToSpaceSeparated();
 
+    private SettingsFieldFileUpload<IoddUpload>? _fileUpload;
     private IQueryable<DeviceView> _itemsQueryable = Enumerable.Empty<DeviceView>().AsQueryable();
     private readonly TreeBuilder _treeBuilder = new();
     private Dialog? _refDeleteIoddsDialog;
 
     [Inject] private IControlPanelRequest ControlPanelRequest { get; set; } = default!;
-    [Inject] private IJSRuntime JavaScript { get; set; } = default!;
     [Inject] private IJsInterop JavaScriptInterop { get; set; } = default!;
     [Inject] private IIoddService IoddService { get; set; } = default!;
     [Inject] private IoddTreeAdapter TreeAdapter { get; set; } = default!;
     [Inject] private IMessageBannerService MessageBannerService { get; set; } = default!;
     [Inject] private ILogger<IoddControlPanel> Logger { get; set; } = default!;
+    [Inject] private IUploadTicketFactory UploadTicketFactory { get; set; } = default!;
+    public IUploadTicket? UploadTicket { get; set; }
+    [Inject] private IStreamUploadHandler<IoddUpload> StreamUploadHandler { get; set; } = default!;
 
     private GridItemSelection<IoddSelectionId> ItemSelection { get; } = [];
+    private string? _uploadedFilename;
 
     protected override async ValueTask DisposeAsyncCore()
     {
@@ -303,31 +308,38 @@ public sealed partial class IoddControlPanel
         }
     }
 
-    private async Task OnFileChange(InputFileChangeEventArgs args)
+    private async Task OnIoddUploadStart(IUploadTicket uploadTicket)
     {
-        if (!MessageBannerService.IsValidZipArchive(args))
-            return;
+        _uploadedFilename = null;
+        UploadTicket = uploadTicket;
+    }
 
-        try
+    private async Task OnIoddUploadSuccess(StreamUploadSuccessResult successResult)
+    {
+        _uploadedFilename = successResult.DestinationFile;
+        await InvokeAsync(StateHasChanged);
+
+        var result = await IoddService.AddIodd(_uploadedFilename);
+
+        if (_fileUpload is not null)
         {
-            byte[] data;
-
-            await using (var ms = new MemoryStream())
-            {
-                await args.File.OpenReadStream(ControlPanelConstants.TwoMB).CopyToAsync(ms);
-                data = ms.ToArray();
-            }
-
-            await IoddService.UploadIodd(data);
-        }
-        catch (Exception ex)
-        {
-            MessageBannerService.ShowMessageBanner(MessageType.Error, ex.Message);
+            await _fileUpload.ResetAsync();
+            UploadTicket = UploadTicketFactory.CreateUploadTicket();
         }
     }
 
-    private async Task OnIoddUploadClickAsync()
-        => await JavaScript.InvokeVoidAsync("triggerUploadClick");
+    private Task OnIoddUploadError(StreamUploadErrorResult errorResult)
+    {
+        _uploadedFilename = null;
+        MessageBannerService.ShowMessageBanner(MessageType.Error, errorResult.Message);
+        return Task.CompletedTask;
+    }
+
+    private Task OnIoddUploadCancel()
+    {
+        _uploadedFilename = null;
+        return Task.CompletedTask;
+    }
 
     private string GetFooterString()
     {

@@ -1,4 +1,6 @@
-﻿using System.IO.Compression;
+﻿using System.IO.Abstractions;
+using System.IO.Abstractions.TestingHelpers;
+using System.IO.Compression;
 using ClusterManagement.Backend.Iodds.Consumers;
 using ClusterManagement.Public.Iodds;
 using ClusterManagement.Public.Iodds.Commands;
@@ -12,15 +14,30 @@ namespace ClusterManagement.Backend.Tests.Iodds.Consumers;
 
 public class AddIoddConsumerTests
 {
+    private const string EmptyZipDataFilename = "zipData.zip";
+    private const string InvalidZipDataFilename = "invalidZipData.zip";
+
     private readonly Action<IBusRegistrationConfigurator> _configureServices;
     private readonly IIoddStore _ioddStore = Substitute.For<IIoddStore>();
+    private readonly MockFileSystem _filesystem = new MockFileSystem();
 
     public AddIoddConsumerTests()
-        => _configureServices = cfg =>
+    {
+        _configureServices = cfg =>
         {
             cfg.AddConsumer<AddIoddConsumer>();
             cfg.AddSingleton(_ioddStore);
+            cfg.AddSingleton<IFileSystem>(_filesystem);
         };
+
+        var stream = new MemoryStream();
+        var archive = new ZipArchive(stream, ZipArchiveMode.Create, true);
+        archive.Dispose();
+        var zipBytes = stream.ToArray();
+
+        _filesystem.AddFile(EmptyZipDataFilename, new MockFileData(zipBytes));
+        _filesystem.AddFile(InvalidZipDataFilename, new MockFileData([]));
+    }
 
     [Fact]
     public async Task Command_should_be_consumed()
@@ -28,7 +45,7 @@ public class AddIoddConsumerTests
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
         var zipData = CreateValidZipArchive();
-        var command = new AddIodd(zipData);
+        var command = new AddIodd(EmptyZipDataFilename);
         var deviceInfo = DeviceInfoFactory.CreateDeviceInfo();
 
         _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
@@ -49,7 +66,7 @@ public class AddIoddConsumerTests
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
         var zipData = CreateValidZipArchive();
-        var command = new AddIodd(zipData);
+        var command = new AddIodd(EmptyZipDataFilename);
         var deviceInfo = DeviceInfoFactory.CreateDeviceInfo();
         var expectedId = new IoddId(310, 2);
 
@@ -74,7 +91,7 @@ public class AddIoddConsumerTests
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
         var zipData = CreateValidZipArchive();
-        var command = new AddIodd(zipData);
+        var command = new AddIodd(EmptyZipDataFilename);
         var deviceInfo = DeviceInfoFactory.CreateDeviceInfo();
         var expectedId = new IoddId(310, 2);
 
@@ -105,7 +122,7 @@ public class AddIoddConsumerTests
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
         var zipData = CreateValidZipArchive();
-        var command = new AddIodd(zipData);
+        var command = new AddIodd(EmptyZipDataFilename);
 
         _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(false);
@@ -126,7 +143,7 @@ public class AddIoddConsumerTests
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
         var zipData = CreateValidZipArchive();
-        var command = new AddIodd(zipData);
+        var command = new AddIodd(EmptyZipDataFilename);
 
         _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(x =>
@@ -151,7 +168,7 @@ public class AddIoddConsumerTests
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
         var invalidZipData = new byte[] { 0x00, 0x01, 0x02 };
-        var command = new AddIodd(invalidZipData);
+        var command = new AddIodd(InvalidZipDataFilename);
 
         // Act
         await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
@@ -169,7 +186,7 @@ public class AddIoddConsumerTests
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
         var emptyZipData = CreateEmptyZipArchive();
-        var command = new AddIodd(emptyZipData);
+        var command = new AddIodd(EmptyZipDataFilename);
 
         _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(false);
@@ -188,7 +205,7 @@ public class AddIoddConsumerTests
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
         var zipData = CreateValidZipArchive();
-        var command = new AddIodd(zipData);
+        var command = new AddIodd(EmptyZipDataFilename);
         var deviceInfo1 = DeviceInfoFactory.CreateDeviceInfo(310, 2);
         var deviceInfo2 = DeviceInfoFactory.CreateDeviceInfo(311, 3);
         var expectedId = new IoddId(310, 2);
@@ -214,7 +231,7 @@ public class AddIoddConsumerTests
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
         var zipData = CreateValidZipArchive();
-        var command = new AddIodd(zipData);
+        var command = new AddIodd(EmptyZipDataFilename);
         var deviceInfo = DeviceInfoFactory.CreateDeviceInfo();
 
         _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
