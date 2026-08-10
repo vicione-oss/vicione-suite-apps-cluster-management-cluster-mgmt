@@ -6,7 +6,7 @@
 
 - `Public`
   - `ClusterSerializer` class, added asynchronous compress methods
-  
+
 ### Changed
 
 - Updated .NET to version `10.0.10`

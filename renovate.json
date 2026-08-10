@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "local>vicione-oss/tooling/renovate-orchestrator"
@@ -37,7 +37,7 @@
       "commitMessageTopic": "ViciOne.Suite.Sdk",
       "commitMessageExtra": "{{newVersion}}",
       "branchTopic": "update-to-vicione-suite-sdk-{{newMajor}}-{{newMinor}}-{{newPatch}}",
-      "addLabels": ["Dependencies"]
+      "addLabels": ["Dependencies", "Modernization"]
     }
   ]
 }
