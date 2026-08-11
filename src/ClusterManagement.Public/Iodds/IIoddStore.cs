@@ -65,11 +65,18 @@ public interface IIoddStore
     bool TryRemoveDevices(IEnumerable<IoddId> ids);
 
     /// <summary>
-    /// Adds all IODD files associated with a given device to the provided ZIP archive.
+    /// Adds all IODD files of the specified devices of a single vendor to the provided ZIP archive.
     /// </summary>
     /// <param name="archive">The target archive to fill.</param>
-    /// <param name="id">The IODD ID of the device whose files will be archived.</param>
-    void FillDeviceArchive(ZipArchive archive, IoddId id);
+    /// <param name="vendorId">The vendor whose devices will be archived.</param>
+    /// <param name="deviceIds">The devices of the vendor to archive.</param>
+    /// <returns>The device IDs that were actually added to the archive.</returns>
+    /// <remarks>
+    /// The entries are created with the structure <c>&lt;vendor-id&gt;/&lt;device-id&gt;/&lt;IODD files&gt;</c>,
+    /// so the resulting archive can be imported again via <see cref="TryAddDevices(ZipArchive)"/>.
+    /// Devices without a readable directory are skipped.
+    /// </remarks>
+    IReadOnlyCollection<int> FillVendorArchive(ZipArchive archive, int vendorId, IEnumerable<int> deviceIds);
 
     /// <summary>
     /// Reloads the device list and reinitializes the store from its backing storage.

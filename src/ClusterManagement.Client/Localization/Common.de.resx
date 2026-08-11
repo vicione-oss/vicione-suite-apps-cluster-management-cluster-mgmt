@@ -126,6 +126,9 @@
   <data name="UploadFailed" xml:space="preserve">
     <value>Etwas stimmt mit dem Archiv nicht.</value>
   </data>
+  <data name="DownloadFailed" xml:space="preserve">
+    <value>Die IODDs konnten nicht heruntergeladen werden.</value>
+  </data>
   <data name="FileIsEmpty" xml:space="preserve">
     <value>Das hochgeladene Archiv enthält keine Dateien.</value>
   </data>

@@ -287,23 +287,27 @@ public sealed partial class IoddControlPanel
 
     private async Task OnIoddDownloadClickAsync()
     {
-        var ids = ItemSelection.Distinct();
+        // Each Iodd can have multiple variants sharing the same VendorId/DeviceId, and multiple devices can belong to
+        // the same vendor. To avoid redundant downloads, one archive per vendor is requested.
+        var vendorGroups = ItemSelection
+            .GroupBy(id => id.VendorId)
+            .Select(g => (VendorId: g.Key, DeviceIds: (IReadOnlyList<int>)[.. g.Select(id => id.DeviceId).Distinct()]));
 
-        foreach (var id in ids)
+        foreach (var (vendorId, deviceIds) in vendorGroups)
         {
             try
             {
-                var (file, name) = await IoddService.DownloadIodd(id.VendorId, id.DeviceId);
+                var (file, name) = await IoddService.DownloadIodds(vendorId, deviceIds);
                 using var stream = new MemoryStream();
                 await stream.WriteAsync(file);
                 stream.Position = 0;
                 await stream.FlushAsync();
-                await JavaScriptInterop.DownloadAs(stream, $"{Path.GetFileNameWithoutExtension(name)}.zip");
+                await JavaScriptInterop.DownloadAs(stream, name);
             }
             catch (Exception ex)
             {
-                LogError(Logger, ex, "downloading iodd", id.VendorId, id.DeviceId);
-                break;
+                LogVendorError(Logger, ex, "downloading iodds", vendorId);
+                MessageBannerService.ShowMessageBanner(MessageType.Error, Common.DownloadFailed);
             }
         }
     }
@@ -356,4 +360,7 @@ public sealed partial class IoddControlPanel
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Error {Action} for device {VendorId}/{DeviceId}")]
     private static partial void LogError(ILogger<IoddControlPanel> logger, Exception exception, string action, int vendorId, int deviceId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error {Action} for vendor {VendorId}")]
+    private static partial void LogVendorError(ILogger<IoddControlPanel> logger, Exception exception, string action, int vendorId);
 }

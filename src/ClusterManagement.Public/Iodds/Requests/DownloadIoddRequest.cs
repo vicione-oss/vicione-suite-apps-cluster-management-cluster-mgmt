@@ -4,5 +4,7 @@ namespace ClusterManagement.Public.Iodds.Requests;
 
 public sealed record DownloadIoddRequest() : IRequest<DownloadIoddResponse>
 {
-    public required IoddId Id { get; set; }
+    public required int VendorId { get; set; }
+
+    public required IReadOnlyList<int> DeviceIds { get; set; }
 }

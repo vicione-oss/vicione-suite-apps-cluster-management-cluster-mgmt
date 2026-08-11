@@ -113,7 +113,16 @@ namespace ClusterManagement.Client.Localization {
                 return ResourceManager.GetString("UploadFailed", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to The IODDs could not be downloaded..
+        /// </summary>
+        internal static string DownloadFailed {
+            get {
+                return ResourceManager.GetString("DownloadFailed", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Only one file can be uploaded at a time..
         /// </summary>

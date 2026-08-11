@@ -299,10 +299,10 @@ public class IoddStoreTests
         }
     }
 
-    public sealed class FillDeviceArchive : IoddStoreTests
+    public sealed class FillVendorArchive : IoddStoreTests
     {
         [Fact]
-        public void Should_populate_archive_with_device_iodd_files()
+        public void Should_populate_archive_with_vendor_and_device_folders()
         {
             // Arrange
             var store = CreateStore();
@@ -316,16 +316,37 @@ public class IoddStoreTests
             using ZipArchive archive = new(memoryStream, ZipArchiveMode.Update, true);
 
             // Act
-            store.FillDeviceArchive(archive, new(device.DeviceDescription.DeviceIdentity.VendorId, device.DeviceDescription.DeviceIdentity.DeviceId));
+            var archived = store.FillVendorArchive(archive, device.DeviceDescription.DeviceIdentity.VendorId, [device.DeviceDescription.DeviceIdentity.DeviceId]);
 
             // Assert
-            using var fileStream = archive.GetEntry("ifm-myDevice-20250323-IODD1.1.xml")!.Open();
+            archived.Should().BeEquivalentTo([2]);
+            using var fileStream = archive.GetEntry("310/2/ifm-myDevice-20250323-IODD1.1.xml")!.Open();
             using StreamReader reader = new(fileStream);
             reader.ReadToEnd().Should().Be(IoddConstants.IoddDeviceTwo);
         }
 
         [Fact]
-        public void Should_throw_when_device_directory_not_found()
+        public void Should_skip_devices_without_directory()
+        {
+            // Arrange
+            var store = CreateStore();
+            _fileSystem.AddDirectory(store.IoddDirectory);
+            _fileSystem.AddDirectory(_fileSystem.Path.Combine(store.IoddDirectory, "310"));
+            _fileSystem.AddDirectory(_fileSystem.Path.Combine(store.IoddDirectory, "310", "2"));
+            _fileSystem.AddFile(_fileSystem.Path.Combine(store.IoddDirectory, "310", "2", "ifm-myDevice-20250323-IODD1.1.xml"), IoddConstants.IoddDeviceTwo);
+            using var memoryStream = new MemoryStream();
+            using ZipArchive archive = new(memoryStream, ZipArchiveMode.Update, true);
+
+            // Act
+            var archived = store.FillVendorArchive(archive, 310, [2, 99]);
+
+            // Assert
+            archived.Should().BeEquivalentTo([2]);
+            archive.Entries.Should().ContainSingle().Which.FullName.Should().Be("310/2/ifm-myDevice-20250323-IODD1.1.xml");
+        }
+
+        [Fact]
+        public void Should_throw_when_vendor_directory_not_found()
         {
             // Arrange
             var store = CreateStore();
@@ -333,7 +354,7 @@ public class IoddStoreTests
             using ZipArchive archive = new(memoryStream, ZipArchiveMode.Update, true);
 
             // Act
-            var act = () => store.FillDeviceArchive(archive, new(310, 2));
+            var act = () => store.FillVendorArchive(archive, 310, [2]);
 
             // Assert
             act.Should().Throw<DirectoryNotFoundException>();

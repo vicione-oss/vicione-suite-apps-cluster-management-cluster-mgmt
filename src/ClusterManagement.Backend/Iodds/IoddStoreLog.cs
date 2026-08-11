@@ -27,4 +27,10 @@ internal static partial class IoddStoreLog
 
     [LoggerMessage(LogLevel.Error, "Failed to create IODD directory: {Directory}")]
     public static partial void LogDirectoryCreationError(this ILogger<IoddStore> logger, Exception exception, string directory);
+
+    [LoggerMessage(LogLevel.Warning, "Skipped device '{VendorId}/{DeviceId}' while filling the vendor archive, its directory does not exist.")]
+    public static partial void DeviceDirectoryNotFound(this ILogger<IoddStore> logger, int vendorId, int deviceId);
+
+    [LoggerMessage(LogLevel.Warning, "Skipped device '{VendorId}/{DeviceId}' while filling the vendor archive.")]
+    public static partial void DeviceArchivingSkipped(this ILogger<IoddStore> logger, int vendorId, int deviceId, Exception exception);
 }

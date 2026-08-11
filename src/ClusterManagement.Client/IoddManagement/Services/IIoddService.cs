@@ -26,9 +26,10 @@ public interface IIoddService
     Task<IIoddServiceResult> DeleteIodd(int vendorId, int deviceId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Downloads the IODD file for the specified device.
-    /// </summary>    
-    Task<(byte[], string)> DownloadIodd(int vendorId, int deviceId, CancellationToken cancellationToken = default);
+    /// Downloads a single archive containing the IODD files of the specified devices of one vendor.
+    /// </summary>
+    /// <returns>The archive content and its file name.</returns>
+    Task<(byte[], string)> DownloadIodds(int vendorId, IReadOnlyList<int> deviceIds, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves all available IO devices.

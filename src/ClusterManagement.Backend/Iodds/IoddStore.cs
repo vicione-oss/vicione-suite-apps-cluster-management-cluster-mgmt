@@ -126,23 +126,48 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
         return success;
     }
 
-    public void FillDeviceArchive(ZipArchive archive, IoddId id)
+    public IReadOnlyCollection<int> FillVendorArchive(ZipArchive archive, int vendorId, IEnumerable<int> deviceIds)
     {
-        var vendorDirectory = fileSystem.Path.Combine(_ioddDirectory, id.VendorId.ToString(CultureInfo.InvariantCulture));
+        var vendorName = vendorId.ToString(CultureInfo.InvariantCulture);
+        var vendorDirectory = fileSystem.Path.Combine(_ioddDirectory, vendorName);
         if (!fileSystem.Directory.Exists(vendorDirectory))
             throw new DirectoryNotFoundException($"Vendor directory not found: {vendorDirectory}");
 
-        var deviceDirectory = fileSystem.Path.Combine(vendorDirectory, id.DeviceId.ToString(CultureInfo.InvariantCulture));
-        if (!fileSystem.Directory.Exists(deviceDirectory))
-            throw new DirectoryNotFoundException($"Device directory not found: {deviceDirectory}");
+        List<int> archivedDeviceIds = [];
 
-        foreach (var file in fileSystem.Directory.EnumerateFiles(deviceDirectory, "*", SearchOption.TopDirectoryOnly))
+        foreach (var deviceId in deviceIds.Distinct())
         {
-            var entry = archive.CreateEntry(fileSystem.Path.GetFileName(file), CompressionLevel.Optimal);
-            using var entryStream = entry.Open();
-            using var fileStream = fileSystem.File.OpenRead(file);
-            fileStream.CopyTo(entryStream);
+            var deviceName = deviceId.ToString(CultureInfo.InvariantCulture);
+            var deviceDirectory = fileSystem.Path.Combine(vendorDirectory, deviceName);
+
+            if (!fileSystem.Directory.Exists(deviceDirectory))
+            {
+                logger.DeviceDirectoryNotFound(vendorId, deviceId);
+                continue;
+            }
+
+            try
+            {
+                foreach (var file in fileSystem.Directory.EnumerateFiles(deviceDirectory, "*", SearchOption.TopDirectoryOnly))
+                {
+                    // zip entry paths always use '/' as separator
+                    var entryName = $"{vendorName}/{deviceName}/{fileSystem.Path.GetFileName(file)}";
+                    var entry = archive.CreateEntry(entryName, CompressionLevel.Optimal);
+                    using var entryStream = entry.Open();
+                    using var fileStream = fileSystem.File.OpenRead(file);
+                    fileStream.CopyTo(entryStream);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.DeviceArchivingSkipped(vendorId, deviceId, ex);
+                continue;
+            }
+
+            archivedDeviceIds.Add(deviceId);
         }
+
+        return archivedDeviceIds;
     }
 
     private bool TryAddDevice(IEnumerable<ZipArchiveEntry> entries, ZipArchiveEntry ioddEntry, out IoddId id)

@@ -9,6 +9,12 @@
 
 ### Changed
 
+- IODD downloads are grouped by vendor, one archive per vendor instead of one per selected device variant
+- `Public`
+  - `IIoddStore`, replaced `FillDeviceArchive` with `FillVendorArchive` which archives several devices of a vendor as `<vendor-id>/<device-id>/<IODD files>`
+  - `DownloadIoddRequest`, replaced `Id` with `VendorId` and `DeviceIds`
+  - `DownloadIoddResponse`, `Filename` now contains the vendor archive name `iodds-<vendor name>.zip`
+
 - Updated .NET to version `10.0.10`
 - `AspNetCore.SassCompiler` package, update version to `1.102.0`
 - `MQTTnet` package, update version to `5.2.0.1603`
@@ -22,6 +28,7 @@
 
 ### Fixed
 
+- Downloading IODDs no longer produces redundant archives with identical content for devices with multiple product variants
 - Write `packages.json`, `packages-ops.json` and cluster snapshots atomically so a crash or power loss during a write cannot leave corrupt files behind
 - Recover from corrupted or partially written package files on startup instead of failing module initialization
 - Replacing a cluster snapshot no longer leaves trailing data of the previous version in the file
