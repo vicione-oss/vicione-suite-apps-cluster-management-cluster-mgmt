@@ -2,7 +2,6 @@
 using ClusterManagement.Client.IoddManagement.Models;
 using ClusterManagement.Internal.Commands;
 using ClusterManagement.Internal.Requests;
-using ClusterManagement.Public.Iodds;
 using ClusterManagement.Public.Iodds.Commands;
 using ClusterManagement.Public.Iodds.Events;
 using ClusterManagement.Public.Iodds.Requests;
@@ -42,9 +41,9 @@ public sealed class IoddService : CompletionSourceHandlerBase<IIoddServiceResult
         return await SendAndWaitForCompletion(command, cancellationToken);
     }
 
-    public async Task<(byte[], string)> DownloadIodd(int vendorId, int deviceId, CancellationToken cancellationToken = default)
+    public async Task<(byte[], string)> DownloadIodds(int vendorId, IReadOnlyList<int> deviceIds, CancellationToken cancellationToken = default)
     {
-        var request = new DownloadIoddRequest { Id = new IoddId(vendorId, deviceId) };
+        var request = new DownloadIoddRequest { VendorId = vendorId, DeviceIds = deviceIds };
         var response = await Mediator.Request<DownloadIoddRequest, DownloadIoddResponse>(request, cancellationToken);
 
         return (response.Content, response.Filename);

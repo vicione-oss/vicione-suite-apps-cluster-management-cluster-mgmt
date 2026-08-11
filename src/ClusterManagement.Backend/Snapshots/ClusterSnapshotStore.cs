@@ -244,7 +244,8 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
 
             await _atomicFileWriter.WriteAsync(storageFilePath, async stream =>
             {
-                await using GZipStream compressedStream = new(stream, CompressionMode.Compress);
+                // leaveOpen: the atomic writer still flushes the underlying stream after this callback
+                await using GZipStream compressedStream = new(stream, CompressionMode.Compress, leaveOpen: true);
                 await write(compressedStream, value, cancellationToken);
             }, cancellationToken);
         }
@@ -289,7 +290,8 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
 
         await _atomicFileWriter.WriteAsync(storageFilePath, async stream =>
         {
-            await using GZipStream gs = new(stream, CompressionMode.Compress);
+            // leaveOpen: the atomic writer still flushes the underlying stream after this callback
+            await using GZipStream gs = new(stream, CompressionMode.Compress, leaveOpen: true);
             await JsonSerializer.SerializeAsync(gs, cluster, options, cancellationToken);
         }, cancellationToken);
     }
