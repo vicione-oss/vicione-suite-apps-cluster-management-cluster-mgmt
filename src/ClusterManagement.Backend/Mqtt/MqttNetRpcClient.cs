@@ -83,12 +83,17 @@ internal sealed class MqttNetRpcClient(IOptions<MqttNetRpcClientOptions> options
         var correlationData = Guid.Empty;
         try
         {
-            correlationData = new Guid(eventArgs.ApplicationMessage.CorrelationData);
+            correlationData = new(eventArgs.ApplicationMessage.CorrelationData);
         }
-        catch { }
+        catch
+        {
+            // no valid byte array to convert to Guid
+            eventArgs.IsHandled = true;
+            return Task.CompletedTask;
+        }
         if (_waitingCalls.TryRemove(correlationData, out var awaitable))
         {
-            var status = eventArgs.ApplicationMessage.UserProperties.Find(_ => string.CompareOrdinal(_.Name, "Status") == 0)?.ReadValueAsString();
+            var status = eventArgs.ApplicationMessage.UserProperties.Find(static p => string.Equals(p.Name, "Status", StringComparison.Ordinal))?.ReadValueAsString();
             if (status is null)
             {
                 awaitable.TrySetException(new InvalidOperationException("MqttRpcResponse does not contain status."));
