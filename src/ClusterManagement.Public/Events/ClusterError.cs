@@ -72,7 +72,6 @@ public sealed record ClusterError : IEvent, CorrelatedBy<Guid?>
 
     /// <summary>Editor failed to store cluster settings.</summary>
     public const int EditorStoreSettingsFailed = 501;
-    
 
     /// <summary>
     /// Gets or initializes the correlation ID used to trace related operations.

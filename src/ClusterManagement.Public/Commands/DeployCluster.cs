@@ -2,12 +2,12 @@
 
 namespace ClusterManagement.Public.Commands;
 
-[MessageEndpoint(Constants.DeployClusterState)]
 /// <summary>
 /// Represents a command to deploy a cluster to a target version, optionally retaining the previous version after success.
 /// </summary>
 /// <param name="ClusterId">The ID of the cluster to be deployed.</param>
 /// <param name="TargetVersion">The target version of the cluster to deploy to. May be <see langword="null"/> to use the latest or default version.</param>
+[MessageEndpoint(Constants.DeployClusterState)]
 public sealed record DeployCluster(Guid ClusterId, Version? TargetVersion) : ICommand
 {
     /// <summary>

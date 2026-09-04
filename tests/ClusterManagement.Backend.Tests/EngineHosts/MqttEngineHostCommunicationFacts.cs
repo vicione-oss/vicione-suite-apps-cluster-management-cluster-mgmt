@@ -378,7 +378,7 @@ public class MqttEngineHostCommunicationFacts
                 {
                     var jsonObject = ReadJsonObjectFromGzipBytes(payload);
                     jsonObject.Should().NotBeNull();
-                    jsonObject![nameof(DeployRequest.StartParameter)].Deserialize<T>(JsonSetup.PreserveTypeOptions).Should().BeEquivalentTo(expectedStartParameter);
+                    jsonObject[nameof(DeployRequest.StartParameter)].Deserialize<T>(JsonSetup.PreserveTypeOptions).Should().BeEquivalentTo(expectedStartParameter);
                 }
             }
 
@@ -548,7 +548,7 @@ public class MqttEngineHostCommunicationFacts
                     var jsonObject = ReadJsonObjectFromGzipBytes(payload);
                     jsonObject.Should().NotBeNull();
                     foreach (var propertyToIgnore in propertiesToReset)
-                        jsonObject![propertyToIgnore] = default;
+                        jsonObject[propertyToIgnore] = default;
                     jsonObject.Deserialize<T>(JsonSetup.DefaultOptions).Should().BeEquivalentTo(expectedDeployRequest);
                 }
             }

@@ -161,9 +161,9 @@ public class WorkflowTranslatorFacts
                 QualityOfService = 2,
                 Retain = false,
             };
-            const string localText = "Lokal";
-            const string meshText = "Mesh";
-            const string remoteText = "Remote";
+            const string LocalText = "Lokal";
+            const string MeshText = "Mesh";
+            const string RemoteText = "Remote";
             Workflow workflow = new()
             {
                 Engine = new()
@@ -208,7 +208,7 @@ public class WorkflowTranslatorFacts
                 [
                     new()
                     {
-                        Name = remoteText,
+                        Name = RemoteText,
                         Communication = communicationRemote,
                         IncomingLinks =
                         [
@@ -223,7 +223,7 @@ public class WorkflowTranslatorFacts
                     },
                     new()
                     {
-                        Name = meshText,
+                        Name = MeshText,
                         Communication = communicationMesh,
                         IncomingLinks =
                         [
@@ -245,7 +245,7 @@ public class WorkflowTranslatorFacts
                     },
                     new()
                     {
-                        Name = localText,
+                        Name = LocalText,
                         Communication = communicationLocal,
                         OutgoingLinks =
                         [
@@ -462,7 +462,7 @@ public class WorkflowTranslatorFacts
                 externalRemote =>
                 {
                     externalRemote.UniqueIdentifier.Should().NotBeNullOrEmpty().And.NotBe(Guid.Empty.ToString());
-                    externalRemote.Name.Should().Be(remoteText);
+                    externalRemote.Name.Should().Be(RemoteText);
                     externalRemote.Communication.Should().Be(new Backend.Engines.CommunicationContracts.CommunicationConfiguration()
                     {
                         Id = MqttCommunicationId,
@@ -491,7 +491,7 @@ public class WorkflowTranslatorFacts
                 externalMesh =>
                 {
                     externalMesh.UniqueIdentifier.Should().NotBeNullOrEmpty().And.NotBe(Guid.Empty.ToString());
-                    externalMesh.Name.Should().Be(meshText);
+                    externalMesh.Name.Should().Be(MeshText);
                     externalMesh.Communication.Should().Be(new Backend.Engines.CommunicationContracts.CommunicationConfiguration()
                     {
                         Id = MqttCommunicationId,
@@ -527,7 +527,7 @@ public class WorkflowTranslatorFacts
                 externalLocal =>
                 {
                     externalLocal.UniqueIdentifier.Should().NotBeNullOrEmpty().And.NotBe(Guid.Empty.ToString());
-                    externalLocal.Name.Should().Be(localText);
+                    externalLocal.Name.Should().Be(LocalText);
                     externalLocal.Communication.Should().Be(new Backend.Engines.CommunicationContracts.CommunicationConfiguration()
                     {
                         Id = MqttCommunicationId,

@@ -21,8 +21,7 @@ public class CommitClusterChangeConsumerTests
     private readonly ISuiteRulesetProvider _rulesetProvider = Substitute.For<ISuiteRulesetProvider>();
 
     public CommitClusterChangeConsumerTests()
-    {
-        _configureServices = cfg =>
+        => _configureServices = cfg =>
         {
             // consumer needs
             cfg.AddConsumer<CommitClusterChangeConsumer>();
@@ -30,7 +29,6 @@ public class CommitClusterChangeConsumerTests
             cfg.AddSingleton(_ => _rulesetProvider);
             cfg.AddTransient(_ => TestDataFactory.SetupMqttDataPortDesignProvider());
         };
-    }
 
     public class CommitWithoutOptions : CommitClusterChangeConsumerTests
     {

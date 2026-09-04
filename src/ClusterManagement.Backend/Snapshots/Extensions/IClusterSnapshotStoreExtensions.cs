@@ -22,7 +22,7 @@ internal static class IClusterSnapshotStoreExtensions
             if (!GetNameAndVersion(clusterDependencyNode, out var name, out var version))
                 continue;
 
-            dependencyCallback(clusterDependencyNode, name!, version!);
+            dependencyCallback(clusterDependencyNode, name, version);
         }
 
         return cluster;

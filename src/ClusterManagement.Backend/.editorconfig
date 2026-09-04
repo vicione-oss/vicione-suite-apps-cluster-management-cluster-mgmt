@@ -1,0 +1,10 @@
+# Scoped overrides for this project. The repository root .editorconfig still applies.
+
+###############
+# Overrides   #
+###############
+
+# EF Core scaffolds these files and regenerates them on every new migration,
+# so style and naming rules would only be reintroduced by the next scaffold.
+[Migrations/**/*.cs]
+generated_code = true

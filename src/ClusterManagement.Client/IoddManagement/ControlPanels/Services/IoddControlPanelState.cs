@@ -19,7 +19,7 @@ public sealed class IoddControlPanelState : ControlPanelState
     public List<DeviceView> Devices
     {
         get;
-        set
+        internal set
         {
             if (value == field)
                 return;

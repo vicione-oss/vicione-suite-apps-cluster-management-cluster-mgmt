@@ -127,7 +127,7 @@ public partial class DeployClusterStateMachineTests
             await harness.PublishClusterNodeAdded(_correlationId, _clusterId, _nodeIdToAdd);
             await harness.PublishClusterNodeAdded(otherCorrelationId, otherClusterId, otherNodeIdToAdd);
 
-            await harness.PublishClusterApplicationStarted(_correlationId, _clusterId, _applicationId);                                   
+            await harness.PublishClusterApplicationStarted(_correlationId, _clusterId, _applicationId);
             await harness.PublishClusterApplicationStarted(otherCorrelationId, otherClusterId, otherApplicationIdId);
 
             await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _applicationId);

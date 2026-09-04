@@ -6,8 +6,7 @@ namespace ClusterManagement.Tests.Tools.Factories;
 public static class ClusterDependencyPackageFactory
 {
     public static List<ClusterDependencyPackage> CreateDependencyDesigns(IEnumerable<ViciOne.Core.Dataflow.DataModel.FunctionBlockDesign> designs)
-        =>
-        [
+        => [
             new ClusterDependencyPackage(new ClusterDependency
                 {
                     Name = "TestDependency",

@@ -39,7 +39,7 @@ public class DownloadIoddConsumerTests
                     writer.Write(content);
                 }
 
-                return x.ArgAt<IEnumerable<int>>(2).ToArray();
+                return [.. x.ArgAt<IEnumerable<int>>(2)];
             });
 
     [Fact]

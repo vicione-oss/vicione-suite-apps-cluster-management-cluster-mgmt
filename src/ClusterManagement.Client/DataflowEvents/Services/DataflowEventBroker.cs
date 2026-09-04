@@ -149,11 +149,9 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
         return response.Results.FirstOrDefault(k => k.IsActive);
     }
 
+    // retrieve events (connectors with EventEnabled=true)
     public async Task<IReadOnlyCollection<IDataflowEvent>> GetEvents(CancellationToken cancellationToken = default)
-    {
-        // retrieve events (connectors with EventEnabled=true)
-        return await UpdateEventCache(cancellationToken);
-    }
+        => await UpdateEventCache(cancellationToken);
 
     public async Task<IAsyncDisposable> Subscribe(Guid eventId, Func<DateTime, string?, Task> handler, CancellationToken cancellationToken = default)
     {

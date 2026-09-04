@@ -9,7 +9,10 @@ namespace ClusterManagement.Backend.Tests;
 
 internal sealed partial class ClusterSystemTestContext
 {
-    private ClusterBuilder _clusterBuilder = default!;
+    private ClusterBuilder? _clusterBuilder;
+    private ClusterBuilder ClusterBuilder
+        => _clusterBuilder ?? throw new InvalidOperationException($"{nameof(LoadCluster)} has not been called yet.");
+
     private Cluster _cluster = new();
     private ClusterNode _clusterNode = new();
     private ClusterApplication _defaultClusterApplication = new();
@@ -27,7 +30,7 @@ internal sealed partial class ClusterSystemTestContext
         _cluster = await _snapshotStore.Load(active.Id, active.Version, CancellationToken) ?? throw new InvalidOperationException("Failed to load default cluster");
         var designProvider = Services.GetRequiredService<IDesignProvider>();
         _clusterBuilder = new(_cluster, await designProvider.CreateResolver());
-        _clusterNode = _clusterBuilder.Cache.ClusterNodes.Single();
+        _clusterNode = ClusterBuilder.Cache.ClusterNodes.Single();
         _defaultClusterApplication = _clusterNode.Applications.FirstOrDefault()
             ?? throw new InvalidOperationException("Could not get expected default (seeded) cluster application.");
         _clusterNode.Applications.Remove(_defaultClusterApplication);

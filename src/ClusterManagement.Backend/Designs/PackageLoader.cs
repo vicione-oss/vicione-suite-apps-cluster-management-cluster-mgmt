@@ -4,7 +4,6 @@ using System.Runtime.Loader;
 using ClusterManagement.Public;
 using Sdk.Modules;
 using ViciOne.Cluster.Model;
-using ViciOne.Core.Dataflow.DataModel;
 using ViciOne.Core.Dataflow.DataModel.Generation;
 using ViciOne.Core.Dataflow.Pooling;
 using ViciOne.Engine.DefaultPoolings;
@@ -72,8 +71,8 @@ internal class PackageLoader
         return new(coreDesigns, containsViciOneContent);
     }
 
-    private static bool IsPoolingValidatorOrConversion(Type t) =>
-        typeof(ViciOne.Core.Contracts.DataModel.IAggregatingPooling).IsAssignableFrom(t) ||
+    private static bool IsPoolingValidatorOrConversion(Type t)
+        => typeof(ViciOne.Core.Contracts.DataModel.IAggregatingPooling).IsAssignableFrom(t) ||
         typeof(ViciOne.Core.Contracts.DataModel.IValidator).IsAssignableFrom(t) ||
         typeof(ViciOne.Core.Contracts.DataModel.ITypeConversion).IsAssignableFrom(t);
 

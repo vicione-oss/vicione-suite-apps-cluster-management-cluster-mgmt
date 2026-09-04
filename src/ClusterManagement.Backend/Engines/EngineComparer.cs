@@ -4,8 +4,8 @@ namespace ClusterManagement.Backend.Engines;
 
 internal sealed class EngineComparer : NullableEqualityComparer<Engine>
 {
-    private protected override bool CoreEquals(Engine x, Engine y) =>
-        EqualityComparer<int>.Default.Equals(x.ChainIndex, y.ChainIndex) &&
+    private protected override bool CoreEquals(Engine x, Engine y)
+        => EqualityComparer<int>.Default.Equals(x.ChainIndex, y.ChainIndex) &&
         EqualityComparer<uint>.Default.Equals(x.CycleTime, y.CycleTime) &&
         EqualityComparer<Guid>.Default.Equals(x.Id, y.Id) &&
         EqualityComparer<LogLevel>.Default.Equals(x.LogLevel, y.LogLevel) &&

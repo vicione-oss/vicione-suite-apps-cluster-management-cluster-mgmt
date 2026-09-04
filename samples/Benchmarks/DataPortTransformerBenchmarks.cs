@@ -21,7 +21,7 @@ public class DataPortTransformerBenchmarks
     private readonly ClusterDependencyResolver _dependencyResolver;
     private readonly ISuiteRulesetProvider _rulesetProvider;
 
-    private List<DataPortTreeNode> _nodes = [];
+    private readonly List<DataPortTreeNode> _nodes = [];
 
     [Params(1, 5, 10, 100)]
     public int Breadth { get; set; }

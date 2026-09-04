@@ -39,19 +39,19 @@ internal sealed class PackageArtifactRepository(
     public async Task<PackageDownloadResult[]> DownloadAndExtract(IReadOnlyCollection<ClusterDependency> dependencies, CancellationToken cancellationToken)
     {
         using var throttle = new SemaphoreSlim(MaxConcurrentRequests, MaxConcurrentRequests);
-        var tasks = dependencies.Select(fb => ThrottledDownload(fb, throttle, cancellationToken)).ToArray();
+        var tasks = dependencies.Select(fb => ThrottledDownload(fb, cancellationToken)).ToArray();
         return await Task.WhenAll(tasks);
 
-        async Task<PackageDownloadResult> ThrottledDownload(ClusterDependency fb, SemaphoreSlim semaphore, CancellationToken ct)
+        async Task<PackageDownloadResult> ThrottledDownload(ClusterDependency fb, CancellationToken ct)
         {
-            await semaphore.WaitAsync(ct).ConfigureAwait(false);
+            await throttle.WaitAsync(ct).ConfigureAwait(false);
             try
             {
                 return await DownloadAndExtract(fb.Name, fb.Version, ct);
             }
             finally
             {
-                semaphore.Release();
+                throttle.Release();
             }
         }
     }
@@ -117,20 +117,20 @@ internal sealed class PackageArtifactRepository(
     public async Task<IReadOnlyCollection<IArtifact>> QueryMetadataArtifacts(IReadOnlyCollection<string> packageNames, SemVersion? coreVersion, CancellationToken cancellationToken = default)
     {
         using var throttle = new SemaphoreSlim(MaxConcurrentRequests, MaxConcurrentRequests);
-        var availableTasks = packageNames.Select(k => ThrottledMetadataQuery(coreVersion, k, throttle, cancellationToken));
+        var availableTasks = packageNames.Select(k => ThrottledMetadataQuery(coreVersion, k, cancellationToken)).ToArray();
         var availableResults = await Task.WhenAll(availableTasks);
         return [.. availableResults.SelectMany(r => r)];
 
-        async Task<IEnumerable<IArtifact>> ThrottledMetadataQuery(SemVersion? version, string packageName, SemaphoreSlim semaphore, CancellationToken ct)
+        async Task<IEnumerable<IArtifact>> ThrottledMetadataQuery(SemVersion? version, string packageName, CancellationToken ct)
         {
-            await semaphore.WaitAsync(ct).ConfigureAwait(false);
+            await throttle.WaitAsync(ct).ConfigureAwait(false);
             try
             {
                 return await QueryMetadataArtifacts(version, packageName, ct);
             }
             finally
             {
-                semaphore.Release();
+                throttle.Release();
             }
         }
     }

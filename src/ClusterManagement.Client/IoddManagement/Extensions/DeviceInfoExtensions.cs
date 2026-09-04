@@ -6,7 +6,7 @@ namespace ClusterManagement.Client.IoddManagement.Extensions;
 internal static class DeviceInfoExtensions
 {
     internal static IEnumerable<DeviceView> CreateDeviceVariants(this DeviceInfo deviceInfo)
-        => deviceInfo.DeviceDescription.DeviceIdentity.Variants.Select(deviceVariant => deviceInfo.Create(deviceVariant));
+        => deviceInfo.DeviceDescription.DeviceIdentity.Variants.Select(deviceInfo.Create);
 
     internal static DeviceView Create(this DeviceInfo deviceInfo, DeviceVariant deviceVariant)
         => new()

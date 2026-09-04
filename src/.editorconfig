@@ -1,0 +1,10 @@
+# Scoped overrides for all projects below src. The repository root .editorconfig still applies.
+
+###############
+# Overrides   #
+###############
+
+[*.cs]
+# CA1812 cannot see types that are only ever constructed by the dependency
+# injection container, which is how the internal services here are created.
+dotnet_diagnostic.CA1812.severity = none # Avoid uninstantiated internal classes

@@ -49,10 +49,10 @@ internal sealed class MqttEngineHostCommunication : IEngineHostCommunication
 
     private async Task<SemVersion> GetManagedEngineVersion(Guid engineHostId, CancellationToken cancellationToken)
     {
-        const string message = "Could not get version of managed engine.";
+        const string Message = "Could not get version of managed engine.";
         var version = await _poolCommunication.GetManagedEngineVersion(cancellationToken, engineHostId)
-            .CatchAs(static exception => new InvalidOperationException(message, exception), cancellationToken);
-        return version ?? throw new InvalidOperationException(message);
+            .CatchAs(static exception => new InvalidOperationException(Message, exception), cancellationToken);
+        return version ?? throw new InvalidOperationException(Message);
     }
 
     private async Task<IDeployRequest> CreateEngineHostDeploy(Guid engineHostId, Workflow workflow, IStartParameter startParameter,
@@ -72,10 +72,10 @@ internal sealed class MqttEngineHostCommunication : IEngineHostCommunication
 
     private async Task<SemVersion> GetEngineHostVersion(Guid engineHostId, CancellationToken cancellationToken)
     {
-        const string message = "Could not get version of engine host.";
+        const string Message = "Could not get version of engine host.";
         var version = await _poolCommunication.GetEngineHostVersion(cancellationToken, engineHostId)
-            .CatchAs(static exception => new InvalidOperationException(message, exception), cancellationToken);
-        return version ?? throw new InvalidOperationException(message);
+            .CatchAs(static exception => new InvalidOperationException(Message, exception), cancellationToken);
+        return version ?? throw new InvalidOperationException(Message);
     }
 
     public async Task<EngineState> GetEngineState(Guid engineHostId, Guid deploymentIdentifier, CancellationToken cancellationToken)

@@ -344,8 +344,7 @@ public class RulesetProviderTests
             var sut = CreateSut();
 
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() =>
-                sut.GetSystemDataPortDependency());
+            var exception = Assert.Throws<InvalidOperationException>(sut.GetSystemDataPortDependency);
 
             exception.Message.Should().Be($"Use {nameof(RulesetProvider.AddSystemDataPortFunctionBlock)} before adding rulesets");
         }

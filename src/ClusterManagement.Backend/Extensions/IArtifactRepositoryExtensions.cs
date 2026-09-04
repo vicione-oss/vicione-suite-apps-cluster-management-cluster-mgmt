@@ -18,8 +18,9 @@ internal static class IArtifactRepositoryExtensions
     /// <summary>
     /// Query zip artifact and deserialized metadata for given metadata (json) artifact.
     /// </summary>
+    /// <param name="repository">the artifact repository to query</param>
     /// <param name="metadataArtifact">e.g. artifact item like 0.28.0-linux-x64_0.48.0.json</param>
-    /// <param name="cancellationToken">token to cancel async operations</param>    
+    /// <param name="cancellationToken">token to cancel async operations</param>
     /// <exception cref="ArgumentException">thrown if metadataArtifact.Name can't be parsed</exception>
     /// <exception cref="InvalidOperationException">thrown if metadataArtifact content can't be downloaded</exception>
     public static async Task<ZipArtifact> QueryZipArtifactWithMetadata(this IArtifactRepository repository, IArtifact metadataArtifact, CancellationToken cancellationToken = default)

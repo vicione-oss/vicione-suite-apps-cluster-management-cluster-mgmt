@@ -16,9 +16,7 @@ public class DesignProviderTests
     private readonly DesignProvider _sut;
 
     public DesignProviderTests()
-    {
-        _sut = new DesignProvider(_packageContentProvider, _logger);
-    }
+        => _sut = new DesignProvider(_packageContentProvider, _logger);
 
     public sealed class CreateResolver : DesignProviderTests
     {

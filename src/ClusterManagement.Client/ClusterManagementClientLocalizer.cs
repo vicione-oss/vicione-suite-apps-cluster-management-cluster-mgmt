@@ -1,11 +1,10 @@
 ﻿using ClusterManagement.Client.Management.Localization;
 using Sdk.Client.Modules.Localization;
 
-namespace ClusterManagement.Client
+namespace ClusterManagement.Client;
+
+internal sealed class ClusterManagementClientLocalizer : IClientModuleLocalizer<ClusterManagementClientModule>
 {
-    internal sealed class ClusterManagementClientLocalizer : IClientModuleLocalizer<ClusterManagementClientModule>
-    {
-        public string? GetDescription() => Common.ModuleDescription;
-        public string GetTitle() => Common.ModuleTitle;
-    }
+    public string? GetDescription() => Common.ModuleDescription;
+    public string GetTitle() => Common.ModuleTitle;
 }

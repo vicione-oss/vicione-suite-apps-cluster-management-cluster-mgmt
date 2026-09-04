@@ -19,7 +19,7 @@ public class AddIoddConsumerTests
 
     private readonly Action<IBusRegistrationConfigurator> _configureServices;
     private readonly IIoddStore _ioddStore = Substitute.For<IIoddStore>();
-    private readonly MockFileSystem _filesystem = new MockFileSystem();
+    private readonly MockFileSystem _filesystem = new();
 
     public AddIoddConsumerTests()
     {

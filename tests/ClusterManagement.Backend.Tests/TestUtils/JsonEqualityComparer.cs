@@ -33,7 +33,7 @@ public class JsonEqualityComparer<T> : EqualityComparer<T>
     public override int GetHashCode(T obj)
         => throw new NotImplementedException();
 
-    private class AllPropertiesContractResolver : DefaultContractResolver
+    private sealed class AllPropertiesContractResolver : DefaultContractResolver
     {
         private readonly (Type DeclaringType, string PropertyName)[] _membersToIgnore;
 

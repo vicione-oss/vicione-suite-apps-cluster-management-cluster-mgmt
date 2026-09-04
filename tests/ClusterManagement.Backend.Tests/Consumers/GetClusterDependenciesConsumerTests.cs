@@ -15,13 +15,11 @@ public class GetClusterDependenciesConsumerTests : TestWithDbContextSqlite<Clust
     private readonly IDesignProvider _fbProviderMock = Substitute.For<IDesignProvider>();
 
     public GetClusterDependenciesConsumerTests()
-    {
-        _configureServices = cfg =>
+        => _configureServices = cfg =>
         {
             cfg.AddConsumer<GetClusterDependenciesConsumer>();
             cfg.AddSingleton(_ => _fbProviderMock);
         };
-    }
 
     [Fact]
     public async Task Request_should_return_cluster_dependencies()

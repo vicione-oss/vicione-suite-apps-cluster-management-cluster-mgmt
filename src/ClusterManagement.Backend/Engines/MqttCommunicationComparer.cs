@@ -2,8 +2,8 @@
 
 internal sealed class MqttCommunicationComparer : NullableEqualityComparer<MqttCommunication>
 {
-    private protected override bool CoreEquals(MqttCommunication x, MqttCommunication y) =>
-        StringComparer.Ordinal.Equals(x.Address, y.Address) &&
+    private protected override bool CoreEquals(MqttCommunication x, MqttCommunication y)
+        => StringComparer.Ordinal.Equals(x.Address, y.Address) &&
         StringComparer.Ordinal.Equals(x.Password, y.Password) &&
         EqualityComparer<MqttProtocol>.Default.Equals(x.Protocol, y.Protocol) &&
         EqualityComparer<int?>.Default.Equals(x.TcpPort, y.TcpPort) &&

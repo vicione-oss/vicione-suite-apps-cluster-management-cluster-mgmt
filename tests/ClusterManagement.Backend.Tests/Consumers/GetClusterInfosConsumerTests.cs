@@ -94,8 +94,7 @@ public class GetClusterInfosConsumerTests : TestWithDbContextSqlite<ClusterDbCon
     }
 
     private static List<ClusterInfo> CreateTestData(Guid clusterId1, Guid clusterId2)
-        =>
-        [
+        => [
             new(clusterId1, new(1, 0, 0), "Test1 A"),
             new(clusterId1, new(1, 1, 0), "Test1 B"),
             new(clusterId1, new(1, 0, 5), "Test1 C"),

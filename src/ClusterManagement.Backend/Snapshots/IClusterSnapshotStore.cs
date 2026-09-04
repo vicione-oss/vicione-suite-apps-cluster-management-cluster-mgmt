@@ -47,7 +47,7 @@ public interface IClusterSnapshotStore
     /// <summary>
     /// Gets metadata for all stored cluster snapshots, optionally filtered by cluster ID.
     /// </summary>
-    /// <remarks></remarks>
+    /// <remarks>
     /// If <paramref name="clusterId"/> is specified, only snapshots for that cluster will be returned.
     /// To ensure <see cref="ClusterInfo.IsActive"/> is accurate, check <see cref="DbContext.IClusterDbContext.ActiveClusters"/>.
     /// </remarks>

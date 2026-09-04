@@ -18,14 +18,12 @@ public class GetClusterPackageInfosConsumerTests
     private readonly IPackageInfoProvider _infoProvider = Substitute.For<IPackageInfoProvider>();
 
     public GetClusterPackageInfosConsumerTests()
-    {
-        _configureServices = cfg =>
+        => _configureServices = cfg =>
         {
             cfg.AddConsumer<GetClusterPackageInfosConsumer>();
             cfg.AddSingleton(_infoProvider);
             cfg.AddSingleton(Substitute.For<ILogger<GetClusterPackageInfosConsumer>>());
         };
-    }
 
     [Fact]
     public async Task Request_should_be_consumed()
@@ -84,7 +82,7 @@ public class GetClusterPackageInfosConsumerTests
         await using var tester = new MassTransitTester(_configureServices);
         var packageNames = new List<string> { "Package1", "Package2" };
         _infoProvider.GetClusterPackageInfos(Arg.Any<CancellationToken>(), Arg.Any<List<string>?>())
-            .Returns(new List<ClusterPackageInfo>());
+            .Returns([]);
         _infoProvider.GetCoreVersion().Returns(SemVersion.Parse("1.0.0", SemVersionStyles.Strict));
 
         var request = new GetClusterPackageInfosRequest { PackageNames = packageNames };

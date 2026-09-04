@@ -32,7 +32,7 @@ internal class IoddTreeAdapter(IMonochromeIconSvgMarkupProvider iconMarkupProvid
     public Task InitializeAsync(CancellationToken cancellationToken = default)
         => _initializeTask ??= InitializeCore(cancellationToken);
 
-    private async Task InitializeCore(CancellationToken cancellationToken) 
+    private async Task InitializeCore(CancellationToken cancellationToken)
         => await LoadIcon(MonochromeIconName.Folder, MonochromeIconSize.Medium, cancellationToken);
 
     private async Task LoadIcon(MonochromeIconName iconName, MonochromeIconSize iconSize, CancellationToken cancellationToken)
@@ -195,10 +195,7 @@ internal class IoddTreeAdapter(IMonochromeIconSvgMarkupProvider iconMarkupProvid
     }
 
     public void Dispose()
-    {
-        if (Builder is not null)
-            Builder.Selection.SelectionChanged -= OnSelectionChanged;
-    }
+        => Builder?.Selection.SelectionChanged -= OnSelectionChanged;
 
     public void ExpandFirstVendor()
     {

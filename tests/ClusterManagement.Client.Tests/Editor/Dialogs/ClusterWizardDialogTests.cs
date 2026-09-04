@@ -184,7 +184,7 @@ public class ClusterWizardDialogTests
         }
     }
 
-    private class TestWizard : IClusterWizard
+    private sealed class TestWizard : IClusterWizard
     {
         public const string Header = "TEST-MY-WIZARD";
 
@@ -203,7 +203,7 @@ public class ClusterWizardDialogTests
         }
     }
 
-    private class TestWizardComponent : IComponent
+    private sealed class TestWizardComponent : IComponent
     {
         public const string Id = nameof(TestWizardComponent);
         public const string Css = "test-wizard-css";

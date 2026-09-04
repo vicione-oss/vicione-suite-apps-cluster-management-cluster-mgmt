@@ -177,7 +177,7 @@ public class PackageContentProviderTests
             result.Values.Should().Contain(p => p.Error != null);
         }
     }
-    
+
     public sealed class TryAddPackageFromDirectory : PackageContentProviderTests
     {
         [Fact]

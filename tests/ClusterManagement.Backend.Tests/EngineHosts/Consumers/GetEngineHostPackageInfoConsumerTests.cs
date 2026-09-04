@@ -17,14 +17,12 @@ public class GetEngineHostPackageInfoConsumerTests
     private readonly IEngineHostArtifactRepository _repository = Substitute.For<IEngineHostArtifactRepository>();
 
     public GetEngineHostPackageInfoConsumerTests()
-    {
-        _configureServices = cfg =>
+        => _configureServices = cfg =>
         {
             cfg.AddConsumer<GetEngineHostPackageInfoConsumer>();
             cfg.AddSingleton(Options.Create(new ClusterManagementOptions()));
             cfg.AddSingleton(_repository);
         };
-    }
 
     [Fact]
     public async Task Request_should_return_no_package_versions_if_none_available()
