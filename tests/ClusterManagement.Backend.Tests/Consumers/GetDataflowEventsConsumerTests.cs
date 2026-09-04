@@ -32,8 +32,8 @@ public class GetDataflowEventsConsumerTests : TestWithDbContextSqlite<ClusterDbC
         cfg.AddSingleton(_ => designProvider ?? Substitute.For<IDesignProvider>());
     }
 
-    public static TheoryData<GetDataflowEventsRequest> UseCases() =>
-    [
+    public static TheoryData<GetDataflowEventsRequest> UseCases()
+    => [
         new GetDataflowEventsRequest(),
         new GetDataflowEventsRequest() { ClusterId = Guid.NewGuid() },
         new GetDataflowEventsRequest() { DataflowId = Guid.NewGuid() },

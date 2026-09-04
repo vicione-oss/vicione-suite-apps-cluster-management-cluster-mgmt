@@ -47,9 +47,7 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
     };
 
     public PackageInfoProviderTests()
-    {
-        _dependencyStore.BuildStoredPackageVersionMap().Returns([]);
-    }
+        => _dependencyStore.BuildStoredPackageVersionMap().Returns([]);
 
     public sealed class GetClusterPackageInfos : PackageInfoProviderTests
     {
@@ -507,15 +505,13 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
         }
     }
     private PackageInfoProvider CreateProvider()
-    {
-        return new PackageInfoProvider(
+        => new(
             _dependencyStore,
             _snapshotStore,
             TestDbContext,
             _packageContentProvider,
             _repository,
             _logger);
-    }
 
     private IArtifact CreateArtifact(ClusterDependency dependency, string? versionOverride = null, DateTimeOffset? modified = null)
     {

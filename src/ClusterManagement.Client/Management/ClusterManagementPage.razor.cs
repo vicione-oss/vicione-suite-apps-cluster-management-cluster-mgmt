@@ -226,8 +226,7 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
 
             // set state if latest item was deleted
             var latest = Clusters.FirstOrDefault();
-            if (latest is not null)
-                latest.IsLatest = true;
+            latest?.IsLatest = true;
         }
         else
         {

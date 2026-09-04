@@ -22,23 +22,23 @@ internal partial class ClusterSystemTestContext
 
     internal void Given_user_added_engineHost(Guid id, bool elevatedPrivileges = false)
     {
-        var engineHost = _clusterBuilder.Editors.Application.AddEngineHost(_defaultClusterApplication, id: id, logLevel: ViciOne.Cluster.Builder.EngineHostDefaults.LogLevel);
+        var engineHost = ClusterBuilder.Editors.Application.AddEngineHost(_defaultClusterApplication, id: id, logLevel: ViciOne.Cluster.Builder.EngineHostDefaults.LogLevel);
         engineHost.ElevatedPrivileges = elevatedPrivileges;
     }
 
     internal void Given_user_added_engine(Guid id, Guid hostId, uint runIndex = 0, uint cycleTime = EngineCycleTime)
     {
-        var host = _clusterBuilder.Cache.EngineHosts.Single(x => x.Id == hostId);
-        var engine = _clusterBuilder.Editors.EngineHost.AddEngine(host, id.ToString(), id, ViciOne.Cluster.Model.EngineType.DotNet);
-        _clusterBuilder.Editors.Engine.SetLogLevel(engine, ViciOne.Cluster.Builder.EngineDefaults.LogLevel);
-        _clusterBuilder.Editors.Engine.SetRunIndex(engine, runIndex);
-        _clusterBuilder.Editors.Engine.SetMinCycleTime(engine, cycleTime);
+        var host = ClusterBuilder.Cache.EngineHosts.Single(x => x.Id == hostId);
+        var engine = ClusterBuilder.Editors.EngineHost.AddEngine(host, id.ToString(), id, ViciOne.Cluster.Model.EngineType.DotNet);
+        ClusterBuilder.Editors.Engine.SetLogLevel(engine, ViciOne.Cluster.Builder.EngineDefaults.LogLevel);
+        ClusterBuilder.Editors.Engine.SetRunIndex(engine, runIndex);
+        ClusterBuilder.Editors.Engine.SetMinCycleTime(engine, cycleTime);
     }
 
     internal void Given_user_disabled_engine(Guid engineId)
     {
-        var engine = _clusterBuilder.Cache.EngineIds[engineId];
-        _clusterBuilder.Editors.Engine.SetEnabled(engine, false);
+        var engine = ClusterBuilder.Cache.EngineIds[engineId];
+        ClusterBuilder.Editors.Engine.SetEnabled(engine, false);
     }
 
     internal async Task Given_engineHost_is_known(Guid id, bool elevatedPrivileges = false)
@@ -191,7 +191,7 @@ internal partial class ClusterSystemTestContext
     internal async Task Given_engine_has_functionBlock(Guid id, Guid hostId, Guid functionBlockId)
     {
         var deploymentWorkflow = _deploymentWorkflow[(hostId, id)];
-        var containerId = _clusterBuilder.Cluster.Dataflows.First().Root.Id;
+        var containerId = ClusterBuilder.Cluster.Dataflows.First().Root.Id;
         var dummyFunctionBlockAssemblyName = typeof(DummyFunctionBlock).Assembly.GetName();
         deploymentWorkflow.Workflow.ClusterDependencies.Add(new(dummyFunctionBlockAssemblyName.Name!, dummyFunctionBlockAssemblyName.Version!.ToVersionString()));
         deploymentWorkflow.Workflow.Containers.Add(new()
@@ -264,7 +264,7 @@ internal partial class ClusterSystemTestContext
         using var scope = GetEngineServices(out _, out var database);
         var deployment = await GetEngineDeployment(database, hostId, id);
         deployment.Should().NotBeNull();
-        deployment!.ShouldRun.Should().Be(shouldRun);
+        deployment.ShouldRun.Should().Be(shouldRun);
     }
 
     internal async Task Then_no_engine_is_known()

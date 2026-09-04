@@ -85,8 +85,8 @@ internal partial class PackageContentProvider(
         return false;
     }
 
-    private static bool IsPoolingValidatorOrConversion(Type t) =>
-        typeof(ViciOne.Core.Contracts.DataModel.IAggregatingPooling).IsAssignableFrom(t) ||
+    private static bool IsPoolingValidatorOrConversion(Type t)
+        => typeof(ViciOne.Core.Contracts.DataModel.IAggregatingPooling).IsAssignableFrom(t) ||
         typeof(ViciOne.Core.Contracts.DataModel.IValidator).IsAssignableFrom(t) ||
         typeof(ViciOne.Core.Contracts.DataModel.ITypeConversion).IsAssignableFrom(t);
 

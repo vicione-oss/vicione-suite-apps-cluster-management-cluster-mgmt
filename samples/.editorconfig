@@ -1,0 +1,13 @@
+# Scoped overrides for all projects below samples. The repository root .editorconfig still applies.
+
+###############
+# Overrides   #
+###############
+
+[*.cs]
+# CA1812 cannot see types that are only ever constructed by the dependency
+# injection container or by the benchmark runner.
+dotnet_diagnostic.CA1812.severity = none # Avoid uninstantiated internal classes
+
+# Benchmark classes have to be public for the benchmark runner to discover them.
+dotnet_diagnostic.CA1515.severity = none # Consider making public types internal

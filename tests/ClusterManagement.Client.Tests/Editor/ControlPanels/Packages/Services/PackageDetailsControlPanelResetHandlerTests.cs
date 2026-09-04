@@ -8,7 +8,7 @@ namespace ClusterManagement.Client.Tests.Editor.ControlPanels.Packages.Services;
 
 public sealed class PackageDetailsControlPanelResetHandlerTests
 {
-    private readonly ClusterDependency _dependency = new ClusterDependency
+    private readonly ClusterDependency _dependency = new()
     {
         Name = "ViciOne.TestPackage",
         Version = "1.4.0"

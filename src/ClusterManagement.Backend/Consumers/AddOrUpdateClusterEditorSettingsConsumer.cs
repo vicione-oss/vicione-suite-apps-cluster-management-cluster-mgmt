@@ -16,9 +16,8 @@ public sealed partial class AddOrUpdateClusterEditorSettingsConsumer(IClusterEdi
     {
         LogConsume(logger, nameof(AddOrUpdateClusterEditorSettings), context.Message.CorrelationId, context.Message.Settings.UserId);
 
-        var result = await AddOrUpdateSettings(context.Message.Settings, context.CancellationToken);
-        if (result is null)
-            throw new InvalidOperationException("Failed to create or update editor settings");
+        var result = await AddOrUpdateSettings(context.Message.Settings, context.CancellationToken)
+            ?? throw new InvalidOperationException("Failed to create or update editor settings");
 
         var changeEvent = new ClusterEditorSettingsChanged(result.Settings, result.CrudAction) { CorrelationId = context.Message.CorrelationId };
 

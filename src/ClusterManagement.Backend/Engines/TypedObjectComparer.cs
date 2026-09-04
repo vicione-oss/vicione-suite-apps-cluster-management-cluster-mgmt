@@ -2,8 +2,8 @@
 
 internal sealed class TypedObjectComparer : NullableEqualityComparer<TypedObject>
 {
-    private protected override bool CoreEquals(TypedObject x, TypedObject y) =>
-        StringComparer.Ordinal.Equals(x.Type, y.Type) &&
+    private protected override bool CoreEquals(TypedObject x, TypedObject y)
+        => StringComparer.Ordinal.Equals(x.Type, y.Type) &&
         StringComparer.Ordinal.Equals(x.Value, y.Value);
 
     public override int GetHashCode(TypedObject obj)

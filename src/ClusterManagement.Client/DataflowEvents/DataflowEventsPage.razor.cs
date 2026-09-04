@@ -7,53 +7,52 @@ using ViciOne.Ui.Blazor.Components.Button.Extensions;
 using ViciOne.Ui.MonochromeIcons.Core.Enums;
 using ViciOne.Ui.MonochromeIcons.Core.Extensions;
 
-namespace ClusterManagement.Client.DataflowEvents
+namespace ClusterManagement.Client.DataflowEvents;
+
+public sealed partial class DataflowEventsPage
 {
-    public sealed partial class DataflowEventsPage
+    private readonly string _plusIconCssClass = MonochromeIconName.PlusSlim.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
+    private readonly string _minusIconCssClass = MonochromeIconName.MinusSlim.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
+
+    [Inject]
+    private DataflowEventPageService PageService { get; set; } = default!;
+
+    [Inject] private NavigationManager NavManager { get; set; } = default!;
+
+    protected override string PageTitle => Localization.DataflowEventsPage.PageTitle;
+
+    protected override async Task OnInitializedAsync()
     {
-        private readonly string _plusIconCssClass = MonochromeIconName.PlusSlim.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
-        private readonly string _minusIconCssClass = MonochromeIconName.MinusSlim.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
+        await base.OnInitializedAsync();
 
-        [Inject]
-        private DataflowEventPageService PageService { get; set; } = default!;
+        await PageService.LoadDataflowEvents();
+        PageService.RefreshRequested += OnRefreshRequested;
+    }
 
-        [Inject] private NavigationManager NavManager { get; set; } = default!;
+    private async Task RefreshDataflowEvents()
+    {
+        await PageService.LoadDataflowEvents();
 
-        protected override string PageTitle => Localization.DataflowEventsPage.PageTitle;
+        await InvokeAsync(StateHasChanged);
+    }
 
-        protected override async Task OnInitializedAsync()
+    private async Task OnRefreshRequested()
+        => await InvokeAsync(StateHasChanged);
+
+    private void SelectedEventChanged(object obj)
+        => PageService.SelectedEvent = obj as DataflowEventModel;
+
+    private void NavigateToManagement()
+        => NavManager.NavigateToManagement();
+
+    protected override async ValueTask DisposeInternal()
+    {
+        if (PageService != null)
         {
-            await base.OnInitializedAsync();
-
-            await PageService.LoadDataflowEvents();
-            PageService.RefreshRequested += OnRefreshRequested;
+            PageService.RefreshRequested -= OnRefreshRequested;
+            await PageService.DisposeAsync();
         }
 
-        private async Task RefreshDataflowEvents()
-        {
-            await PageService.LoadDataflowEvents();
-
-            await InvokeAsync(StateHasChanged);
-        }
-
-        private async Task OnRefreshRequested()
-            => await InvokeAsync(StateHasChanged);
-
-        private void SelectedEventChanged(object obj)
-            => PageService.SelectedEvent = obj as DataflowEventModel;
-
-        private void NavigateToManagement()
-            => NavManager.NavigateToManagement();
-
-        protected override async ValueTask DisposeInternal()
-        {
-            if (PageService != null)
-            {
-                PageService.RefreshRequested -= OnRefreshRequested;
-                await PageService.DisposeAsync();
-            }
-
-            await base.DisposeInternal();
-        }
+        await base.DisposeInternal();
     }
 }

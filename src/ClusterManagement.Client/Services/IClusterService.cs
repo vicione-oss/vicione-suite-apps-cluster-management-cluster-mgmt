@@ -26,6 +26,9 @@ public interface IClusterService
     /// <param name="options">
     /// Optional commit options, such as whether to increment the version or clean up dependencies.
     /// </param>
+    /// <param name="cancellationToken">
+    /// A token to monitor for cancellation requests. The default value is <see cref="CancellationToken.None"/>.
+    /// </param>
     Task<IClusterServiceResult> CommitChange(Cluster cluster, CommitClusterOptions? options, CancellationToken cancellationToken = default);
 
     /// <summary>

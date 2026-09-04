@@ -1,0 +1,26 @@
+# Scoped overrides for all projects below tests. The repository root .editorconfig still applies.
+
+###############
+# Overrides   #
+###############
+
+[*.cs]
+# CA1812 cannot see types that are only ever constructed by the dependency
+# injection container or by the test framework.
+dotnet_diagnostic.CA1812.severity = none # Avoid uninstantiated internal classes
+
+# Test classes have to be public for the test framework to discover them.
+dotnet_diagnostic.CA1515.severity = none # Consider making public types internal
+
+# Nested types are used to group test data in the factories. The root
+# .editorconfig already allows this, but only for *Tests.cs and *Facts.cs.
+dotnet_diagnostic.CA1034.severity = none # Nested types should not be visible
+
+# JsonEqualityComparer serializes test objects with TypeNameHandling so the
+# comparison stays type-sensitive; it never deserializes untrusted input.
+# The root .editorconfig allows this for *Tests.cs and *Facts.cs only.
+dotnet_diagnostic.CA2326.severity = none # Do not use TypeNameHandling values other than None
+dotnet_diagnostic.CA2327.severity = none # Do not use insecure JsonSerializerSettings
+
+# Random is only used to generate test data, never for anything security relevant.
+dotnet_diagnostic.CA5394.severity = none # Do not use insecure randomness

@@ -19,14 +19,12 @@ public class UpdateClusterDependenciesConsumerTests
     private readonly IClusterDependencyStore _dependencyStore = Substitute.For<IClusterDependencyStore>();
 
     public UpdateClusterDependenciesConsumerTests()
-    {
-        _configureServices = cfg =>
+        => _configureServices = cfg =>
         {
             // consumer needs
             cfg.AddConsumer<UpdateClusterDependenciesConsumer>();
             cfg.AddSingleton(_dependencyStore);
         };
-    }
 
     [Fact]
     public async Task Should_consume_command()

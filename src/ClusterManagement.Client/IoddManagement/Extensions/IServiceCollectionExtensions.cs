@@ -23,7 +23,8 @@ internal static class IServiceCollectionExtensions
 
         services.AddScoped<IIoddService, IoddService>();
         services.AddTransient<IoddTreeAdapter>();
-        services.AddStreamUploadHandler<IoddUpload>(moduleId, (o) => { 
+        services.AddStreamUploadHandler<IoddUpload>(moduleId, (o) =>
+        {
             o.PathTransform = (p) => Path.Combine(p, IoddService.UploadedIoddDirectoryName);
             o.FilenameTransform = null;
         });

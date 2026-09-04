@@ -377,7 +377,7 @@ public sealed partial class DeployClusterStateMachine
                 continue;
             }
 
-            LogApplicationUpdateFailure(_logger, ctx.Saga.CorrelationId, item.Key, item.Value!.Message);
+            LogApplicationUpdateFailure(_logger, ctx.Saga.CorrelationId, item.Key, item.Value.Message);
         }
 
         LogDeployDuration(_logger, ctx.Saga.CorrelationId, ctx.Saga.ClusterId, DateTime.UtcNow - ctx.Saga.Started);

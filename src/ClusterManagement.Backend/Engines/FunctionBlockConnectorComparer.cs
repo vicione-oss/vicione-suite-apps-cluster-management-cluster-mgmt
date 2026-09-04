@@ -5,8 +5,8 @@ namespace ClusterManagement.Backend.Engines;
 
 internal sealed class FunctionBlockConnectorComparer : NullableEqualityComparer<FunctionBlockConnector>
 {
-    private protected override bool CoreEquals(FunctionBlockConnector x, FunctionBlockConnector y) =>
-        new TypedObjectComparer().Equals(x.CrossSourceAggregatingPooling, y.CrossSourceAggregatingPooling) &&
+    private protected override bool CoreEquals(FunctionBlockConnector x, FunctionBlockConnector y)
+        => new TypedObjectComparer().Equals(x.CrossSourceAggregatingPooling, y.CrossSourceAggregatingPooling) &&
         EqualityComparer<PoolingStrategy?>.Default.Equals(x.CrossSourcePoolingStrategy, y.CrossSourcePoolingStrategy) &&
         EqualityComparer<Guid>.Default.Equals(x.DesignId, y.DesignId) &&
         EqualityComparer<Guid>.Default.Equals(x.Id, y.Id) &&

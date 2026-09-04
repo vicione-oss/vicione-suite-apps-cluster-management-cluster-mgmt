@@ -14,13 +14,11 @@ public class GetClusterArchiveConsumerTests : TestWithDbContextSqlite<ClusterDbC
     private readonly IClusterSnapshotStore _snapshotStoreMock = Substitute.For<IClusterSnapshotStore>();
 
     public GetClusterArchiveConsumerTests()
-    {
-        _configureServices = cfg =>
+        => _configureServices = cfg =>
         {
             cfg.AddConsumer<GetClusterArchiveConsumer>();
             cfg.AddSingleton(_ => _snapshotStoreMock);
         };
-    }
 
     [Fact]
     public async Task Request_for_unknown_cluster_should_return_empty_response()

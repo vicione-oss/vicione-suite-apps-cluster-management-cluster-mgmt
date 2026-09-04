@@ -1,4 +1,5 @@
 ﻿namespace ClusterManagement.Client.Editor.Models;
+
 internal class FunctionBlockTreeRoot
 {
     public List<FunctionBlockModel> FunctionBlocks { get; set; } = [];

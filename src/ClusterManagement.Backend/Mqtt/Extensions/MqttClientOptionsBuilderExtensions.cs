@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
@@ -68,6 +69,8 @@ internal static class MqttClientOptionsBuilderExtensions
 
         return builder;
 
+        [SuppressMessage("Security", "CA5398:Avoid hardcoded SslProtocols values",
+            Justification = "The TLS version is selected by the user through MqttConnection.SslProtocol; this only maps that choice onto SslProtocols.")]
         static SslProtocols ToSslProtocols(MqttSslProtocol proctocol) => proctocol switch
         {
             MqttSslProtocol.Tls12 => SslProtocols.Tls12,

@@ -30,7 +30,7 @@ public class SaveClusterServiceTests
     }
 
     [Fact]
-    public void Save_request_by_editor_should_set_builder_and_display_dialog()
+    public async Task Save_request_by_editor_should_set_builder_and_display_dialog()
     {
         // Arrange
         using var builder = new ClusterBuilder(_dependencyResolver);
@@ -39,7 +39,7 @@ public class SaveClusterServiceTests
         var service = SetupService(ctx);
 
         // Act
-        service.SaveRequested(builder);
+        await service.SaveRequested(builder);
 
         // Assert
         service.DisplayDialog.Should().BeTrue();

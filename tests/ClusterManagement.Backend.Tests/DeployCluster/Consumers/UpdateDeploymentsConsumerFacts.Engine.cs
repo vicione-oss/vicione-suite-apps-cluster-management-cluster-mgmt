@@ -315,7 +315,7 @@ public partial class UpdateDeploymentsConsumerFacts
     {
         var engineHost = _engineDbContext.EngineHosts.AsNoTracking().SingleOrDefault(eh => eh.Id == id);
         engineHost.Should().NotBeNull();
-        engineHost!.ElevatedPrivileges.Should().Be(elevatedPrivileges);
+        engineHost.ElevatedPrivileges.Should().Be(elevatedPrivileges);
     }
 
     internal void Then_engineHost_is_not_known(Guid id)
@@ -355,7 +355,7 @@ public partial class UpdateDeploymentsConsumerFacts
     {
         var deployment = _engineDbContext.EngineDeployments.SingleOrDefault(ed => ed.EngineHostId == engineHostId && ed.EngineId == engineId);
         deployment.Should().NotBeNull();
-        deployment!.ShouldRun.Should().Be(shouldRun);
+        deployment.ShouldRun.Should().Be(shouldRun);
     }
 
     internal void Then_engine_is_not_known(Guid engineHostId, Guid engineId)

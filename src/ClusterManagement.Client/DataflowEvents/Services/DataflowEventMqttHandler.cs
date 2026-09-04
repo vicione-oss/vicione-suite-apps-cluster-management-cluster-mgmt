@@ -124,7 +124,7 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
         var topic = dataflowEvent.EventId.ToString();
         _activeTopics[topic] = dataflowEvent;
 
-        var result = await _client!.SubscribeAsync(topic, _subscriptionServiceLevel, cancellationToken).ConfigureAwait(false);
+        var result = await _client.SubscribeAsync(topic, _subscriptionServiceLevel, cancellationToken).ConfigureAwait(false);
         if (result?.Items is not null)
         {
             foreach (var item in result.Items)
@@ -143,7 +143,7 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
         var topic = dataflowEvent.EventId.ToString();
         _activeTopics.TryRemove(topic, out _);
 
-        var result = await _client!.UnsubscribeAsync(topic, cancellationToken).ConfigureAwait(false);
+        var result = await _client.UnsubscribeAsync(topic, cancellationToken).ConfigureAwait(false);
         if (result?.Items is not null)
         {
             foreach (var item in result.Items)
@@ -301,7 +301,7 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
         {
             try
             {
-                _ = await _client!.SubscribeAsync(topic, _subscriptionServiceLevel, cancellationToken).ConfigureAwait(false);
+                _ = await _client.SubscribeAsync(topic, _subscriptionServiceLevel, cancellationToken).ConfigureAwait(false);
                 LogResubscribedTopic(_logger, topic);
             }
             catch (Exception ex)

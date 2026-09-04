@@ -7,7 +7,7 @@ public sealed class PackagesControlPanelState : ControlPanelState
 {
     internal IQueryable<ClusterPackageInfo> InstalledQueryable
     {
-        get => field;
+        get;
         set
         {
             if (value == field)
@@ -21,7 +21,7 @@ public sealed class PackagesControlPanelState : ControlPanelState
 
     internal IQueryable<ClusterPackageInfo> AvailableQueryable
     {
-        get => field;
+        get;
         set
         {
             if (value == field)

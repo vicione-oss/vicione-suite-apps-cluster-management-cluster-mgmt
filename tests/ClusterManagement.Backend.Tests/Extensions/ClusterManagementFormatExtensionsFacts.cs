@@ -17,8 +17,7 @@ public class ClusterManagementFormatExtensionsFacts
             => value.ToClusterManagementFormat().Should().Be(expectedResult);
 
         public static IEnumerable<object[]> GetData()
-            =>
-            [
+            => [
                 [new { Value = 23, }, "{\"Value\":23}"],
             ];
     }

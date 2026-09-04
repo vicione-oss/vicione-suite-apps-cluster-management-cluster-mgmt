@@ -139,7 +139,7 @@ public class IoddServiceTests
             using var service = SetupIoddService();
 
             // Act
-            var act = () => service.Dispose();
+            var act = service.Dispose;
 
             // Assert
             act.Should().NotThrow();
@@ -153,7 +153,7 @@ public class IoddServiceTests
             await service.StartAsync(CancellationToken.None);
 
             // Act
-            var act = () => service.Dispose();
+            var act = service.Dispose;
 
             // Assert
             act.Should().NotThrow();
@@ -167,7 +167,7 @@ public class IoddServiceTests
 
             // Act
             service.Dispose();
-            var act = () => service.Dispose();
+            var act = service.Dispose;
 
             // Assert
             act.Should().NotThrow();
@@ -352,7 +352,7 @@ public class IoddServiceTests
             using var service = SetupIoddService();
 
             // Act
-            var act = () => service.Dispose();
+            var act = service.Dispose;
 
             // Assert
             act.Should().NotThrow();

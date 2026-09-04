@@ -187,7 +187,7 @@ internal sealed partial class ClusterSystemTestContext : IAsyncDisposable
         {
             Results =
             [
-                new(_clusterBuilder.Cluster.Id, _clusterBuilder.Cluster.Version, string.Empty, true),
+                new(ClusterBuilder.Cluster.Id, ClusterBuilder.Cluster.Version, string.Empty, true),
             ],
         };
         _suiteMediator.Request<GetClusterInfosRequest, GetClusterInfosResponse>(default!, default).ReturnsForAnyArgs(response);
@@ -208,7 +208,7 @@ internal sealed partial class ClusterSystemTestContext : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        _clusterBuilder.Dispose();
+        _clusterBuilder?.Dispose();
         _cancellationTokenSource.Dispose();
 
         KillEngineHosts(_engineHostsDirectory.Path);
@@ -242,15 +242,15 @@ internal sealed partial class ClusterSystemTestContext : IAsyncDisposable
 
     internal async Task When(Func<ClusterSystemTestContext, Task> action)
     {
-        _snapshotStore.Delete(_clusterBuilder.Cluster.Id, _clusterBuilder.Cluster.Version);
-        await _snapshotStore.Store(_clusterBuilder.Cluster, _cancellationTokenSource.Token);
+        _snapshotStore.Delete(ClusterBuilder.Cluster.Id, ClusterBuilder.Cluster.Version);
+        await _snapshotStore.Store(ClusterBuilder.Cluster, _cancellationTokenSource.Token);
         await action(this);
     }
 
     internal async Task<T> When<T>(Func<ClusterSystemTestContext, Task<T>> action)
     {
-        _snapshotStore.Delete(_clusterBuilder.Cluster.Id, _clusterBuilder.Cluster.Version);
-        await _snapshotStore.Store(_clusterBuilder.Cluster, _cancellationTokenSource.Token);
+        _snapshotStore.Delete(ClusterBuilder.Cluster.Id, ClusterBuilder.Cluster.Version);
+        await _snapshotStore.Store(ClusterBuilder.Cluster, _cancellationTokenSource.Token);
         return await action(this);
     }
 

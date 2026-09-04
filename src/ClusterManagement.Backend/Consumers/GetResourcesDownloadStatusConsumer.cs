@@ -11,12 +11,10 @@ public sealed class GetResourcesDownloadStatusConsumer(ILogger<GetResourcesDownl
     public override Task<GetResourcesDownloadStatusResponse> Respond(
         GetResourcesDownloadStatusRequest message,
         CancellationToken cancellationToken)
-    {
-        return Task.FromResult(new GetResourcesDownloadStatusResponse
+        => Task.FromResult(new GetResourcesDownloadStatusResponse
         {
             IsCompleted = ResourceDownloadCompletedService.IsCompleted
         });
-    }
 
     public override Task<GetResourcesDownloadStatusResponse> HandleException(
         GetResourcesDownloadStatusRequest message,

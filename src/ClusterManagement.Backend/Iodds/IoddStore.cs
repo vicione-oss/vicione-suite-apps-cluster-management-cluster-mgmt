@@ -223,7 +223,7 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
 
     /// <summary>
     /// Goes through iodds in the directory and adds them to the store if they are not already present.
-    /// The directory structure is: <vendor id>/<device id>/<IODD files>
+    /// The directory structure is: <c>&lt;vendor id&gt;/&lt;device id&gt;/&lt;IODD files&gt;</c>
     /// </summary>
     public void Refresh()
     {

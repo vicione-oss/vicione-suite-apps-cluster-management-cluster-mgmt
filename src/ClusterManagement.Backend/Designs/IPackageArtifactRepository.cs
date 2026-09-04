@@ -23,7 +23,7 @@ public interface IPackageArtifactRepository
     Task<PackageDownloadResult[]> DownloadAndExtract(string dependencyFile, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Downloads all cluster packages specified by <param name="dependencies"> and extracts them to the local file system.
+    /// Downloads all cluster packages specified by <paramref name="dependencies"/> and extracts them to the local file system.
     /// </summary>
     /// <param name="dependencies">The collection of packages to download.</param>
     /// <param name="cancellationToken">

@@ -4,8 +4,8 @@ namespace ClusterManagement.Backend.Engines;
 
 internal sealed class WorkflowComparer : NullableEqualityComparer<Workflow>
 {
-    private protected override bool CoreEquals(Workflow x, Workflow y) =>
-        x.ClusterDependencies.OrderBy(x => x.Name).SequenceEqual(y.ClusterDependencies.OrderBy(x => x.Name)) &&
+    private protected override bool CoreEquals(Workflow x, Workflow y)
+        => x.ClusterDependencies.OrderBy(x => x.Name).SequenceEqual(y.ClusterDependencies.OrderBy(x => x.Name)) &&
         x.Containers.OrderBy(x => x.Id).SequenceEqual(y.Containers.OrderBy(x => x.Id), new ContainerComparer()) &&
         new EngineComparer().Equals(x.Engine, y.Engine) &&
         new CommunicationConfigurationComparer().Equals(x.EngineLogCommunication, y.EngineLogCommunication) &&

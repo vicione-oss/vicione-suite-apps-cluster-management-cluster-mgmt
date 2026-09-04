@@ -19,15 +19,13 @@ public class RemoveClusterConsumerTests : TestWithDbContextSqlite<ClusterDbConte
     private readonly IClusterSnapshotStore _snapshotStore = Substitute.For<IClusterSnapshotStore>();
 
     public RemoveClusterConsumerTests()
-    {
-        _configureServices = cfg =>
+        => _configureServices = cfg =>
         {
             // consumer needs
             cfg.AddConsumer<RemoveClusterConsumer>();
             cfg.AddSingleton<IClusterDbContext>(_ => TestDbContext);
             cfg.AddSingleton(_snapshotStore);
         };
-    }
 
     [Fact]
     public async Task Should_consume_command()

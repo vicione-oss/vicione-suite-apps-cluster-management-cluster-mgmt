@@ -18,15 +18,13 @@ public class AddClusterPackageConsumerTests
     private readonly IPackageStore _packageStore = Substitute.For<IPackageStore>();
 
     public AddClusterPackageConsumerTests()
-    {
-        _configureServices = cfg =>
+        => _configureServices = cfg =>
         {
             // consumer needs
             cfg.AddConsumer<AddClusterPackageConsumer>();
             cfg.AddSingleton(_packageStore);
             cfg.AddSingleton(Substitute.For<ILogger<AddClusterPackageConsumer>>());
         };
-    }
 
     [Fact]
     public async Task Should_consume_command()

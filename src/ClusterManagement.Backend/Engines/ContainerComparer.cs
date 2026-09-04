@@ -2,8 +2,8 @@
 
 internal sealed class ContainerComparer : NullableEqualityComparer<Container>
 {
-    private protected override bool CoreEquals(Container x, Container y) =>
-        StringComparer.Ordinal.Equals(x.Name, y.Name) &&
+    private protected override bool CoreEquals(Container x, Container y)
+        => StringComparer.Ordinal.Equals(x.Name, y.Name) &&
         EqualityComparer<Guid?>.Default.Equals(x.ParentContainerId, y.ParentContainerId) &&
         EqualityComparer<Guid>.Default.Equals(x.Id, y.Id);
 

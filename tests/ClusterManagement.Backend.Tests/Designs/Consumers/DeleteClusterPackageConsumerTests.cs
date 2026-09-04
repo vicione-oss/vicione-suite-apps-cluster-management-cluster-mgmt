@@ -18,15 +18,13 @@ public class DeleteClusterPackageConsumerTests
     private readonly IPackageStore _packageStore = Substitute.For<IPackageStore>();
 
     public DeleteClusterPackageConsumerTests()
-    {
-        _configureServices = cfg =>
+        => _configureServices = cfg =>
         {
             // consumer needs
             cfg.AddConsumer<DeleteClusterPackageConsumer>();
             cfg.AddSingleton(Substitute.For<ILogger<DeleteClusterPackageConsumer>>());
             cfg.AddSingleton(_packageStore);
         };
-    }
 
     [Fact]
     public async Task Should_consume_command()

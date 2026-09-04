@@ -5,8 +5,8 @@ namespace ClusterManagement.Backend.Engines;
 
 internal sealed class FunctionBlockComparer : NullableEqualityComparer<FunctionBlock>
 {
-    private protected override bool CoreEquals(FunctionBlock x, FunctionBlock y) =>
-        x.Connectors.OrderBy(x => x.Id).SequenceEqual(y.Connectors.OrderBy(x => x.Id), new FunctionBlockConnectorComparer()) &&
+    private protected override bool CoreEquals(FunctionBlock x, FunctionBlock y)
+        => x.Connectors.OrderBy(x => x.Id).SequenceEqual(y.Connectors.OrderBy(x => x.Id), new FunctionBlockConnectorComparer()) &&
         EqualityComparer<Guid?>.Default.Equals(x.ContainerId, y.ContainerId) &&
         EqualityComparer<uint>.Default.Equals(x.CycleFrequency, y.CycleFrequency) &&
         EqualityComparer<Guid>.Default.Equals(x.DesignId, y.DesignId) &&

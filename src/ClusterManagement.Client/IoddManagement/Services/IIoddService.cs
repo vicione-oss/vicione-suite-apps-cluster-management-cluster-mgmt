@@ -57,5 +57,8 @@ public interface IIoddService
     /// <see cref="IoddChanged"/> event or a timeout.
     /// </summary>
     /// <param name="filename"> The name of the uploaded IODD file.</param>
+    /// <param name="cancellationToken">
+    /// A token to monitor for cancellation requests. The default value is <see cref="CancellationToken.None"/>.
+    /// </param>
     Task<IIoddServiceResult> AddIodd(string filename, CancellationToken cancellationToken = default);
 }

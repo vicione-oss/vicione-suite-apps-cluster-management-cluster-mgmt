@@ -24,7 +24,7 @@ internal static class DataflowEventTestUtils
         return mediator;
     }
 
-    public class TestDataflowEvent : IDataflowEvent
+    public sealed class TestDataflowEvent : IDataflowEvent
     {
         public bool CanRead { get; set; }
 

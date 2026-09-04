@@ -574,17 +574,17 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
 
         if (actions.Stop.Count != 0)
         {
-            foreach (var stop in actions.Stop)
+            foreach (var (deploymentId, engineId, execute, raiseEvent) in actions.Stop)
             {
-                logger.LogStoppingEngine(stop.EngineId, engineHostId, stop.DeploymentId);
-                var stopped = !stop.Execute && stop.RaiseEvent;
-                if (stop.Execute && await hostCommunication.StopEngine(engineHostId, stop.DeploymentId, cancellationToken)
+                logger.LogStoppingEngine(engineId, engineHostId, deploymentId);
+                var stopped = !execute && raiseEvent;
+                if (execute && await hostCommunication.StopEngine(engineHostId, deploymentId, cancellationToken)
                     .CatchAs(ClusterErrorInfos.CouldNotStopEngine(), cancellationToken))
                 {
                     stopped = true;
                 }
-                if (stop.RaiseEvent && stopped)
-                    await context.Publish(new EngineStopped(stop.EngineId), cancellationToken);
+                if (raiseEvent && stopped)
+                    await context.Publish(new EngineStopped(engineId), cancellationToken);
             }
         }
 
@@ -597,18 +597,18 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
 
         if (actions.TearDown.Count != 0)
         {
-            foreach (var tearDown in actions.TearDown)
+            foreach (var (deploymentId, engineId, execute, raiseEvent) in actions.TearDown)
             {
-                logger.LogTearingDownEngine(tearDown.EngineId, engineHostId, tearDown.DeploymentId);
-                var tornDown = !tearDown.Execute && tearDown.RaiseEvent;
-                if (tearDown.Execute)
+                logger.LogTearingDownEngine(engineId, engineHostId, deploymentId);
+                var tornDown = !execute && raiseEvent;
+                if (execute)
                 {
-                    await hostCommunication.TearDownEngine(engineHostId, tearDown.DeploymentId, cancellationToken)
+                    await hostCommunication.TearDownEngine(engineHostId, deploymentId, cancellationToken)
                         .CatchAs(ClusterErrorInfos.CouldNotTearDownEngine(), cancellationToken);
                     tornDown = true;
                 }
-                if (tearDown.RaiseEvent && tornDown)
-                    await context.Publish(new EngineTornDown(tearDown.EngineId), cancellationToken);
+                if (raiseEvent && tornDown)
+                    await context.Publish(new EngineTornDown(engineId), cancellationToken);
             }
         }
 
@@ -645,13 +645,13 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
 
         if (actions.Start.Count != 0)
         {
-            foreach (var start in actions.Start)
+            foreach (var (deploymentId, engineId) in actions.Start)
             {
-                logger.LogStartingEngine(start.EngineId, engineHostId, start.DeploymentId);
-                if (await hostCommunication.StartEngine(engineHostId, start.DeploymentId, cancellationToken)
+                logger.LogStartingEngine(engineId, engineHostId, deploymentId);
+                if (await hostCommunication.StartEngine(engineHostId, deploymentId, cancellationToken)
                     .CatchAs(ClusterErrorInfos.CouldNotStartEngine(), cancellationToken))
                 {
-                    await context.Publish(new EngineStarted(start.EngineId), cancellationToken);
+                    await context.Publish(new EngineStarted(engineId), cancellationToken);
                 }
             }
         }
