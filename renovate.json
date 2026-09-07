@@ -3,41 +3,156 @@
   "extends": [
     "local>vicione-oss/tooling/renovate-orchestrator"
   ],
+  "dependencyDashboard": true,
+  "dependencyDashboardApproval": true,
+  "configMigration": true,
+  "pruneStaleBranches": false,
+  "prTitleStrict": true,
   "enabledManagers": [
-    "gitlabci",
-    "nuget"
+    "nuget",
+    "gitlabci"
   ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "dependencyDashboardApproval": true
+  },
+  "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
-      "matchManagers": ["gitlabci"],
-      "enabled": false
-    },
-    {
-      "matchManagers": ["gitlabci"],
-      "matchDepTypes": ["repository"],
-      "enabled": true
-    },
-    {
-      "matchManagers": ["nuget"],
-      "enabled": false
-    },
-    {
-      "matchManagers": ["nuget"],
-      "matchFileNames": ["Directory.Packages.props"],
-      "matchJsonata": ["sharedVariableName = 'ViciOneSuiteSdkVersion'"],
-      "enabled": true,
-      "dependencyDashboard": true,
-      "dependencyDashboardApproval": true,
-      "rebaseWhen": "never",
-      "groupName": "ViciOne.Suite.Sdk packages",
+      "description": "MR configuration",
+      "matchManagers": [ "nuget", "gitlabci" ],
+      "addLabels": [ "Dependencies", "Modernization" ],
+      "rebaseWhen": "auto",
       "separateMajorMinor": true,
+      "separateMultipleMajor": true,
+      "separateMultipleMinor": true,
+      "separateMinorPatch": true
+    },
+    {
+      "description": "MR label for the update type, as it is not part of the naming. version:: is a scoped label, so GitLab keeps only one per MR: the most significant update in the MR wins",
+      "matchManagers": [ "nuget", "gitlabci" ],
+      "matchUpdateTypes": [ "major", "minor", "patch" ],
+      "addLabels": [ "version::{{#if (includes (lookupArray upgrades 'updateType') 'major')}}major{{else}}{{#if (includes (lookupArray upgrades 'updateType') 'minor')}}minor{{else}}patch{{/if}}{{/if}}" ]
+    },
+    {
+      "description": "MR / commit naming",
+      "matchManagers": [ "nuget", "gitlabci" ],
       "semanticCommits": "disabled",
       "commitMessagePrefix": "",
-      "commitMessageAction": "Update to",
-      "commitMessageTopic": "ViciOne.Suite.Sdk",
-      "commitMessageExtra": "{{newVersion}}",
-      "branchTopic": "update-to-vicione-suite-sdk-{{newMajor}}-{{newMinor}}-{{newPatch}}",
-      "addLabels": ["Dependencies", "Modernization"]
+      "commitMessageAction": "Update"
+    },
+    {
+      "description": "MR / commit naming for ungrouped updates",
+      "matchManagers": [ "nuget", "gitlabci" ],
+      "commitMessageTopic": "{{{depName}}}",
+      "commitMessageExtra": "to {{{newVersion}}}"
+    },
+    {
+      "description": "MR / commit naming for grouped updates",
+      "matchManagers": [ "nuget", "gitlabci" ],
+      "groupSingleUpdates": true,
+      "recreateWhen": "never",
+      "group": {
+        "commitMessageTopic": "{{{groupName}}} ({{#each upgrades}}{{{depName}}}@{{{newVersion}}}{{#unless @last}}, {{/unless}}{{/each}})",
+        "commitMessageExtra": ""
+      }
+    },
+    {
+      "description": "Branch naming for ungrouped updates",
+      "matchManagers": [ "nuget", "gitlabci" ],
+      "branchTopic": "update-{{{lowercase (replace '\\.' '-' (replace '([a-z0-9])([A-Z])' '$1-$2' (replace '([A-Z]+)([A-Z][a-z])' '$1-$2' depNameSanitized)))}}}-to-{{{newMajor}}}-{{{newMinor}}}-{{{newPatch}}}"
+    },
+    {
+      "description": "Branch naming for grouped updates",
+      "matchManagers": [ "nuget", "gitlabci" ],
+      "group": {
+        "branchTopic": "update-{{{replace '\\.' '-' (replace '^(major|minor|patch)-[0-9.]*-?' '' groupSlug)}}}"
+      }
+    },
+    {
+      "description": "NuGet: opt out of everything, then opt back in below",
+      "matchManagers": [ "nuget" ],
+      "enabled": false
+    },
+    {
+      "description": "NuGet: .NET SDK pinned in global.json",
+      "matchManagers": [ "nuget" ],
+      "matchDepTypes": [ "dotnet-sdk" ],
+      "enabled": true,
+      "commitMessageTopic": ".NET SDK"
+    },
+    {
+      "description": "NuGet: .NET packages pinned to $(DotNetVersion)",
+      "matchManagers": [ "nuget" ],
+      "matchFileNames": [ "Directory.Packages.props" ],
+      "matchJsonata": [ "sharedVariableName = 'DotNetVersion'" ],
+      "enabled": true,
+      "groupName": ".NET",
+      "groupSlug": "net",
+      "group": {
+        "branchTopic": "update-{{{replace '\\.' '-' (replace '^(major|minor|patch)-[0-9.]*-?' '' groupSlug)}}}-to-{{{newMajor}}}-{{{newMinor}}}-{{{newPatch}}}",
+        "commitMessageTopic": "{{{groupName}}}",
+        "commitMessageExtra": "to {{{newVersion}}}"
+      }
+    },
+    {
+      "description": "NuGet: test tooling",
+      "matchManagers": [ "nuget" ],
+      "matchFileNames": [ "Directory.Packages.props" ],
+      "matchPackageNames": [
+        "AwesomeAssertions",
+        "Microsoft.Testing.Extensions.CodeCoverage",
+        "NSubstitute",
+        "NSubstitute.Analyzers.CSharp",
+        "System.IO.Abstractions.TestingHelpers",
+        "ViciOne.Ui.Blazor.Components.TestingHelpers",
+        "xunit.v3.mtp-v2"
+      ],
+      "enabled": true,
+      "groupName": "test tooling",
+      "groupSlug": "test-tooling",
+      "separateMajorMinor": false,
+      "separateMultipleMajor": false,
+      "separateMultipleMinor": false,
+      "separateMinorPatch": false,
+      "addLabels": [ "Renovate::Frozen" ],
+      "stopUpdatingLabel": "Renovate::Frozen"
+    },
+    {
+      "description": "NuGet: ViciOne Suite SDK packages pinned to $(ViciOneSuiteSdkVersion)",
+      "matchManagers": [ "nuget" ],
+      "matchFileNames": [ "Directory.Packages.props" ],
+      "matchJsonata": [ "sharedVariableName = 'ViciOneSuiteSdkVersion'" ],
+      "enabled": true,
+      "groupName": "ViciOne.Suite.Sdk",
+      "groupSlug": "vicione-suite-sdk",
+      "group": {
+        "branchTopic": "update-{{{replace '\\.' '-' (replace '^(major|minor|patch)-[0-9.]*-?' '' groupSlug)}}}-to-{{{newMajor}}}-{{{newMinor}}}-{{{newPatch}}}",
+        "commitMessageTopic": "{{{groupName}}}",
+        "commitMessageExtra": "to {{{newVersion}}}"
+      }
+    },
+    {
+      "description": "GitLab CI: opt out of everything, then opt back in below",
+      "matchManagers": [ "gitlabci" ],
+      "enabled": false
+    },
+    {
+      "description": "GitLab CI: track CI component versions",
+      "matchManagers": [ "gitlabci" ],
+      "matchDepTypes": [ "repository" ],
+      "enabled": true,
+      "groupName": "CI components",
+      "groupSlug": "ci-components",
+      "group": {
+        "commitMessageTopic": "{{{groupName}}} ({{#each upgrades}}{{{replace '^vicione-oss/tooling/' '' depName}}}@{{{newVersion}}}{{#unless @last}}, {{/unless}}{{/each}})"
+      },
+      "separateMajorMinor": false,
+      "separateMultipleMajor": false,
+      "separateMultipleMinor": false,
+      "separateMinorPatch": false,
+      "addLabels": [ "Continuous Integration", "Renovate::Frozen" ],
+      "stopUpdatingLabel": "Renovate::Frozen"
     }
   ]
 }
