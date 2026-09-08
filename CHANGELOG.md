@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.4.0 - Unreleased
+## 3.0.0 - Unreleased
 
 ### Added
 
@@ -19,7 +19,7 @@
 - `AspNetCore.SassCompiler` package, update version to `1.102.0`
 - `MQTTnet` package, update version to `5.2.0.1603`
 - `System.IO.Abstractions`, updated to version `22.2.0`
-- `ViciOne.Suite.Sdk` packages, update to version `2.2.0`
+- `ViciOne.Suite.Sdk` packages, update to version `3.0.0`
 - `ViciOne.Ui.ClusterEditor` package, update to `1.3.0`
 - `ViciOne.Ui.Design` package, update version to `2.3.0`
 - `ViciOne.Ui.MonochromeIcons.Assets` package, update version to `4.15.0`
