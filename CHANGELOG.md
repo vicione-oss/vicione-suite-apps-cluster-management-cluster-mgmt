@@ -15,7 +15,7 @@
   - `DownloadIoddRequest`, replaced `Id` with `VendorId` and `DeviceIds`
   - `DownloadIoddResponse`, `Filename` now contains the vendor archive name `iodds-<vendor name>.zip`
 
-- Updated .NET to version `10.0.10`
+- Updated .NET to version `10.0.11`
 - `AspNetCore.SassCompiler` package, update version to `1.102.0`
 - `MQTTnet` package, update version to `5.2.0.1603`
 - `System.IO.Abstractions`, updated to version `22.2.0`
