@@ -48,8 +48,6 @@
         
         <!-- Microsoft Testing Platform command line experience -->
         <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
-
-        <TestingPlatformConfigurationFilePath>$(MSBuildThisFileDirectory)/tests/testconfig.json</TestingPlatformConfigurationFilePath>
     </PropertyGroup>
 
     <ItemGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">
