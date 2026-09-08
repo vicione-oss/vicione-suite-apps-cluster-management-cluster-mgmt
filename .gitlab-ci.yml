@@ -147,7 +147,8 @@ include:
       name: "Push NuGet ClusterManagement.Public"
       stage: "release-dev"
       image: ${IMAGE_NAME}
-      source: "JFrogViciOne"
+      sources:
+        - "JFrogViciOne"
       filename_pattern: "./src/ClusterManagement.Public/*"
       rules: *rules
       before_script: 
