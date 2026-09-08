@@ -470,7 +470,7 @@
         "dependencies": {
           "MassTransit.EntityFrameworkCore": "[8.5.10, )",
           "System.IO.Abstractions": "[22.2.0, )",
-          "System.Reflection.MetadataLoadContext": "[10.0.10, )",
+          "System.Reflection.MetadataLoadContext": "[10.0.11, )",
           "ViciOne.Core.Dataflow.DataModel.Generation": "[1.0.0, )",
           "ViciOne.Suite.ClusterManagement.Internal": "[1.0.0, )",
           "ViciOne.Suite.DataPort": "[0.32.0, )",
@@ -532,9 +532,9 @@
       },
       "System.Reflection.MetadataLoadContext": {
         "type": "CentralTransitive",
-        "requested": "[10.0.10, )",
-        "resolved": "10.0.10",
-        "contentHash": "7f8JfUA85nD2yOrTX9fhuHPp8P01qqnbGTtRiMK6rwNhS1jNLqoCJfdzLMOIZY8b9sBoAX3eOH04k1fWeCgOYQ=="
+        "requested": "[10.0.11, )",
+        "resolved": "10.0.11",
+        "contentHash": "NbsfNbQ7E6aRhBtogseM6dGWwUgrgyska+CXnlsIEgJNmgGh1s8ps8fKDMSgwE6hMIsU3TP8BKfRlvOOSpxV+g=="
       },
       "ViciOne.Cluster.Builder": {
         "type": "CentralTransitive",

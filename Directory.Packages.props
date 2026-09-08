@@ -2,7 +2,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <ViciOneSuiteSdkVersion>3.0.0</ViciOneSuiteSdkVersion>
-    <DotNetVersion>10.0.10</DotNetVersion>
+    <DotNetVersion>10.0.11</DotNetVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="AspNetCore.SassCompiler" Version="1.102.0" />
