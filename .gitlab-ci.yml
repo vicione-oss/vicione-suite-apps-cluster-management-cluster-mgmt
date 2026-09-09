@@ -80,7 +80,7 @@ include:
       tags:
         - saas-linux-small-amd64
   ### Restore
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-restore@v2.7.0
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-restore@v2.7.1
     inputs:
       image: ${IMAGE_NAME}
       rules: *rules
@@ -106,7 +106,7 @@ include:
       tags:
         - saas-linux-small-amd64
   ### Build
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-build@v2.7.0
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-build@v2.7.1
     inputs:
       image: ${IMAGE_NAME}
       rules: *rules
@@ -116,7 +116,7 @@ include:
       tags:
         - ${RUNNER_TAG}
   ### Test
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-test@v2.7.0
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-test@v2.7.1
     inputs:
       image: ${IMAGE_NAME}
       rules: *rules
@@ -130,7 +130,7 @@ include:
       tags:
         - ${RUNNER_TAG}
   ### Pack NuGet
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-pack@v2.7.0
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-pack@v2.7.1
     inputs:
       name: "Pack NuGet ClusterManagement.Public"
       stage: "publish"
@@ -141,7 +141,7 @@ include:
         - *activate_mise
         - *update_nuget_source_ro
   ### Push NuGet
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-nuget-push@v2.7.0
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-nuget-push@v2.7.1
     inputs:
       pack_job_name: "Pack NuGet ClusterManagement.Public"
       name: "Push NuGet ClusterManagement.Public"
