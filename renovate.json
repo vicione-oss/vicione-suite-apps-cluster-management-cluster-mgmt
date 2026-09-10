@@ -104,7 +104,6 @@
         "Microsoft.Testing.Extensions.CodeCoverage",
         "NSubstitute",
         "NSubstitute.Analyzers.CSharp",
-        "System.IO.Abstractions.TestingHelpers",
         "ViciOne.Ui.Blazor.Components.TestingHelpers",
         "xunit.v3.mtp-v2"
       ],
@@ -119,6 +118,23 @@
       "stopUpdatingLabel": "Renovate::Frozen"
     },
     {
+      "description": "NuGet: System.IO.Abstractions ships its packages on the same version",
+      "matchManagers": [ "nuget" ],
+      "matchFileNames": [ "Directory.Packages.props" ],
+      "matchPackageNames": [
+        "System.IO.Abstractions",
+        "System.IO.Abstractions.TestingHelpers"
+      ],
+      "enabled": true,
+      "groupName": "System.IO.Abstractions packages",
+      "groupSlug": "system-io-abstractions-packages",
+      "group": {
+        "branchTopic": "update-{{{replace '\\.' '-' (replace '^(major|minor|patch)-[0-9.]*-?' '' groupSlug)}}}-to-{{{newMajor}}}-{{{newMinor}}}-{{{newPatch}}}",
+        "commitMessageTopic": "{{{groupName}}}",
+        "commitMessageExtra": "to {{{newVersion}}}"
+      }
+    },
+    {
       "description": "NuGet: ViciOne Suite SDK packages pinned to $(ViciOneSuiteSdkVersion)",
       "matchManagers": [ "nuget" ],
       "matchFileNames": [ "Directory.Packages.props" ],
@@ -131,6 +147,69 @@
         "commitMessageTopic": "{{{groupName}}}",
         "commitMessageExtra": "to {{{newVersion}}}"
       }
+    },
+    {
+      "description": "NuGet: packages whose version is dictated by ViciOne.Suite.Sdk",
+      "matchManagers": [ "nuget" ],
+      "matchFileNames": [ "Directory.Packages.props" ],
+      "matchPackageNames": [
+        "MassTransit.EntityFrameworkCore",
+        "ViciOne.Ui.Localization",
+        "ViciOne.Ui.MonochromeIcons.Components"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "NuGet: packages whose version is dictated by ViciOne Suite",
+      "matchManagers": [ "nuget" ],
+      "matchFileNames": [ "Directory.Packages.props" ],
+      "matchPackageNames": [ "MQTTnet" ],
+      "enabled": false
+    },
+    {
+      "description": "NuGet: packages updated through the coordinated procedure in .gitlab/merge_request_templates/ViciOne Components Update.md",
+      "matchManagers": [ "nuget" ],
+      "matchFileNames": [ "Directory.Packages.props" ],
+      "matchPackageNames": [
+        "ViciOne.Cluster.Builder",
+        "ViciOne.Core.Dataflow.DataModel.Generation",
+        "ViciOne.Suite.DataPort",
+        "ViciOne.Suite.System.DataPort",
+        "ViciOne.TreeBuilder",
+        "ViciOne.Ui.ClusterEditor"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "NuGet: ViciOne.Core.Runtime packages",
+      "matchManagers": [ "nuget" ],
+      "matchFileNames": [ "Directory.Packages.props" ],
+      "matchPackageNames": [
+        "ViciOne.Core.Runtime",
+        "ViciOne.Core.Runtime.Analyzers"
+      ],
+      "enabled": true,
+      "groupName": "ViciOne.Core.Runtime packages",
+      "groupSlug": "vicione-core-runtime-packages",
+      "separateMajorMinor": false,
+      "separateMultipleMajor": false,
+      "separateMultipleMinor": false,
+      "separateMinorPatch": false,
+      "addLabels": [ "Renovate::Frozen" ],
+      "stopUpdatingLabel": "Renovate::Frozen"
+    },
+    {
+      "description": "NuGet: packages which can be updated individually",
+      "matchManagers": [ "nuget" ],
+      "matchFileNames": [ "Directory.Packages.props" ],
+      "matchPackageNames": [
+        "AspNetCore.SassCompiler",
+        "BenchmarkDotNet",
+        "Semver",
+        "ViciOne.Ui.Design"
+      ],
+      "enabled": true,
+      "branchTopic": "update-{{{lowercase (replace '\\.' '-' (replace '([a-z0-9])([A-Z])' '$1-$2' (replace '([A-Z]+)([A-Z][a-z])' '$1-$2' (replace 'ViciOne' 'vicione' depNameSanitized))))}}}-to-{{{newMajor}}}-{{{newMinor}}}-{{{newPatch}}}"
     },
     {
       "description": "GitLab CI: opt out of everything, then opt back in below",
