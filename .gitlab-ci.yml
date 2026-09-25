@@ -91,7 +91,7 @@ include:
       tags:
         - ${RUNNER_TAG}
   ### Renovate configuration validation
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/renovate/configuration-validation@v1.0.1
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/renovate/configuration-validation@v1.1.0
     inputs:
       rules: *rules
       tags:
