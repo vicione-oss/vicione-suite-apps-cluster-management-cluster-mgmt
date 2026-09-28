@@ -7,6 +7,7 @@ using ClusterManagement.Public.Designs;
 using ClusterManagement.Public.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Testing.Client;
+using ViciOne.Ui.Blazor.Components.Sidebar.Extensions;
 using ViciOne.Ui.ClusterEditor.Extensions;
 using ViciOne.Ui.ClusterEditor.Services;
 
@@ -40,6 +41,7 @@ public sealed class DataflowEditorPageTests
         ctx.Services.AddTransient(_ => HttpClientFactory.GetHttpClientWithResponse(version));
 
         ctx.Services.AddClusterEditor(s => Substitute.For<IRulesetProvider>());
+        ctx.Services.AddSidebar();
 
         ctx.JSInterop.SetupVoid("ViciOne.Observer.observe", _ => true);
         ctx.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true);
