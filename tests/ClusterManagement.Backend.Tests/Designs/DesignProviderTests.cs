@@ -5,7 +5,7 @@ using ClusterManagement.Tests.Tools.Factories;
 using Microsoft.Extensions.Logging;
 using ViciOne.Cluster.Model;
 using ViciOne.Core.Dataflow.DataModel;
-using ViciOne.TreeBuilder.Rules;
+using ViciOne.Tree.Builder.Rules;
 
 namespace ClusterManagement.Backend.Tests.Designs;
 

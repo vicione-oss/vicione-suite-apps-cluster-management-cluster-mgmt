@@ -15,7 +15,7 @@ using Sdk.Testing.Backend;
 using Semver;
 using ViciOne.Cluster.Model;
 using ViciOne.Core.Dataflow.DataModel;
-using ViciOne.TreeBuilder.Rules;
+using ViciOne.Tree.Builder.Rules;
 
 namespace ClusterManagement.Backend.Tests.Designs;
 

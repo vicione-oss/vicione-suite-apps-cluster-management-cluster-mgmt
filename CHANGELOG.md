@@ -6,6 +6,7 @@
 
 - `Public`
   - `ClusterSerializer` class, added asynchronous compress methods
+- Deploy DataPort trees with envelope children (datapoints under a datapoint): the parent keeps its own connector and channel, and every child gets a connector that the parent transfers with the parent's transfer mode; serving them needs a DataPort provider built for envelope children (`dp-mqtt` from `2.0.0`)
 
 ### Changed
 
@@ -14,17 +15,18 @@
   - `IIoddStore`, replaced `FillDeviceArchive` with `FillVendorArchive` which archives several devices of a vendor as `<vendor-id>/<device-id>/<IODD files>`
   - `DownloadIoddRequest`, replaced `Id` with `VendorId` and `DeviceIds`
   - `DownloadIoddResponse`, `Filename` now contains the vendor archive name `iodds-<vendor name>.zip`
-
+- **Breaking:** Fail a deployment with a message naming the node and the declaring node type when a tree node is linked against the transfer direction its node type declares or inherits from an ancestor or the DataPort; directions a node type declares are narrowed to those its ancestors transfer
+- **Breaking:** Fail a deployment when an envelope child is linked in a direction the ruleset's `LinkDirections` does not allow; a predefined child such as a validity derived from the parent value is sent with its parent's message but must never be linked
 - Updated .NET to version `10.0.11`
 - `AspNetCore.SassCompiler` package, update version to `1.102.0`
 - `MQTTnet` package, update version to `5.2.0.1603`
 - `System.IO.Abstractions`, updated to version `22.2.0`
 - `ViciOne.Suite.Sdk` packages, update to version `3.0.0`
-- `ViciOne.Ui.ClusterEditor` package, update to `1.3.0`
+- `ViciOne.Ui.ClusterEditor` package, update to `1.4.0-ci2814011212`
 - `ViciOne.Ui.Design` package, update version to `2.3.0`
-- `ViciOne.Ui.MonochromeIcons.Assets` package, update version to `4.15.0`
+- `ViciOne.Ui.MonochromeIcons.Components` package, update version to `4.16.0`
 - `ViciOne.Ui.Localization` package, update version to `3.5.0`
-- `ViciOne.TreeBuilder` package, update version to `2.0.0`
+- `ViciOne.TreeBuilder` package, replaced by `ViciOne.Tree.Builder` version `3.0.0`, which supports datapoint types with child nodes (envelope children) and drops the vulnerable `AngleSharp 1.4.0`
 
 ### Fixed
 

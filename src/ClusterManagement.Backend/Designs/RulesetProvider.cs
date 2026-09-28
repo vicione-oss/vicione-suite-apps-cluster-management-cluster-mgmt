@@ -1,7 +1,7 @@
 ﻿using ClusterManagement.Internal.Designs;
 using Microsoft.Extensions.Logging;
 using ViciOne.Cluster.Model;
-using ViciOne.TreeBuilder.Rules;
+using ViciOne.Tree.Builder.Rules;
 
 namespace ClusterManagement.Backend.Designs;
 

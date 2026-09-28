@@ -6,6 +6,8 @@
 
   <ItemGroup>
     <None Remove="Resources\Mqtt.yaml" />
+    <None Remove="Resources\MqttEnvelopeChildren.yaml" />
+    <None Remove="Resources\MqttInboundOnly.yaml" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,6 +29,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\Mqtt.yaml" />
+    <EmbeddedResource Include="Resources\MqttEnvelopeChildren.yaml" />
+    <EmbeddedResource Include="Resources\MqttInboundOnly.yaml" />
   </ItemGroup>
 
   <ItemGroup>

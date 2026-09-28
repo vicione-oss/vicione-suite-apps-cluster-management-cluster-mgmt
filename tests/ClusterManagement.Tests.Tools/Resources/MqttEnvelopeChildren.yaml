@@ -1,0 +1,146 @@
+Common:
+  Target       : DataPort
+  ContentType  : Rules
+  Version      : 2.0.0
+  Date         : 2026-09-02
+  Description  : "MQTT DataPort with envelope children under its datapoints"
+  Author       : "ifm software gmbh"
+  MetadataType : YAML
+  Namespace    : "ViciOne.DataPort.Mqtt"
+
+Root:
+  Id                       : "MQTTDataPort"
+  Name                     : "MQTT"
+  Description              : "DataPort for MQTT Protocol 3.x to 5.0"
+  Icons                    : ['mqtt']
+  ChildNodes               :
+    - Id                   : MQTT-Broker
+      MaxDepth             : 64
+      MaxInstances         : 8
+
+Nodes:
+
+  - Id                     : MQTT-Broker
+    Type                   : DataPortNode
+    Name                   : "Broker"
+    Description            : "Broker"
+    MetadataLength         : 0
+    Icons                  : ['broker']
+    TransferDirections     : [ Outbound, Inbound ]
+    ChildNodes             :
+      - Id                 : Folder
+      - Id                 : DataPointFloat
+      - Id                 : DataPointBinary
+
+  - Id                     : Folder
+    MappingId              : Topic
+    Type                   : DataPortTreeNode
+    Name                   : "Folder"
+    Description            : "Folder in the MQTT Topic Tree"
+    Icons                  : ['folder']
+    TransferModes          : [ None, OnChange, Periodic ]
+    ChildNodes             :
+      - Id                 : Folder
+      - Id                 : OutboundFolder
+      - Id                 : DataPointFloat
+      - Id                 : DataPointBinary
+
+  # A folder that narrows everything below it to outbound only.
+  - Id                     : OutboundFolder
+    MappingId              : Topic
+    Type                   : DataPortTreeNode
+    Name                   : "Outbound folder"
+    Description            : "Folder in the MQTT Topic Tree that only publishes"
+    Icons                  : ['folder']
+    TransferDirections     : [ Outbound ]
+    TransferModes          : [ None ]
+    ChildNodes             :
+      - Id                 : DataPointString
+
+  # A datapoint that declares both directions; under an outbound-only folder only outbound remains.
+  - Id                     : DataPointString
+    MappingId              : Topic
+    Type                   : DataPortTreeNode
+    Name                   : "DataPoint String"
+    Description            : "String data point in the MQTT topic tree"
+    Icons                  : ['datapoint']
+    TransferDirections     : [ Outbound, Inbound ]
+    TransferModes          : [ OnChange, Periodic, None ]
+    DataTypes              : [ String ]
+
+  # A datapoint that inherits both transfer directions from the broker.
+  - Id                     : DataPointFloat
+    MappingId              : Topic
+    Type                   : DataPortTreeNode
+    Name                   : "DataPoint Float"
+    Description            : "Float data point in the MQTT topic tree"
+    Icons                  : ['datapoint']
+    TransferModes          : [ OnChange, Periodic, None ]
+    DataTypes              : [ Float64, Float32 ]
+    ChildNodes             :
+      - Id                 : UserProperty
+        MaxInstances       : 16
+      - Id                 : Timestamp
+        MaxInstances       : 1
+      - Id                 : EngineCycle
+        MaxInstances       : 1
+      - Id                 : Validity
+        MaxInstances       : 1
+
+  # A datapoint that narrows the direction to outbound only.
+  - Id                     : DataPointBinary
+    MappingId              : Topic
+    Type                   : DataPortTreeNode
+    Name                   : "DataPoint Binary"
+    Description            : "Binary data point in the MQTT topic tree"
+    Icons                  : ['datapoint']
+    TransferDirections     : [ Outbound ]
+    TransferModes          : [ OnChange, Periodic, None ]
+    DataTypes              : [ Binary ]
+    ChildNodes             :
+      - Id                 : UserProperty
+        MaxInstances       : 16
+
+  # -------------------- Envelope children ------------------------------
+
+  - Id                     : UserProperty
+    MappingId              : UserProperty
+    Type                   : DataPortTreeNode
+    Name                   : "User property"
+    Description            : "A free key/value pair in the parent's message; the node name is the key"
+    Icons                  : ['datapoint']
+    TransferModes          : [ None ]
+    DataTypes              : [ String, Int64, Float64, Bool, DateTime ]
+
+  # Linkable inbound only: outbound the port always sends the parent value's own timestamp.
+  - Id                     : Timestamp
+    MappingId              : Timestamp
+    Type                   : DataPortTreeNode
+    Name                   : "Timestamp"
+    Description            : "The parent's timestamp in the parent's message"
+    Icons                  : ['datapoint']
+    TransferModes          : [ None ]
+    LinkDirections         : [ Inbound ]
+    DataTypes              : [ DateTime ]
+
+  - Id                     : EngineCycle
+    MappingId              : EngineCycle
+    Type                   : DataPortTreeNode
+    Name                   : "Engine cycle"
+    Description            : "The engine cycle the parent value was produced in"
+    Icons                  : ['datapoint']
+    TransferModes          : [ None ]
+    TransferDirections     : [ Outbound ]
+    LinkDirections         : [ None ]
+    DataTypes              : [ Int64 ]
+
+  - Id                     : Validity
+    MappingId              : Validity
+    Type                   : DataPortTreeNode
+    Name                   : "Validity"
+    Description            : "The parent's validity in the parent's message"
+    Icons                  : ['datapoint']
+    TransferModes          : [ None ]
+    TransferDirections     : [ Outbound ]
+    LinkDirections         : [ None ]
+    DataTypes              : [ Bool ]
