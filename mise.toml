@@ -1,2 +1,2 @@
 [tools]
-dotnet = "10.0.400" # Must match global.json requirement
+dotnet = "10.0.401" # Must match global.json requirement

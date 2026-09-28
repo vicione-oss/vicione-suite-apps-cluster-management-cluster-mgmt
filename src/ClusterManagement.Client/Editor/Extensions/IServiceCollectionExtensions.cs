@@ -9,6 +9,7 @@ using ClusterManagement.Internal.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Client.ControlPanels.Extensions;
 using ViciOne.Ui.Blazor.Components.Grid.Extensions;
+using ViciOne.Ui.Blazor.Components.Sidebar.Extensions;
 using ViciOne.Ui.ClusterEditor.Extensions;
 using ViciOne.Ui.ClusterEditor.Services;
 
@@ -34,6 +35,8 @@ internal static class IServiceCollectionExtensions
         // wraps ISuiteRulesetProvider for ClusterEditor
         services.AddScoped<RulesetProviderWrapper>();
         services.AddClusterEditor<IRulesetProvider>(s => s.GetRequiredService<RulesetProviderWrapper>());
+        // required by the ClusterEditor sidebar since ViciOne.Ui.Blazor.Components 6.x
+        services.AddSidebar();
 
         // control panels
         services.AddControlPanel<ClusterManagementClientModule, GeneralControlPanel, GeneralControlPanelState>()
