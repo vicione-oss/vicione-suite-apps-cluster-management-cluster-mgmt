@@ -252,9 +252,16 @@ internal static class ClusterToWorkflowTranslator
                 brokerConnection.OutgoingLinks.Add(new() { ConnectorId = output.Id, RemoteId = output.Id, });
                 sendToBroker = true;
             }
-            foreach (var link in output.Links.Where(link => link.DestinationConnector?.FunctionBlock.EngineId != engineFunctionBlock.EngineId))
+            foreach (var link in output.Links)
             {
-                ArgumentNullException.ThrowIfNull(link.DestinationConnector);
+                // links to DataPortTreeNodes that are not transferred (transfer mode None) have no connector to send to
+                if (link.DestinationConnector is null && link.DestinationDataPortTreeNode is not null)
+                    continue;
+                // can happen if the referenced connector belongs to another application
+                if (link.DestinationConnector is null)
+                    throw new InvalidOperationException($"Cannot determine destination connector of link '{link.Id}' from '{output.Id}' ({output.Name}) of FunctionBlock '{functionBlock.Id}' ({functionBlock.Name}).");
+                if (link.DestinationConnector.FunctionBlock.EngineId == engineFunctionBlock.EngineId)
+                    continue;
                 if (!sendDirectly && link.DestinationConnector.FunctionBlock.Engine is not null && host.Engines.Contains(link.DestinationConnector.FunctionBlock.Engine))
                 {
                     directConnection.OutgoingLinks.Add(new() { ConnectorId = output.Id, RemoteId = output.Id, });

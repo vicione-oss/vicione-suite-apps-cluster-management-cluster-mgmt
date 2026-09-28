@@ -1095,6 +1095,38 @@ public class ClusterToWorkflowTranslatorFacts
         }
 
         [Fact]
+        public void Skips_link_to_DataPortTreeNode_without_transferred_connector()
+        {
+            var functionBlockDesignId = Guid.NewGuid();
+            var inputConnectorDesignId = Guid.NewGuid();
+            var outputConnectorDesignId = Guid.NewGuid();
+            var functionBlockDesign = FunctionBlockDesignBuilder.Create(functionBlockDesignId);
+            functionBlockDesign.AddInput<double>(inputConnectorDesignId);
+            functionBlockDesign.AddOutput<double>(outputConnectorDesignId);
+
+            var functionBlockDesignResolver = new ClusterDependencyResolver(ClusterDependencyPackageFactory.CreateDependencyDesigns([functionBlockDesign,]));
+            using ClusterBuilder builder = new(functionBlockDesignResolver);
+            builder.Editors.FunctionBlockDesign.AddFunctionBlockDesign(functionBlockDesignId);
+
+            var engineHost = builder.CreateTopologyToEngineHost();
+            var dataflow = builder.Cluster.Dataflows.First();
+            var engine = builder.Editors.EngineHost.AddEngine(engineHost, "engine");
+            var functionBlock = builder.Editors.Container.AddFunctionBlock(dataflow.Root, functionBlockDesignId, "functionBlock");
+            builder.Editors.FunctionBlock.AssignEngine(engine, functionBlock);
+
+            var link = builder.Editors.Connector.AddLink(functionBlock.ProcessDataOutputs.First(), functionBlock.ProcessDataInputs.First());
+            link.DestinationDataPortTreeNode = new() { Id = Guid.NewGuid(), };
+            link.DestinationConnector = default;
+            functionBlock.ProcessDataInputs.First().IncomingLinks.Remove(link);
+
+            var (workflow, metadata) = ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, engineHost,
+                engine, functionBlockDesignResolver, new(), new Dictionary<ViciOne.Cluster.Model.Engine, List<DataPortTransformation>>(), string.Empty);
+
+            workflow.ExternalConnections.Should().BeEmpty();
+            metadata.MqttRetainTopics.Should().BeEmpty();
+        }
+
+        [Fact]
         public void Throws_if_source_connector_of_link_is_null()
         {
             var functionBlockDesignId = Guid.NewGuid();
@@ -1124,6 +1156,38 @@ public class ClusterToWorkflowTranslatorFacts
 
             act.Should().Throw<InvalidOperationException>()
                 .WithMessage($"*not*determine*source*{link.Id}*{inputConnector.Id}*{inputConnector.Name}*FunctionBlock*{functionBlock.Id}*{functionBlock.Name}*");
+        }
+
+        [Fact]
+        public void Throws_if_destination_connector_of_link_is_null()
+        {
+            var functionBlockDesignId = Guid.NewGuid();
+            var inputConnectorDesignId = Guid.NewGuid();
+            var outputConnectorDesignId = Guid.NewGuid();
+            var functionBlockDesign = FunctionBlockDesignBuilder.Create(functionBlockDesignId);
+            functionBlockDesign.AddInput<double>(inputConnectorDesignId);
+            functionBlockDesign.AddOutput<double>(outputConnectorDesignId);
+
+            var functionBlockDesignResolver = new ClusterDependencyResolver(ClusterDependencyPackageFactory.CreateDependencyDesigns([functionBlockDesign,]));
+            using ClusterBuilder builder = new(functionBlockDesignResolver);
+            builder.Editors.FunctionBlockDesign.AddFunctionBlockDesign(functionBlockDesignId);
+
+            var engineHost = builder.CreateTopologyToEngineHost();
+            var dataflow = builder.Cluster.Dataflows.First();
+            var engine = builder.Editors.EngineHost.AddEngine(engineHost, "engine");
+            var functionBlock = builder.Editors.Container.AddFunctionBlock(dataflow.Root, functionBlockDesignId, "functionBlock");
+            builder.Editors.FunctionBlock.AssignEngine(engine, functionBlock);
+            var outputConnector = functionBlock.ProcessDataOutputs.First();
+
+            var link = builder.Editors.Connector.AddLink(outputConnector, functionBlock.ProcessDataInputs.First());
+            link.DestinationConnector = default;
+            functionBlock.ProcessDataInputs.First().IncomingLinks.Remove(link);
+
+            var act = FluentActions.Invoking(() => ClusterToWorkflowTranslator.CreateWorkflow(builder.Cluster, engineHost,
+                engine, functionBlockDesignResolver, new(), new Dictionary<ViciOne.Cluster.Model.Engine, List<DataPortTransformation>>(), string.Empty));
+
+            act.Should().Throw<InvalidOperationException>()
+                .WithMessage($"*not*determine*destination*{link.Id}*{outputConnector.Id}*{outputConnector.Name}*FunctionBlock*{functionBlock.Id}*{functionBlock.Name}*");
         }
     }
 }

@@ -35,6 +35,7 @@
 - Write `packages.json`, `packages-ops.json` and cluster snapshots atomically so a crash or power loss during a write cannot leave corrupt files behind
 - Recover from corrupted or partially written package files on startup instead of failing module initialization
 - Replacing a cluster snapshot no longer leaves trailing data of the previous version in the file
+- Deploying a cluster no longer fails with `Value cannot be null. (Parameter 'link.DestinationConnector')` when a FunctionBlock output is linked to a DataPort datapoint whose transfer mode is None
 
 ## 2.3.0 - 2026-07-13
 
