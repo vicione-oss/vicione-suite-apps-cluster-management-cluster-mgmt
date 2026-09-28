@@ -22,4 +22,10 @@ public static class ClusterManagementTools
 
     public static string GetEmbeddedMqttRulesetYaml()
         => GetFromEmbeddedResources("Mqtt.yaml");
+
+    public static string GetEmbeddedMqttEnvelopeChildrenRulesetYaml()
+        => GetFromEmbeddedResources("MqttEnvelopeChildren.yaml");
+
+    public static string GetEmbeddedMqttInboundOnlyRulesetYaml()
+        => GetFromEmbeddedResources("MqttInboundOnly.yaml");
 }

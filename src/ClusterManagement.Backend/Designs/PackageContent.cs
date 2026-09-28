@@ -1,6 +1,6 @@
 ﻿using Sdk.Messaging;
 using ViciOne.Core.Dataflow.DataModel;
-using ViciOne.TreeBuilder.Rules;
+using ViciOne.Tree.Builder.Rules;
 
 namespace ClusterManagement.Backend.Designs;
 

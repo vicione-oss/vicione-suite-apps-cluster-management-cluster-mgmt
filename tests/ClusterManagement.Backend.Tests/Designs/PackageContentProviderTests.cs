@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 using Sdk.Backend.Modules;
 using Sdk.Messaging;
 using ViciOne.Cluster.Model;
-using ViciOne.TreeBuilder.Rules;
+using ViciOne.Tree.Builder.Rules;
 
 namespace ClusterManagement.Backend.Tests.Designs;
 

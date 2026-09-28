@@ -1,0 +1,53 @@
+Common:
+  Target       : DataPort
+  ContentType  : Rules
+  Version      : 2.0.0
+  Date         : 2026-09-25
+  Description  : "MQTT DataPort whose broker only transfers inbound"
+  Author       : "ifm software gmbh"
+  MetadataType : YAML
+  Namespace    : "ViciOne.DataPort.Mqtt"
+
+Root:
+  Id                       : "MQTTDataPort"
+  Name                     : "MQTT"
+  Description              : "DataPort for MQTT Protocol 3.x to 5.0"
+  Icons                    : ['mqtt']
+  ChildNodes               :
+    - Id                   : MQTT-Broker
+      MaxDepth             : 64
+      MaxInstances         : 8
+
+Nodes:
+
+  # The only node type declaring directions, so every node below inherits inbound only.
+  - Id                     : MQTT-Broker
+    Type                   : DataPortNode
+    Name                   : "Broker"
+    Description            : "Broker"
+    MetadataLength         : 0
+    Icons                  : ['broker']
+    TransferDirections     : [ Inbound ]
+    ChildNodes             :
+      - Id                 : Folder
+      - Id                 : DataPointFloat
+
+  - Id                     : Folder
+    MappingId              : Topic
+    Type                   : DataPortTreeNode
+    Name                   : "Folder"
+    Description            : "Folder in the MQTT Topic Tree"
+    Icons                  : ['folder']
+    TransferModes          : [ None, OnChange, Periodic ]
+    ChildNodes             :
+      - Id                 : Folder
+      - Id                 : DataPointFloat
+
+  - Id                     : DataPointFloat
+    MappingId              : Topic
+    Type                   : DataPortTreeNode
+    Name                   : "DataPoint Float"
+    Description            : "Float data point in the MQTT topic tree"
+    Icons                  : ['datapoint']
+    TransferModes          : [ OnChange, Periodic, None ]
+    DataTypes              : [ Float64, Float32 ]

@@ -6,8 +6,9 @@ using ViciOne.Cluster.Model;
 using ViciOne.Cluster.Model.Extensions;
 using ViciOne.Suite.DataPort;
 using ViciOne.Suite.System.Contracts;
-using ViciOne.TreeBuilder;
-using ViciOne.TreeBuilder.NodeTypes;
+using ViciOne.Tree.Builder;
+using ViciOne.Tree.Builder.Extensions;
+using ViciOne.Tree.Builder.NodeTypes;
 using DataPortTransferMode = ViciOne.Cluster.Model.DataPortTransferMode;
 using Engine = ViciOne.Cluster.Model.Engine;
 using FunctionBlock = ViciOne.Cluster.Model.FunctionBlock;
@@ -19,7 +20,7 @@ internal sealed class DataPortTransformer
 {
     private readonly DataPort _dataPort;
     private readonly ClusterBuilder _builder;
-    private readonly ISuiteRulesetProvider _rulesetProvider;
+    private readonly TreeBuilder _treeBuilder;
     private readonly GuidFactory _guidFactory;
     private readonly Dictionary<GeneratedConnectorKey, ConnectorInput> _generatedInputs = [];
     private readonly Dictionary<GeneratedConnectorKey, ConnectorOutput> _generatedOutputs = [];
@@ -41,7 +42,7 @@ internal sealed class DataPortTransformer
     {
         _dataPort = dataPort;
         _builder = builder;
-        _rulesetProvider = rulesetProvider;
+        _treeBuilder = new TreeBuilder(rulesetProvider.GetRuleset(dataPort.RulesetId));
         _guidFactory = new(dataPort.Id);
     }
 
@@ -78,14 +79,15 @@ internal sealed class DataPortTransformer
 
         var inputNumber = 0;
         var outputNumber = 0;
-        var ruleset = _rulesetProvider.GetRuleset(_dataPort.RulesetId);
-        var treeBuilder = new TreeBuilder(ruleset);
         foreach (var (node, path) in _dataPort.Traverse())
         {
             var hasIncomingLinks = HasIncomingLinks(node);
             var hasOutgoingLinks = HasOutgoingLinks(node);
 
-            CreateExternalCommunicationNodes(node, path, _dataPort.Direction, treeBuilder);
+            EnsureLinksMatchDeclaredTransferDirections(node, path, hasIncomingLinks, hasOutgoingLinks);
+            EnsureEnvelopeLinksAreAllowed(node, path, hasIncomingLinks, hasOutgoingLinks);
+            EnsureLinkedNodeHasAValueType(node, hasIncomingLinks, hasOutgoingLinks);
+            CreateExternalCommunicationNodes(node, path, _dataPort.Direction);
 
             foreach (var parent in path)
             {
@@ -112,7 +114,7 @@ internal sealed class DataPortTransformer
                 }
             }
 
-            if (TransferIsPossible(node) && IsLeafNode(node))
+            if (TransferIsPossible(node) && IsValueNode(node))
             {
                 if (hasIncomingLinks)
                 {
@@ -169,7 +171,74 @@ internal sealed class DataPortTransformer
     private static bool TransferIsPossible(DataPortTreeNode node)
         => node.TransferMode != DataPortTransferMode.None;
 
-    private static bool IsLeafNode(DataPortTreeNode node) => node.Children.Count == 0;
+    private static bool IsValueNode(DataPortTreeNode node) => node.ValueType is not null;
+
+    // Starting at the DataPort's own node type, a node type without transfer directions inherits the
+    // effective ones of its parent, and one that declares some keeps only those its parent also has.
+    // The editor applies the same inheritance.
+    private void EnsureLinksMatchDeclaredTransferDirections(DataPortTreeNode node, IReadOnlyCollection<DataPortTreeNode> path,
+        bool hasIncomingLinks, bool hasOutgoingLinks)
+    {
+        if (!hasIncomingLinks && !hasOutgoingLinks)
+            return;
+
+        var (declaredBy, directions) = FindEffectiveTransferDirections(node, path);
+        if (directions is null)
+            return;
+
+        var transferred = directions.Length == 0 ? "nothing" : string.Join(", ", directions);
+        if (hasIncomingLinks && !directions.Contains(DataPortTransferDirection.Outbound))
+            throw new InvalidOperationException($"The DataPort tree node '{node.Id}' ({node.Name}) is written from the dataflow, but {declaredBy} only transfers {transferred}.");
+        if (hasOutgoingLinks && !directions.Contains(DataPortTransferDirection.Inbound))
+            throw new InvalidOperationException($"The DataPort tree node '{node.Id}' ({node.Name}) is read by the dataflow, but {declaredBy} only transfers {transferred}.");
+    }
+
+    // An envelope child travels inside its parent's message, and the ruleset states separately in
+    // which directions the engine may link it: a predefined child, such as a validity the DataPort
+    // derives from the parent value, is transferred but never linked.
+    private void EnsureEnvelopeLinksAreAllowed(DataPortTreeNode node, IReadOnlyCollection<DataPortTreeNode> path,
+        bool hasIncomingLinks, bool hasOutgoingLinks)
+    {
+        if (!hasIncomingLinks && !hasOutgoingLinks)
+            return;
+
+        if (path.LastOrDefault() is not { } parent || !_treeBuilder.Ruleset.IsEnvelopeRelation(parent.DesignId, node.DesignId))
+            return;
+
+        if (hasIncomingLinks && !_treeBuilder.Ruleset.CanLinkInEnvelope(parent.DesignId, node.DesignId, DataPortTransferDirection.Outbound))
+            throw new InvalidOperationException($"The DataPort tree node '{node.Id}' ({node.Name}) is written from the dataflow, but node type '{node.DesignId}' may not be linked outbound inside the message of '{parent.DesignId}'.");
+        if (hasOutgoingLinks && !_treeBuilder.Ruleset.CanLinkInEnvelope(parent.DesignId, node.DesignId, DataPortTransferDirection.Inbound))
+            throw new InvalidOperationException($"The DataPort tree node '{node.Id}' ({node.Name}) is read by the dataflow, but node type '{node.DesignId}' may not be linked inbound inside the message of '{parent.DesignId}'.");
+    }
+
+    // Only a node that transfers its own value builds a connector from it here; one that merely
+    // travels inside an ancestor's message is caught by the connector creation in the ancestor loop.
+    private static void EnsureLinkedNodeHasAValueType(DataPortTreeNode node, bool hasIncomingLinks, bool hasOutgoingLinks)
+    {
+        if (!hasIncomingLinks && !hasOutgoingLinks)
+            return;
+
+        if (TransferIsPossible(node) && !IsValueNode(node))
+            throw new InvalidOperationException($"The DataPort tree node '{node.Id}' ({node.Name}) is linked to the dataflow, but has no value data type to create a connector.");
+    }
+
+    // Null when no node type on the way declares any direction, which leaves the links unrestricted.
+    private (string DeclaredBy, DataPortTransferDirection[]? Directions) FindEffectiveTransferDirections(DataPortTreeNode node, IReadOnlyCollection<DataPortTreeNode> path)
+    {
+        var declaredBy = $"node type '{_dataPort.DesignId}' of DataPort '{_dataPort.Id}' ({_dataPort.Name})";
+        var dataPortDirections = GetNodeType(_dataPort.DesignId).TransferDirections;
+        var effective = dataPortDirections.Length == 0 ? null : dataPortDirections;
+        foreach (var candidate in path.Append(node))
+        {
+            var declared = GetNodeType(candidate.DesignId).TransferDirections;
+            if (declared.Length == 0)
+                continue;
+
+            effective = effective is null ? declared : [.. declared.Intersect(effective)];
+            declaredBy = $"node type '{candidate.DesignId}' of '{candidate.Id}' ({candidate.Name})";
+        }
+        return (declaredBy, effective);
+    }
 
     private bool HasIncomingLinks(DataPortTreeNode node)
         => GetIncomingLinks(node).Count != 0 && IncomingLinksAllowed();
@@ -391,7 +460,7 @@ internal sealed class DataPortTransformer
     }
 
     private void CreateExternalCommunicationNodes(DataPortTreeNode node, IReadOnlyCollection<DataPortTreeNode> path,
-        DataPortDirection direction, TreeBuilder treeBuilder)
+        DataPortDirection direction)
     {
         if (path.Any(TransferIsPossible) || TransferIsPossible(node))
         {
@@ -400,37 +469,42 @@ internal sealed class DataPortTransformer
             foreach (var treeNode in path.Append(node))
             {
                 if (direction is DataPortDirection.Out or DataPortDirection.InOut)
-                    incomingTreeParent = CreateExternalCommunicationNodes(treeNode, incomingTreeParent, _externalOutgoingNodes, treeBuilder);
+                    incomingTreeParent = CreateExternalCommunicationNodes(treeNode, incomingTreeParent, _externalOutgoingNodes);
                 if (direction is DataPortDirection.In or DataPortDirection.InOut)
-                    outgoingTreeParent = CreateExternalCommunicationNodes(treeNode, outgoingTreeParent, _externalIncomingNodes, treeBuilder);
+                    outgoingTreeParent = CreateExternalCommunicationNodes(treeNode, outgoingTreeParent, _externalIncomingNodes);
             }
         }
     }
 
-    private static Node CreateExternalCommunicationNodes(DataPortTreeNode node, Node? parent, Dictionary<DataPortTreeNode, Node> externalCommunicationNodes, TreeBuilder treeBuilder)
+    private Node CreateExternalCommunicationNodes(DataPortTreeNode node, Node? parent, Dictionary<DataPortTreeNode, Node> externalCommunicationNodes)
     {
         if (!externalCommunicationNodes.TryGetValue(node, out var externalCommunicationNode))
         {
-            externalCommunicationNode = CreateExternalCommunicationNode(node, treeBuilder, parent);
+            externalCommunicationNode = CreateExternalCommunicationNode(node, parent);
             externalCommunicationNodes.Add(node, externalCommunicationNode);
         }
         return externalCommunicationNode;
     }
 
-    private static Node CreateExternalCommunicationNode(DataPortTreeNode node, TreeBuilder treeBuilder, Node? parent = default) => new()
+    private Node CreateExternalCommunicationNode(DataPortTreeNode node, Node? parent = default) => new()
     {
         Id = node.Id,
-        DesignId = GetMappingId(treeBuilder, node.DesignId),
+        DesignId = GetMappingId(node.DesignId),
         Name = node.Name,
         ParentId = parent?.Id,
         ValueType = node.ValueType,
         Properties = GetExternalCommunicationNodeProperties(node),
     };
 
-    private static string GetMappingId(TreeBuilder treeBuilder, string dataPortNodeDesignId)
-        => treeBuilder.NodeTypes.TryGetValue(dataPortNodeDesignId, out var nodeType) && nodeType is DataPortTreeNodeType dpNodeType
+    private string GetMappingId(string dataPortNodeDesignId)
+        => GetNodeType(dataPortNodeDesignId) is DataPortTreeNodeType dpNodeType
             ? dpNodeType.MappingId
             : throw new InvalidOperationException($"DataPort tree node design id '{dataPortNodeDesignId}' could not be resolved to a {nameof(DataPortTreeNodeType)}.");
+
+    private NodeType GetNodeType(string designId)
+        => _treeBuilder.NodeTypes.TryGetValue(designId, out var nodeType)
+            ? nodeType
+            : throw new InvalidOperationException($"DataPort tree node design id '{designId}' could not be resolved to a {nameof(NodeType)}.");
 
     private static Dictionary<string, Property> GetExternalCommunicationNodeProperties(DataPortTreeNode node)
     {

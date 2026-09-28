@@ -1,32 +1,41 @@
-﻿using ViciOne.TreeBuilder.Rules;
-using ViciOne.TreeBuilder.Rules.Yaml;
+﻿using ViciOne.Tree.Builder.Rules;
+using ViciOne.Tree.Builder.Rules.Yaml;
 
 namespace ClusterManagement.Tests.Tools.Factories;
 
 public static class RulesetFactory
 {
     public static Ruleset CreateTestRulesetMqtt()
+        => CreateTestRuleset(ClusterManagementTools.GetEmbeddedMqttRulesetYaml());
+
+    public static Ruleset CreateTestRulesetMqttWithEnvelopeChildren()
+        => CreateTestRuleset(ClusterManagementTools.GetEmbeddedMqttEnvelopeChildrenRulesetYaml());
+
+    public static Ruleset CreateTestRulesetMqttInboundOnly()
+        => CreateTestRuleset(ClusterManagementTools.GetEmbeddedMqttInboundOnlyRulesetYaml());
+
+    public static Ruleset CreateTestRuleset(string rulesetYaml)
     {
-        // we have the embedded mqtt yaml
-        var mqttRulesetYaml = ClusterManagementTools.GetEmbeddedMqttRulesetYaml();
+        // RulesDeserializer resolves datatypes, uitypes and the like relative to the ruleset's own
+        // path and fails validation without them, so the YAML has to reach it as a real file. The
+        // tree builder takes no file abstraction, which leaves nothing to mock.
         var temporaryFile = Path.GetTempFileName();
-        File.WriteAllText(temporaryFile, mqttRulesetYaml);
-
-        // .. but we can't deserialize it to something useful if we don't pass
-        // a path here. Otherwise we won't get the datatypes, uitypes etc. and
-        // the ruleset validation will fail. The TreeBuilder does not use file
-        // abstractions or interfaces so it's hard to mock anything
-        var ruleset = RulesDeserializer.Deserialize(temporaryFile);
-        File.Delete(temporaryFile);
-
-        return ruleset;
+        try
+        {
+            File.WriteAllText(temporaryFile, rulesetYaml);
+            return RulesDeserializer.Deserialize(temporaryFile);
+        }
+        finally
+        {
+            File.Delete(temporaryFile);
+        }
     }
 
     public static Ruleset CreateInvalidRuleset()
     {
-        var mqttRulesetYaml = CreateTestRulesetMqtt();
-        mqttRulesetYaml.Root = null; // invalidate the ruleset
+        var ruleset = CreateTestRulesetMqtt();
+        ruleset.Root = null; // a ruleset without a root node fails validation
 
-        return mqttRulesetYaml;
+        return ruleset;
     }
 }

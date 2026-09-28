@@ -10,6 +10,7 @@ using ClusterManagement.Tests.Tools.Extensions;
 using ClusterManagement.Tests.Tools.Factories;
 using Sdk.Connections.Contracts;
 using ViciOne.Cluster.Builder;
+using ViciOne.Tree.Builder;
 using ViciOne.Cluster.Model;
 using ViciOne.Core.Contracts.DataModel;
 using ViciOne.Engine.DefaultPoolings;
@@ -19,6 +20,7 @@ using Connector = ViciOne.Cluster.Model.Connector;
 using DataPort = ViciOne.Cluster.Model.DataPort;
 using DataPortTransferMode = ViciOne.Cluster.Model.DataPortTransferMode;
 using Engine = ViciOne.Cluster.Model.Engine;
+using FunctionBlock = ViciOne.Cluster.Model.FunctionBlock;
 using Link = ViciOne.Cluster.Model.Link;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster;
@@ -167,6 +169,25 @@ public class DataPortTransformerFacts
         }
 
         [Fact]
+        public void Throws_if_the_ruleset_declares_a_node_type_twice()
+        {
+            var rulesetProvider = Substitute.For<ISuiteRulesetProvider>();
+            rulesetProvider.GetRuleset(Arg.Any<string>()).Returns(RulesetFactory.CreateTestRuleset("""
+                Common: { Target: DataPort, ContentType: Rules, Version: 1.0, Date: 2026-09-02, Description: Test, Author: Test, MetadataType: YAML }
+                Root: { Id: MQTTDataPort, Name: MQTT, Description: Test, ChildNodes: [ { Id: Folder } ] }
+                Nodes:
+                  - { Id: Folder, MappingId: Topic, Type: DataPortTreeNode, Name: Folder, Description: Test, TransferModes: [ None ] }
+                  - { Id: Folder, MappingId: Topic, Type: DataPortTreeNode, Name: Folder, Description: Test, TransferModes: [ None ] }
+                """));
+            var dataPort = CreateDataPort();
+
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, rulesetProvider));
+
+            act.Should().Throw<RulesetValidationFailedException>()
+                .Which.Messages.Should().Contain(m => m.Contains("Folder", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public void Ignores_dataport_without_nodes()
         {
             var dataPort = CreateDataPort();
@@ -200,6 +221,21 @@ public class DataPortTransformerFacts
             var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
 
             act.Should().Throw<NotSupportedException>().WithMessage($"*{leaf.Id}*{leaf.Name}*unsupported*transfer mode*-28*");
+        }
+
+        [Fact]
+        public void Throws_if_a_linked_node_transfers_without_a_value_type()
+        {
+            var dataPort = CreateDataPort();
+            var leaf = AddDataPortTreeNode(dataPort, "Leaf", transferMode: DataPortTransferMode.OnChange, valueType: _valueType);
+            _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _sourceConnector);
+            // The editor refuses to link a node that has no value type, so a cluster only reaches
+            // deployment in this state through an import or an older editor.
+            leaf.ValueType = null;
+
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+
+            act.Should().Throw<InvalidOperationException>().WithMessage($"*{leaf.Id}*{leaf.Name}*no value data type*");
         }
 
         [Fact]
@@ -1172,42 +1208,55 @@ public class DataPortTransformerFacts
 
             var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
 
-            var leafInput = transformation.FunctionBlock.ProcessDataInputs.Should().ContainSingle().Subject;
+            transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
+            var groupInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
+            ShouldRepresentNode(groupInput, group, DataPortDirection.Out);
+            ShouldHaveLinkFrom(_sourceConnector, groupInput);
+            var leafInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(1);
             ShouldRepresentNode(leafInput, leaf, DataPortDirection.Out);
             ShouldHaveLinkFrom(_sourceConnector, leafInput);
 
-            transformation.FunctionBlock.ProcessDataOutputs.Should().HaveCount(2);
-            var groupLeafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(0);
+            transformation.FunctionBlock.ProcessDataOutputs.Should().HaveCount(3);
+            var groupOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(0);
+            ShouldRepresentNode(groupOutput, group, DataPortDirection.Out);
+            ShouldHaveNoLinks(groupOutput);
+            var groupLeafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(1);
             ShouldRepresentNode(groupLeafOutput, leaf, DataPortDirection.Out, $"{group.Name}_1_{leaf.Name}");
             ShouldHaveNoLinks(groupLeafOutput);
-            var leafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(1);
+            var leafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(2);
             ShouldRepresentNode(leafOutput, leaf, DataPortDirection.Out);
             ShouldHaveNoLinks(leafOutput);
 
             transformation.FunctionBlock.Settings.Should().SatisfyRespectively(
                 nodeLinks => nodeLinks.Value.Should().BeOfType<List<NodeLink>>().Which.Should().SatisfyRespectively(
+                    groupNodeLink => ShouldRepresentNodeLink(groupNodeLink, groupInput, groupOutput),
                     groupLeafNodeLink => ShouldRepresentNodeLink(groupLeafNodeLink, leafInput, groupLeafOutput),
                     leafNodeLink => ShouldRepresentNodeLink(leafNodeLink, leafInput, leafOutput)),
                 outputPoolings => outputPoolings.Value.Should().BeOfType<Dictionary<Guid, OutputConfiguration>>().Which.Should().SatisfyRespectively(
+                    groupOutputPooling => ShouldRepresentOutputConfiguration(groupOutputPooling, groupOutput),
                     groupLeafOutputPooling => ShouldRepresentOutputConfiguration<AveragePooling>(groupLeafOutputPooling, groupLeafOutput),
                     leafOutputPooling => ShouldRepresentOutputConfiguration<AveragePooling>(leafOutputPooling, leafOutput)),
                 transferModes => transferModes.Value.Should().BeOfType<Dictionary<Guid, ITransferMode>>().Which.Should().SatisfyRespectively(
+                    groupTransferMode => ShouldRepresentTransferMode(groupTransferMode, groupOutput, 50.Milliseconds()),
                     groupLeafTransferMode => ShouldRepresentTransferMode(groupLeafTransferMode, groupLeafOutput, 50.Milliseconds()),
                     leafTransferMode => ShouldRepresentTransferMode<OnChangedTransferMode>(leafTransferMode, leafOutput)));
 
             transformation.AdditionalConnectorDesigns.Should().SatisfyRespectively(
+                groupInputDesign => ShouldExtendConnector(groupInputDesign, groupInput, group),
+                groupOutputDesign => ShouldExtendConnector(groupOutputDesign, groupOutput, group),
                 leafInputDesign => ShouldExtendConnector(leafInputDesign, leafInput, leaf),
                 groupLeafOutputDesign => ShouldExtendConnector(groupLeafOutputDesign, groupLeafOutput, leaf),
                 leafOutputDesign => ShouldExtendConnector(leafOutputDesign, leafOutput, leaf));
 
             transformation.IncomingLinks.Should().BeEmpty();
             transformation.OutgoingLinks.Should().SatisfyRespectively(
+                groupLink => ShouldRepresentExternalLink(groupLink, groupOutput),
                 groupLeafLink => ShouldRepresentExternalLink(groupLeafLink, groupLeafOutput),
                 leafLink => ShouldRepresentExternalLink(leafLink, leafOutput));
 
             transformation.IncomingNodes.Should().BeEmpty();
             transformation.OutgoingNodes.Should().SatisfyRespectively(
-                groupNode => ShouldRepresentExternalCommunicationNode(groupNode, group, [groupLeafOutput,], valueType: _valueType),
+                groupNode => ShouldRepresentExternalCommunicationNode(groupNode, group, [groupOutput, groupLeafOutput,], [groupOutput,], _valueType),
                 leafNode => ShouldRepresentExternalCommunicationNode(leafNode, leaf, group, [leafOutput,], [groupLeafOutput, leafOutput,], _valueType));
         }
 
@@ -1223,42 +1272,55 @@ public class DataPortTransformerFacts
 
             var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
 
-            var leafInput = transformation.FunctionBlock.ProcessDataInputs.Should().ContainSingle().Subject;
+            transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
+            var groupInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
+            ShouldRepresentNode(groupInput, group, DataPortDirection.Out);
+            ShouldHaveLinkFrom(_sourceConnector, groupInput);
+            var leafInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(1);
             ShouldRepresentNode(leafInput, leaf, DataPortDirection.Out);
             ShouldHaveLinkFrom(_sourceConnector, leafInput);
 
-            transformation.FunctionBlock.ProcessDataOutputs.Should().HaveCount(2);
-            var groupLeafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(0);
+            transformation.FunctionBlock.ProcessDataOutputs.Should().HaveCount(3);
+            var groupOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(0);
+            ShouldRepresentNode(groupOutput, group, DataPortDirection.Out);
+            ShouldHaveNoLinks(groupOutput);
+            var groupLeafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(1);
             ShouldRepresentNode(groupLeafOutput, leaf, DataPortDirection.Out, $"{group.Name}_1_{leaf.Name}");
             ShouldHaveNoLinks(groupLeafOutput);
-            var leafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(1);
+            var leafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(2);
             ShouldRepresentNode(leafOutput, leaf, DataPortDirection.Out);
             ShouldHaveNoLinks(leafOutput);
 
             transformation.FunctionBlock.Settings.Should().SatisfyRespectively(
                 nodeLinks => nodeLinks.Value.Should().BeOfType<List<NodeLink>>().Which.Should().SatisfyRespectively(
+                    groupNodeLink => ShouldRepresentNodeLink(groupNodeLink, groupInput, groupOutput),
                     groupLeafNodeLink => ShouldRepresentNodeLink(groupLeafNodeLink, leafInput, groupLeafOutput),
                     leafNodeLink => ShouldRepresentNodeLink(leafNodeLink, leafInput, leafOutput)),
                 outputPoolings => outputPoolings.Value.Should().BeOfType<Dictionary<Guid, OutputConfiguration>>().Which.Should().SatisfyRespectively(
+                    groupOutputPooling => ShouldRepresentOutputConfiguration(groupOutputPooling, groupOutput),
                     groupLeafOutputPooling => ShouldRepresentOutputConfiguration<AveragePooling>(groupLeafOutputPooling, groupLeafOutput),
                     leafOutputPooling => ShouldRepresentOutputConfiguration<AveragePooling>(leafOutputPooling, leafOutput)),
                 transferModes => transferModes.Value.Should().BeOfType<Dictionary<Guid, ITransferMode>>().Which.Should().SatisfyRespectively(
+                    groupTransferMode => ShouldRepresentTransferMode(groupTransferMode, groupOutput, 50.Milliseconds()),
                     groupLeafTransferMode => ShouldRepresentTransferMode(groupLeafTransferMode, groupLeafOutput, 50.Milliseconds()),
                     leafTransferMode => ShouldRepresentTransferMode<OnChangedTransferMode>(leafTransferMode, leafOutput)));
 
             transformation.AdditionalConnectorDesigns.Should().SatisfyRespectively(
+                groupInputDesign => ShouldExtendConnector(groupInputDesign, groupInput, group),
+                groupOutputDesign => ShouldExtendConnector(groupOutputDesign, groupOutput, group),
                 leafInputDesign => ShouldExtendConnector(leafInputDesign, leafInput, leaf),
                 groupLeafOutputDesign => ShouldExtendConnector(groupLeafOutputDesign, groupLeafOutput, leaf),
                 leafOutputDesign => ShouldExtendConnector(leafOutputDesign, leafOutput, leaf));
 
             transformation.IncomingLinks.Should().BeEmpty();
             transformation.OutgoingLinks.Should().SatisfyRespectively(
+                groupLink => ShouldRepresentExternalLink(groupLink, groupOutput),
                 groupLeafLink => ShouldRepresentExternalLink(groupLeafLink, groupLeafOutput),
                 leafLink => ShouldRepresentExternalLink(leafLink, leafOutput));
 
             transformation.IncomingNodes.Should().BeEmpty();
             transformation.OutgoingNodes.Should().SatisfyRespectively(
-                groupNode => ShouldRepresentExternalCommunicationNode(groupNode, group, [groupLeafOutput,], valueType: _valueType),
+                groupNode => ShouldRepresentExternalCommunicationNode(groupNode, group, [groupOutput, groupLeafOutput,], [groupOutput,], _valueType),
                 leafNode => ShouldRepresentExternalCommunicationNode(leafNode, leaf, group, [leafOutput,], [groupLeafOutput, leafOutput,], _valueType));
         }
 
@@ -1275,46 +1337,58 @@ public class DataPortTransformerFacts
 
             var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
 
-            transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
-            var groupLeafInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
+            transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(3);
+            var groupInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
+            ShouldRepresentNode(groupInput, group, DataPortDirection.In);
+            ShouldHaveNoLinks(groupInput);
+            var groupLeafInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(1);
             ShouldRepresentNode(groupLeafInput, leaf, DataPortDirection.In, $"{group.Name}_1_{leaf.Name}");
             ShouldHaveNoLinks(groupLeafInput);
-            var leafInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(1);
+            var leafInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(2);
             ShouldRepresentNode(leafInput, leaf, DataPortDirection.In);
             ShouldHaveNoLinks(leafInput);
 
-            transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
-            var groupLeafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(0);
+            transformation.FunctionBlock.ProcessDataOutputs.Should().HaveCount(3);
+            var groupOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(0);
+            ShouldRepresentNode(groupOutput, group, DataPortDirection.In);
+            ShouldHaveLinkTo(groupOutput, _destinationConnector);
+            var groupLeafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(1);
             ShouldRepresentNode(groupLeafOutput, leaf, DataPortDirection.In, $"{group.Name}_1_{leaf.Name}");
             ShouldHaveLinkTo(groupLeafOutput, _destinationConnector);
-            var leafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(1);
+            var leafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(2);
             ShouldRepresentNode(leafOutput, leaf, DataPortDirection.In);
             ShouldHaveLinkTo(leafOutput, _destinationConnector);
 
             transformation.FunctionBlock.Settings.Should().SatisfyRespectively(
                 nodeLinks => nodeLinks.Value.Should().BeOfType<List<NodeLink>>().Which.Should().SatisfyRespectively(
+                    groupNodeLink => ShouldRepresentNodeLink(groupNodeLink, groupInput, groupOutput),
                     groupLeafNodeLink => ShouldRepresentNodeLink(groupLeafNodeLink, groupLeafInput, groupLeafOutput),
                     leafNodeLink => ShouldRepresentNodeLink(leafNodeLink, leafInput, leafOutput)),
                 outputPoolings => outputPoolings.Value.Should().BeOfType<Dictionary<Guid, OutputConfiguration>>().Which.Should().SatisfyRespectively(
+                    groupOutputPooling => ShouldRepresentOutputConfiguration<SumPooling>(groupOutputPooling, groupOutput),
                     groupLeafOutputPooling => ShouldRepresentOutputConfiguration<AveragePooling>(groupLeafOutputPooling, groupLeafOutput),
                     leafOutputPooling => ShouldRepresentOutputConfiguration<AveragePooling>(leafOutputPooling, leafOutput)),
                 transferModes => transferModes.Value.Should().BeOfType<Dictionary<Guid, ITransferMode>>().Which.Should().SatisfyRespectively(
+                    groupTransferMode => ShouldRepresentTransferMode<OnChangedTransferMode>(groupTransferMode, groupOutput),
                     groupLeafTransferMode => ShouldRepresentTransferMode<OnChangedTransferMode>(groupLeafTransferMode, groupLeafOutput),
                     leafTransferMode => ShouldRepresentTransferMode(leafTransferMode, leafOutput, 100.Milliseconds())));
 
             transformation.AdditionalConnectorDesigns.Should().SatisfyRespectively(
+                groupInputDesign => ShouldExtendConnector(groupInputDesign, groupInput, group),
+                groupOutputDesign => ShouldExtendConnector(groupOutputDesign, groupOutput, group),
                 groupLeafInputDesign => ShouldExtendConnector(groupLeafInputDesign, groupLeafInput, leaf),
                 groupLeafOutputDesign => ShouldExtendConnector(groupLeafOutputDesign, groupLeafOutput, leaf),
                 leafInputDesign => ShouldExtendConnector(leafInputDesign, leafInput, leaf),
                 leafOutputDesign => ShouldExtendConnector(leafOutputDesign, leafOutput, leaf));
 
             transformation.IncomingLinks.Should().SatisfyRespectively(
+                groupLink => ShouldRepresentExternalLink(groupLink, group, groupInput),
                 groupLeafLink => ShouldRepresentExternalLink(groupLeafLink, leaf, groupLeafInput),
                 leafLink => ShouldRepresentExternalLink(leafLink, leaf, leafInput));
             transformation.OutgoingLinks.Should().BeEmpty();
 
             transformation.IncomingNodes.Should().SatisfyRespectively(
-                groupNode => ShouldRepresentExternalCommunicationNode(groupNode, group, [groupLeafInput,], valueType: _valueType),
+                groupNode => ShouldRepresentExternalCommunicationNode(groupNode, group, [groupInput, groupLeafInput,], [groupInput,], _valueType),
                 leafNode => ShouldRepresentExternalCommunicationNode(leafNode, leaf, group, [leafInput,], [groupLeafInput, leafInput,], _valueType));
             transformation.OutgoingNodes.Should().BeEmpty();
         }
@@ -1332,46 +1406,58 @@ public class DataPortTransformerFacts
 
             var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
 
-            transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
-            var groupLeafInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
+            transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(3);
+            var groupInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
+            ShouldRepresentNode(groupInput, group, DataPortDirection.In);
+            ShouldHaveNoLinks(groupInput);
+            var groupLeafInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(1);
             ShouldRepresentNode(groupLeafInput, leaf, DataPortDirection.In, $"{group.Name}_1_{leaf.Name}");
             ShouldHaveNoLinks(groupLeafInput);
-            var leafInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(1);
+            var leafInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(2);
             ShouldRepresentNode(leafInput, leaf, DataPortDirection.In);
             ShouldHaveNoLinks(leafInput);
 
-            transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
-            var groupLeafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(0);
+            transformation.FunctionBlock.ProcessDataOutputs.Should().HaveCount(3);
+            var groupOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(0);
+            ShouldRepresentNode(groupOutput, group, DataPortDirection.In);
+            ShouldHaveLinkTo(groupOutput, _destinationConnector);
+            var groupLeafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(1);
             ShouldRepresentNode(groupLeafOutput, leaf, DataPortDirection.In, $"{group.Name}_1_{leaf.Name}");
             ShouldHaveLinkTo(groupLeafOutput, _destinationConnector);
-            var leafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(1);
+            var leafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(2);
             ShouldRepresentNode(leafOutput, leaf, DataPortDirection.In);
             ShouldHaveLinkTo(leafOutput, _destinationConnector);
 
             transformation.FunctionBlock.Settings.Should().SatisfyRespectively(
                 nodeLinks => nodeLinks.Value.Should().BeOfType<List<NodeLink>>().Which.Should().SatisfyRespectively(
+                    groupNodeLink => ShouldRepresentNodeLink(groupNodeLink, groupInput, groupOutput),
                     groupLeafNodeLink => ShouldRepresentNodeLink(groupLeafNodeLink, groupLeafInput, groupLeafOutput),
                     leafNodeLink => ShouldRepresentNodeLink(leafNodeLink, leafInput, leafOutput)),
                 outputPoolings => outputPoolings.Value.Should().BeOfType<Dictionary<Guid, OutputConfiguration>>().Which.Should().SatisfyRespectively(
+                    groupOutputPooling => ShouldRepresentOutputConfiguration<SumPooling>(groupOutputPooling, groupOutput),
                     groupLeafOutputPooling => ShouldRepresentOutputConfiguration<AveragePooling>(groupLeafOutputPooling, groupLeafOutput),
                     leafOutputPooling => ShouldRepresentOutputConfiguration<AveragePooling>(leafOutputPooling, leafOutput)),
                 transferModes => transferModes.Value.Should().BeOfType<Dictionary<Guid, ITransferMode>>().Which.Should().SatisfyRespectively(
+                    groupTransferMode => ShouldRepresentTransferMode<OnChangedTransferMode>(groupTransferMode, groupOutput),
                     groupLeafTransferMode => ShouldRepresentTransferMode<OnChangedTransferMode>(groupLeafTransferMode, groupLeafOutput),
                     leafTransferMode => ShouldRepresentTransferMode(leafTransferMode, leafOutput, 100.Milliseconds())));
 
             transformation.AdditionalConnectorDesigns.Should().SatisfyRespectively(
+                groupInputDesign => ShouldExtendConnector(groupInputDesign, groupInput, group),
+                groupOutputDesign => ShouldExtendConnector(groupOutputDesign, groupOutput, group),
                 groupLeafInputDesign => ShouldExtendConnector(groupLeafInputDesign, groupLeafInput, leaf),
                 groupLeafOutputDesign => ShouldExtendConnector(groupLeafOutputDesign, groupLeafOutput, leaf),
                 leafInputDesign => ShouldExtendConnector(leafInputDesign, leafInput, leaf),
                 leafOutputDesign => ShouldExtendConnector(leafOutputDesign, leafOutput, leaf));
 
             transformation.IncomingLinks.Should().SatisfyRespectively(
+                groupLink => ShouldRepresentExternalLink(groupLink, group, groupInput),
                 groupLeafLink => ShouldRepresentExternalLink(groupLeafLink, leaf, groupLeafInput),
                 leafLink => ShouldRepresentExternalLink(leafLink, leaf, leafInput));
             transformation.OutgoingLinks.Should().BeEmpty();
 
             transformation.IncomingNodes.Should().SatisfyRespectively(
-                groupNode => ShouldRepresentExternalCommunicationNode(groupNode, group, [groupLeafInput,], valueType: _valueType),
+                groupNode => ShouldRepresentExternalCommunicationNode(groupNode, group, [groupInput, groupLeafInput,], [groupInput,], _valueType),
                 leafNode => ShouldRepresentExternalCommunicationNode(leafNode, leaf, group, [leafInput,], [groupLeafInput, leafInput,], _valueType));
             transformation.OutgoingNodes.Should().BeEmpty();
         }
@@ -1410,46 +1496,58 @@ public class DataPortTransformerFacts
 
             var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
 
-            transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
-            var groupLeafInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
+            transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(3);
+            var groupInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
+            ShouldRepresentNode(groupInput, group, DataPortDirection.In);
+            ShouldHaveNoLinks(groupInput);
+            var groupLeafInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(1);
             ShouldRepresentNode(groupLeafInput, leaf, DataPortDirection.In, $"{group.Name}_1_{leaf.Name}");
             ShouldHaveNoLinks(groupLeafInput);
-            var leafInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(1);
+            var leafInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(2);
             ShouldRepresentNode(leafInput, leaf, DataPortDirection.In);
             ShouldHaveNoLinks(leafInput);
 
-            transformation.FunctionBlock.ProcessDataOutputs.Should().HaveCount(2);
-            var groupLeafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(0);
+            transformation.FunctionBlock.ProcessDataOutputs.Should().HaveCount(3);
+            var groupOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(0);
+            ShouldRepresentNode(groupOutput, group, DataPortDirection.In);
+            ShouldHaveLinkTo(groupOutput, _destinationConnector);
+            var groupLeafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(1);
             ShouldRepresentNode(groupLeafOutput, leaf, DataPortDirection.In, $"{group.Name}_1_{leaf.Name}");
             ShouldHaveLinkTo(groupLeafOutput, _destinationConnector);
-            var leafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(1);
+            var leafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(2);
             ShouldRepresentNode(leafOutput, leaf, DataPortDirection.In);
             ShouldHaveLinkTo(leafOutput, _destinationConnector);
 
             transformation.FunctionBlock.Settings.Should().SatisfyRespectively(
                 nodeLinks => nodeLinks.Value.Should().BeOfType<List<NodeLink>>().Which.Should().SatisfyRespectively(
+                    groupNodeLink => ShouldRepresentNodeLink(groupNodeLink, groupInput, groupOutput),
                     groupLeafNodeLink => ShouldRepresentNodeLink(groupLeafNodeLink, groupLeafInput, groupLeafOutput),
                     leafNodeLink => ShouldRepresentNodeLink(leafNodeLink, leafInput, leafOutput)),
                 outputPoolings => outputPoolings.Value.Should().BeOfType<Dictionary<Guid, OutputConfiguration>>().Which.Should().SatisfyRespectively(
+                    groupOutputPooling => ShouldRepresentOutputConfiguration<SumPooling>(groupOutputPooling, groupOutput),
                     groupLeafOutputPooling => ShouldRepresentOutputConfiguration(groupLeafOutputPooling, groupLeafOutput),
                     leafOutputPooling => ShouldRepresentOutputConfiguration(leafOutputPooling, leafOutput)),
                 transferModes => transferModes.Value.Should().BeOfType<Dictionary<Guid, ITransferMode>>().Which.Should().SatisfyRespectively(
+                    groupTransferMode => ShouldRepresentTransferMode(groupTransferMode, groupOutput, 50.Milliseconds()),
                     groupLeafTransferMode => ShouldRepresentTransferMode(groupLeafTransferMode, groupLeafOutput, 50.Milliseconds()),
                     leafTransferMode => ShouldRepresentTransferMode<OnChangedTransferMode>(leafTransferMode, leafOutput)));
 
             transformation.AdditionalConnectorDesigns.Should().SatisfyRespectively(
+                groupInputDesign => ShouldExtendConnector(groupInputDesign, groupInput, group),
+                groupOutputDesign => ShouldExtendConnector(groupOutputDesign, groupOutput, group),
                 groupLeafInputDesign => ShouldExtendConnector(groupLeafInputDesign, groupLeafInput, leaf),
                 groupLeafOutputDesign => ShouldExtendConnector(groupLeafOutputDesign, groupLeafOutput, leaf),
                 leafInputDesign => ShouldExtendConnector(leafInputDesign, leafInput, leaf),
                 leafOutputDesign => ShouldExtendConnector(leafOutputDesign, leafOutput, leaf));
 
             transformation.IncomingLinks.Should().SatisfyRespectively(
+                groupLink => ShouldRepresentExternalLink(groupLink, group, groupInput),
                 groupLeafLink => ShouldRepresentExternalLink(groupLeafLink, leaf, groupLeafInput),
                 leafLink => ShouldRepresentExternalLink(leafLink, leaf, leafInput));
             transformation.OutgoingLinks.Should().BeEmpty();
 
             transformation.IncomingNodes.Should().SatisfyRespectively(
-                groupNode => ShouldRepresentExternalCommunicationNode(groupNode, group, [groupLeafInput,], valueType: _valueType),
+                groupNode => ShouldRepresentExternalCommunicationNode(groupNode, group, [groupInput, groupLeafInput,], [groupInput,], _valueType),
                 leafNode => ShouldRepresentExternalCommunicationNode(leafNode, leaf, group, [leafInput,], [groupLeafInput, leafInput,], _valueType));
             transformation.OutgoingNodes.Should().BeEmpty();
         }
@@ -1468,49 +1566,71 @@ public class DataPortTransformerFacts
 
             var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
 
-            transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(3);
-            var leafInputOut = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
+            transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(5);
+            var groupInputOut = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
+            ShouldRepresentNode(groupInputOut, group, DataPortDirection.Out);
+            ShouldHaveLinkFrom(_sourceConnector, groupInputOut);
+            var groupInputIn = transformation.FunctionBlock.ProcessDataInputs.ElementAt(1);
+            ShouldRepresentNode(groupInputIn, group, DataPortDirection.In);
+            ShouldHaveNoLinks(groupInputIn);
+            var leafInputOut = transformation.FunctionBlock.ProcessDataInputs.ElementAt(2);
             ShouldRepresentNode(leafInputOut, leaf, DataPortDirection.Out);
             ShouldHaveLinkFrom(_sourceConnector, leafInputOut);
-            var groupLeafInputIn = transformation.FunctionBlock.ProcessDataInputs.ElementAt(1);
+            var groupLeafInputIn = transformation.FunctionBlock.ProcessDataInputs.ElementAt(3);
             ShouldRepresentNode(groupLeafInputIn, leaf, DataPortDirection.In, $"{group.Name}_1_{leaf.Name}");
             ShouldHaveNoLinks(groupLeafInputIn);
-            var leafInputIn = transformation.FunctionBlock.ProcessDataInputs.ElementAt(2);
+            var leafInputIn = transformation.FunctionBlock.ProcessDataInputs.ElementAt(4);
             ShouldRepresentNode(leafInputIn, leaf, DataPortDirection.In);
             ShouldHaveNoLinks(leafInputIn);
 
-            transformation.FunctionBlock.ProcessDataOutputs.Should().HaveCount(4);
-            var groupLeafOutputOut = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(0);
+            transformation.FunctionBlock.ProcessDataOutputs.Should().HaveCount(6);
+            var groupOutputOut = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(0);
+            ShouldRepresentNode(groupOutputOut, group, DataPortDirection.Out);
+            ShouldHaveNoLinks(groupOutputOut);
+            var groupOutputIn = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(1);
+            ShouldRepresentNode(groupOutputIn, group, DataPortDirection.In);
+            ShouldHaveLinkTo(groupOutputIn, _destinationConnector);
+            var groupLeafOutputOut = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(2);
             ShouldRepresentNode(groupLeafOutputOut, leaf, DataPortDirection.Out, $"{group.Name}_1_{leaf.Name}");
             ShouldHaveNoLinks(groupLeafOutputOut);
-            var groupLeafOutputIn = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(1);
+            var groupLeafOutputIn = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(3);
             ShouldRepresentNode(groupLeafOutputIn, leaf, DataPortDirection.In, $"{group.Name}_2_{leaf.Name}");
             ShouldHaveLinkTo(groupLeafOutputIn, _destinationConnector);
-            var leafOutputOut = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(2);
+            var leafOutputOut = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(4);
             ShouldRepresentNode(leafOutputOut, leaf, DataPortDirection.Out);
             ShouldHaveNoLinks(leafOutputOut);
-            var leafOutputIn = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(3);
+            var leafOutputIn = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(5);
             ShouldRepresentNode(leafOutputIn, leaf, DataPortDirection.In);
             ShouldHaveLinkTo(leafOutputIn, _destinationConnector);
 
             transformation.FunctionBlock.Settings.Should().SatisfyRespectively(
                 nodeLinks => nodeLinks.Value.Should().BeOfType<List<NodeLink>>().Which.Should().SatisfyRespectively(
-                    groupNodeLinkOut => ShouldRepresentNodeLink(groupNodeLinkOut, leafInputOut, groupLeafOutputOut),
-                    groupNodeLinkIn => ShouldRepresentNodeLink(groupNodeLinkIn, groupLeafInputIn, groupLeafOutputIn),
+                    groupNodeLinkOut => ShouldRepresentNodeLink(groupNodeLinkOut, groupInputOut, groupOutputOut),
+                    groupNodeLinkIn => ShouldRepresentNodeLink(groupNodeLinkIn, groupInputIn, groupOutputIn),
+                    groupLeafNodeLinkOut => ShouldRepresentNodeLink(groupLeafNodeLinkOut, leafInputOut, groupLeafOutputOut),
+                    groupLeafNodeLinkIn => ShouldRepresentNodeLink(groupLeafNodeLinkIn, groupLeafInputIn, groupLeafOutputIn),
                     leafNodeLinkOut => ShouldRepresentNodeLink(leafNodeLinkOut, leafInputOut, leafOutputOut),
                     leafNodeLinkIn => ShouldRepresentNodeLink(leafNodeLinkIn, leafInputIn, leafOutputIn)),
                 outputPoolings => outputPoolings.Value.Should().BeOfType<Dictionary<Guid, OutputConfiguration>>().Which.Should().SatisfyRespectively(
+                    groupOutputPoolingOut => ShouldRepresentOutputConfiguration<SumPooling>(groupOutputPoolingOut, groupOutputOut),
+                    groupOutputPoolingIn => ShouldRepresentOutputConfiguration<SumPooling>(groupOutputPoolingIn, groupOutputIn),
                     groupLeafOutputPoolingOut => ShouldRepresentOutputConfiguration(groupLeafOutputPoolingOut, groupLeafOutputOut),
                     groupLeafOutputPoolingIn => ShouldRepresentOutputConfiguration(groupLeafOutputPoolingIn, groupLeafOutputIn),
                     leafOutputPoolingOut => ShouldRepresentOutputConfiguration(leafOutputPoolingOut, leafOutputOut),
                     leafOutputPoolingIn => ShouldRepresentOutputConfiguration(leafOutputPoolingIn, leafOutputIn)),
                 transferModes => transferModes.Value.Should().BeOfType<Dictionary<Guid, ITransferMode>>().Which.Should().SatisfyRespectively(
+                    groupTransferModeOut => ShouldRepresentTransferMode(groupTransferModeOut, groupOutputOut, 50.Milliseconds()),
+                    groupTransferModeIn => ShouldRepresentTransferMode(groupTransferModeIn, groupOutputIn, 50.Milliseconds()),
                     groupLeafTransferModeOut => ShouldRepresentTransferMode(groupLeafTransferModeOut, groupLeafOutputOut, 50.Milliseconds()),
                     groupLeafTransferModeIn => ShouldRepresentTransferMode(groupLeafTransferModeIn, groupLeafOutputIn, 50.Milliseconds()),
                     leafTransferModeOut => ShouldRepresentTransferMode<OnChangedTransferMode>(leafTransferModeOut, leafOutputOut),
                     leafTransferModeIn => ShouldRepresentTransferMode<OnChangedTransferMode>(leafTransferModeIn, leafOutputIn)));
 
             transformation.AdditionalConnectorDesigns.Should().SatisfyRespectively(
+                groupInputDesignOut => ShouldExtendConnector(groupInputDesignOut, groupInputOut, group),
+                groupOutputDesignOut => ShouldExtendConnector(groupOutputDesignOut, groupOutputOut, group),
+                groupInputDesignIn => ShouldExtendConnector(groupInputDesignIn, groupInputIn, group),
+                groupOutputDesignIn => ShouldExtendConnector(groupOutputDesignIn, groupOutputIn, group),
                 leafInputDesignOut => ShouldExtendConnector(leafInputDesignOut, leafInputOut, leaf),
                 groupLeafOutputDesignOut => ShouldExtendConnector(groupLeafOutputDesignOut, groupLeafOutputOut, leaf),
                 groupLeafInputDesignIn => ShouldExtendConnector(groupLeafInputDesignIn, groupLeafInputIn, leaf),
@@ -1520,17 +1640,19 @@ public class DataPortTransformerFacts
                 leafOutputDesignIn => ShouldExtendConnector(leafOutputDesignIn, leafOutputIn, leaf));
 
             transformation.IncomingLinks.Should().SatisfyRespectively(
+                groupLink => ShouldRepresentExternalLink(groupLink, group, groupInputIn),
                 groupLeafLink => ShouldRepresentExternalLink(groupLeafLink, leaf, groupLeafInputIn),
                 leafLink => ShouldRepresentExternalLink(leafLink, leaf, leafInputIn));
             transformation.OutgoingLinks.Should().SatisfyRespectively(
+                groupLink => ShouldRepresentExternalLink(groupLink, groupOutputOut),
                 groupLeafLink => ShouldRepresentExternalLink(groupLeafLink, groupLeafOutputOut),
                 leafLink => ShouldRepresentExternalLink(leafLink, leafOutputOut));
 
             transformation.IncomingNodes.Should().SatisfyRespectively(
-                groupNode => ShouldRepresentExternalCommunicationNode(groupNode, group, [groupLeafInputIn,], valueType: _valueType),
+                groupNode => ShouldRepresentExternalCommunicationNode(groupNode, group, [groupInputIn, groupLeafInputIn,], [groupInputIn,], _valueType),
                 leafNode => ShouldRepresentExternalCommunicationNode(leafNode, leaf, group, [leafInputIn,], [groupLeafInputIn, leafInputIn,], _valueType));
             transformation.OutgoingNodes.Should().SatisfyRespectively(
-                groupNode => ShouldRepresentExternalCommunicationNode(groupNode, group, [groupLeafOutputOut,], valueType: _valueType),
+                groupNode => ShouldRepresentExternalCommunicationNode(groupNode, group, [groupOutputOut, groupLeafOutputOut,], [groupOutputOut,], _valueType),
                 leafNode => ShouldRepresentExternalCommunicationNode(leafNode, leaf, group, [leafOutputOut,], [groupLeafOutputOut, leafOutputOut,], _valueType));
         }
 
@@ -1550,42 +1672,55 @@ public class DataPortTransformerFacts
 
             var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
 
-            var leafInput = transformation.FunctionBlock.ProcessDataInputs.Should().ContainSingle().Subject;
+            transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
+            var groupInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
+            ShouldRepresentNode(groupInput, group, DataPortDirection.Out);
+            ShouldHaveLinkFrom(_sourceConnector, groupInput);
+            var leafInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(1);
             ShouldRepresentNode(leafInput, leaf, DataPortDirection.Out);
             ShouldHaveLinkFrom(_sourceConnector, leafInput);
 
-            transformation.FunctionBlock.ProcessDataOutputs.Should().HaveCount(2);
-            var groupLeafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(0);
+            transformation.FunctionBlock.ProcessDataOutputs.Should().HaveCount(3);
+            var groupOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(0);
+            ShouldRepresentNode(groupOutput, group, DataPortDirection.Out);
+            ShouldHaveNoLinks(groupOutput);
+            var groupLeafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(1);
             ShouldRepresentNode(groupLeafOutput, leaf, DataPortDirection.Out, $"{group.Name}_1_{leaf.Name}");
             ShouldHaveNoLinks(groupLeafOutput);
-            var leafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(1);
+            var leafOutput = transformation.FunctionBlock.ProcessDataOutputs.ElementAt(2);
             ShouldRepresentNode(leafOutput, leaf, DataPortDirection.Out);
             ShouldHaveNoLinks(leafOutput);
 
             transformation.FunctionBlock.Settings.Should().SatisfyRespectively(
                 nodeLinks => nodeLinks.Value.Should().BeOfType<List<NodeLink>>().Which.Should().SatisfyRespectively(
+                    groupNodeLink => ShouldRepresentNodeLink(groupNodeLink, groupInput, groupOutput),
                     groupLeafNodeLink => ShouldRepresentNodeLink(groupLeafNodeLink, leafInput, groupLeafOutput),
                     leafNodeLink => ShouldRepresentNodeLink(leafNodeLink, leafInput, leafOutput)),
                 outputPoolings => outputPoolings.Value.Should().BeOfType<Dictionary<Guid, OutputConfiguration>>().Which.Should().SatisfyRespectively(
+                    groupOutputPooling => ShouldRepresentOutputConfiguration<SumPooling>(groupOutputPooling, groupOutput),
                     groupLeafOutputPooling => ShouldRepresentOutputConfiguration(groupLeafOutputPooling, groupLeafOutput),
                     leafOutputPooling => ShouldRepresentOutputConfiguration(leafOutputPooling, leafOutput)),
                 transferModes => transferModes.Value.Should().BeOfType<Dictionary<Guid, ITransferMode>>().Which.Should().SatisfyRespectively(
+                    groupTransferMode => ShouldRepresentTransferMode(groupTransferMode, groupOutput, 50.Milliseconds()),
                     groupLeafTransferMode => ShouldRepresentTransferMode(groupLeafTransferMode, groupLeafOutput, 50.Milliseconds()),
                     leafTransferMode => ShouldRepresentTransferMode<OnChangedTransferMode>(leafTransferMode, leafOutput)));
 
             transformation.AdditionalConnectorDesigns.Should().SatisfyRespectively(
+                groupInputDesign => ShouldExtendConnector(groupInputDesign, groupInput, group),
+                groupOutputDesign => ShouldExtendConnector(groupOutputDesign, groupOutput, group),
                 leafInputDesign => ShouldExtendConnector(leafInputDesign, leafInput, leaf),
                 groupLeafOutputDesign => ShouldExtendConnector(groupLeafOutputDesign, groupLeafOutput, leaf),
                 leafOutputDesign => ShouldExtendConnector(leafOutputDesign, leafOutput, leaf));
 
             transformation.IncomingLinks.Should().BeEmpty();
             transformation.OutgoingLinks.Should().SatisfyRespectively(
+                groupLink => ShouldRepresentExternalLink(groupLink, groupOutput),
                 groupLeafLink => ShouldRepresentExternalLink(groupLeafLink, groupLeafOutput),
                 leafLink => ShouldRepresentExternalLink(leafLink, leafOutput));
 
             transformation.IncomingNodes.Should().BeEmpty();
             transformation.OutgoingNodes.Should().SatisfyRespectively(
-                groupNode => ShouldRepresentExternalCommunicationNode(groupNode, group, [groupLeafOutput,], valueType: _valueType),
+                groupNode => ShouldRepresentExternalCommunicationNode(groupNode, group, [groupOutput, groupLeafOutput,], [groupOutput,], _valueType),
                 leafNode => ShouldRepresentExternalCommunicationNode(leafNode, leaf, group, [leafOutput,], [groupLeafOutput, leafOutput,], _valueType));
         }
 
@@ -1848,5 +1983,320 @@ public class DataPortTransformerFacts
             transformation.IncomingNodes.Should().BeEmpty();
             transformation.OutgoingNodes.Should().BeEmpty();
         }
+    }
+
+    public sealed class TransformToFunctionBlock_EnvelopeChildren : IDisposable
+    {
+        private const string FolderDesignId = "Folder";
+        private const string DataPointFloatDesignId = "DataPointFloat";
+        private const string DataPointBinaryDesignId = "DataPointBinary";
+        private const string UserPropertyDesignId = "UserProperty";
+        private const string TimestampDesignId = "Timestamp";
+        private const string ValidityDesignId = "Validity";
+        private const string EngineCycleDesignId = "EngineCycle";
+        private const string OutboundFolderDesignId = "OutboundFolder";
+        private const string DataPointStringDesignId = "DataPointString";
+
+        private readonly ClusterBuilder _builder;
+        private readonly ISuiteRulesetProvider _rulesetProvider;
+        private readonly FunctionBlock _dataflowFunctionBlock;
+
+        public TransformToFunctionBlock_EnvelopeChildren()
+        {
+            var dataflowFunctionBlockDesign = FunctionBlockDesignBuilder.Create(name: "Dataflow");
+            dataflowFunctionBlockDesign.AddOutput<double>(name: "pressure");
+            dataflowFunctionBlockDesign.AddOutput<DateTime>(name: "timestamp");
+            dataflowFunctionBlockDesign.AddOutput<string>(name: "batchId");
+            dataflowFunctionBlockDesign.AddOutput<byte[]>(name: "image");
+            dataflowFunctionBlockDesign.AddOutput<bool>(name: "valid");
+            dataflowFunctionBlockDesign.AddOutput<long>(name: "cycle");
+            dataflowFunctionBlockDesign.AddInput<double>(name: "pressure");
+            dataflowFunctionBlockDesign.AddInput<DateTime>(name: "timestamp");
+            dataflowFunctionBlockDesign.AddInput<string>(name: "batchId");
+            dataflowFunctionBlockDesign.AddInput<byte[]>(name: "image");
+            dataflowFunctionBlockDesign.AddInput<long>(name: "cycle");
+
+            var dataPortFunctionBlockDesign = FunctionBlockDesignBuilder.CreateDataPortFunctionBlockDesign();
+
+            _builder = new(new ClusterDependencyResolver(ClusterDependencyPackageFactory.CreateDependencyDesigns([dataPortFunctionBlockDesign, dataflowFunctionBlockDesign,])));
+            _builder.Editors.FunctionBlockDesign.AddFunctionBlockDesign(dataPortFunctionBlockDesign.Id);
+            _builder.Editors.FunctionBlockDesign.AddFunctionBlockDesign(dataflowFunctionBlockDesign.Id);
+
+            _rulesetProvider = Substitute.For<ISuiteRulesetProvider>();
+            _rulesetProvider.GetRuleset(Arg.Any<string>()).Returns(RulesetFactory.CreateTestRulesetMqttWithEnvelopeChildren());
+
+            _dataflowFunctionBlock = _builder.Editors.Container.AddFunctionBlock(_builder.Cluster.Dataflows.First().Root, dataflowFunctionBlockDesign.Id);
+        }
+
+        public void Dispose() => _builder.Dispose();
+
+        [Fact]
+        public void Parent_keeps_its_own_channel_and_transfers_the_channels_of_its_children()
+        {
+            var dataPort = CreateDataPort(DataPortDirection.Out);
+            var (pressure, timestamp, batchId) = AddPressureWithChildren(dataPort, DataPortTransferMode.OnChange);
+            WriteFromDataflow(pressure, "pressure");
+            WriteFromDataflow(timestamp, "timestamp");
+            WriteFromDataflow(batchId, "batchId");
+
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+
+            transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(3);
+            transformation.FunctionBlock.ProcessDataOutputs.Should().HaveCount(3);
+            var pressureNode = transformation.OutgoingNodes.Single(n => n.Id == pressure.Id);
+            var timestampNode = transformation.OutgoingNodes.Single(n => n.Id == timestamp.Id);
+            var batchIdNode = transformation.OutgoingNodes.Single(n => n.Id == batchId.Id);
+            pressureNode.AffectedChannels.Should().ContainSingle();
+            pressureNode.TransferredChannels.Should().BeEquivalentTo([.. pressureNode.AffectedChannels, .. timestampNode.AffectedChannels, .. batchIdNode.AffectedChannels,]);
+            timestampNode.AffectedChannels.Should().ContainSingle();
+            timestampNode.TransferredChannels.Should().BeEmpty();
+            batchIdNode.AffectedChannels.Should().ContainSingle();
+            batchIdNode.TransferredChannels.Should().BeEmpty();
+            transformation.OutgoingLinks.Select(l => l.ConnectorId.ToString()).Should().BeEquivalentTo(pressureNode.TransferredChannels);
+        }
+
+        [Fact]
+        public void Children_transfer_with_the_mode_of_the_parent()
+        {
+            var dataPort = CreateDataPort(DataPortDirection.Out);
+            var (pressure, timestamp, batchId) = AddPressureWithChildren(dataPort, DataPortTransferMode.Periodic, transferIntervalInMs: 500);
+            WriteFromDataflow(pressure, "pressure");
+            WriteFromDataflow(timestamp, "timestamp");
+            WriteFromDataflow(batchId, "batchId");
+
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+
+            var pressureNode = transformation.OutgoingNodes.Single(n => n.Id == pressure.Id);
+            var transferModes = GetTransferModes(transformation);
+            transferModes.Keys.Select(k => k.ToString()).Should().BeEquivalentTo(pressureNode.TransferredChannels);
+            transferModes.Values.Should().AllSatisfy(mode => mode.Should().BeOfType<PeriodicTransferMode>().Which.Interval.Should().Be(500.Milliseconds()));
+        }
+
+        [Fact]
+        public void Children_of_an_incoming_parent_get_their_own_channel_the_same_way()
+        {
+            var dataPort = CreateDataPort(DataPortDirection.In);
+            var (pressure, _, batchId) = AddPressureWithChildren(dataPort, DataPortTransferMode.OnChange);
+            ReadIntoDataflow(pressure, "pressure");
+            ReadIntoDataflow(batchId, "batchId");
+
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+
+            var pressureNode = transformation.IncomingNodes.Single(n => n.Id == pressure.Id);
+            var batchIdNode = transformation.IncomingNodes.Single(n => n.Id == batchId.Id);
+            pressureNode.AffectedChannels.Should().ContainSingle();
+            pressureNode.TransferredChannels.Should().BeEquivalentTo([.. pressureNode.AffectedChannels, .. batchIdNode.AffectedChannels,]);
+            batchIdNode.TransferredChannels.Should().BeEmpty();
+            transformation.IncomingLinks.Select(l => l.ConnectorId.ToString()).Should().BeEquivalentTo(pressureNode.TransferredChannels);
+        }
+
+        [Fact]
+        public void Fails_if_a_child_is_read_by_the_dataflow_but_the_parent_type_only_transfers_outbound()
+        {
+            var dataPort = CreateDataPort(DataPortDirection.InOut);
+            var image = AddChild(AddRootFolder(dataPort), DataPointBinaryDesignId, "image", typeof(byte[]), DataPortTransferMode.OnChange);
+            var batchId = AddChild(image, UserPropertyDesignId, "batchId", typeof(string));
+            WriteFromDataflow(image, "image");
+            ReadIntoDataflow(batchId, "batchId");
+
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+
+            act.Should().Throw<InvalidOperationException>().WithMessage("*batchId*read*DataPointBinary*image*Outbound*");
+        }
+
+        [Fact]
+        public void Fails_if_a_node_is_read_by_the_dataflow_but_its_own_type_only_transfers_outbound()
+        {
+            var dataPort = CreateDataPort(DataPortDirection.InOut);
+            var image = AddChild(AddRootFolder(dataPort), DataPointBinaryDesignId, "image", typeof(byte[]), DataPortTransferMode.OnChange);
+            ReadIntoDataflow(image, "image");
+
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+
+            act.Should().Throw<InvalidOperationException>().WithMessage("*image*read*DataPointBinary*Outbound*");
+        }
+
+        [Fact]
+        public void Fails_if_a_node_declaring_both_directions_is_read_by_the_dataflow_under_an_ancestor_type_that_only_transfers_outbound()
+        {
+            var dataPort = CreateDataPort(DataPortDirection.InOut);
+            var outboundFolder = AddChild(AddRootFolder(dataPort), OutboundFolderDesignId, "outbound");
+            var batchId = AddChild(outboundFolder, DataPointStringDesignId, "batchId", typeof(string), DataPortTransferMode.OnChange);
+            ReadIntoDataflow(batchId, "batchId");
+
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+
+            act.Should().Throw<InvalidOperationException>().WithMessage("*batchId*read*DataPointString*Outbound*");
+        }
+
+        [Fact]
+        public void Deploys_a_node_declaring_both_directions_written_from_the_dataflow_under_an_ancestor_type_that_only_transfers_outbound()
+        {
+            var dataPort = CreateDataPort(DataPortDirection.InOut);
+            var outboundFolder = AddChild(AddRootFolder(dataPort), OutboundFolderDesignId, "outbound");
+            var batchId = AddChild(outboundFolder, DataPointStringDesignId, "batchId", typeof(string), DataPortTransferMode.OnChange);
+            WriteFromDataflow(batchId, "batchId");
+
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+
+            transformation.OutgoingLinks.Should().ContainSingle();
+        }
+
+        [Fact]
+        public void Fails_if_a_child_whose_type_only_transfers_outbound_is_read_by_the_dataflow()
+        {
+            var dataPort = CreateDataPort(DataPortDirection.In);
+            var pressure = AddChild(AddRootFolder(dataPort), DataPointFloatDesignId, "pressure", typeof(double), DataPortTransferMode.OnChange);
+            var engineCycle = AddChild(pressure, EngineCycleDesignId, "cycle", typeof(long));
+            ReadIntoDataflow(pressure, "pressure");
+            ReadIntoDataflow(engineCycle, "cycle");
+
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+
+            act.Should().Throw<InvalidOperationException>().WithMessage("*cycle*read*EngineCycle*Outbound*");
+        }
+
+        [Fact]
+        public void Fails_if_a_child_that_may_never_be_linked_is_written_from_the_dataflow()
+        {
+            var dataPort = CreateDataPort(DataPortDirection.Out);
+            var pressure = AddChild(AddRootFolder(dataPort), DataPointFloatDesignId, "pressure", typeof(double), DataPortTransferMode.OnChange);
+            var engineCycle = AddChild(pressure, EngineCycleDesignId, "cycle", typeof(long));
+            WriteFromDataflow(pressure, "pressure");
+            WriteFromDataflow(engineCycle, "cycle");
+
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+
+            act.Should().Throw<InvalidOperationException>().WithMessage("*cycle*written*EngineCycle*may not be linked outbound*DataPointFloat*");
+        }
+
+        [Fact]
+        public void Fails_if_a_node_without_declared_directions_is_written_from_the_dataflow_but_the_data_port_type_only_transfers_inbound()
+        {
+            _rulesetProvider.GetRuleset(Arg.Any<string>()).Returns(RulesetFactory.CreateTestRulesetMqttInboundOnly());
+            var dataPort = CreateDataPort(DataPortDirection.InOut);
+            var pressure = AddChild(AddRootFolder(dataPort), DataPointFloatDesignId, "pressure", typeof(double), DataPortTransferMode.OnChange);
+            WriteFromDataflow(pressure, "pressure");
+
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+
+            act.Should().Throw<InvalidOperationException>().WithMessage("*pressure*written*MQTT-Broker*DataPort*Inbound*");
+        }
+
+        [Fact]
+        public void Deploys_a_child_written_from_the_dataflow_if_the_parent_type_only_transfers_outbound()
+        {
+            var dataPort = CreateDataPort(DataPortDirection.InOut);
+            var image = AddChild(AddRootFolder(dataPort), DataPointBinaryDesignId, "image", typeof(byte[]), DataPortTransferMode.OnChange);
+            var batchId = AddChild(image, UserPropertyDesignId, "batchId", typeof(string));
+            WriteFromDataflow(image, "image");
+            WriteFromDataflow(batchId, "batchId");
+
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+
+            transformation.OutgoingLinks.Should().HaveCount(2);
+        }
+
+        /// <summary>
+        /// A predefined envelope child - one the ruleset gives an empty LinkDirections list -
+        /// travels inside its parent's message but must never be linked, no matter how the
+        /// cluster reached deployment.
+        /// </summary>
+        [Fact]
+        public void Fails_if_a_predefined_child_is_written_from_the_dataflow()
+        {
+            var dataPort = CreateDataPort(DataPortDirection.Out);
+            var pressure = AddChild(AddRootFolder(dataPort), DataPointFloatDesignId, "pressure", typeof(double), DataPortTransferMode.OnChange);
+            var validity = AddChild(pressure, ValidityDesignId, "valid", typeof(bool));
+            WriteFromDataflow(pressure, "pressure");
+            WriteFromDataflow(validity, "valid");
+
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+
+            act.Should().Throw<InvalidOperationException>().WithMessage("*valid*written*Validity*may not be linked outbound*DataPointFloat*");
+        }
+
+        /// <summary>
+        /// A `Timestamp` names one direction in its `LinkDirections`: inbound it publishes the
+        /// timestamp the received message carries, outbound the DataPort always sends the one
+        /// belonging to the parent value, so there is nothing to link against.
+        /// </summary>
+        [Fact]
+        public void Deploys_a_child_read_into_the_dataflow_that_may_only_be_linked_inbound()
+        {
+            var dataPort = CreateDataPort(DataPortDirection.In);
+            var pressure = AddChild(AddRootFolder(dataPort), DataPointFloatDesignId, "pressure", typeof(double), DataPortTransferMode.OnChange);
+            var timestamp = AddChild(pressure, TimestampDesignId, "Timestamp", typeof(DateTime));
+            ReadIntoDataflow(pressure, "pressure");
+            ReadIntoDataflow(timestamp, "timestamp");
+
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+
+            transformation.IncomingLinks.Should().HaveCount(2);
+        }
+
+        [Fact]
+        public void Fails_if_a_child_that_may_only_be_linked_inbound_is_written_from_the_dataflow()
+        {
+            var dataPort = CreateDataPort(DataPortDirection.Out);
+            var pressure = AddChild(AddRootFolder(dataPort), DataPointFloatDesignId, "pressure", typeof(double), DataPortTransferMode.OnChange);
+            var timestamp = AddChild(pressure, TimestampDesignId, "Timestamp", typeof(DateTime));
+            WriteFromDataflow(pressure, "pressure");
+            WriteFromDataflow(timestamp, "timestamp");
+
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+
+            act.Should().Throw<InvalidOperationException>().WithMessage("*Timestamp*written*may not be linked outbound*DataPointFloat*");
+        }
+
+        [Fact]
+        public void Deploys_a_linkable_child_written_from_the_dataflow()
+        {
+            var dataPort = CreateDataPort(DataPortDirection.Out);
+            var pressure = AddChild(AddRootFolder(dataPort), DataPointFloatDesignId, "pressure", typeof(double), DataPortTransferMode.OnChange);
+            var batchId = AddChild(pressure, UserPropertyDesignId, "batchId", typeof(string));
+            WriteFromDataflow(pressure, "pressure");
+            WriteFromDataflow(batchId, "batchId");
+
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+
+            transformation.OutgoingLinks.Should().HaveCount(2);
+        }
+
+        private DataPort CreateDataPort(DataPortDirection direction)
+        {
+            var engine = _builder.CreateTopologyToEngine("engine");
+            var dataPort = _builder.Editors.Dataflow.AddDataPort(_builder.Cluster.Dataflows.First(), Constants.MqttDataPortDesignId, "dataPort", direction, Constants.MqttRuleSetId);
+            _builder.Editors.DataPort.AssignEngine(engine, dataPort);
+            return dataPort;
+        }
+
+        private (DataPortTreeNode Pressure, DataPortTreeNode Timestamp, DataPortTreeNode BatchId) AddPressureWithChildren(
+            DataPort dataPort, DataPortTransferMode transferMode, uint? transferIntervalInMs = default)
+        {
+            var pressure = AddChild(AddRootFolder(dataPort), DataPointFloatDesignId, "pressure", typeof(double), transferMode);
+            if (transferIntervalInMs.HasValue)
+                _builder.Editors.DataPortTreeNode.SetTransferIntervalInMs(pressure, transferIntervalInMs.Value);
+            var timestamp = AddChild(pressure, UserPropertyDesignId, "timestamp", typeof(DateTime));
+            var batchId = AddChild(pressure, UserPropertyDesignId, "batchId", typeof(string));
+            return (pressure, timestamp, batchId);
+        }
+
+        private DataPortTreeNode AddRootFolder(DataPort dataPort)
+            => _builder.Editors.DataPort.AddTreeNode(FolderDesignId, dataPort, "Folder", null, DataPortTransferMode.None);
+
+        private DataPortTreeNode AddChild(DataPortTreeNode parent, string designId, string name, Type? valueType = default,
+            DataPortTransferMode transferMode = DataPortTransferMode.None)
+            => _builder.Editors.DataPortTreeNode.AddTreeNode(designId, parent, name, valueType, transferMode);
+
+        private void WriteFromDataflow(DataPortTreeNode node, string outputName)
+            => _builder.Editors.DataPortTreeNode.AssignConnector(node, _dataflowFunctionBlock.ProcessDataOutputs.Single(o => o.Name == outputName));
+
+        private void ReadIntoDataflow(DataPortTreeNode node, string inputName)
+            => _builder.Editors.DataPortTreeNode.AssignConnector(node, _dataflowFunctionBlock.ProcessDataInputs.Single(i => i.Name == inputName));
+
+        private static Dictionary<Guid, ITransferMode> GetTransferModes(DataPortTransformation transformation)
+            => transformation.FunctionBlock.Settings.Single(s => s.DesignId == DataPortTransformer.TransferModesSettingId).Value
+                .Should().BeOfType<Dictionary<Guid, ITransferMode>>().Subject;
     }
 }
