@@ -123,7 +123,7 @@ include:
       rules: *rules
       no_build: false
       filter: "/[(Category!=System)]"
-      coverage: true
+      coverage: false
       config_file: tests/testconfig.json
       before_script:
         - *activate_mise
