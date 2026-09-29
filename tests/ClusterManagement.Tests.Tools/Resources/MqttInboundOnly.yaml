@@ -4,7 +4,7 @@ Common:
   Version      : 2.0.0
   Date         : 2026-09-25
   Description  : "MQTT DataPort whose broker only transfers inbound"
-  Author       : "ifm software gmbh"
+  Author       : "ViciOne open automation gmbh"
   MetadataType : YAML
   Namespace    : "ViciOne.DataPort.Mqtt"
 
