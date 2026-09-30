@@ -1,4 +1,4 @@
-﻿using ClusterManagement.Client.Editor.ControlPanels.Packages.Models;
+using ClusterManagement.Client.Editor.ControlPanels.Packages.Models;
 using ClusterManagement.Internal.Commands;
 using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Internal.Events;
@@ -44,9 +44,9 @@ internal class PackageService : CompletionSourceHandlerBase<IPackageServiceResul
         return response.PackageInfos;
     }
 
-    public async Task<IPackageServiceResult> UploadPackage(byte[] data, CancellationToken cancellationToken = default)
+    public async Task<IPackageServiceResult> UploadPackage(string filename, CancellationToken cancellationToken = default)
     {
-        var command = new AddClusterPackage(data);
+        var command = new AddClusterPackage(filename);
 
         return await SendAndWaitForCompletion(command, cancellationToken);
     }

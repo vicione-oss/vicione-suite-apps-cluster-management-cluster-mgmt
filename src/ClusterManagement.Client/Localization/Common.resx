@@ -120,9 +120,6 @@
   <data name="Upload" xml:space="preserve">
     <value>Upload</value>
   </data>
-  <data name="UploadOnlySingleFile" xml:space="preserve">
-    <value>Only one file can be uploaded at a time.</value>
-  </data>
   <data name="UploadFailed" xml:space="preserve">
     <value>Something is wrong with the archive.</value>
   </data>
@@ -134,9 +131,6 @@
   </data>
   <data name="FileTypeMissmatch" xml:space="preserve">
     <value>The file must be a zip archive.</value>
-  </data>
-  <data name="MaxFileSizeReached" xml:space="preserve">
-    <value>The file size is limited to 2MB.</value>
   </data>
   <data name="ShowDetails" xml:space="preserve">
     <value>Show details</value>

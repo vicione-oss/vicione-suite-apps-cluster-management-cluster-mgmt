@@ -1,0 +1,28 @@
+// Makes a SettingsFieldFileUpload (ViciOne.Suite.Sdk.Client) look like a GridActionButton (ViciOne.Ui.Blazor.Components),
+// so it fits into the action buttons of a grid. Include it in the rule targeting `.settings-field-file-upload`.
+//
+// The values are copied from the GridActionButton styles of ViciOne.Ui.Blazor.Components 6.1.1, and the rules depend on the
+// internal `.button` and `.icon` classes of its Button component. Re-check both after updating these packages.
+@mixin file-upload-as-grid-action-button() {
+    // the upload field fills its row by default (width: 100%), which pushes the other action buttons out
+    width: auto;
+
+    .button {
+        border-width: 0;
+        font-weight: 200;
+        grid-template-columns: auto minmax(0px, 1fr);
+        transition: color .3s ease-in-out, background-color .3s ease-in-out, opacity .3s ease-in-out;
+
+        .icon {
+            width: 24px;
+            height: 24px;
+            margin-left: 0;
+        }
+
+        &:not(:disabled):hover,
+        &:focus {
+            color: #fff;
+            background-color: rgba(255, 255, 255, .05);
+        }
+    }
+}

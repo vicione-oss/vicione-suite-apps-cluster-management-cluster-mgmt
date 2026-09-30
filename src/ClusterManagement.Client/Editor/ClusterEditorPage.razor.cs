@@ -1,4 +1,4 @@
-﻿using ClusterManagement.Client.Editor.Extensions;
+using ClusterManagement.Client.Editor.Extensions;
 using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Client.Editor.Wizards.Services;
 using ClusterManagement.Internal.Contracts;
@@ -134,15 +134,6 @@ public sealed partial class ClusterEditorPage
 
     private async Task Editor_ImportRequested()
         => await WizardDialogService.OpenDialog<ImportWizardService>(_builder);
-
-    // TODO: we need a better way to handle external changes. Currently we just reload the latest version on any change, but this can lead to data loss if there are unsaved changes.
-    // We should at least show a confirmation dialog if there are unsaved changes and only reload if the user confirms.
-    //private async void SaveService_ClusterChanged(object? sender, ClusterChanged change)
-    //{
-    //    LogLoadTriggered(Logger, change.Action);
-
-    //    await LoadService.TryLoadLatestVersion();
-    //}
 
     private void SaveService_ClusterSynchronized() => _hasUnsavedChanges = false;
 

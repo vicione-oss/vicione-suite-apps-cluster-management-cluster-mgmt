@@ -1,8 +1,9 @@
-﻿using System.IO.Abstractions;
+using System.IO.Abstractions;
 using System.IO.Compression;
 using ClusterManagement.Backend.Designs.Consumers;
 using ClusterManagement.Backend.Designs.Extensions;
 using ClusterManagement.Internal.Contracts;
+using ClusterManagement.Internal.Events;
 using Microsoft.Extensions.Logging;
 using Sdk.Backend.Modules;
 using ViciOne.Cluster.Model;
@@ -15,12 +16,14 @@ internal sealed partial class PackageStore(
     IClusterDependencyStore dependencyStore,
     ILogger<PackageStore> logger) : IPackageStore
 {
-    public async Task<ClusterDependency> StorePackage(byte[] zipArchive, bool overwrite = true, CancellationToken cancellationToken = default)
+    public async Task<ClusterDependency> StorePackage(string filePath, bool overwrite = true, CancellationToken cancellationToken = default)
     {
-        using var memoryStream = new MemoryStream(zipArchive);
-        using var archive = new ZipArchive(memoryStream, ZipArchiveMode.Read);
+        using var stream = fileSystem.File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var archive = OpenPackageArchive(stream);
 
         var (packageName, packageVersion) = await VerifyPackageArchive(archive, cancellationToken);
+
+        await VerifyPackageVersionNotInstalled(packageName, packageVersion, cancellationToken);
 
         ExtractPackageArchive(archive, packageName, packageVersion);
 
@@ -39,10 +42,32 @@ internal sealed partial class PackageStore(
         return clusterDependency;
     }
 
+    private static ZipArchive OpenPackageArchive(Stream stream)
+    {
+        ZipArchive archive;
+
+        try
+        {
+            archive = new ZipArchive(stream, ZipArchiveMode.Read);
+        }
+        catch (InvalidDataException ex)
+        {
+            throw new PackageValidationException(ClusterPackageChanged.NotAZipArchive, "The provided package file is not a zip archive.", ex);
+        }
+
+        if (archive.Entries.Count == 0)
+        {
+            archive.Dispose();
+            throw new PackageValidationException(ClusterPackageChanged.EmptyArchive, "The provided package archive does not contain any files.");
+        }
+
+        return archive;
+    }
+
     private async Task<(string Name, string Version)> VerifyPackageArchive(ZipArchive packageArchive, CancellationToken cancellationToken)
     {
         var depsJsonEntry = packageArchive.Entries.FirstOrDefault(e => e.Name.EndsWith("deps.json", StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidOperationException("The provided package archive does not contain a deps.json file.");
+            ?? throw new PackageValidationException(ClusterPackageChanged.InvalidPackageContent, "The provided package archive does not contain a deps.json file.");
 
         // We could add validation of core version etc.
         var packageName = depsJsonEntry.Name.Replace(".deps.json", "", StringComparison.OrdinalIgnoreCase);
@@ -57,7 +82,7 @@ internal sealed partial class PackageStore(
     private async Task VerifyPackageDll(ZipArchive packageArchive, string packageName, CancellationToken cancellationToken)
     {
         var dllEntry = packageArchive.Entries.FirstOrDefault(e => e.Name.Equals($"{packageName}.dll", StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidOperationException($"The provided package archive does not contain the required '{packageName}.dll' file.");
+            ?? throw new PackageValidationException(ClusterPackageChanged.InvalidPackageContent, $"The provided package archive does not contain the required '{packageName}.dll' file.");
 
         try
         {
@@ -79,30 +104,172 @@ internal sealed partial class PackageStore(
         }
     }
 
+    /// <summary>
+    /// An installed version is loaded by the engine hosts from the dependencies directory, so it must not be replaced.
+    /// A version that was only uploaded (and not yet installed by a restart) can be replaced.
+    /// </summary>
+    private async Task VerifyPackageVersionNotInstalled(string packageName, string packageVersion, CancellationToken cancellationToken)
+    {
+        var dependencies = await dependencyStore.LoadDependencies(cancellationToken);
+
+        if (dependencies.Any(k => k.Name == packageName && k.Version.ToString() == packageVersion))
+            throw new PackageValidationException(ClusterPackageChanged.PackageVersionInUse,
+                $"The package '{packageName}' version '{packageVersion}' is installed and cannot be replaced.");
+    }
+
+    /// <summary>
+    /// Extracts the package into a staging directory first and swaps it into the dependencies directory only once
+    /// extraction has succeeded, so a failed extraction never touches an existing version.
+    /// </summary>
     private void ExtractPackageArchive(ZipArchive packageArchive, string packageName, string packageVersion)
     {
         var dependenciesPath = fileSystem.GetDependenciesPath(workspaceProvider);
         var packageDestinationPath = fileSystem.Path.Combine(dependenciesPath, packageName, packageVersion);
 
-        // Package already exists we assume it's not a productive system
-        if (fileSystem.Directory.Exists(packageDestinationPath))
+        // The staging directory is on the same volume as the dependencies directory, so the swap below is a rename.
+        var stagingPath = fileSystem.Path.Combine(fileSystem.GetPackageStagingPath(workspaceProvider), Guid.NewGuid().ToString("N"));
+
+        logger.LogPackageUpload(packageName, packageVersion, packageDestinationPath);
+
+        try
         {
-            // What if the package is still in use by engine host?
-            // EH probably is able to continue with previous version loaded into memory
-            // If the FB is not loaded yet, but requested afterwards by LoadContext it will be a problem
-            logger.LogPackageRemovingWarning(packageName, packageDestinationPath);
-            fileSystem.Directory.Delete(packageDestinationPath, true);
+            fileSystem.Directory.CreateDirectory(stagingPath);
+            packageArchive.ExtractToDirectory(stagingPath);
+        }
+        catch (Exception ex)
+        {
+            TryDeleteDirectory(stagingPath);
+
+            // A damaged entry (e.g. truncated upload) cannot be fixed by a retry.
+            if (ex is InvalidDataException)
+                throw new PackageValidationException(ClusterPackageChanged.CorruptArchive, $"The provided package archive of '{packageName}' is damaged and could not be extracted.", ex);
+
+            throw;
         }
 
-        // Extract package to our packages folder. It won't be loaded from there until we add it to our dependency store.
-        logger.LogPackageUpload(packageName, packageVersion, packageDestinationPath);
-        fileSystem.Directory.CreateDirectory(packageDestinationPath);
-        packageArchive.ExtractToDirectory(packageDestinationPath);
+        // It won't be loaded from the dependencies directory until we add it to our dependency store.
+        string? replacedPackagePath;
+
+        try
+        {
+            replacedPackagePath = MoveAsideExistingPackage(packageName, packageDestinationPath);
+        }
+        catch
+        {
+            TryDeleteDirectory(stagingPath);
+            throw;
+        }
+
+        try
+        {
+            fileSystem.Directory.CreateDirectory(fileSystem.Path.Combine(dependenciesPath, packageName));
+            fileSystem.Directory.Move(stagingPath, packageDestinationPath);
+        }
+        catch
+        {
+            if (replacedPackagePath is not null)
+                TryRestoreReplacedPackage(packageName, replacedPackagePath, packageDestinationPath);
+
+            TryDeleteDirectory(stagingPath);
+            throw;
+        }
+
+        if (replacedPackagePath is not null)
+            TryDeleteDirectory(replacedPackagePath);
+    }
+
+    /// <summary>
+    /// Moves an existing package version out of the dependencies directory, so it can be restored if the new one can't be moved in.
+    /// </summary>
+    /// <returns>The path the existing version was moved to, or <see langword="null"/> if there was none.</returns>
+    private string? MoveAsideExistingPackage(string packageName, string packageDestinationPath)
+    {
+        if (!fileSystem.Directory.Exists(packageDestinationPath))
+            return null;
+
+        var replacedDependenciesPath = fileSystem.GetReplacedDependenciesPath(workspaceProvider);
+        var replacedPackagePath = fileSystem.Path.Combine(replacedDependenciesPath, Guid.NewGuid().ToString("N"));
+
+        logger.LogPackageReplacing(packageName, packageDestinationPath, replacedPackagePath);
+
+        fileSystem.Directory.CreateDirectory(replacedDependenciesPath);
+        fileSystem.Directory.Move(packageDestinationPath, replacedPackagePath);
+
+        return replacedPackagePath;
+    }
+
+    private void TryRestoreReplacedPackage(string packageName, string replacedPackagePath, string packageDestinationPath)
+    {
+        try
+        {
+            logger.LogReplacedPackageRestore(packageName, packageDestinationPath);
+            fileSystem.Directory.Move(replacedPackagePath, packageDestinationPath);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Keep the original exception, it tells why the new version could not be put in place.
+            logger.LogReplacedPackageRestoreFailure(ex, packageName, replacedPackagePath);
+        }
+    }
+
+    private void TryDeleteDirectory(string path)
+    {
+        try
+        {
+            if (fileSystem.Directory.Exists(path))
+                fileSystem.Directory.Delete(path, true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // A leftover outside of the dependencies directory does no harm, it is removed on the next start.
+            logger.LogPackageDirectoryDeleteFailure(ex, path);
+        }
+    }
+
+    public void CleanupLeftovers(TimeSpan uploadedPackageMaxAge)
+    {
+        TryDeleteDirectory(fileSystem.GetReplacedDependenciesPath(workspaceProvider));
+        TryDeleteDirectory(fileSystem.GetPackageStagingPath(workspaceProvider));
+
+        // Archives whose AddClusterPackage was never consumed (e.g. circuit gone, backend down).
+        // Recent ones are kept, the client may still be writing or about to send them.
+        var uploadPath = fileSystem.GetUploadedPackagesPath(workspaceProvider);
+        if (!fileSystem.Directory.Exists(uploadPath))
+            return;
+
+        var threshold = DateTime.UtcNow - uploadedPackageMaxAge;
+        string[] files;
+
+        try
+        {
+            files = fileSystem.Directory.GetFiles(uploadPath);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.LogUploadedPackageDeleteFailure(ex, uploadPath);
+            return;
+        }
+
+        foreach (var file in files)
+        {
+            try
+            {
+                if (fileSystem.File.GetLastWriteTimeUtc(file) < threshold)
+                {
+                    logger.LogUploadedPackageDeletion(file);
+                    fileSystem.File.Delete(file);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                logger.LogUploadedPackageDeleteFailure(ex, file);
+            }
+        }
     }
 
     private static async Task<string> GetPackageVersion(ZipArchiveEntry depsJsonEntry, string packageName, CancellationToken cancellationToken)
     {
-        using var depsJsonStream = depsJsonEntry.Open();
+        using var depsJsonStream = await depsJsonEntry.OpenAsync(cancellationToken);
         using var reader = new StreamReader(depsJsonStream);
 
         string? line;
@@ -115,7 +282,7 @@ internal sealed partial class PackageStore(
                 return version;
         }
 
-        throw new InvalidOperationException($"Package version of '{packageName}' not found in deps.json.");
+        throw new PackageValidationException(ClusterPackageChanged.InvalidPackageContent, $"Package version of '{packageName}' not found in deps.json.");
     }
 
     public async Task DeletePackage(ClusterDependency dependency, CancellationToken cancellationToken)

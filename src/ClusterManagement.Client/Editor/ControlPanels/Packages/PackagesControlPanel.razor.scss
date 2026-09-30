@@ -1,8 +1,10 @@
-﻿.packages-control-panel-page {
+@use "./../../../Styles/grid-action-button";
+
+.packages-control-panel-page {
     display: contents;
 
-    .input {
-        display: none;
+    ::deep .settings-field-file-upload {
+        @include grid-action-button.file-upload-as-grid-action-button();
     }
 
     ::deep .packages-grid {

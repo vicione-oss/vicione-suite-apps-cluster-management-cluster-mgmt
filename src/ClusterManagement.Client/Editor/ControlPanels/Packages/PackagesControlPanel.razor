@@ -1,4 +1,4 @@
-﻿@using ClusterManagement.Client.Editor.ControlPanels.Packages.Services
+@using ClusterManagement.Client.Editor.ControlPanels.Packages.Services
 @using ClusterManagement.Client.Editor.Extensions
 @using ClusterManagement.Client.Localization
 @using ClusterManagement.Internal.Contracts
@@ -103,7 +103,7 @@
                                 <MonochromeIcon Name="MonochromeIconName.UpdateAvailableLight" Size="MonochromeIconSize.SmallMedium" />
                             </div>
                         }
-                        
+
                         @if (context.Error is not null)
                         {
                             <div title="@context.Error.Message" class="icon-wrapper">
@@ -135,36 +135,33 @@
         <DescriptionBanner Title="@Localization.PackagesControlPanel.AvailableBannerTitle">
             @(string.Format(Localization.PackagesControlPanel.AvailableBannerDescription, PackageService.MinCoreVersion))
         </DescriptionBanner>
-        <div class="input">
-
-            <script>
-                window.triggerUploadClick = () => { let label = window.document.getElementById("uploadtrigger"); label.click(); }
-            </script>
-
-            <label id="uploadtrigger"
-                   for="item-upload">
-                UPLOAD
-            </label>
-
-            <InputFile id="item-upload"
-                       accept=".zip"
-                       OnChange="OnFileChange" />
-        </div>
 
         <Grid Items="@FilterAvailableItems(State.AvailableQueryable)" Virtualize="true" CssClass="packages-grid">
             <ActionButtons>
                 <div style="display:contents;">
                     <AuthorizeView Policy="@AdminPolicy">
-                        
+
                         <GridActionButton Text="@CommonVocabulary.InstallVerb"
                                           OnClick="InstallAvailablePackagesClick"
                                           IconCssClass="@_importIconCssClasses"
                                           Enabled="@CanInstallAvailablePackages()" />
 
-                        <GridActionButton Text="@Common.Upload"
-                                          OnClick="OnPackageUploadClickAsync"
-                                          IconCssClass="@_uploadIconCssClasses" />
-                        
+                        <SettingsFieldFileUpload @ref="_fileUpload"
+                                                 @bind-Filename="_uploadFilename"
+                                                 Accept=".zip"
+                                                 ChooseButtonText="@Common.Upload"
+                                                 ChooseButtonIconCssClasses="@_uploadIconCssClasses"
+                                                 HideFilename="true"
+                                                 MaximumAllowedSize="@ControlPanelConstants.TenMB"
+                                                 OnUploadStart="@OnPackageUploadStart"
+                                                 OnUploadSuccess="@OnPackageUploadSuccess"
+                                                 OnUploadError="@OnPackageUploadError"
+                                                 OnUploadCancel="@OnPackageUploadCancel"
+                                                 Placeholder="@Common.Upload"
+                                                 UploadTicketFactory="@UploadTicketFactory"
+                                                 UploadTicket="@_uploadTicket"
+                                                 UploadHandler="@StreamUploadHandler" />
+
                         <GridActionButton Text="@CommonVocabulary.Delete"
                                           OnClick="@DeleteAvailablePackagesClick"
                                           IconCssClass="@_deleteIconCssClasses"

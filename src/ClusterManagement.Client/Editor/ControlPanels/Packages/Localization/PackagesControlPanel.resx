@@ -141,4 +141,7 @@
   <data name="LocalAvailable" xml:space="preserve">
     <value>This package is locally available</value>
   </data>
+  <data name="PackageVersionInUse" xml:space="preserve">
+    <value>This package version is already installed and cannot be replaced. Increase the package version and upload it again.</value>
+  </data>
 </root>

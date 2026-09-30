@@ -1,4 +1,4 @@
-﻿using ClusterManagement.Client.Editor.ControlPanels.Packages.Models;
+using ClusterManagement.Client.Editor.ControlPanels.Packages.Models;
 using ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
 using ClusterManagement.Internal.Commands;
 using ClusterManagement.Internal.Contracts;
@@ -56,7 +56,7 @@ public class PackageServiceTests
                 { CorrelationId = cmd.CorrelationId });
 
             // Act
-            var result = await service.UploadPackage([], TestContext.Current.CancellationToken);
+            var result = await service.UploadPackage("test-package.zip", TestContext.Current.CancellationToken);
 
             // Assert
             result.Should().BeOfType<PackageServiceSuccessResult>();
@@ -76,7 +76,7 @@ public class PackageServiceTests
                 { CorrelationId = cmd.CorrelationId });
 
             // Act
-            var result = await service.UploadPackage([], TestContext.Current.CancellationToken);
+            var result = await service.UploadPackage("test-package.zip", TestContext.Current.CancellationToken);
 
             // Assert
             var errorResult = result.Should().BeOfType<PackageServiceErrorResult>().Subject;

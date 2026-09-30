@@ -132,5 +132,14 @@ namespace ClusterManagement.Client.Editor.ControlPanels.Packages.Localization {
                 return ResourceManager.GetString("LocalAvailable", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to This package version is already installed and cannot be replaced. Increase the package version and upload it again..
+        /// </summary>
+        internal static string PackageVersionInUse {
+            get {
+                return ResourceManager.GetString("PackageVersionInUse", resourceCulture);
+            }
+        }
     }
 }
