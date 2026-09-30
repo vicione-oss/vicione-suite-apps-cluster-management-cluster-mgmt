@@ -38,7 +38,6 @@ public interface IPackageService
     /// <summary>
     /// Adds a package to the cluster from an uploaded archive file.
     /// </summary>
-    /// <param name="filename">Path of the uploaded package archive; the backend removes it once it has been processed.</param>
     Task<IPackageServiceResult> UploadPackage(string filename, CancellationToken cancellationToken = default);
 
     /// <summary>

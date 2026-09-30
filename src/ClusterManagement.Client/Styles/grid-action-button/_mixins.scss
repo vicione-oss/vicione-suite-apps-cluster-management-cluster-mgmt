@@ -13,12 +13,6 @@
         grid-template-columns: auto minmax(0px, 1fr);
         transition: color .3s ease-in-out, background-color .3s ease-in-out, opacity .3s ease-in-out;
 
-        .icon {
-            width: 24px;
-            height: 24px;
-            margin-left: 0;
-        }
-
         &:not(:disabled):hover,
         &:focus {
             color: #fff;

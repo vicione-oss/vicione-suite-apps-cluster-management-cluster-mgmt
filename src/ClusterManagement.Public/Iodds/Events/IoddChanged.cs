@@ -12,4 +12,6 @@ public sealed record IoddChanged(IoddId Iodd, DeviceInfo? DeviceInfo, CrudAction
     public const int DeleteIoddError = 101;
     public const int DownloadIoddError = 102;
     public const int ExtractZipError = 103;
+    public const int IoddFileNotFound = 104;
+    public const int IoddFileOutsideUploadDirectory = 105;
 }
