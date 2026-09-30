@@ -174,25 +174,13 @@ internal class IoddTreeAdapter(IMonochromeIconSvgMarkupProvider iconMarkupProvid
         }
     }
 
+    /// <summary>
+    /// Gets the repository root, so all devices are listed as long as the user hasn't selected a node yet.
+    /// </summary>
     public TreeSelectionKey? GetDefaultSelectioNode()
-    {
-        var repositoryNode = _repositoryNodes.FirstOrDefault().Value;
-
-        if (repositoryNode is null)
-            return null;
-
-        var vendorNode = repositoryNode.VendorNodes.Values.FirstOrDefault();
-
-        if (vendorNode is null)
-            return new(repositoryNode.RepositoryId, null, null);
-
-        var deviceFamilyNode = vendorNode.DeviceFamilyNodes.Values.FirstOrDefault();
-
-        if (deviceFamilyNode is null)
-            return new(repositoryNode.RepositoryId, vendorNode.VendorId, null);
-
-        return new(repositoryNode.RepositoryId, vendorNode.VendorId, deviceFamilyNode.DisplayText);
-    }
+        => _repositoryNodes.Values.FirstOrDefault() is { } repositoryNode
+            ? new(repositoryNode.RepositoryId, null, null)
+            : null;
 
     public void Dispose()
         => Builder?.Selection.SelectionChanged -= OnSelectionChanged;

@@ -1,4 +1,5 @@
 ﻿using System.IO.Abstractions;
+using ClusterManagement.Backend.Extensions;
 using ClusterManagement.Internal.Contracts;
 using Sdk.Backend.Modules;
 using Semver;
@@ -38,14 +39,7 @@ internal static class IFileSystemExtensions
     /// Returns whether <paramref name="filePath"/> names a file directly inside the upload directory of package archives.
     /// </summary>
     public static bool IsUploadedPackageFile(this IFileSystem fileSystem, IWorkspaceProvider<ClusterManagementBackendModule> ws, string filePath)
-    {
-        var fullPath = fileSystem.Path.GetFullPath(filePath);
-        var uploadDirectory = fileSystem.Path.GetFullPath(fileSystem.GetUploadedPackagesPath(ws));
-
-        // The relative path is the bare file name only for a file directly inside the directory; ".." segments,
-        // subdirectories and paths on another drive all yield something else.
-        return fileSystem.Path.GetRelativePath(uploadDirectory, fullPath) == fileSystem.Path.GetFileName(fullPath);
-    }
+        => fileSystem.IsFileDirectlyInDirectory(fileSystem.GetUploadedPackagesPath(ws), filePath);
 
     internal static IDictionary<PackageInfo, string> GetComponents(this IFileSystem fileSystem, string directory)
     {

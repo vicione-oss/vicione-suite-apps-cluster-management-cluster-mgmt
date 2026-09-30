@@ -18,11 +18,11 @@ namespace ClusterManagement.Backend.Tests.Designs.Consumers;
 
 public class AddClusterPackageConsumerTests
 {
-    private static readonly string CacheDirectory = MockUnixSupport.Path(@"c:\cache");
-    private static readonly string UploadDirectory = Path.Combine(CacheDirectory, ClusterPackageUpload.DirectoryName);
-    private static readonly string ValidZipFilename = Path.Combine(UploadDirectory, "valid-package.zip");
-    private static readonly string InvalidZipFilename = Path.Combine(UploadDirectory, "invalid-package.zip");
-    private static readonly string OutsideFilename = Path.Combine(CacheDirectory, "appsettings.json");
+    private static readonly string s_cacheDirectory = MockUnixSupport.Path(@"c:\cache");
+    private static readonly string s_uploadDirectory = Path.Combine(s_cacheDirectory, ClusterPackageUpload.DirectoryName);
+    private static readonly string s_validZipFilename = Path.Combine(s_uploadDirectory, "valid-package.zip");
+    private static readonly string s_invalidZipFilename = Path.Combine(s_uploadDirectory, "invalid-package.zip");
+    private static readonly string s_outsideFilename = Path.Combine(s_cacheDirectory, "appsettings.json");
 
     private readonly Action<IBusRegistrationConfigurator> _configureServices;
     private readonly IPackageStore _packageStore = Substitute.For<IPackageStore>();
@@ -31,11 +31,11 @@ public class AddClusterPackageConsumerTests
 
     public AddClusterPackageConsumerTests()
     {
-        _workspaceProvider.Cache.Returns(CacheDirectory);
+        _workspaceProvider.Cache.Returns(s_cacheDirectory);
 
-        _fileSystem.AddFile(ValidZipFilename, new MockFileData([0x50, 0x4B, 0x03, 0x04]));
-        _fileSystem.AddFile(InvalidZipFilename, "");
-        _fileSystem.AddFile(OutsideFilename, "{}");
+        _fileSystem.AddFile(s_validZipFilename, new MockFileData([0x50, 0x4B, 0x03, 0x04]));
+        _fileSystem.AddFile(s_invalidZipFilename, "");
+        _fileSystem.AddFile(s_outsideFilename, "{}");
 
         _configureServices = cfg =>
         {
@@ -48,21 +48,20 @@ public class AddClusterPackageConsumerTests
         };
     }
 
-    public static TheoryData<string> FilesOutsideUploadDirectory => new()
-    {
-        OutsideFilename,
-        Path.Combine(UploadDirectory, "..", "appsettings.json"),
-    };
+    public static TheoryData<string> FilesOutsideUploadDirectory => [
+        s_outsideFilename,
+        Path.Combine(s_uploadDirectory, "..", "appsettings.json"),
+    ];
 
     [Fact]
     public async Task Should_consume_command()
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
-        var command = new AddClusterPackage(ValidZipFilename);
+        var command = new AddClusterPackage(s_validZipFilename);
         var dependency = new ClusterDependency { Name = "TestPackage", Version = "1.0.0" };
 
-        _packageStore.StorePackage(Arg.Is<string>(s => s == ValidZipFilename), true, Arg.Any<CancellationToken>())
+        _packageStore.StorePackage(Arg.Is<string>(s => s == s_validZipFilename), true, Arg.Any<CancellationToken>())
             .Returns(dependency);
 
         // Act
@@ -72,7 +71,7 @@ public class AddClusterPackageConsumerTests
         Assert.True(await tester.Harness.Consumed.Any<AddClusterPackage>(k
             => k.Context.Message.CorrelationId == command.CorrelationId, TestContext.Current.CancellationToken));
 
-        _fileSystem.File.Exists(ValidZipFilename).Should().BeFalse();
+        _fileSystem.File.Exists(s_validZipFilename).Should().BeFalse();
     }
 
     [Fact]
@@ -80,10 +79,10 @@ public class AddClusterPackageConsumerTests
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
-        var command = new AddClusterPackage(ValidZipFilename);
+        var command = new AddClusterPackage(s_validZipFilename);
         var dependency = new ClusterDependency { Name = "MyPackage", Version = "2.1.3" };
 
-        _packageStore.StorePackage(Arg.Is<string>(s => s == ValidZipFilename), true, Arg.Any<CancellationToken>())
+        _packageStore.StorePackage(Arg.Is<string>(s => s == s_validZipFilename), true, Arg.Any<CancellationToken>())
             .Returns(dependency);
 
         // Act
@@ -100,10 +99,10 @@ public class AddClusterPackageConsumerTests
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
-        var command = new AddClusterPackage(ValidZipFilename);
+        var command = new AddClusterPackage(s_validZipFilename);
         var dependency = new ClusterDependency { Name = "PackageA", Version = "1.0.0" };
 
-        _packageStore.StorePackage(Arg.Is<string>(s => s == ValidZipFilename), true, Arg.Any<CancellationToken>())
+        _packageStore.StorePackage(Arg.Is<string>(s => s == s_validZipFilename), true, Arg.Any<CancellationToken>())
             .Returns(dependency);
 
         // Act
@@ -111,7 +110,7 @@ public class AddClusterPackageConsumerTests
 
         // Assert: Verify the package store was called with the correct data
         await _packageStore.Received(1).StorePackage(
-            Arg.Is<string>(s => s == ValidZipFilename),
+            Arg.Is<string>(s => s == s_validZipFilename),
             true,
             Arg.Any<CancellationToken>());
     }
@@ -121,9 +120,9 @@ public class AddClusterPackageConsumerTests
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
-        var command = new AddClusterPackage(InvalidZipFilename);
+        var command = new AddClusterPackage(s_invalidZipFilename);
 
-        _packageStore.StorePackage(Arg.Is<string>(s => s == InvalidZipFilename), true, Arg.Any<CancellationToken>())
+        _packageStore.StorePackage(Arg.Is<string>(s => s == s_invalidZipFilename), true, Arg.Any<CancellationToken>())
             .Throws(new PackageValidationException(ClusterPackageChanged.InvalidPackageContent, "Invalid package format"));
 
         // Act
@@ -143,9 +142,9 @@ public class AddClusterPackageConsumerTests
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
-        var command = new AddClusterPackage(InvalidZipFilename);
+        var command = new AddClusterPackage(s_invalidZipFilename);
 
-        _packageStore.StorePackage(Arg.Is<string>(s => s == InvalidZipFilename), true, Arg.Any<CancellationToken>())
+        _packageStore.StorePackage(Arg.Is<string>(s => s == s_invalidZipFilename), true, Arg.Any<CancellationToken>())
             .Throws(new PackageValidationException(ClusterPackageChanged.NotAZipArchive, "Not a zip archive"));
 
         // Act
@@ -155,7 +154,7 @@ public class AddClusterPackageConsumerTests
         Assert.True(await tester.Harness.Published.Any<ClusterPackageChanged>(k
             => k.Context.Message.CorrelationId == command.CorrelationId, TestContext.Current.CancellationToken));
 
-        _fileSystem.File.Exists(InvalidZipFilename).Should().BeFalse();
+        _fileSystem.File.Exists(s_invalidZipFilename).Should().BeFalse();
     }
 
     [Fact]
@@ -163,7 +162,7 @@ public class AddClusterPackageConsumerTests
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
-        var command = new AddClusterPackage(Path.Combine(UploadDirectory, "missing-package.zip"));
+        var command = new AddClusterPackage(Path.Combine(s_uploadDirectory, "missing-package.zip"));
 
         // Act
         await tester.TestCommand<AddClusterPackage, AddClusterPackageConsumer>(command);
@@ -182,9 +181,9 @@ public class AddClusterPackageConsumerTests
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
-        var command = new AddClusterPackage(ValidZipFilename);
+        var command = new AddClusterPackage(s_validZipFilename);
 
-        _packageStore.StorePackage(Arg.Is<string>(s => s == ValidZipFilename), true, Arg.Any<CancellationToken>())
+        _packageStore.StorePackage(Arg.Is<string>(s => s == s_validZipFilename), true, Arg.Any<CancellationToken>())
             .Throws(new IOException("Disk unavailable"));
 
         // Act
@@ -204,9 +203,9 @@ public class AddClusterPackageConsumerTests
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
-        var command = new AddClusterPackage(ValidZipFilename);
+        var command = new AddClusterPackage(s_validZipFilename);
 
-        _packageStore.StorePackage(Arg.Is<string>(s => s == ValidZipFilename), true, Arg.Any<CancellationToken>())
+        _packageStore.StorePackage(Arg.Is<string>(s => s == s_validZipFilename), true, Arg.Any<CancellationToken>())
             .Throws(new IOException("Disk unavailable"));
 
         // Act
@@ -218,7 +217,7 @@ public class AddClusterPackageConsumerTests
         Assert.True(await tester.Harness.Published.Any<ClusterPackageChanged>(k
             => k.Context.Message.CorrelationId == command.CorrelationId, TestContext.Current.CancellationToken));
 
-        _fileSystem.File.Exists(ValidZipFilename).Should().BeFalse();
+        _fileSystem.File.Exists(s_validZipFilename).Should().BeFalse();
     }
 
     [Theory]
@@ -239,7 +238,7 @@ public class AddClusterPackageConsumerTests
             && k.Context.Message.Error.ErrorCode == ClusterPackageChanged.PackageFileOutsideUploadDirectory, TestContext.Current.CancellationToken));
 
         await _packageStore.DidNotReceive().StorePackage(Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
-        _fileSystem.File.Exists(OutsideFilename).Should().BeTrue();
+        _fileSystem.File.Exists(s_outsideFilename).Should().BeTrue();
     }
 
     [Theory]
@@ -260,6 +259,6 @@ public class AddClusterPackageConsumerTests
         await consumer.Consume(context);
 
         // Assert
-        _fileSystem.File.Exists(OutsideFilename).Should().BeTrue();
+        _fileSystem.File.Exists(s_outsideFilename).Should().BeTrue();
     }
 }

@@ -1,5 +1,6 @@
-﻿@use "./../../Styles/design/colors";
+@use "./../../Styles/design/colors";
 @use "./../../Styles/design/scrollbar";
+@use "./../../Styles/grid-action-button";
 @use "./../../../../shared/styles/colors-staged";
 @use "./../../../../shared/styles/typography";
 
@@ -8,21 +9,15 @@
 .iodds-control-panel-page {
     display: contents;
 
-    .input {
-        display: none;
-    }
-
-    ::deep .iodd-action-buttons {
-        display: grid;
-        grid-template-columns: max-content max-content max-content;
-        grid-column-gap: 8px;
+    ::deep .settings-field-file-upload {
+        @include grid-action-button.file-upload-as-grid-action-button();
     }
 
     ::deep .iodds-grid {
         height: 100%;
 
         .tree-pane {
-            width: 188px;
+            width: 215px;
         }
     }
 

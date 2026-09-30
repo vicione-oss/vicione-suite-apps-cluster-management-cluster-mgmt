@@ -2,6 +2,7 @@ using System.IO.Abstractions;
 using System.IO.Compression;
 using ClusterManagement.Backend.Designs.Consumers;
 using ClusterManagement.Backend.Designs.Extensions;
+using ClusterManagement.Backend.Extensions;
 using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Internal.Events;
 using Microsoft.Extensions.Logging;
@@ -233,38 +234,11 @@ internal sealed partial class PackageStore(
 
         // Archives whose AddClusterPackage was never consumed (e.g. circuit gone, backend down).
         // Recent ones are kept, the client may still be writing or about to send them.
-        var uploadPath = fileSystem.GetUploadedPackagesPath(workspaceProvider);
-        if (!fileSystem.Directory.Exists(uploadPath))
-            return;
-
-        var threshold = DateTime.UtcNow - uploadedPackageMaxAge;
-        string[] files;
-
-        try
-        {
-            files = fileSystem.Directory.GetFiles(uploadPath);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            logger.LogUploadedPackageDeleteFailure(ex, uploadPath);
-            return;
-        }
-
-        foreach (var file in files)
-        {
-            try
-            {
-                if (fileSystem.File.GetLastWriteTimeUtc(file) < threshold)
-                {
-                    logger.LogUploadedPackageDeletion(file);
-                    fileSystem.File.Delete(file);
-                }
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                logger.LogUploadedPackageDeleteFailure(ex, file);
-            }
-        }
+        fileSystem.DeleteFilesOlderThan(
+            fileSystem.GetUploadedPackagesPath(workspaceProvider),
+            uploadedPackageMaxAge,
+            logger.LogUploadedPackageDeletion,
+            logger.LogUploadedPackageDeleteFailure);
     }
 
     private static async Task<string> GetPackageVersion(ZipArchiveEntry depsJsonEntry, string packageName, CancellationToken cancellationToken)

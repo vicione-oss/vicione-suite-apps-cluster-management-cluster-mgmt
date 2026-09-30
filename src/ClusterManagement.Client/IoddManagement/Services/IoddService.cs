@@ -15,8 +15,6 @@ public sealed class IoddService : CompletionSourceHandlerBase<IIoddServiceResult
     IEventConsumer<AutoIoddDownloadChanged>,
     IIoddService
 {
-    public static readonly string UploadedIoddDirectoryName = "newIodd";
-
     public event Func<IoddChanged, CancellationToken, Task>? IoddChanged;
 
     public event Func<AutoIoddDownloadChanged, CancellationToken, Task>? AutoIoddDownloadChanged;

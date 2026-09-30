@@ -25,8 +25,9 @@ internal static class IServiceCollectionExtensions
         services.AddTransient<IoddTreeAdapter>();
         services.AddStreamUploadHandler<IoddUpload>(moduleId, (o) =>
         {
-            o.PathTransform = (p) => Path.Combine(p, IoddService.UploadedIoddDirectoryName);
-            o.FilenameTransform = null;
+            o.PathTransform = (p) => Path.Combine(p, IoddUpload.DirectoryName);
+            // A unique name, so two uploads of the same file don't overwrite or delete each other.
+            o.FilenameTransform = _ => $"{Guid.NewGuid():N}.zip";
         });
 
         return services;

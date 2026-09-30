@@ -1,8 +1,9 @@
-﻿using ClusterManagement.Backend.DbContext;
+using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.DeployCluster.Contracts;
 using ClusterManagement.Backend.DeployCluster.Persistence;
 using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.EngineHosts;
+using ClusterManagement.Backend.Iodds;
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Internal.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -22,13 +23,14 @@ public sealed class ClusterManagementModuleInitializer : IModuleInitializer
 {
     private const string DotnetRunningInContainer = "DOTNET_RUNNING_IN_CONTAINER";
 
-    private static readonly TimeSpan UploadedPackageMaxAge = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan s_uploadedFileMaxAge = TimeSpan.FromMinutes(5);
 
     public async Task OnPreMigrate(IServiceProvider scopedServices, CancellationToken stoppingToken = default)
     {
         await scopedServices.GetRequiredService<IClusterDependencyStore>().Initialize(stoppingToken);
 
-        scopedServices.GetRequiredService<IPackageStore>().CleanupLeftovers(UploadedPackageMaxAge);
+        scopedServices.GetRequiredService<IPackageStore>().CleanupLeftovers(s_uploadedFileMaxAge);
+        scopedServices.GetRequiredService<IoddUploadCleanup>().CleanupLeftovers(s_uploadedFileMaxAge);
     }
 
     public async Task Migrate(IServiceProvider scopedServices, CancellationToken stoppingToken = default)

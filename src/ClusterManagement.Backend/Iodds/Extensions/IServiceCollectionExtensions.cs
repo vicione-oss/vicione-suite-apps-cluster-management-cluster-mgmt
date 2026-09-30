@@ -9,6 +9,7 @@ internal static class IServiceCollectionExtensions
     {
         services
             .AddSingleton<IIoddStore, IoddStore>()
+            .AddSingleton<IoddUploadCleanup>()
             .AddHostedService<IoddService>();
 
         return services;

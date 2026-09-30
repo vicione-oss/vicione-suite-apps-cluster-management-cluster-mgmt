@@ -1,5 +1,6 @@
 ﻿@using System.Globalization
 @using ClusterManagement.Client.Editor.Extensions
+@using ClusterManagement.Client.Extensions
 @using ClusterManagement.Client.IoddManagement.ControlPanels.Services
 @using ClusterManagement.Client.IoddManagement.Models
 @using Sdk.Authorization
@@ -8,6 +9,7 @@
 @using Sdk.Client.ControlPanels.Components
 @using ViciOne.Ui.Blazor.Components.Dialog.Components
 @using ViciOne.Ui.Blazor.Components.Grid.Components
+@using ViciOne.Ui.Blazor.Components.Grid.Components.ActionButtons
 @using ViciOne.Ui.Blazor.Components.Grid.Components.Columns
 @using ViciOne.Ui.Blazor.Components.Grid.Components.Panes
 @using ViciOne.Ui.Localization.Resources
@@ -25,9 +27,9 @@
 
         <Grid Items="@FilterItems(_itemsQueryable)" Virtualize="true" CssClass="iodds-grid">
             <ActionButtons>
-                <div class="iodd-action-buttons">
+                <div style="display:contents;">
                     <SettingsFieldFileUpload @ref="_fileUpload"
-                                             @bind-Filename="_uploadedFilename"
+                                             @bind-Filename="_uploadFilename"
                                              Accept=".zip"
                                              ChooseButtonText="@Client.Localization.Common.Upload"
                                              ChooseButtonIconCssClasses="@_uploadIconCssClasses"
@@ -39,18 +41,18 @@
                                              OnUploadCancel="@OnIoddUploadCancel"
                                              Placeholder="@Client.Localization.Common.Upload"
                                              UploadTicketFactory="@UploadTicketFactory"
-                                             UploadTicket="@UploadTicket"
+                                             UploadTicket="@_uploadTicket"
                                              UploadHandler="@StreamUploadHandler" />
 
-                    <SettingsFieldButton Text="@CommonVocabulary.DownloadVerb"
-                                         Enabled="@(ItemSelection.Any())"
-                                         OnClick="@OnIoddDownloadClickAsync"
-                                         IconCssClass="@_importIconCssClasses" />
+                    <GridActionButton Text="@CommonVocabulary.DownloadVerb"
+                                      OnClick="@OnIoddDownloadClickAsync"
+                                      IconCssClass="@_importIconCssClasses"
+                                      Enabled="@(ItemSelection.Any())" />
 
-                    <SettingsFieldButton Text="@CommonVocabulary.Delete"
-                                         OnClick="@OnIoddDeleteClickAsync"
-                                         Enabled="@(ItemSelection.Any())"
-                                         IconCssClass="@_deleteIconCssClasses" />
+                    <GridActionButton Text="@CommonVocabulary.Delete"
+                                      OnClick="@OnIoddDeleteClickAsync"
+                                      IconCssClass="@_deleteIconCssClasses"
+                                      Enabled="@(ItemSelection.Any())" />
                 </div>
             </ActionButtons>
 
@@ -90,8 +92,9 @@
                     }
                 </TemplateColumn>
 
-                <PropertyColumn Property="@(item => item.UploadedAt)"
-                                Title="@Localization.Common.UploadedAt" />
+                <TemplateColumn Title="@Localization.Common.UploadedAt">
+                    @context.UploadedAt.ToShortDateAnd24HourTime(TimeProvider.LocalTimeZone)
+                </TemplateColumn>
 
                 <NavigationColumn NavigationButtonTitle="@Client.Localization.Common.ShowDetails"
                                   Navigate="@((DeviceView item) => ShowDetailsAsync(item))" />

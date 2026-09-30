@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using ClusterManagement.Client.IoddManagement.ControlPanels.Services;
 using ClusterManagement.Client.IoddManagement.Extensions;
 using ClusterManagement.Client.IoddManagement.IoddTree;
@@ -34,6 +34,9 @@ public sealed partial class IoddControlPanel
     private readonly string _deleteIconCssClasses = @MonochromeIconName.Delete.GetCssClasses(MonochromeIconSize.Small).ToSpaceSeparated();
 
     private SettingsFieldFileUpload<IoddUpload>? _fileUpload;
+    // The upload field cancels a running upload when it gets a filename or ticket other than its own, so both are passed back as it reports them.
+    private string? _uploadFilename;
+    private IUploadTicket? _uploadTicket;
     private IQueryable<DeviceView> _itemsQueryable = Enumerable.Empty<DeviceView>().AsQueryable();
     private readonly TreeBuilder _treeBuilder = new();
     private Dialog? _refDeleteIoddsDialog;
@@ -45,11 +48,10 @@ public sealed partial class IoddControlPanel
     [Inject] private IMessageBannerService MessageBannerService { get; set; } = default!;
     [Inject] private ILogger<IoddControlPanel> Logger { get; set; } = default!;
     [Inject] private IUploadTicketFactory UploadTicketFactory { get; set; } = default!;
-    public IUploadTicket? UploadTicket { get; set; }
     [Inject] private IStreamUploadHandler<IoddUpload> StreamUploadHandler { get; set; } = default!;
+    [Inject(Key = Sdk.Constants.ClientTimeProviderServiceKey)] private TimeProvider TimeProvider { get; set; } = default!;
 
     private GridItemSelection<IoddSelectionId> ItemSelection { get; } = [];
-    private string? _uploadedFilename;
 
     protected override async ValueTask DisposeAsyncCore()
     {
@@ -88,11 +90,11 @@ public sealed partial class IoddControlPanel
         _treeBuilder.SetAdapter(TreeAdapter);
         TreeAdapter.CoupleTreeBuilderEvents();
 
+        ItemSelection.Changed += OnItemSelectionChanged;
+
         // Ensure to fill the tree if the async state reset was not yet completed
         if (!TreeAdapter.HasDeviceNodes())
             InitTreeAdapterDevices();
-
-        ItemSelection.Changed += OnItemSelectionChanged;
     }
 
     private async void State_Changed(ControlPanelStateChangedEventArgs args)
@@ -133,16 +135,7 @@ public sealed partial class IoddControlPanel
 
     private async Task IoddService_IoddChanged(IoddChanged change, CancellationToken cancellationToken)
     {
-        if (change.Error is not null)
-        {
-            if (change.Error.ErrorCode == IoddChanged.ExtractZipError)
-                MessageBannerService.ShowMessageBanner(MessageType.Error, Common.UploadFailed);
-            else
-                MessageBannerService.ShowMessageBanner(MessageType.Error, change.Error.Message);
-
-            return;
-        }
-
+        // Errors never get here: IoddService completes the waiting call with them instead of raising the event.
         var deviceId = change.Iodd.DeviceId;
         var vendorId = change.Iodd.VendorId;
 
@@ -312,37 +305,61 @@ public sealed partial class IoddControlPanel
         }
     }
 
-    private async Task OnIoddUploadStart(IUploadTicket uploadTicket)
+    private Task OnIoddUploadStart(IUploadTicket uploadTicket)
     {
-        _uploadedFilename = null;
-        UploadTicket = uploadTicket;
+        _uploadTicket = uploadTicket;
+        return Task.CompletedTask;
     }
 
     private async Task OnIoddUploadSuccess(StreamUploadSuccessResult successResult)
     {
-        _uploadedFilename = successResult.DestinationFile;
-        await InvokeAsync(StateHasChanged);
+        // The archive is on the server now, so the field is free for the next file while the backend adds the IODD.
+        await ResetUploadAsync();
 
-        var result = await IoddService.AddIodd(_uploadedFilename);
-
-        if (_fileUpload is not null)
+        try
         {
-            await _fileUpload.ResetAsync();
-            UploadTicket = UploadTicketFactory.CreateUploadTicket();
+            var result = await IoddService.AddIodd(successResult.DestinationFile);
+
+            if (result is IoddServiceErrorResult error)
+                MessageBannerService.ShowMessageBanner(MessageType.Error, GetUploadErrorMessage(error));
+        }
+        catch (Exception ex)
+        {
+            MessageBannerService.ShowMessageBanner(MessageType.Error, ex.Message);
         }
     }
 
-    private Task OnIoddUploadError(StreamUploadErrorResult errorResult)
+    /// <summary>
+    /// Maps the backend error codes to localized messages; the technical details are logged by the backend.
+    /// </summary>
+    private static string GetUploadErrorMessage(IoddServiceErrorResult error)
+        => error.ErrorCode switch
+        {
+            IoddChanged.ExtractZipError
+                or IoddChanged.IoddFileNotFound
+                or IoddChanged.IoddFileOutsideUploadDirectory => Common.UploadFailed,
+            _ => error.ErrorMessage,
+        };
+
+    private async Task OnIoddUploadError(StreamUploadErrorResult errorResult)
     {
-        _uploadedFilename = null;
+        await ResetUploadAsync();
         MessageBannerService.ShowMessageBanner(MessageType.Error, errorResult.Message);
-        return Task.CompletedTask;
     }
 
     private Task OnIoddUploadCancel()
     {
-        _uploadedFilename = null;
+        // The field has already reset itself.
+        _uploadTicket = null;
         return Task.CompletedTask;
+    }
+
+    private async Task ResetUploadAsync()
+    {
+        _uploadTicket = null;
+
+        if (_fileUpload is not null)
+            await _fileUpload.ResetAsync();
     }
 
     private string GetFooterString()
