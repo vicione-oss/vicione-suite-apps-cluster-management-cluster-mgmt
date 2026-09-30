@@ -1,14 +1,15 @@
-﻿using ClusterManagement.Client.Editor.ControlPanels.Packages.Extensions;
+using ClusterManagement.Client.Editor.ControlPanels.Packages.Extensions;
+using ClusterManagement.Client.Editor.ControlPanels.Packages.Models;
 using ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
-using ClusterManagement.Client.Extensions;
 using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Internal.Events;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.JSInterop;
 using Sdk.Authorization;
+using Sdk.Client.Components.Settings;
+using Sdk.Client.Contracts;
 using Sdk.Client.ControlPanels.Attributes;
 using Sdk.Client.ControlPanels.Services;
+using Sdk.Client.Models;
 using Sdk.Client.Services;
 using Sdk.MessageBanner.Contracts;
 using Sdk.Utils;
@@ -28,13 +29,18 @@ public partial class PackagesControlPanel
     private readonly string _importIconCssClasses = @MonochromeIconName.Import.GetCssClasses(MonochromeIconSize.Small).ToSpaceSeparated();
     private readonly string _deleteIconCssClasses = @MonochromeIconName.Delete.GetCssClasses(MonochromeIconSize.Small).ToSpaceSeparated();
 
+    private SettingsFieldFileUpload<ClusterPackageUpload>? _fileUpload;
+    // The upload field cancels a running upload when it gets a filename or ticket other than its own, so both are passed back as it reports them.
+    private string? _uploadFilename;
+    private IUploadTicket? _uploadTicket;
     private readonly CancellationTokenSource _tokenSource = new();
     private readonly AutoDisposeList<IDisposable> _subscriptionHandles = [];
 
     [Inject] private IControlPanelRequest ControlPanelRequest { get; set; } = default!;
     [Inject] public IPackageService PackageService { get; set; } = null!;
     [Inject] private IMessageBannerService MessageBannerService { get; set; } = default!;
-    [Inject] private IJSRuntime JavaScript { get; set; } = default!;
+    [Inject] private IUploadTicketFactory UploadTicketFactory { get; set; } = default!;
+    [Inject] private IStreamUploadHandler<ClusterPackageUpload> StreamUploadHandler { get; set; } = default!;
 
     [Inject(Key = typeof(InstalledPackagesControlPanelServiceKey))] private IGridItemSelection<ClusterPackageInfo> InstalledItemSelection { get; set; } = default!;
 
@@ -112,30 +118,6 @@ public partial class PackagesControlPanel
     private async void OnItemSelectionChanged(GridItemSelectionChangedEventArgs<ClusterPackageInfo> args)
         => await InvokeAsync(StateHasChanged);
 
-    private async Task OnFileChange(InputFileChangeEventArgs args)
-    {
-        if (!MessageBannerService.IsValidZipArchive(args))
-            return;
-
-        try
-        {
-            byte[] data;
-
-            await using (var ms = new MemoryStream())
-            {
-                await args.File.OpenReadStream(ControlPanelConstants.TwoMB).CopyToAsync(ms);
-                data = ms.ToArray();
-            }
-
-            await PackageService.UploadPackage(data, _tokenSource.Token);
-            MessageBannerService.ShowMessageBanner(MessageType.Warning, Editor.Localization.Common.NeedRestart);
-        }
-        catch (Exception ex)
-        {
-            MessageBannerService.ShowMessageBanner(MessageType.Error, ex.Message);
-        }
-    }
-
     private async Task OnPackageChanged(ClusterPackageChanged change, CancellationToken cancellationToken)
     {
         if (change.Error is not null)
@@ -173,9 +155,6 @@ public partial class PackagesControlPanel
         if (hasChanges)
             await InvokeAsync(StateHasChanged);
     }
-
-    private async Task OnPackageUploadClickAsync()
-        => await JavaScript.InvokeVoidAsync("triggerUploadClick");
 
     private bool CanUninstallPackages()
         => InstalledItemSelection.Count != 0
@@ -339,5 +318,69 @@ public partial class PackagesControlPanel
             return;
 
         State.UpdatePackage(refreshed);
+    }
+
+    private Task OnPackageUploadStart(IUploadTicket uploadTicket)
+    {
+        _uploadTicket = uploadTicket;
+        return Task.CompletedTask;
+    }
+
+    private async Task OnPackageUploadSuccess(StreamUploadSuccessResult successResult)
+    {
+        // The archive is on the server now, so the field is free for the next file while the backend adds the package.
+        await ResetUploadAsync();
+
+        try
+        {
+            var result = await PackageService.UploadPackage(successResult.DestinationFile, _tokenSource.Token);
+
+            if (result is PackageServiceErrorResult error)
+                MessageBannerService.ShowMessageBanner(MessageType.Error, GetUploadErrorMessage(error));
+            else
+                MessageBannerService.ShowMessageBanner(MessageType.Warning, Editor.Localization.Common.NeedRestart);
+        }
+        catch (Exception ex)
+        {
+            MessageBannerService.ShowMessageBanner(MessageType.Error, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Maps the backend validation error codes to localized messages; the technical details are logged by the backend.
+    /// </summary>
+    private static string GetUploadErrorMessage(PackageServiceErrorResult error)
+        => error.ErrorCode switch
+        {
+            ClusterPackageChanged.NotAZipArchive => Client.Localization.Common.FileTypeMissmatch,
+            ClusterPackageChanged.EmptyArchive => Client.Localization.Common.FileIsEmpty,
+            ClusterPackageChanged.PackageVersionInUse => Localization.PackagesControlPanel.PackageVersionInUse,
+            ClusterPackageChanged.CorruptArchive
+                or ClusterPackageChanged.InvalidPackageContent
+                or ClusterPackageChanged.PackageFileNotFound
+                or ClusterPackageChanged.PackageFileOutsideUploadDirectory
+                or ClusterPackageChanged.AddPackageFailed => Client.Localization.Common.UploadFailed,
+            _ => error.ErrorMessage,
+        };
+
+    private async Task OnPackageUploadError(StreamUploadErrorResult errorResult)
+    {
+        await ResetUploadAsync();
+        MessageBannerService.ShowMessageBanner(MessageType.Error, errorResult.Message);
+    }
+
+    private Task OnPackageUploadCancel()
+    {
+        // The field has already reset itself.
+        _uploadTicket = null;
+        return Task.CompletedTask;
+    }
+
+    private async Task ResetUploadAsync()
+    {
+        _uploadTicket = null;
+
+        if (_fileUpload is not null)
+            await _fileUpload.ResetAsync();
     }
 }

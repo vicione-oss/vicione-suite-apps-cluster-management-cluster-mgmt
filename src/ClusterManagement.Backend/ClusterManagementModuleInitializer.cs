@@ -22,8 +22,14 @@ public sealed class ClusterManagementModuleInitializer : IModuleInitializer
 {
     private const string DotnetRunningInContainer = "DOTNET_RUNNING_IN_CONTAINER";
 
-    public Task OnPreMigrate(IServiceProvider scopedServices, CancellationToken stoppingToken = default)
-        => scopedServices.GetRequiredService<IClusterDependencyStore>().Initialize(stoppingToken);
+    private static readonly TimeSpan UploadedPackageMaxAge = TimeSpan.FromMinutes(5);
+
+    public async Task OnPreMigrate(IServiceProvider scopedServices, CancellationToken stoppingToken = default)
+    {
+        await scopedServices.GetRequiredService<IClusterDependencyStore>().Initialize(stoppingToken);
+
+        scopedServices.GetRequiredService<IPackageStore>().CleanupLeftovers(UploadedPackageMaxAge);
+    }
 
     public async Task Migrate(IServiceProvider scopedServices, CancellationToken stoppingToken = default)
     {

@@ -1,4 +1,4 @@
-﻿using ClusterManagement.Client.Editor.ControlPanels.Packages.Models;
+using ClusterManagement.Client.Editor.ControlPanels.Packages.Models;
 using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Internal.Events;
 
@@ -36,9 +36,10 @@ public interface IPackageService
     Task<IEnumerable<ClusterPackageInfo>> GetPackages(List<string>? names = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Uploads a package to the cluster from raw binary data.
-    /// </summary>    
-    Task<IPackageServiceResult> UploadPackage(byte[] data, CancellationToken cancellationToken = default);
+    /// Adds a package to the cluster from an uploaded archive file.
+    /// </summary>
+    /// <param name="filename">Path of the uploaded package archive; the backend removes it once it has been processed.</param>
+    Task<IPackageServiceResult> UploadPackage(string filename, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Applies a set of dependency operations to update the cluster's package dependencies.

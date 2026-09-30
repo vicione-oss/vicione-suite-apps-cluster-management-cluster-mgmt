@@ -141,4 +141,7 @@
   <data name="LocalAvailable" xml:space="preserve">
     <value>Das Paket ist lokal verfügbar</value>
   </data>
+  <data name="PackageVersionInUse" xml:space="preserve">
+    <value>Diese Paketversion ist bereits installiert und kann nicht ersetzt werden. Erhöhen Sie die Paketversion und laden Sie das Paket erneut hoch.</value>
+  </data>
 </root>

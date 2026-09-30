@@ -1,10 +1,13 @@
-﻿using Bunit;
+using Bunit;
 using ClusterManagement.Client.Editor.ControlPanels.Packages;
 using ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
 using ClusterManagement.Client.Editor.Extensions;
+using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Public.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Sdk.Client.Contracts;
 using Sdk.Client.Services;
+using Sdk.Modules;
 using Sdk.Testing.Client;
 
 namespace ClusterManagement.Client.Tests.Editor.ControlPanels.Packages;
@@ -13,6 +16,8 @@ public class PackagesControlPanelResetTests
 {
     private readonly IPackageService _packageService = Substitute.For<IPackageService>();
     private readonly IMessageBannerService _bannerService = Substitute.For<IMessageBannerService>();
+    private readonly IUploadTicketFactory _uploadTicketFactory = Substitute.For<IUploadTicketFactory>();
+    private readonly IStreamUploadHandler<ClusterPackageUpload> _streamUploadHandler = Substitute.For<IStreamUploadHandler<ClusterPackageUpload>>();
 
     private BunitContext SetupContext()
     {
@@ -24,7 +29,13 @@ public class PackagesControlPanelResetTests
         ctx.Services.AddSingleton(_packageService);
         ctx.Services.AddSingleton(_bannerService);
         ctx.Services.AddScoped(_ => Substitute.For<IResourceDownloadStateService>());
-        ctx.Services.AddPackagesControlPanel();
+        ctx.Services.AddPackagesControlPanel(ModuleIdResolver.ResolveId<ClusterManagementClientModule>());
+
+        // AddPackagesControlPanel registers a stream upload handler factory that isn't wired up
+        // in the test host, so replace it (and the ticket factory it needs) with substitutes.
+        ctx.Services.AddSingleton(_uploadTicketFactory);
+        ctx.Services.AddSingleton(_streamUploadHandler);
+
         return ctx;
     }
 

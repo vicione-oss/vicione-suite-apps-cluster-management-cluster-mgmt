@@ -120,9 +120,6 @@
   <data name="Upload" xml:space="preserve">
     <value>Hochladen</value>
   </data>
-  <data name="UploadOnlySingleFile" xml:space="preserve">
-    <value>Es kann immer nur eine Datei auf einmal hochgeladen werden.</value>
-  </data>
   <data name="UploadFailed" xml:space="preserve">
     <value>Etwas stimmt mit dem Archiv nicht.</value>
   </data>
@@ -134,9 +131,6 @@
   </data>
   <data name="FileTypeMissmatch" xml:space="preserve">
     <value>Die Datei muss ein Zip-Archiv sein.</value>
-  </data>
-  <data name="MaxFileSizeReached" xml:space="preserve">
-    <value>Die Dateigröße ist auf 2 MB begrenzt.</value>
   </data>
   <data name="ShowDetails" xml:space="preserve">
     <value>Mehr Details</value>

@@ -79,15 +79,6 @@ namespace ClusterManagement.Client.Localization {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The file size is limited to 2MB..
-        /// </summary>
-        internal static string MaxFileSizeReached {
-            get {
-                return ResourceManager.GetString("MaxFileSizeReached", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Show details.
         /// </summary>
         internal static string ShowDetails {
@@ -120,15 +111,6 @@ namespace ClusterManagement.Client.Localization {
         internal static string DownloadFailed {
             get {
                 return ResourceManager.GetString("DownloadFailed", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Only one file can be uploaded at a time..
-        /// </summary>
-        internal static string UploadOnlySingleFile {
-            get {
-                return ResourceManager.GetString("UploadOnlySingleFile", resourceCulture);
             }
         }
     }

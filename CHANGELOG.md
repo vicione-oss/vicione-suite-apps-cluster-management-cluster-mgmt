@@ -10,6 +10,7 @@
 
 ### Changed
 
+- Package uploads in the cluster editor now stream to disk instead of loading the whole archive into memory, increasing the maximum package upload size from 2 MB to 10 MB
 - IODD downloads are grouped by vendor, one archive per vendor instead of one per selected device variant
 - `Public`
   - `IIoddStore`, replaced `FillDeviceArchive` with `FillVendorArchive` which archives several devices of a vendor as `<vendor-id>/<device-id>/<IODD files>`

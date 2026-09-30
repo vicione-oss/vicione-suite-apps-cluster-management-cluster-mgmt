@@ -1,4 +1,4 @@
-﻿using System.IO.Compression;
+using System.IO.Compression;
 using ClusterManagement.Backend.Designs.Extensions;
 using ViciOne.Cluster.Model;
 

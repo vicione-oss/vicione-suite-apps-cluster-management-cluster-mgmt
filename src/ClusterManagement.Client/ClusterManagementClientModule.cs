@@ -1,4 +1,4 @@
-﻿using ClusterManagement.Client.DataflowEvents.Extensions;
+using ClusterManagement.Client.DataflowEvents.Extensions;
 using ClusterManagement.Client.Editor.ControlPanels.Packages;
 using ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
 using ClusterManagement.Client.Editor.Extensions;
@@ -31,7 +31,7 @@ public sealed class ClusterManagementClientModule : ClientModule
         services
             .AddClusterManagement()
             .AddDataflowEvents()
-            .AddEditor()
+            .AddEditor(ModuleId)
             .AddIoddManagement(ModuleId);
     };
 
