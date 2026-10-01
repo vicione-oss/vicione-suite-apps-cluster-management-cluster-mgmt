@@ -15,6 +15,7 @@
 - Failed IODD uploads show an error banner, and the IODD action buttons match the package panel
 - IODD upload times are shown as short date and 24-hour time in the user's time zone
 - The IODD tree selects the repository root by default, so all devices are listed
+- Package updates only suggest a prerelease, such as `2.0.0-beta.1` or a `-ci` build, when the installed version is a prerelease itself; prereleases can still be installed from the version list
 - `Public`
   - `IoddChanged`, added the error codes `IoddFileNotFound` and `IoddFileOutsideUploadDirectory`
   - `IIoddStore`, replaced `FillDeviceArchive` with `FillVendorArchive` which archives several devices of a vendor as `<vendor-id>/<device-id>/<IODD files>`
@@ -42,6 +43,9 @@
 - Recover from corrupted or partially written package files on startup instead of failing module initialization
 - Replacing a cluster snapshot no longer leaves trailing data of the previous version in the file
 - Deploying a cluster no longer fails with `Value cannot be null. (Parameter 'link.DestinationConnector')` when a FunctionBlock output is linked to a DataPort datapoint whose transfer mode is None
+- Recognize cluster packages with a SemVer prerelease version such as `2.0.0-beta.1`, which were missing from the package list and failed to download or upload
+- Reject package uploads whose version is not valid SemVer, such as `2.0.0-01`, which kept all packages from loading on the next start
+- Sort a package's version list by version instead of alphabetically when it contains uploaded versions, e.g. `1.10.0` above `1.9.0`
 
 ## 2.3.0 - 2026-07-13
 

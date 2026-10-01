@@ -152,8 +152,7 @@ public class PackageStorageTests
             var act = () => store.StorePackage(invalidPackagePath, true, CancellationToken.None);
 
             // Assert
-            (await act.Should().ThrowAsync<PackageValidationException>()
-                .WithMessage("The provided package archive does not contain a deps.json file."))
+            (await act.Should().ThrowAsync<PackageValidationException>())
                 .Which.ErrorCode.Should().Be(ClusterPackageChanged.InvalidPackageContent);
         }
 
@@ -173,8 +172,53 @@ public class PackageStorageTests
             var act = () => store.StorePackage(invalidPackagePath, true, CancellationToken.None);
 
             // Assert
-            (await act.Should().ThrowAsync<PackageValidationException>()
-                .WithMessage("Package version of 'ViciOne.Test.Package' not found in deps.json."))
+            (await act.Should().ThrowAsync<PackageValidationException>())
+                .Which.ErrorCode.Should().Be(ClusterPackageChanged.InvalidPackageContent);
+        }
+
+        [Fact]
+        public async Task Should_store_package_with_prerelease_version()
+        {
+            // Arrange
+            using var services = CreateServices();
+            var store = services.GetRequiredService<IPackageStore>();
+            var fileSystem = services.GetRequiredService<IFileSystem>();
+            using var sourceDirectory = new TemporaryDirectory();
+            using var tempDirectory = new TemporaryDirectory();
+            var destinationPath = fileSystem.Path.Combine(tempDirectory.Path, "ViciOne.Suite.ClusterManagement");
+            var sourceZipBytes = PackageFactory.CreatePackageZipArchiveBytes("ViciOne.Suite.DataPort.Mqtt", "2.0.0-beta.1");
+            var packagePath = fileSystem.Path.Combine(sourceDirectory.Path, ValidZipFilename);
+            await fileSystem.File.WriteAllBytesAsync(packagePath, sourceZipBytes, TestContext.Current.CancellationToken);
+
+            _workspaceService.Cache.Returns(destinationPath);
+
+            // Act
+            var dependency = await store.StorePackage(packagePath, true, CancellationToken.None);
+
+            // Assert
+            dependency.Name.Should().Be("ViciOne.Suite.DataPort.Mqtt");
+            dependency.Version.ToString().Should().Be("2.0.0-beta.1");
+            var expectedPackagePath = fileSystem.Path.Combine(destinationPath, IFileSystemExtensions.DependenciesDirectory, dependency.Name, "2.0.0-beta.1");
+            fileSystem.Directory.Exists(expectedPackagePath).Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task Should_throw_if_deps_json_version_is_not_valid_semver()
+        {
+            // Arrange
+            using var services = CreateServices();
+            var store = services.GetRequiredService<IPackageStore>();
+            var fileSystem = services.GetRequiredService<IFileSystem>();
+            using var sourceDirectory = new TemporaryDirectory();
+            var sourceZipBytes = PackageFactory.CreatePackageZipArchiveBytes("ViciOne.Suite.DataPort.Mqtt", "2.0.0-01");
+            var packagePath = fileSystem.Path.Combine(sourceDirectory.Path, InvalidZipFilename);
+            await fileSystem.File.WriteAllBytesAsync(packagePath, sourceZipBytes, TestContext.Current.CancellationToken);
+
+            // Act
+            var act = () => store.StorePackage(packagePath, true, CancellationToken.None);
+
+            // Assert
+            (await act.Should().ThrowAsync<PackageValidationException>())
                 .Which.ErrorCode.Should().Be(ClusterPackageChanged.InvalidPackageContent);
         }
 

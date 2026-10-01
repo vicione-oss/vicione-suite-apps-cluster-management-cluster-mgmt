@@ -259,25 +259,25 @@ public class PackageArtifactRepositoryTests
 
     public class QueryZipArtifact : PackageArtifactRepositoryTests
     {
-        [Fact]
-        public async Task Should_zip_artifact_for_metadata_artifact()
+        [Theory]
+        [InlineData("1.18.3-win-x64_0.48.0.json", "1.18.3", "1.18.3-win-x64.zip")]
+        [InlineData("2.0.0-beta.1-ci2821027829-linux-x64_0.48.0.json", "2.0.0-beta.1-ci2821027829", "2.0.0-beta.1-ci2821027829-linux-x64.zip")]
+        public async Task Should_zip_artifact_for_metadata_artifact(string metadataArtifactName, string packageVersion, string zipArtifactName)
         {
             // Arrange
             var packageRepo = SetupPackageArtifactRepository();
-            var metadataArtifact = Substitute.For<IArtifact>().Setup("1.18.3-win-x64_0.48.0.json", "fbs/ViciOne.Driver.IoTCore");
-            var zipArtifactName = "1.18.3-win-x64.zip";
-            var query = "items.find({\"repo\":\"vicione-suite\",\"$and\":[{\"path\":{\"$match\":\"fbs/ViciOne.Driver.IoTCore\"}},{\"name\":{\"$match\":\"1.18.3-win-x64_0.48.*.json\"}}]}).sort({\"$desc\":[\"updated\"]})";
-            _repository.SetupExecuteQuery(query, Substitute.For<IArtifact>().Setup(zipArtifactName, "enginehosts"));
+            var metadataArtifact = Substitute.For<IArtifact>().Setup(metadataArtifactName, "fbs/ViciOne.Driver.IoTCore");
+            _repository.SetupExecuteQuery("zip-artifact-query", Substitute.For<IArtifact>().Setup(zipArtifactName, "fbs/ViciOne.Driver.IoTCore"));
 
-            var metadata = new ArtifactMetadata { Name = "Test", Version = "1.18.3", MinCoreVersion = "0.48.0" };
+            var metadata = new ArtifactMetadata { Name = "Test", Version = packageVersion, MinCoreVersion = "0.48.0" };
             using var ms = _repository.SetupMetadataDownload(metadataArtifact, metadata);
 
             // Act
             var result = await packageRepo.QueryZipArtifact(metadataArtifact, CancellationToken.None);
 
             // Assert
-            _artifactQueryBuilder.AndPathMatches("enginehosts").Received(1);
-            _artifactQueryBuilder.AndNameMatches(Arg.Is<string>(p => p == zipArtifactName)).Received(1);
+            _artifactQueryBuilder.Received(1).AndPathMatches("fbs/ViciOne.Driver.IoTCore");
+            _artifactQueryBuilder.Received(1).AndNameMatches(zipArtifactName);
 
             result.Should().NotBeNull();
             result.Metadata.Should().BeEquivalentTo(metadata);
