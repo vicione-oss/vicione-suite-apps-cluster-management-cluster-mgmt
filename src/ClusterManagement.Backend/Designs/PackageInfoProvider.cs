@@ -197,7 +197,10 @@ public partial class PackageInfoProvider(IClusterDependencyStore clusterDependen
             {
                 packageInfo.Versions = versionsToAdd
                     .Union(packageInfo.Versions ?? [])
-                    .OrderByDescending(k => k.Version)
+                    .Select(k => (Version: k, Parsed: SemVersion.TryParse(k.Version, SemVersionStyles.Any, out var parsed) ? parsed : null))
+                    .OrderBy(k => k.Parsed is null)
+                    .ThenByDescending(k => k.Parsed!, SemVersion.SortOrderComparer) // unparsable ones are already ordered last
+                    .Select(k => k.Version)
                     .ToList()
                     .AsReadOnly();
 

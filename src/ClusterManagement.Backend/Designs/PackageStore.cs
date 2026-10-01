@@ -256,7 +256,7 @@ internal sealed partial class PackageStore(
                 return version;
         }
 
-        throw new PackageValidationException(ClusterPackageChanged.InvalidPackageContent, $"Package version of '{packageName}' not found in deps.json.");
+        throw new PackageValidationException(ClusterPackageChanged.InvalidPackageContent, $"No valid SemVer version of '{packageName}' found in deps.json.");
     }
 
     public async Task DeletePackage(ClusterDependency dependency, CancellationToken cancellationToken)

@@ -10,15 +10,15 @@ internal static partial class MetadataArtifactNameRegex
     private const string RuntimeGroupName = "runtime";
     private const string CoreVersionGroupName = "coreversion";
 
-    [GeneratedRegex(@$"^(?'{VersionGroupName}'\d+\.\d+\.\d+(?:-ci\d+)?)+-(?'{RuntimeGroupName}'[win|linux]+\-[x64|arm64]+)_(?'{CoreVersionGroupName}'\d+\.\d+\.\d+).json$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@$"^(?'{VersionGroupName}'{SemVersionPattern.WithoutBuildMetadata})-(?'{RuntimeGroupName}'(?:win|linux)-(?:x64|arm64))_(?'{CoreVersionGroupName}'\d+\.\d+\.\d+)\.json$", RegexOptions.CultureInvariant)]
 
     private static partial Regex Matcher();
 
     /// <summary>
-    /// https://regex101.com/r/WKboob/5
+    /// Splits a metadata artifact name of the form <c>{version}-{runtime}_{coreVersion}.json</c>.
     /// </summary>
-    /// <param name="name">e.g. 0.28.0[-ci234343]-linux-x64_0.48.0.json</param>
-    /// <param name="packageVersion">e.g. 0.28.0 or 0.28.0-ci234343</param>
+    /// <param name="name">e.g. 0.28.0-linux-x64_0.48.0.json or 2.0.0-beta.1-ci2821027829-win-x64_1.0.0.json</param>
+    /// <param name="packageVersion">e.g. 0.28.0, 0.28.0-ci234343, 2.0.0-beta.1 or 2.0.0-beta.1-ci2821027829</param>
     /// <param name="coreVersion">e.g. 0.48.0</param>
     /// <param name="runtime">e.g. linux-x64</param>
     /// <returns></returns>

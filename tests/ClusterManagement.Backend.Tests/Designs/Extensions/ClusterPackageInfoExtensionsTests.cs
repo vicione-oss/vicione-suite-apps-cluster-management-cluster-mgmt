@@ -142,6 +142,67 @@ public class ClusterPackageInfoExtensionsTests
         }
 
         [Fact]
+        public void Ignores_prereleases_when_installed_version_is_a_release()
+        {
+            // Arrange
+            var packageInfo = new ClusterPackageInfo
+            {
+                Name = "TestPackage",
+                InstalledVersion = "1.0.0",
+                Versions = [
+                    new ClusterPackageVersion("1.0.0"),
+                    new ClusterPackageVersion("1.1.0"),
+                    new ClusterPackageVersion("1.2.0-ci2821027829"),
+                    new ClusterPackageVersion("2.0.0-beta.1")]
+            };
+
+            // Act
+            var result = packageInfo.GetHighestAvailableVersion();
+
+            // Assert
+            result.Should().Be("1.1.0");
+        }
+
+        [Fact]
+        public void Returns_null_when_only_a_prerelease_is_newer_than_the_installed_release()
+        {
+            // Arrange
+            var packageInfo = new ClusterPackageInfo
+            {
+                Name = "TestPackage",
+                InstalledVersion = "1.0.0",
+                Versions = [new ClusterPackageVersion("1.0.0"), new ClusterPackageVersion("2.0.0-beta.1")]
+            };
+
+            // Act
+            var result = packageInfo.GetHighestAvailableVersion();
+
+            // Assert
+            result.Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData("2.0.0-beta.2")]
+        [InlineData("2.0.0-beta.1-ci2821027829")]
+        [InlineData("2.0.0")]
+        public void Returns_highest_version_when_installed_version_is_a_prerelease(string highest)
+        {
+            // Arrange
+            var packageInfo = new ClusterPackageInfo
+            {
+                Name = "TestPackage",
+                InstalledVersion = "2.0.0-beta.1",
+                Versions = [new ClusterPackageVersion("1.0.0"), new ClusterPackageVersion("2.0.0-beta.1"), new ClusterPackageVersion(highest)]
+            };
+
+            // Act
+            var result = packageInfo.GetHighestAvailableVersion();
+
+            // Assert
+            result.Should().Be(highest);
+        }
+
+        [Fact]
         public void Returns_null_when_all_versions_are_invalid()
         {
             // Arrange

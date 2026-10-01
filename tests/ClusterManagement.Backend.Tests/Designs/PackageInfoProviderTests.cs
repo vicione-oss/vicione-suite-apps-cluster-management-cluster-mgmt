@@ -332,6 +332,32 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
         }
 
         [Fact]
+        public async Task Should_return_available_prerelease_versions()
+        {
+            // Arrange
+            var provider = CreateProvider();
+            _packageContentProvider.GetPackageContents().Returns(new Dictionary<ClusterDependency, PackageContent>());
+
+            var release = CreateArtifact(_chocolate, "1.0.0");
+            var beta = CreateArtifact(_chocolate, "2.0.0-beta.1");
+            var betaCi = CreateArtifact(_chocolate, "2.0.0-beta.1-ci2821027829");
+
+            _repository.QueryMetadataArtifacts(Arg.Any<SemVersion>(), null, Arg.Any<CancellationToken>())
+                .Returns([release, beta, betaCi]);
+
+            // Act
+            var result = await provider.GetClusterPackageInfos(CancellationToken.None);
+
+            // Assert
+            var package = result.Should().ContainSingle().Subject;
+            package.Versions.Should().BeEquivalentTo<ClusterPackageVersion>([
+                new("1.0.0"),
+                new("2.0.0-beta.1"),
+                new("2.0.0-beta.1-ci2821027829")
+            ]);
+        }
+
+        [Fact]
         public async Task Should_merge_installed_and_available_packages()
         {
             // Arrange
@@ -429,6 +455,32 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
         }
 
         [Fact]
+        public async Task Should_sort_merged_local_versions_by_semver_precedence()
+        {
+            // Arrange
+            var provider = CreateProvider();
+            _packageContentProvider.GetPackageContents().Returns(new Dictionary<ClusterDependency, PackageContent>());
+
+            var v190 = CreateArtifact(_chocolate, "1.9.0");
+            var v200Beta = CreateArtifact(_chocolate, "2.0.0-beta.1");
+            _repository.QueryMetadataArtifacts(Arg.Any<SemVersion>(), null, Arg.Any<CancellationToken>())
+                .Returns([v190, v200Beta]);
+
+            _dependencyStore.BuildStoredPackageVersionMap()
+                .Returns(new Dictionary<string, IEnumerable<string>>
+                {
+                    { _chocolate.Name, ["1.10.0", "2.0.0", "not-a-version"] }
+                });
+
+            // Act
+            var result = await provider.GetClusterPackageInfos(CancellationToken.None);
+
+            // Assert
+            var package = result.First(p => p.Name == _chocolate.Name);
+            package.Versions!.Select(v => v.Version).Should().Equal("2.0.0", "2.0.0-beta.1", "1.10.0", "1.9.0", "not-a-version");
+        }
+
+        [Fact]
         public async Task Should_set_latest_update_version_to_highest_available()
         {
             // Arrange
@@ -450,6 +502,30 @@ public class PackageInfoProviderTests : TestWithDbContextSqlite<ClusterDbContext
 
             var package = result.First(p => p.Name == _chocolate.Name);
             package.AvailableUpdateVersion.Should().Be("2.0.0");
+        }
+
+        [Fact]
+        public async Task Should_list_but_not_suggest_prerelease_update_for_installed_release()
+        {
+            // Arrange
+            var provider = CreateProvider();
+
+            _dependencyStore.LoadDependencies(Arg.Any<CancellationToken>()).Returns([_chocolate]);
+
+            var v100 = CreateArtifact(_chocolate, "1.0.0");
+            var v110 = CreateArtifact(_chocolate, "1.1.0");
+            var v200Beta = CreateArtifact(_chocolate, "2.0.0-beta.1");
+
+            _repository.QueryMetadataArtifacts(Arg.Any<SemVersion>(), null, Arg.Any<CancellationToken>())
+                .Returns([v100, v110, v200Beta]);
+
+            // Act
+            var result = await provider.GetClusterPackageInfos(CancellationToken.None);
+
+            // Assert
+            var package = result.First(p => p.Name == _chocolate.Name);
+            package.Versions.Should().Contain(v => v.Version == "2.0.0-beta.1");
+            package.AvailableUpdateVersion.Should().Be("1.1.0");
         }
 
         [Fact]
