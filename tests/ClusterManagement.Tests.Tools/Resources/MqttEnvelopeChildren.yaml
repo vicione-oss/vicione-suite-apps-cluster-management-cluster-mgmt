@@ -9,18 +9,18 @@ Common:
   Namespace    : "ViciOne.DataPort.Mqtt"
 
 Root:
-  Id                       : "MQTTDataPort"
+  Id                       : "MqttDataPort"
   Name                     : "MQTT"
   Description              : "DataPort for MQTT Protocol 3.x to 5.0"
   Icons                    : ['mqtt']
   ChildNodes               :
-    - Id                   : MQTT-Broker
+    - Id                   : MqttClientInstance
       MaxDepth             : 64
       MaxInstances         : 8
 
 Nodes:
 
-  - Id                     : MQTT-Broker
+  - Id                     : MqttClientInstance
     Type                   : DataPortNode
     Name                   : "Broker"
     Description            : "Broker"

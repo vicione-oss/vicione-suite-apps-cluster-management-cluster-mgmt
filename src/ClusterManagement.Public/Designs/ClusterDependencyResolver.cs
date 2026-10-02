@@ -10,7 +10,7 @@ public sealed class ClusterDependencyResolver(IEnumerable<ClusterDependencyPacka
 
     /// <summary>
     /// Instead of the Root.Id it seems that the Id of the first child is used
-    /// e.g. Root.Id => MQTTDataPort but MQTT-Broker is searched for
+    /// e.g. Root.Id => MqttDataPort but MqttClientInstance is searched for
     /// </summary>
     /// <param name="designId"></param>
     /// <returns></returns>

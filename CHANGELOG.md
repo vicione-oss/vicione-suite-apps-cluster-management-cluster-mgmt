@@ -6,6 +6,9 @@
 
 - `Public`
   - `ClusterSerializer` class, added asynchronous compress methods
+  - `OpcUaClientConnection` contract and `ConnectionType.OpcUaClient` / `Connection.SetOpcUaClientConnection` / `Connection.GetOpcUaClientConnection` extension members for configuring a client-side connection to an OPC UA server
+  - `OpcUaServerConnection` contract and `ConnectionType.OpcUaServer` / `Connection.SetOpcUaServerConnection` / `Connection.GetOpcUaServerConnection` extension members for configuring a server-side OPC UA connection, bound to a single network interface by name
+  - OPC UA client and server connections can be created and edited in the suite's connection settings dialog: the backend registers both types with `IConnectionTypeRegistry`, and the client contributes localized settings components and validators via `IConnectionTypeUiRegistry`
 - Deploy DataPort trees with envelope children (datapoints under a datapoint): the parent keeps its own connector and channel, and every child gets a connector that the parent transfers with the parent's transfer mode; serving them needs a DataPort provider built for envelope children (`dp-mqtt` from `2.0.0`)
 
 ### Removed

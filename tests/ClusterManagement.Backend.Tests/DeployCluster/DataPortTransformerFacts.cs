@@ -156,7 +156,7 @@ public class DataPortTransformerFacts
 
             var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
 
-            transformation.CommunicationId.Should().Be("MQTTDataPort");
+            transformation.CommunicationId.Should().Be("MqttDataPort");
             transformation.CommunicationProperties.Should().BeEquivalentTo(new CommunicationProperty[]
             {
                 new("Byte") { Value = TypedObject.CreateMandatory((byte)0), },
@@ -164,7 +164,7 @@ public class DataPortTransformerFacts
                 new("UInt16") { Value = TypedObject.CreateMandatory((ushort)1884), },
                 new("Enum") { Value = TypedObject.CreateMandatory(MqttConnectionType.TCP), },
                 new("Name") { Value = TypedObject.CreateMandatory("dataPort"), },
-                new("DesignId") { Value = TypedObject.CreateMandatory("MQTT-Broker"), },
+                new("DesignId") { Value = TypedObject.CreateMandatory("MqttClientInstance"), },
             });
         }
 
@@ -174,7 +174,7 @@ public class DataPortTransformerFacts
             var rulesetProvider = Substitute.For<ISuiteRulesetProvider>();
             rulesetProvider.GetRuleset(Arg.Any<string>()).Returns(RulesetFactory.CreateTestRuleset("""
                 Common: { Target: DataPort, ContentType: Rules, Version: 1.0, Date: 2026-09-02, Description: Test, Author: Test, MetadataType: YAML }
-                Root: { Id: MQTTDataPort, Name: MQTT, Description: Test, ChildNodes: [ { Id: Folder } ] }
+                Root: { Id: MqttDataPort, Name: MQTT, Description: Test, ChildNodes: [ { Id: Folder } ] }
                 Nodes:
                   - { Id: Folder, MappingId: Topic, Type: DataPortTreeNode, Name: Folder, Description: Test, TransferModes: [ None ] }
                   - { Id: Folder, MappingId: Topic, Type: DataPortTreeNode, Name: Folder, Description: Test, TransferModes: [ None ] }
@@ -2178,7 +2178,7 @@ public class DataPortTransformerFacts
 
             var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
 
-            act.Should().Throw<InvalidOperationException>().WithMessage("*pressure*written*MQTT-Broker*DataPort*Inbound*");
+            act.Should().Throw<InvalidOperationException>().WithMessage("*pressure*written*MqttClientInstance*DataPort*Inbound*");
         }
 
         [Fact]
