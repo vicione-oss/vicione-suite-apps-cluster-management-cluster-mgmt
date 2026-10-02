@@ -33,15 +33,19 @@
     },
     {
         "Name": "ifm.Anna.FunctionBlocks",
-        "Version": "1.0.0"
+        "Version": "2.0.0-beta1"
     },
     {
         "Name": "ViciOne.Suite.DataPort.Anna",
-        "Version": "1.0.0"
+        "Version": "2.0.0-beta1"
     },
     {
         "Name": "ViciOne.Driver.IoTCore",
-        "Version": "2.0.1"
+        "Version": "2.1.0"
+    },
+    {
+        "Name": "ViciOne.Driver.Vse",
+        "Version": "2.1.0"
     },
     {
         "Name": "ifm.moneo.Counter.Pieces",
@@ -73,30 +77,30 @@
     },
     {
         "Name": "ViciOne.Suite.DataPort.MySql",
-        "Version": "0.32.0"
+        "Version": "1.0.0-beta1"
     },
     {
         "Name": "ViciOne.Suite.DataPort.Mqtt",
-        "Version": "1.0.0"
+        "Version": "2.0.0-beta1"
     },
     {
         "Name": "ViciOne.Suite.DataPort.OpcUa.Client",
-        "Version": "0.32.0"
+        "Version": "1.0.0-beta1"
     },
     {
         "Name": "ViciOne.Suite.DataPort.OpcUa.Server",
-        "Version": "0.32.0"
+        "Version": "1.0.0-beta1"
     },
     {
         "Name": "ViciOne.Suite.DataPort.PostgreSql",
-        "Version": "0.32.0"
+        "Version": "1.0.0-beta1"
     },
     {
         "Name": "ViciOne.Suite.DataPort.Sqlite",
-        "Version": "0.32.0"
+        "Version": "1.0.0-beta1"
     },
     {
         "Name": "ViciOne.Suite.DataPort.SqlServer",
-        "Version": "0.32.0"
+        "Version": "1.0.0-beta1"
     }
 ]
