@@ -3,6 +3,7 @@ using ClusterManagement.Client.Editor.ControlPanels.Packages;
 using ClusterManagement.Client.Editor.ControlPanels.Packages.Models;
 using ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
 using ClusterManagement.Client.Editor.Extensions;
+using ClusterManagement.Client.Localization;
 using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Internal.Events;
 using ClusterManagement.Public.Services;
@@ -34,7 +35,6 @@ public class PackagesControlPanelUploadTests
     {
         var ctx = new BunitContext();
         ctx.SetupSuiteServices();
-        ctx.SetupDevExpressBlazor();
         ctx.SetupControlPanelServices();
 
         ctx.Services.AddSingleton(_packageService);
@@ -89,14 +89,14 @@ public class PackagesControlPanelUploadTests
 
     public static TheoryData<int, string> UploadErrors => new()
     {
-        { ClusterPackageChanged.NotAZipArchive, Client.Localization.Common.FileTypeMissmatch },
-        { ClusterPackageChanged.EmptyArchive, Client.Localization.Common.FileIsEmpty },
+        { ClusterPackageChanged.NotAZipArchive, Common.FileTypeMissmatch },
+        { ClusterPackageChanged.EmptyArchive, Common.FileIsEmpty },
         { ClusterPackageChanged.PackageVersionInUse, Client.Editor.ControlPanels.Packages.Localization.PackagesControlPanel.PackageVersionInUse },
-        { ClusterPackageChanged.CorruptArchive, Client.Localization.Common.UploadFailed },
-        { ClusterPackageChanged.InvalidPackageContent, Client.Localization.Common.UploadFailed },
-        { ClusterPackageChanged.PackageFileNotFound, Client.Localization.Common.UploadFailed },
-        { ClusterPackageChanged.PackageFileOutsideUploadDirectory, Client.Localization.Common.UploadFailed },
-        { ClusterPackageChanged.AddPackageFailed, Client.Localization.Common.UploadFailed },
+        { ClusterPackageChanged.CorruptArchive, Common.UploadFailed },
+        { ClusterPackageChanged.InvalidPackageContent, Common.UploadFailed },
+        { ClusterPackageChanged.PackageFileNotFound, Common.UploadFailed },
+        { ClusterPackageChanged.PackageFileOutsideUploadDirectory, Common.UploadFailed },
+        { ClusterPackageChanged.AddPackageFailed, Common.UploadFailed },
     };
 
     [Theory]

@@ -1,9 +1,10 @@
-﻿@using ViciOne.Ui.Blazor.Components.Button
+@using ViciOne.Ui.Blazor.Components.Button
 @using ViciOne.Ui.Blazor.Components.Button.Enums
+@using ViciOne.Ui.Blazor.Components.Tables.SimpleTable.Components
+@using ViciOne.Ui.Blazor.Components.Tables.SimpleTable.Components.Columns
 @using ViciOne.Ui.Blazor.Components.Toolbar.Components
 @using ViciOne.Ui.Blazor.Components.Popup.Components
 @using ViciOne.Ui.Localization.Resources
-@using ViciOne.Ui.MonochromeIcons.Components
 @using ViciOne.Ui.MonochromeIcons.Core.Enums
 
 @inherits ModulePageBase<ClusterManagementClientModule>
@@ -36,59 +37,55 @@
     else
     {
         <div class="debug-engines-grid">
-            <DxGrid AllowGroup="true"
-                    Data="@Engines"
-                    AutoExpandAllGroupRows="true"
-                    PagerVisible="true">
+            <SimpleTable TItem="EngineInfoModel"
+                         Items="@Engines"
+                         SortingState="@_sortingState">
                 <Columns>
-                    <DxGridDataColumn Caption="Engine-Host ID"
-                                      FieldName="@nameof(EngineInfoModel.EngineHostId)"
-                                      GroupIndex="0" />
-                    <DxGridDataColumn Caption="Engine-Host Name"
-                                      FieldName="@nameof(EngineInfoModel.EngineHostName)" />
-                    <DxGridDataColumn Caption="Engine ID"
-                                      FieldName="@nameof(EngineInfoModel.EngineId)" />
-                    <DxGridDataColumn Caption="Engine Name"
-                                      FieldName="@nameof(EngineInfoModel.EngineName)" />
-                    <DxGridDataColumn Caption="Engine State"
-                                      FieldName="@nameof(EngineInfoModel.EngineState)" />
-                    <DxGridCommandColumn Width="150px">
-                        <HeaderTemplate>
-                            @CommonVocabulary.ActionPlural
-                        </HeaderTemplate>
-                        <CellDisplayTemplate>
-                            <div class="action-column">
-                                @if (context.DataItem is EngineInfoModel model)
-                                {
-                                    <Button IconCssClass="@_startIconCssClass"
-                                            OnClick="@(async () => await StartEngine(model))"
-                                            Enabled="@(model.EngineState is Internal.Requests.EngineState.Stopped)"
-                                            Title="@CommonVocabulary.StartVerb"
-                                            Size="@ButtonSize.Small" />
+                    <SimpleTableTemplateColumn Id="@EngineHostNameColumnId" Title="Engine-Host Name" Resizeable="false"
+                                               SortExpression="@(m => m.EngineHostName)">
+                        <CellContent>@context.EngineHostName</CellContent>
+                    </SimpleTableTemplateColumn>
+                    <SimpleTableTemplateColumn Id="EngineHostId" Title="Engine-Host ID" Resizeable="false">
+                        <CellContent>@context.EngineHostId</CellContent>
+                    </SimpleTableTemplateColumn>
+                    <SimpleTableTemplateColumn Id="EngineId" Title="Engine ID" Resizeable="false">
+                        <CellContent>@context.EngineId</CellContent>
+                    </SimpleTableTemplateColumn>
+                    <SimpleTableTemplateColumn Id="@EngineNameColumnId" Title="Engine Name" Resizeable="false"
+                                               SortExpression="@(m => m.EngineName)">
+                        <CellContent>@context.EngineName</CellContent>
+                    </SimpleTableTemplateColumn>
+                    <SimpleTableTemplateColumn Id="EngineState" Title="Engine State" Resizeable="false">
+                        <CellContent>@context.EngineState</CellContent>
+                    </SimpleTableTemplateColumn>
+                    <SimpleTableTemplateColumn Id="Actions" Title="@CommonVocabulary.ActionPlural" Resizeable="false" Width="150">
+                        <CellContent><div class="action-column">
+                            <Button IconCssClass="@_startIconCssClass"
+                                    OnClick="@(async () => await StartEngine(context))"
+                                    Enabled="@(context.EngineState is Internal.Requests.EngineState.Stopped)"
+                                    Title="@CommonVocabulary.StartVerb"
+                                    Size="@ButtonSize.Small" />
 
-                                    <Button IconCssClass="@_stopIconCssClass"
-                                            OnClick="@(async () => await StopEngine(model))"
-                                            Enabled="@(model.EngineState is Internal.Requests.EngineState.Running)"
-                                            Title="Stop"
-                                            Size="@ButtonSize.Small" />
+                            <Button IconCssClass="@_stopIconCssClass"
+                                    OnClick="@(async () => await StopEngine(context))"
+                                    Enabled="@(context.EngineState is Internal.Requests.EngineState.Running)"
+                                    Title="Stop"
+                                    Size="@ButtonSize.Small" />
 
+                            <Button IconCssClass="@_trashIconCssClass"
+                                    OnClick="@(async () => await TearDownEngine(context))"
+                                    Enabled="@(context.EngineState is Internal.Requests.EngineState.Stopped)"
+                                    Title="TearDown"
+                                    Size="@ButtonSize.Small" />
 
-                                    <Button IconCssClass="@_trashIconCssClass"
-                                            OnClick="@(async () => await TearDownEngine(model))"
-                                            Enabled="@(model.EngineState is Internal.Requests.EngineState.Stopped)"
-                                            Title="TearDown"
-                                            Size="@ButtonSize.Small" />
-
-                                    <Button IconCssClass="@_infoIconCssClass"
-                                            OnClick="@(async () => await GetPackages(model))"
-                                            Title="Get Packages"
-                                            Size="@ButtonSize.Small" />
-                                }
-                            </div>
-                        </CellDisplayTemplate>
-                    </DxGridCommandColumn>
+                            <Button IconCssClass="@_infoIconCssClass"
+                                    OnClick="@(async () => await GetPackages(context))"
+                                    Title="Get Packages"
+                                    Size="@ButtonSize.Small" />
+                        </div></CellContent>
+                    </SimpleTableTemplateColumn>
                 </Columns>
-            </DxGrid>
+            </SimpleTable>
             <Popup @bind-Visible="_showPackages"
                    Width="300px">
                 <PopupHeaderBodyLayout HeaderText="Installed Packages">

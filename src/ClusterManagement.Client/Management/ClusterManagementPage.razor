@@ -1,9 +1,13 @@
-﻿@using ClusterManagement.Client.Management.Components;
+@using ClusterManagement.Client.Management.Components;
+@using ClusterManagement.Client.Management.Localization
 @using ClusterManagement.Client.Management.Models
 @using ClusterManagement.Public
 @using Sdk.Authorization
 @using ViciOne.Ui.Blazor.Components.Button
 @using ViciOne.Ui.Blazor.Components.Button.Enums
+@using ViciOne.Ui.Blazor.Components.Tables.Shared.Enums
+@using ViciOne.Ui.Blazor.Components.Tables.SimpleTable.Components
+@using ViciOne.Ui.Blazor.Components.Tables.SimpleTable.Components.Columns
 @using ViciOne.Ui.Blazor.Components.Toolbar.Components
 @using ViciOne.Ui.Localization.Resources
 @using ViciOne.Ui.MonochromeIcons.Core.Enums
@@ -45,81 +49,63 @@
     else
     {
         <div class="cluster-mgmt-grid">
-            <DxGrid AllowSelectRowByClick="true"
-                    AllowGroup="false"
-                    AutoCollapseDetailRow="true"
-                    Data="@Clusters"
-                    PagerVisible="true"
-                    KeyFieldName="@nameof(ClusterInfoModel.Key)"
-                    SelectionMode="GridSelectionMode.Single"
-                    SelectedDataItem="@SelectedCluster"
-                    SelectedDataItemChanged="@SelectedClusterChanged">
+            <SimpleTable TItem="ClusterInfoModel"
+                         Items="@Clusters"
+                         SelectionMode="SelectionMode.Single"
+                         RowClickSelectionEnabled="true"
+                         SelectedItems="@_selectedClusters"
+                         SelectedItemsChanged="@OnSelectedItemsChanged">
                 <Columns>
-                    <DxGridDataColumn Caption="@CommonVocabulary.Name"
-                                      FieldName="@nameof(ClusterInfoModel.DisplayName)"
-                                      MinWidth="150" Width="35%" />
-
-                    <DxGridDataColumn AllowGroup="false"
-                                      Caption="@CommonVocabulary.Description"
-                                      FieldName="@nameof(ClusterInfoModel.Description)" />
-
-                    <DxGridDataColumn Caption="@TechnicalTerms.Version"
-                                      FieldName="@nameof(ClusterInfoModel.Version)"
-                                      Width="60" />
-
-                    <DxGridDataColumn AllowGroup="false"
-                                      FieldName="@nameof(ClusterInfoModel.Status)"
-                                      TextAlignment="GridTextAlignment.Left"
-                                      Width="15%" />
-
-                    <DxGridDataColumn AllowGroup="false"
-                                      FieldName="@nameof(ClusterInfoModel.DeploymentDuration)"
-                                      TextAlignment="GridTextAlignment.Left"
-                                      Width="15%" />
-
-                    <DxGridCommandColumn Width="150px">
-                        <HeaderTemplate>
-                            Actions
-                        </HeaderTemplate>
-                        <CellDisplayTemplate>
+                    <SimpleTableTemplateColumn Id="Name" Title="@CommonVocabulary.Name">
+                        <CellContent>@context.DisplayName</CellContent>
+                    </SimpleTableTemplateColumn>
+                    <SimpleTableTemplateColumn Id="Description" Title="@CommonVocabulary.Description">
+                        <CellContent>@context.Description</CellContent>
+                    </SimpleTableTemplateColumn>
+                    <SimpleTableTemplateColumn Id="Version" Title="@TechnicalTerms.Version" Width="100">
+                        <CellContent>@context.Version</CellContent>
+                    </SimpleTableTemplateColumn>
+                    <SimpleTableTemplateColumn Id="Status" Title="@CommonVocabulary.Status" Width="120">
+                        <CellContent>@context.Status</CellContent>
+                    </SimpleTableTemplateColumn>
+                    <SimpleTableTemplateColumn Id="Duration" Title="@Common.Duration" Width="120">
+                        <CellContent>@context.DeploymentDuration</CellContent>
+                    </SimpleTableTemplateColumn>
+                    <SimpleTableTemplateColumn Id="Actions" Title="@CommonVocabulary.ActionPlural" Resizeable="false" Width="150">
+                        <CellContent>
                             <div class="action-column">
-                                @if (context.DataItem is ClusterInfoModel model)
-                                {
-                                
-                                    <Button IconCssClass="@_deployIconCssClass"
-                                            CssClass="borderless"
-                                            OnClick="@(async () => await DeployClusterVersion(model))"
-                                            Enabled="@(!model.IsActive && Clusters.All(k => !k.IsExecuting))"
-                                            Title="@CommonVocabulary.StartVerb"
-                                            Size="@ButtonSize.Small" />
+                                <Button IconCssClass="@_deployIconCssClass"
+                                        CssClass="borderless"
+                                        OnClick="@(async () => await DeployClusterVersion(context))"
+                                        Enabled="@(!context.IsActive && Clusters.All(k => !k.IsExecuting))"
+                                        Title="@CommonVocabulary.StartVerb"
+                                        Size="@ButtonSize.Small" />
 
-                                    <Button IconCssClass="@(model.IsLatest? _editIconCssClass : _infoIconCssClass)"
-                                            CssClass="borderless"
-                                            OnClick="@(() => HandleEdit(model))"
-                                            Enabled="@(!model.IsExecuting && model.IsLatest)"
-                                            Title="@CommonVocabulary.EditVerb"
-                                            Size="@ButtonSize.Small" />
+                                <Button IconCssClass="@(context.IsLatest ? _editIconCssClass : _infoIconCssClass)"
+                                        CssClass="borderless"
+                                        OnClick="@(() => HandleEdit(context))"
+                                        Enabled="@(!context.IsExecuting && context.IsLatest)"
+                                        Title="@CommonVocabulary.EditVerb"
+                                        Size="@ButtonSize.Small" />
 
-                                    <Button IconCssClass="@_downloadIconCssClass"
-                                            CssClass="borderless"
-                                            OnClick="@(() => DownloadClusterJson(model))"
-                                            Enabled="@(!model.IsExecuting)"
-                                            Title="@($"{CommonVocabulary.DownloadVerb} JSON")"
-                                            Size="@ButtonSize.Small" />
+                                <Button IconCssClass="@_downloadIconCssClass"
+                                        CssClass="borderless"
+                                        OnClick="@(() => DownloadClusterJson(context))"
+                                        Enabled="@(!context.IsExecuting)"
+                                        Title="@($"{CommonVocabulary.DownloadVerb} JSON")"
+                                        Size="@ButtonSize.Small" />
 
-                                    <Button IconCssClass="@_deleteIconCssClass"
-                                            CssClass="borderless"
-                                            OnClick="@(async () => await RemoveCluster(model))"
-                                            Enabled="@(!model.IsExecuting && !model.IsActive && !model.IsDefault)"
-                                            Title="@CommonVocabulary.Delete"
-                                            Size="@ButtonSize.Small" />
-
-                                }
+                                <Button IconCssClass="@_deleteIconCssClass"
+                                        CssClass="borderless"
+                                        OnClick="@(async () => await RemoveCluster(context))"
+                                        Enabled="@(!context.IsExecuting && !context.IsActive && !context.IsDefault)"
+                                        Title="@CommonVocabulary.Delete"
+                                        Size="@ButtonSize.Small" />
                             </div>
-                        </CellDisplayTemplate>
-                    </DxGridCommandColumn>
+                        </CellContent>
+                    </SimpleTableTemplateColumn>
                 </Columns>
-            </DxGrid>
+            </SimpleTable>
         </div>
     }
 

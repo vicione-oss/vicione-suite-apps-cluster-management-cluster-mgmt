@@ -11,9 +11,11 @@
 ### Removed
 
 - The cluster import wizard and the cluster export in the cluster editor, both removed from `ViciOne.Ui.ClusterEditor`; the JSON download on the management page remains
+- The DevExpress dependency, which came in through `ViciOne.Ui.ClusterEditor` and `ViciOne.Ui.Shared.Dx`
 
 ### Changed
 
+- Replaced DevExpress `DxGrid` with `SimpleTable` on the management, dataflow events and debug engines pages
 - Package uploads in the cluster editor now stream to disk instead of loading the whole archive into memory, increasing the maximum package upload size from 2 MB to 10 MB
 - IODD downloads are grouped by vendor, one archive per vendor instead of one per selected device variant
 - Failed IODD uploads show an error banner, and the IODD action buttons match the package panel

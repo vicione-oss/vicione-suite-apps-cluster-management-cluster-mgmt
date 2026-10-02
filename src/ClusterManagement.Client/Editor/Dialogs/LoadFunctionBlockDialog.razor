@@ -1,5 +1,4 @@
-﻿@using ClusterManagement.Client.Editor.Components
-@using ClusterManagement.Client.Extensions
+@using ClusterManagement.Client.Editor.Components
 @using ViciOne.Ui.Blazor.Components.CheckBox
 @using ViciOne.Ui.Blazor.Components.Dialog.Components
 @using ViciOne.Ui.Blazor.Components.SearchBox
@@ -62,8 +61,7 @@
                                                    Layer="0">
 
                                 <FunctionBlockModelTemplate>
-                                    <ViciOne.Ui.Shared.Dx.Components.SearchHighlighter SearchText="@_filter"
-                                                       Text="@context.Name" />
+                                    @context.Name
                                 </FunctionBlockModelTemplate>
                             </LoadFunctionBlockTree>
                         }

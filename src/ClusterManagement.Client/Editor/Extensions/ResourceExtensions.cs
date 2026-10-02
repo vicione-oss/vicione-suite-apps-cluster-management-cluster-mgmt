@@ -17,7 +17,6 @@ internal static class ResourceExtensions
         var editorAssembly = typeof(ViciOne.Ui.ClusterEditor.Components.ClusterEditor).Assembly;
 
         // editor js bundle
-        // jquery and dx.all.js come with AddDxSharedResources
         resources.AddComponentScript(Bundle, "scripts/vicione.cluster-editor.min.js", editorAssembly);
 
         var zblazorJs = new UriBuilder().WithPath("/_content/Z.Blazor.Diagrams/script.min.js").Uri;

@@ -1,10 +1,11 @@
-﻿using Bunit;
+using Bunit;
 using ClusterManagement.Client.DataflowEvents;
 using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Public.DataflowEvents;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Client.Modules.Localization.Extensions;
 using Sdk.Testing.Client;
+using ViciOne.Ui.Blazor.Components.Tables.SimpleTable.Extensions;
 using ViciOne.Ui.Blazor.Components.Toolbar.Extensions;
 
 namespace ClusterManagement.Client.Tests.DataflowEvents;
@@ -25,7 +26,8 @@ public sealed class DataflowEventsPageTests
             setup.ClientMediator.SetupDataflowEventRequest(_inputEvent, _outputEvent);
             setup.Services.AddLocalization<ClusterManagementClientModule, ClusterManagementClientLocalizer>();
         });
-        ctx.SetupDevExpressBlazor();
+        ctx.Services.AddSimpleTable();
+        ctx.JSInterop.ConfigureSimpleTableJSInterop();
         ctx.Services.AddToolbar();
         ctx.Services.AddSingleton(_eventBroker);
         ctx.Services.AddSingleton<DataflowEventPageService>();

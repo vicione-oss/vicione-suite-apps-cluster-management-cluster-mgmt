@@ -1,4 +1,4 @@
-﻿using Bunit;
+using Bunit;
 using ClusterManagement.Client.Management;
 using ClusterManagement.Client.Management.Services;
 using ClusterManagement.Client.Services;
@@ -6,6 +6,7 @@ using ClusterManagement.Public.Designs;
 using ClusterManagement.Public.Requests;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Testing.Client;
+using ViciOne.Ui.Blazor.Components.Tables.SimpleTable.Extensions;
 using ViciOne.Ui.Blazor.Components.Toolbar.Extensions;
 using Range = System.Range;
 
@@ -29,7 +30,8 @@ public sealed class ClusterManagementPageTests
                     State = new DeploymentState(Guid.NewGuid(), "Deployed", new Version(1, 0, 0), new Version(1, 1, 0))
                 });
         });
-        ctx.SetupDevExpressBlazor();
+        ctx.Services.AddSimpleTable();
+        ctx.JSInterop.ConfigureSimpleTableJSInterop();
         ctx.Services.AddToolbar();
         ctx.Services.AddSingleton(_managementService);
         ctx.Services.AddSingleton(Substitute.For<IClusterService>());

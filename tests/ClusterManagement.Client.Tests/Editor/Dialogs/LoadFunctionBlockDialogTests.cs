@@ -1,9 +1,8 @@
-﻿using AngleSharp.Dom;
+using AngleSharp.Dom;
 using Bunit;
 using ClusterManagement.Client.Editor.Dialogs;
 using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Public.Designs;
-using DevExpress.Blazor.Internal.Editors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sdk.Testing.Client;
@@ -56,13 +55,13 @@ public class LoadFunctionBlockDialogTests
             Substitute.For<ILogger<LoadFunctionBlocksService>>());
 
         ctx.SetupSuiteServices();
-        ctx.SetupDevExpressBlazor();
         ctx.Services.AddSingleton(service);
         ctx.Services.AddSingleton(Substitute.For<ILogger<LoadFunctionBlockDialog>>);
 
         return service;
     }
 
+    [Obsolete("DevExpress was removed so the accessors need to be updated")]
     private static IElement GetFunctionBlockByName(IRenderedComponent<LoadFunctionBlockDialog> component, string functionBlockName)
         => component.FindAll("dxbl-check").First(fb => fb.InnerHtml.Contains(functionBlockName, StringComparison.OrdinalIgnoreCase));
 
@@ -75,8 +74,9 @@ public class LoadFunctionBlockDialogTests
     private static IElement GetOkButton(IRenderedComponent<LoadFunctionBlockDialog> component)
         => component.FindAll("button").First(b => b.InnerHtml.Contains(CommonVocabulary.Ok, StringComparison.Ordinal));
 
+    [Obsolete("DevExpress was removed so the accessors need to be updated")]
     private static void SetSearchFilter(IRenderedComponent<LoadFunctionBlockDialog> component, string filter)
-        => component.Find(".dxbl-text-edit").TriggerEvent("ondxbl-input-editor.textinput", new EditorTextInputEventArgs { Text = filter, Version = 0 });
+        => component.Find(".dxbl-text-edit").TriggerEvent("ondxbl-input-editor.textinput", new EventArgs());
 
     public class RenderComponent : LoadFunctionBlockDialogTests
     {
