@@ -53,6 +53,7 @@ public sealed record SerilogSink
         Args = new SerilogJournalArguments
         {
             OutputTemplate = outputTemplate,
+            WriteCustomKeyValues = true,
             MetaDataFields = new Dictionary<string, object?>()
             {
                 {"ENGINE_HOST_ID", engineHostId.ToString() },
@@ -89,6 +90,7 @@ internal sealed record SerilogJournalArguments
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? OutputTemplate { get; set; }
+    public bool WriteCustomKeyValues { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyDictionary<string, object?>? MetaDataFields { get; set; }
 }

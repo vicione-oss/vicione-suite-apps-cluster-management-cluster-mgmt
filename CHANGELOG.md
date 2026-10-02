@@ -22,6 +22,7 @@
 - IODD upload times are shown as short date and 24-hour time in the user's time zone
 - The IODD tree selects the repository root by default, so all devices are listed
 - Package updates only suggest a prerelease, such as `2.0.0-beta.1` or a `-ci` build, when the installed version is a prerelease itself; prereleases can still be installed from the version list
+- Engine hosts write log event properties such as `SOURCE_CONTEXT`, `ENGINE_ID` and `EVENT_ID` as separate journal fields, not only inside `SYSLOG_STRUCTURED_DATA`
 - `Public`
   - `IoddChanged`, added the error codes `IoddFileNotFound` and `IoddFileOutsideUploadDirectory`
   - `IIoddStore`, replaced `FillDeviceArchive` with `FillVendorArchive` which archives several devices of a vendor as `<vendor-id>/<device-id>/<IODD files>`
