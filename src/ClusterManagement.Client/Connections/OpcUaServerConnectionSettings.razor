@@ -1,0 +1,132 @@
+@using ClusterManagement.Client.Connections.Localization
+@using ClusterManagement.Public.Connections.Contracts
+@using Sdk.Client.Components.Settings
+@using Sdk.Client.Connections
+@using ViciOne.Ui.Blazor.Components.SpinEdit
+@using ViciOne.Ui.Localization.Resources
+
+@inherits ConnectionSettingsComponentBase<OpcUaServerConnection>
+
+@* ---- Connection ---- *@
+
+<SettingsField Label="@OpcUaConnectionSettings.ApplicationName">
+    <SettingsFieldTextBox @bind-Value="@Connection.ApplicationName"
+                          @bind-Value:after="NotifyChanged"
+                          Placeholder="@OpcUaConnectionSettings.ApplicationName" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.ApplicationUri">
+    <SettingsFieldTextBox @bind-Value="@Connection.ApplicationUri"
+                          @bind-Value:after="NotifyChanged"
+                          Placeholder="@OpcUaConnectionSettings.ApplicationUri" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.Namespace">
+    <SettingsFieldTextBox @bind-Value="@Connection.Namespace"
+                          @bind-Value:after="NotifyChanged"
+                          Placeholder="@OpcUaConnectionSettings.Namespace" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.NetworkInterface">
+    <SettingsFieldComboBox @bind-Value="@Connection.NetworkInterface"
+                           @bind-Value:after="NotifyChanged"
+                           Items="@_networkInterfaces"
+                           TextSelector="@(item => item.Text)"
+                           ValueSelector="@(item => item.Value)" />
+</SettingsField>
+
+<SettingsField Label="@TechnicalTerms.Endpoint">
+    <SettingsFieldTextBox @bind-Value="@Connection.Endpoint"
+                          @bind-Value:after="NotifyChanged"
+                          Placeholder="@TechnicalTerms.Endpoint" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.SecurityPolicy">
+    <SettingsFieldComboBox @bind-Value="@Connection.SecurityPolicy"
+                           @bind-Value:after="NotifyChanged"
+                           Items="@_securityPolicies"
+                           TextSelector="@(item => item.Text)"
+                           ValueSelector="@(item => item.Value)" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.UseCustomTransportQuotas">
+    <SettingsFieldSwitch @bind-Value="@Connection.UseCustomTransportQuotas"
+                         @bind-Value:after="NotifyChanged" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.MinPublishingInterval">
+    <SpinEdit @bind-Value="@Connection.MinPublishingIntervalMilliseconds"
+              @bind-Value:after="NotifyChanged"
+              Interval="10"
+              IsRastered="true"
+              Maximum="@OpcUaServerConnection.MinPublishingIntervalUpperLimitMilliseconds"
+              Minimum="@OpcUaServerConnection.MinPublishingIntervalLowerLimitMilliseconds" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.MaxPublishingInterval">
+    <SpinEdit @bind-Value="@Connection.MaxPublishingIntervalMilliseconds"
+              @bind-Value:after="NotifyChanged"
+              Interval="100"
+              IsRastered="true"
+              Maximum="@OpcUaServerConnection.MaxPublishingIntervalUpperLimitMilliseconds"
+              Minimum="@OpcUaServerConnection.MaxPublishingIntervalLowerLimitMilliseconds" />
+</SettingsField>
+
+@* ---- Authentication ---- *@
+<SettingsFieldSeparator />
+
+<SettingsField Label="@OpcUaConnectionSettings.AuthenticationMode">
+    <SettingsFieldComboBox @bind-Value="@Connection.AuthenticationMode"
+                           @bind-Value:after="NotifyChanged"
+                           Items="@_authenticationModes"
+                           TextSelector="@(item => item.Text)"
+                           ValueSelector="@(item => item.Value)" />
+</SettingsField>
+
+@if (Connection.AuthenticationMode == OpcUaAuthenticationMode.UsernamePassword)
+{
+    <SettingsField Label="@TechnicalTerms.Username">
+        <SettingsFieldTextBox @bind-Value="@Connection.Username"
+                              @bind-Value:after="NotifyChanged"
+                              Placeholder="@TechnicalTerms.Username" />
+    </SettingsField>
+
+    <SettingsField Label="@CommonVocabulary.Password">
+        <SettingsFieldTextBox @bind-Value="@Connection.Password"
+                              @bind-Value:after="NotifyChanged"
+                              Password="true"
+                              Placeholder="@CommonVocabulary.Password" />
+    </SettingsField>
+}
+
+@* ---- Certificate ---- *@
+<SettingsFieldSeparator />
+
+<SettingsField Label="@OpcUaConnectionSettings.ApplicationCertificateSubject">
+    <SettingsFieldTextBox @bind-Value="@Connection.ApplicationCertificateSubject"
+                          @bind-Value:after="NotifyChanged"
+                          Placeholder="@OpcUaConnectionSettings.ApplicationCertificateSubject" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.ApplicationCertificatesPath">
+    <SettingsFieldTextBox @bind-Value="@Connection.ApplicationCertificatesPath"
+                          @bind-Value:after="NotifyChanged"
+                          Placeholder="@OpcUaConnectionSettings.ApplicationCertificatesPath" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.TrustedCertificatesPath">
+    <SettingsFieldTextBox @bind-Value="@Connection.TrustedCertificatesPath"
+                          @bind-Value:after="NotifyChanged"
+                          Placeholder="@OpcUaConnectionSettings.TrustedCertificatesPath" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.TrustedIssuerCertificatesPath">
+    <SettingsFieldTextBox @bind-Value="@Connection.TrustedIssuerCertificatesPath"
+                          @bind-Value:after="NotifyChanged"
+                          Placeholder="@OpcUaConnectionSettings.TrustedIssuerCertificatesPath" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.AutoAcceptUntrustedCertificates">
+    <SettingsFieldSwitch @bind-Value="@Connection.AutoAcceptUntrustedCertificates"
+                         @bind-Value:after="NotifyChanged" />
+</SettingsField>

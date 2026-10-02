@@ -1,0 +1,178 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="DisplayNameClient" xml:space="preserve">
+    <value>OPC UA client</value>
+  </data>
+  <data name="DisplayNameServer" xml:space="preserve">
+    <value>OPC UA server</value>
+  </data>
+  <data name="ApplicationName" xml:space="preserve">
+    <value>Application name</value>
+  </data>
+  <data name="ApplicationUri" xml:space="preserve">
+    <value>Application URI</value>
+  </data>
+  <data name="Namespace" xml:space="preserve">
+    <value>Namespace</value>
+  </data>
+  <data name="NetworkInterface" xml:space="preserve">
+    <value>Network interface</value>
+  </data>
+  <data name="NetworkInterfaceLocal" xml:space="preserve">
+    <value>Local (127.0.0.1)</value>
+  </data>
+  <data name="RootNodeId" xml:space="preserve">
+    <value>Root node ID</value>
+  </data>
+  <data name="SubscriptionPublishingInterval" xml:space="preserve">
+    <value>Subscription publishing interval (ms)</value>
+  </data>
+  <data name="MinPublishingInterval" xml:space="preserve">
+    <value>Min. publishing interval (ms)</value>
+  </data>
+  <data name="MaxPublishingInterval" xml:space="preserve">
+    <value>Max. publishing interval (ms)</value>
+  </data>
+  <data name="AuthenticationMode" xml:space="preserve">
+    <value>Authentication mode</value>
+  </data>
+  <data name="SecurityPolicy" xml:space="preserve">
+    <value>Security policy</value>
+  </data>
+  <data name="UseCustomTransportQuotas" xml:space="preserve">
+    <value>Use custom transport quotas</value>
+  </data>
+  <data name="ApplicationCertificateSubject" xml:space="preserve">
+    <value>Application certificate subject</value>
+  </data>
+  <data name="ApplicationCertificatesPath" xml:space="preserve">
+    <value>Application certificates path</value>
+  </data>
+  <data name="TrustedCertificatesPath" xml:space="preserve">
+    <value>Trusted certificates path</value>
+  </data>
+  <data name="TrustedIssuerCertificatesPath" xml:space="preserve">
+    <value>Trusted issuer certificates path</value>
+  </data>
+  <data name="AutoAcceptUntrustedCertificates" xml:space="preserve">
+    <value>Auto-accept untrusted certificates</value>
+  </data>
+  <data name="AuthModeAnonymous" xml:space="preserve">
+    <value>Anonymous</value>
+  </data>
+  <data name="AuthModeUsernamePassword" xml:space="preserve">
+    <value>Username and password</value>
+  </data>
+  <data name="SecurityPolicyNone" xml:space="preserve">
+    <value>None (no security)</value>
+  </data>
+  <data name="SecurityPolicyBasic256Sha256Sign" xml:space="preserve">
+    <value>Basic256Sha256 - Sign</value>
+  </data>
+  <data name="SecurityPolicyBasic256Sha256SignAndEncrypt" xml:space="preserve">
+    <value>Basic256Sha256 - Sign and encrypt</value>
+  </data>
+  <data name="SecurityPolicyAes256Sha256RsaPssSignAndEncrypt" xml:space="preserve">
+    <value>Aes256-Sha256-RsaPss - Sign and encrypt</value>
+  </data>
+  <data name="ValidationNetworkInterfaceRequired" xml:space="preserve">
+    <value>A network interface is required.</value>
+  </data>
+  <data name="ValidationServerRequired" xml:space="preserve">
+    <value>The server host name or IP address is required.</value>
+  </data>
+  <data name="ValidationPortRange" xml:space="preserve">
+    <value>The port must be between 1 and 65535.</value>
+  </data>
+  <data name="ValidationEndpointRequired" xml:space="preserve">
+    <value>The endpoint is required.</value>
+  </data>
+  <data name="ValidationApplicationNameRequired" xml:space="preserve">
+    <value>The application name is required.</value>
+  </data>
+  <data name="ValidationApplicationUriRequired" xml:space="preserve">
+    <value>The application URI is required.</value>
+  </data>
+  <data name="ValidationNamespaceRequired" xml:space="preserve">
+    <value>The namespace is required.</value>
+  </data>
+  <data name="ValidationUsernameRequired" xml:space="preserve">
+    <value>A username is required for username and password authentication.</value>
+  </data>
+  <data name="ValidationPasswordRequired" xml:space="preserve">
+    <value>A password is required for username and password authentication.</value>
+  </data>
+  <data name="ValidationApplicationCertificateSubjectRequired" xml:space="preserve">
+    <value>The application certificate subject is required.</value>
+  </data>
+  <data name="ValidationApplicationCertificatesPathRequired" xml:space="preserve">
+    <value>The application certificates path is required.</value>
+  </data>
+  <data name="ValidationPublishingIntervalPositive" xml:space="preserve">
+    <value>The publishing interval must be greater than zero.</value>
+  </data>
+  <data name="ValidationPublishingIntervalRange" xml:space="preserve">
+    <value>The publishing interval must be between {0} and {1} ms.</value>
+  </data>
+  <data name="ValidationPublishingIntervalOrder" xml:space="preserve">
+    <value>The minimum publishing interval must not be greater than the maximum publishing interval.</value>
+  </data>
+</root>

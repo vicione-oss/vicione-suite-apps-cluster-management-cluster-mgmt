@@ -1,0 +1,117 @@
+@using ClusterManagement.Client.Connections.Localization
+@using ClusterManagement.Public.Connections.Contracts
+@using Sdk.Client.Components.Settings
+@using Sdk.Client.Connections
+@using ViciOne.Ui.Blazor.Components.SpinEdit
+@using ViciOne.Ui.Localization.Resources
+
+@inherits ConnectionSettingsComponentBase<OpcUaClientConnection>
+
+@* ---- Connection ---- *@
+
+<SettingsField Label="@OpcUaConnectionSettings.ApplicationName">
+    <SettingsFieldTextBox Placeholder="@OpcUaConnectionSettings.ApplicationName"
+                          @bind-Value="@Connection.ApplicationName"
+                          @bind-Value:after="NotifyChanged" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.ApplicationUri">
+    <SettingsFieldTextBox Placeholder="@OpcUaConnectionSettings.ApplicationUri"
+                          @bind-Value="@Connection.ApplicationUri"
+                          @bind-Value:after="NotifyChanged" />
+</SettingsField>
+
+<SettingsField Label="@TechnicalTerms.Server">
+    <SettingsFieldTextBox Placeholder="@TechnicalTerms.Server"
+                          @bind-Value="@Connection.Server"
+                          @bind-Value:after="NotifyChanged" />
+</SettingsField>
+
+<SettingsField Label="@TechnicalTerms.Port">
+    <SpinEdit @bind-Value="@Connection.Port"
+              @bind-Value:after="NotifyChanged"
+              Interval="1"
+              Minimum="1"
+              Maximum="65535"
+              IsRastered="true" />
+</SettingsField>
+
+<SettingsField Label="@TechnicalTerms.Endpoint">
+    <SettingsFieldTextBox Placeholder="@TechnicalTerms.Endpoint"
+                          @bind-Value="@Connection.Endpoint"
+                          @bind-Value:after="NotifyChanged" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.RootNodeId">
+    <SettingsFieldTextBox Placeholder="ns=2;s=MyRootFolder"
+                          @bind-Value="@Connection.RootNodeId"
+                          @bind-Value:after="NotifyChanged" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.SubscriptionPublishingInterval">
+    <SpinEdit @bind-Value="@Connection.SubscriptionPublishingIntervalMilliseconds"
+              @bind-Value:after="NotifyChanged"
+              Interval="100"
+              Minimum="1"
+              Maximum="3600000"
+              IsRastered="true" />
+</SettingsField>
+
+@* ---- Authentication ---- *@
+<SettingsFieldSeparator />
+
+<SettingsField Label="@OpcUaConnectionSettings.AuthenticationMode">
+    <SettingsFieldComboBox Items="@_authenticationModes"
+                           ValueSelector="@(item => item.Value)"
+                           TextSelector="@(item => item.Text)"
+                           @bind-Value="@Connection.AuthenticationMode"
+                           @bind-Value:after="NotifyChanged" />
+</SettingsField>
+
+@if (Connection.AuthenticationMode == OpcUaAuthenticationMode.UsernamePassword)
+{
+    <SettingsField Label="@TechnicalTerms.Username">
+        <SettingsFieldTextBox Placeholder="@TechnicalTerms.Username"
+                              @bind-Value="@Connection.Username"
+                              @bind-Value:after="NotifyChanged" />
+    </SettingsField>
+
+    <SettingsField Label="@CommonVocabulary.Password">
+        <SettingsFieldTextBox Placeholder="@CommonVocabulary.Password"
+                              @bind-Value="@Connection.Password"
+                              @bind-Value:after="NotifyChanged"
+                              Password="true" />
+    </SettingsField>
+}
+
+@* ---- Certificate ---- *@
+<SettingsFieldSeparator />
+
+<SettingsField Label="@OpcUaConnectionSettings.ApplicationCertificateSubject">
+    <SettingsFieldTextBox Placeholder="@OpcUaConnectionSettings.ApplicationCertificateSubject"
+                          @bind-Value="@Connection.ApplicationCertificateSubject"
+                          @bind-Value:after="NotifyChanged" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.ApplicationCertificatesPath">
+    <SettingsFieldTextBox Placeholder="@OpcUaConnectionSettings.ApplicationCertificatesPath"
+                          @bind-Value="@Connection.ApplicationCertificatesPath"
+                          @bind-Value:after="NotifyChanged" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.TrustedCertificatesPath">
+    <SettingsFieldTextBox Placeholder="@OpcUaConnectionSettings.TrustedCertificatesPath"
+                          @bind-Value="@Connection.TrustedCertificatesPath"
+                          @bind-Value:after="NotifyChanged" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.TrustedIssuerCertificatesPath">
+    <SettingsFieldTextBox Placeholder="@OpcUaConnectionSettings.TrustedIssuerCertificatesPath"
+                          @bind-Value="@Connection.TrustedIssuerCertificatesPath"
+                          @bind-Value:after="NotifyChanged" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.AutoAcceptUntrustedCertificates">
+    <SettingsFieldSwitch @bind-Value="@Connection.AutoAcceptUntrustedCertificates"
+                         @bind-Value:after="NotifyChanged" />
+</SettingsField>

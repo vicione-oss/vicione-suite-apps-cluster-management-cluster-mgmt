@@ -13,8 +13,8 @@ public static class Constants
     public const string EngineMonitoringTopicPostFix = "cycle";
 
     // these have to match yaml ruleset values!!
-    public const string MqttRuleSetId = "MQTTDataPort";
-    public const string MqttDataPortDesignId = "MQTT-Broker";
+    public const string MqttRuleSetId = "MqttDataPort";
+    public const string MqttDataPortDesignId = "MqttClientInstance";
     public const string MqttDataPortTopicNodeId = "Folder";
     public const string DataPortCategory = "DataPorts";
 

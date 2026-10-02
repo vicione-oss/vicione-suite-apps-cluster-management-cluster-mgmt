@@ -38,6 +38,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Connections\Localization\OpcUaConnectionSettings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>OpcUaConnectionSettings.resx</DependentUpon>
+    </Compile>
     <Compile Update="DataflowEvents\Localization\DataflowEventsPage.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -121,6 +126,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Update="Connections\Localization\OpcUaConnectionSettings.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>OpcUaConnectionSettings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
     <EmbeddedResource Update="DataflowEvents\Localization\DataflowEventsPage.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>DataflowEventsPage.Designer.cs</LastGenOutput>

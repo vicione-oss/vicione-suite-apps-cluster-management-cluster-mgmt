@@ -3,12 +3,17 @@ using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Backend.Engines;
 using ClusterManagement.Internal;
+using ClusterManagement.Public.Connections.Contracts;
+using ClusterManagement.Public.Connections.Extensions;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Sdk.Backend.Artifacts;
 using Sdk.Backend.IO;
 using Sdk.Backend.Messaging;
+using Sdk.Connections;
+using Sdk.Connections.Contracts;
 using Sdk.Instance;
 using Sdk.Modules;
 using Sdk.SystemConfiguration;
@@ -50,6 +55,7 @@ public class ClusterManagementBackendModuleFacts
                     serviceCollection.AddSingleton(_ => Substitute.For<IInstanceInformationProvider>());
                     serviceCollection.AddSingleton(_ => Substitute.For<ISuiteMediator>());
                     serviceCollection.AddSingleton(_ => Substitute.For<IControlServiceManagement>());
+                    serviceCollection.AddSingleton(_ => Substitute.For<IConnectionTypeRegistry>());
                 });
 
             IsInstantiable<IEngineHostPoolCommunication>(serviceCollection, serviceProvider);
@@ -77,6 +83,32 @@ public class ClusterManagementBackendModuleFacts
                     targetServiceProvider.Invoking(s => s.GetRequiredService(type)).Should().NotThrow();
                 }
             }
+        }
+    }
+
+    public class UseServices
+    {
+        [Fact]
+        public void Registers_the_opc_ua_client_and_server_connection_types()
+        {
+            var registry = Substitute.For<IConnectionTypeRegistry>();
+            var app = Substitute.For<IApplicationBuilder>();
+            var serviceProvider = Substitute.For<IServiceProvider>();
+            serviceProvider.GetService(typeof(IConnectionTypeRegistry)).Returns(registry);
+            app.ApplicationServices.Returns(serviceProvider);
+
+            new ClusterManagementBackendModule().UseServices(app);
+
+            registry.Received(1).Register<OpcUaClientConnection, DefaultJsonConnectionSerializer<OpcUaClientConnection>>(
+                ConnectionType.OpcUaClient.Name,
+                Arg.Any<Func<IConnection>>(),
+                Arg.Any<DefaultJsonConnectionSerializer<OpcUaClientConnection>>(),
+                null);
+            registry.Received(1).Register<OpcUaServerConnection, DefaultJsonConnectionSerializer<OpcUaServerConnection>>(
+                ConnectionType.OpcUaServer.Name,
+                Arg.Any<Func<IConnection>>(),
+                Arg.Any<DefaultJsonConnectionSerializer<OpcUaServerConnection>>(),
+                null);
         }
     }
 }

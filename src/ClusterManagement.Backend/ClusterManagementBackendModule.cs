@@ -7,11 +7,16 @@ using ClusterManagement.Backend.Iodds.Extensions;
 using ClusterManagement.Backend.Mqtt.Extensions;
 using ClusterManagement.Backend.Snapshots.Extensions;
 using ClusterManagement.Internal;
+using ClusterManagement.Public.Connections.Contracts;
+using ClusterManagement.Public.Connections.Extensions;
 using MassTransit;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Backend.Extensions;
 using Sdk.Backend.Modules;
+using Sdk.Connections;
+using Sdk.Connections.Contracts;
 using Sdk.Instance;
 
 namespace ClusterManagement.Backend;
@@ -46,6 +51,18 @@ public sealed class ClusterManagementBackendModule : BackendModule
             .AddIoddSupport();
 
         services.AddHostedService<ResourceDownloadCompletedService>();
+    }
+
+    public override void UseServices(IApplicationBuilder app)
+    {
+        var registry = app.ApplicationServices.GetRequiredService<IConnectionTypeRegistry>();
+
+        registry.Register<OpcUaClientConnection, DefaultJsonConnectionSerializer<OpcUaClientConnection>>(
+            ConnectionType.OpcUaClient, () => new OpcUaClientConnection(), new(), null);
+        registry.Register<OpcUaServerConnection, DefaultJsonConnectionSerializer<OpcUaServerConnection>>(
+            ConnectionType.OpcUaServer, () => new OpcUaServerConnection(), new(), null);
+
+        base.UseServices(app);
     }
 
     public override void ConfigureMessageBus(IServiceCollection busConfig, InstanceType instanceType)

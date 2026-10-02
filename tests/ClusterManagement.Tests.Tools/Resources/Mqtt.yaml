@@ -8,20 +8,20 @@ Common:
   MetadataType : YAML                                                                              # required: Metadata type of the file (YAML, JSON, XML, Text, Binary, ...)
 
 Root:
-  Id                       : "MQTTDataPort"                                                        # required: Id String to identify the root of the DataPort
+  Id                       : "MqttDataPort"                                                        # required: Id String to identify the root of the DataPort
   Name                     : "MQTT"                                                                # required: display name of the DataPort
   Description              : "DataPort for MQTT Protocol 3.x to 5.0"                               # required: display description of the DataPort
   Icons                    : ['mqtt']                                                              # required: just one Icon for the DataPort
   ChildNodes               :
-    - Id                   : MQTT-Broker
+    - Id                   : MqttClientInstance
       MaxDepth             : 64
       MaxInstances         : 8
 
 Nodes:
 
-  # -------------------- MQTT-Broker ------------------------------------
+  # -------------------- MqttClientInstance ------------------------------------
 
-  - Id                     : MQTT-Broker
+  - Id                     : MqttClientInstance
     Type                   : DataPortNode
     Name                   : "Broker"
     Description            : "Broker"
