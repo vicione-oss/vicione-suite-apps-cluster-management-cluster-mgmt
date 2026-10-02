@@ -3,7 +3,6 @@ using ClusterManagement.Client.Editor.ControlPanels.General.Services;
 using ClusterManagement.Client.Editor.ControlPanels.Packages;
 using ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
 using ClusterManagement.Client.Editor.Services;
-using ClusterManagement.Client.Editor.Wizards.Services;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Internal.Contracts;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,13 +23,8 @@ internal static class IServiceCollectionExtensions
 
         // editor support services
         services.AddScoped<LoadClusterService>();
-        services.AddScoped<ExportClusterService>();
         services.AddScoped<SaveClusterService>();
         services.AddScoped<LoadFunctionBlocksService>();
-
-        // wizards - will be handled inside editor one day
-        services.AddScoped<ClusterWizardDialogService>();
-        services.AddScoped<ImportWizardService>();
 
         // FunctionBlock contract loading
         // wraps ISuiteRulesetProvider for ClusterEditor

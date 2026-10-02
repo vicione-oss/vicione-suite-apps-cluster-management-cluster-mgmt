@@ -9,3 +9,6 @@ dotnet_diagnostic.VO2005.severity = none # Constructors should be grouped by key
 dotnet_diagnostic.VO2006.severity = none # Methods should be sorted in alphabetical order
 
 dotnet_diagnostic.VO2007.severity = error # Base implementation is not called in all possible control flow paths
+
+# TEMPORARY: obsolete members after Blazor components update. Remove once migrated.
+dotnet_diagnostic.CS0618.severity = none # Member is obsolete

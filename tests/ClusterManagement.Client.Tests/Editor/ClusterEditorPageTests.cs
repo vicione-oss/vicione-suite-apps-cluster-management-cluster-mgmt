@@ -1,4 +1,4 @@
-﻿using Blazor.Diagrams.Core.Geometry;
+using Blazor.Diagrams.Core.Geometry;
 using Bunit;
 using ClusterManagement.Client.Editor;
 using ClusterManagement.Client.Editor.Services;
@@ -28,21 +28,19 @@ public sealed class DataflowEditorPageTests
         {
             setup.Services.AddLocalization<ClusterManagementClientModule>();
         });
-        ctx.SetupDevExpressBlazor();
         ctx.Services.AddSingleton(_clusterService);
 
         ctx.Services.AddScoped(_ => Substitute.For<IDesignProvider>());
         ctx.Services.AddScoped<LoadClusterService>();
-        ctx.Services.AddScoped<ExportClusterService>();
         ctx.Services.AddScoped<SaveClusterService>();
         ctx.Services.AddScoped<LoadFunctionBlocksService>();
         ctx.Services.AddScoped(_ => Substitute.For<IResourceDownloadStateService>());
-        ctx.Services.AddScoped<ClusterWizardDialogService>();
         ctx.Services.AddTransient(_ => HttpClientFactory.GetHttpClientWithResponse(version));
 
         ctx.Services.AddClusterEditor(s => Substitute.For<IRulesetProvider>());
         ctx.Services.AddSidebar();
 
+        ctx.JSInterop.ConfigureSimpleTableJSInterop();
         ctx.JSInterop.SetupVoid("ViciOne.Observer.observe", _ => true);
         ctx.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true);
 

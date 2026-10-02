@@ -1,4 +1,4 @@
-﻿using ClusterManagement.Backend.Engines;
+using ClusterManagement.Backend.Engines;
 using ClusterManagement.Internal.Designs;
 using ClusterManagement.Public.Extensions;
 using ViciOne.Cluster.Builder;
@@ -404,8 +404,6 @@ internal sealed class DataPortTransformer
         {
             InputConnectorId = input.Id,
             OutputConnectorId = output.Id,
-            PropertyPath = default,
-            Modification = default,
         });
 
         _transferModes[output.Id] = node.TransferMode switch

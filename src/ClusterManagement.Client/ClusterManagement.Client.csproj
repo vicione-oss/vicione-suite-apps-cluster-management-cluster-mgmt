@@ -11,9 +11,11 @@
 
   <ItemGroup>
     <PackageReference Include="AspNetCore.SassCompiler" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.Extensions.Http" />    
+    <PackageReference Include="Microsoft.Extensions.Http" />
     <PackageReference Include="ViciOne.Suite.Sdk.Client" />
     <PackageReference Include="ViciOne.Ui.ClusterEditor" />
+    <!-- TEMPORARY: DxGrid still in use, remove with #300 -->
+    <PackageReference Include="ViciOne.Ui.Shared.Dx" />
     <PackageReference Include="ViciOne.Ui.Design">
       <PrivateAssets>all</PrivateAssets>
       <ExcludeAssets>runtime</ExcludeAssets>
@@ -57,11 +59,6 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>ClusterTopologyEditDialog.resx</DependentUpon>
-    </Compile>
-    <Compile Update="Editor\Localization\ClusterWizardDialog.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ClusterWizardDialog.resx</DependentUpon>
     </Compile>
     <Compile Update="Editor\Localization\LoadFunctionBlockDialog.Designer.cs">
       <DesignTime>True</DesignTime>
@@ -123,11 +120,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>SvgIcons.resx</DependentUpon>
     </Compile>
-    <Compile Update="Editor\Localization\ImportWizard.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ImportWizard.resx</DependentUpon>
-    </Compile>
   </ItemGroup>
 
   <ItemGroup>
@@ -146,10 +138,6 @@
     <EmbeddedResource Update="Editor\Localization\ClusterTopologyEditDialog.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>ClusterTopologyEditDialog.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Editor\Localization\ClusterWizardDialog.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>ClusterWizardDialog.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Update="Editor\Localization\LoadFunctionBlockDialog.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -198,10 +186,6 @@
     <EmbeddedResource Update="Resources\SvgIcons.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>SvgIcons.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Editor\Localization\ImportWizard.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>ImportWizard.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
 
