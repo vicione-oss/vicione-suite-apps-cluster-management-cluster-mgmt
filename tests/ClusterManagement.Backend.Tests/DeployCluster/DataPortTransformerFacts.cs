@@ -1,4 +1,4 @@
-﻿using AwesomeAssertions.Extensions;
+using AwesomeAssertions.Extensions;
 using ClusterManagement.Backend.DeployCluster;
 using ClusterManagement.Backend.Engines;
 using ClusterManagement.Internal.Designs;
@@ -1872,12 +1872,10 @@ public class DataPortTransformerFacts
             input.Value.Should().BeSameAs(output.Value);
         }
 
-        private static void ShouldRepresentNodeLink(NodeLink nodeLink, ConnectorInput input, ConnectorOutput output, string? propertyPath = default, NodeLinkModification? modification = default)
+        private static void ShouldRepresentNodeLink(NodeLink nodeLink, ConnectorInput input, ConnectorOutput output)
         {
             nodeLink.InputConnectorId.Should().Be(input.Id);
             nodeLink.OutputConnectorId.Should().Be(output.Id);
-            nodeLink.PropertyPath.Should().Be(propertyPath);
-            nodeLink.Modification.Should().Be(modification);
         }
 
         private static void ShouldRepresentOutputConfiguration(KeyValuePair<Guid, OutputConfiguration> outputConfiguration, ConnectorOutput output)

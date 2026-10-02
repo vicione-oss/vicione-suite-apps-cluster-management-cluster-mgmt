@@ -8,6 +8,10 @@
   - `ClusterSerializer` class, added asynchronous compress methods
 - Deploy DataPort trees with envelope children (datapoints under a datapoint): the parent keeps its own connector and channel, and every child gets a connector that the parent transfers with the parent's transfer mode; serving them needs a DataPort provider built for envelope children (`dp-mqtt` from `2.0.0`)
 
+### Removed
+
+- The cluster import wizard and the cluster export in the cluster editor, both removed from `ViciOne.Ui.ClusterEditor`; the JSON download on the management page remains
+
 ### Changed
 
 - Package uploads in the cluster editor now stream to disk instead of loading the whole archive into memory, increasing the maximum package upload size from 2 MB to 10 MB
@@ -25,11 +29,11 @@
 - **Breaking:** Fail a deployment when an envelope child is linked in a direction the ruleset's `LinkDirections` does not allow; a predefined child such as a validity derived from the parent value is sent with its parent's message but must never be linked
 
 - Updated .NET to version `10.0.12`
-- `AspNetCore.SassCompiler` package, update version to `1.102.0`
+- `AspNetCore.SassCompiler` package, update version to `1.105.1`
 - `MQTTnet` package, update version to `5.2.0.1603`
-- `System.IO.Abstractions`, updated to version `22.2.0`
-- `ViciOne.Suite.Sdk` packages, update to version `3.1.0`
-- `ViciOne.Ui.ClusterEditor` package, update to `1.4.0-ci2814011212`
+- `System.IO.Abstractions`, updated to version `22.3.0`
+- `ViciOne.Suite.Sdk` packages, update to version `3.2.0`
+- `ViciOne.Ui.ClusterEditor` package, update to `2.0.0`
 - `ViciOne.Ui.Design` package, update version to `2.5.0`
 - `ViciOne.Ui.MonochromeIcons.Assets` package, update version to `4.18.0`
 - `ViciOne.Ui.Localization` package, update version to `3.6.0`

@@ -34,7 +34,6 @@ public class IoddControlPanelUploadTests
     {
         var ctx = new BunitContext();
         ctx.SetupSuiteServices();
-        ctx.SetupDevExpressBlazor();
         ctx.SetupControlPanelServices();
         ctx.Services.AddDialog();
         ctx.Services.AddGridItemSelectColumn();
@@ -67,6 +66,11 @@ public class IoddControlPanelUploadTests
     private static IRenderedComponent<IoddControlPanel> Render(BunitContext ctx)
         => ctx.Render<IoddControlPanel>(p => p.Add(c => c.State, new IoddControlPanelState()));
 
+    // TreeEditor.Builder 2.0.1 refreshes nodes from a 25 ms timer on the thread pool, and NodeTemplate
+    // handles the refresh in an async void method. A refresh that runs while the context is disposed
+    // throws a NullReferenceException there, which crashes the test host. Let it run before disposing.
+    private static Task SettleTreeAsync() => Task.Delay(150, Xunit.TestContext.Current.CancellationToken);
+
     private static async Task CompleteUpload(IRenderedComponent<IoddControlPanel> component)
     {
         var upload = component.FindComponent<SettingsFieldFileUpload<IoddUpload>>();
@@ -89,6 +93,8 @@ public class IoddControlPanelUploadTests
         // Assert
         await _ioddService.Received(1).AddIodd(DestinationFile, Arg.Any<CancellationToken>());
         _bannerService.DidNotReceive().ShowMessageBanner(MessageType.Error, Arg.Any<string>());
+
+        await SettleTreeAsync();
     }
 
     public static TheoryData<int> UploadErrors => [
@@ -112,6 +118,8 @@ public class IoddControlPanelUploadTests
 
         // Assert
         _bannerService.Received(1).ShowMessageBanner(MessageType.Error, Localization.Common.UploadFailed);
+
+        await SettleTreeAsync();
     }
 
     [Fact]
@@ -128,6 +136,8 @@ public class IoddControlPanelUploadTests
 
         // Assert
         _bannerService.Received(1).ShowMessageBanner(MessageType.Error, "backend message");
+
+        await SettleTreeAsync();
     }
 
     [Fact]
@@ -150,6 +160,8 @@ public class IoddControlPanelUploadTests
         _ioddService.AddIodd(DestinationFile, Arg.Any<CancellationToken>()).Returns(new IoddServiceSuccessResult());
         await CompleteUpload(component);
         await _ioddService.Received(1).AddIodd(DestinationFile, Arg.Any<CancellationToken>());
+
+        await SettleTreeAsync();
     }
 
     [Fact]
@@ -166,5 +178,7 @@ public class IoddControlPanelUploadTests
         // Assert
         _bannerService.Received(1).ShowMessageBanner(MessageType.Error, "disk full");
         await _ioddService.DidNotReceive().AddIodd(Arg.Any<string>(), Arg.Any<CancellationToken>());
+
+        await SettleTreeAsync();
     }
 }

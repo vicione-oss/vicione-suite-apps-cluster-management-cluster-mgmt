@@ -19,5 +19,15 @@ public static class BunitJSInteropExtensions
 
             return interop;
         }
+
+        public BunitJSInterop ConfigureSimpleTableJSInterop()
+        {
+            interop.Mode = JSRuntimeMode.Loose;
+
+            var tableModule = interop.SetupModule("./_content/ViciOne.Ui.Blazor.Components/advanced-table/components/advanced-table.js");
+            tableModule.Mode = JSRuntimeMode.Loose;
+
+            return interop;
+        }
     }
 }

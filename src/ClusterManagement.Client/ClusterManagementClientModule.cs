@@ -16,6 +16,7 @@ using Sdk.Client.Modules.Localization.Extensions;
 using Sdk.Client.NavTiles.Extensions;
 using Sdk.Client.NavTiles.Services;
 using Sdk.Journal;
+using ViciOne.Ui.Blazor.Components.Draggable.Extensions;
 
 namespace ClusterManagement.Client;
 
@@ -27,6 +28,8 @@ public sealed class ClusterManagementClientModule : ClientModule
         services.AddNavTiles<ClusterManagementClientModule>();
         services.AddScoped<IPackageService, PackageService>();
         services.AddScoped<IResourceDownloadStateService, ResourceDownloadStateService>();
+
+        services.AddDraggable();
 
         services
             .AddClusterManagement()

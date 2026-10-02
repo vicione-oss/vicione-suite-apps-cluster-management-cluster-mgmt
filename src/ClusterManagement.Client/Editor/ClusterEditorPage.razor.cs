@@ -1,6 +1,5 @@
 using ClusterManagement.Client.Editor.Extensions;
 using ClusterManagement.Client.Editor.Services;
-using ClusterManagement.Client.Editor.Wizards.Services;
 using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Internal.Extensions;
 using ClusterManagement.Internal.Requests;
@@ -39,11 +38,7 @@ public sealed partial class ClusterEditorPage
 
     [Inject] private SaveClusterService SaveService { get; set; } = default!;
 
-    [Inject] private ExportClusterService ExportService { get; set; } = default!;
-
     [Inject] private IClusterEditorManagement ClusterEditorManagement { get; set; } = default!;
-
-    [Inject] private ClusterWizardDialogService WizardDialogService { get; set; } = default!;
 
     [Inject] private ISettingsService SettingsService { get; set; } = default!;
 
@@ -75,8 +70,6 @@ public sealed partial class ClusterEditorPage
         LoadService.ClusterLoaded -= LoadService_ClusterLoaded;
         SaveService.ClusterSynchronized -= SaveService_ClusterSynchronized;
 
-        ClusterEditorManagement.ExportRequested -= Editor_ExportRequested;
-        ClusterEditorManagement.ImportRequested -= Editor_ImportRequested;
         ClusterEditorManagement.SaveRequested -= SaveService.SaveRequested;
         ClusterEditorManagement.LoadFunctionBlockDesignsRequested -= Editor_LoadFunctionBlockDesignsRequested;
 
@@ -119,8 +112,6 @@ public sealed partial class ClusterEditorPage
         // will only be triggered for save executed by ourselves
         SaveService.ClusterSynchronized += SaveService_ClusterSynchronized;
 
-        ClusterEditorManagement.ExportRequested += Editor_ExportRequested;
-        ClusterEditorManagement.ImportRequested += Editor_ImportRequested;
         ClusterEditorManagement.SaveRequested += SaveService.SaveRequested;
         ClusterEditorManagement.LoadFunctionBlockDesignsRequested += Editor_LoadFunctionBlockDesignsRequested;
 
@@ -128,12 +119,6 @@ public sealed partial class ClusterEditorPage
 
         LayoutService.IsLoadingOverlayVisible = false;
     }
-
-    private async Task Editor_ExportRequested()
-        => await ExportService.DownloadClusterJson(_builder?.Cluster);
-
-    private async Task Editor_ImportRequested()
-        => await WizardDialogService.OpenDialog<ImportWizardService>(_builder);
 
     private void SaveService_ClusterSynchronized() => _hasUnsavedChanges = false;
 
