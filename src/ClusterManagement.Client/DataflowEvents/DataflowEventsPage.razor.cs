@@ -14,6 +14,8 @@ public sealed partial class DataflowEventsPage
     private readonly string _plusIconCssClass = MonochromeIconName.PlusSlim.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
     private readonly string _minusIconCssClass = MonochromeIconName.MinusSlim.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
 
+    private List<DataflowEventModel> _selectedEvents = [];
+
     [Inject]
     private DataflowEventPageService PageService { get; set; } = default!;
 
@@ -26,12 +28,14 @@ public sealed partial class DataflowEventsPage
         await base.OnInitializedAsync();
 
         await PageService.LoadDataflowEvents();
+        UpdateSelectedEvents();
         PageService.RefreshRequested += OnRefreshRequested;
     }
 
     private async Task RefreshDataflowEvents()
     {
         await PageService.LoadDataflowEvents();
+        UpdateSelectedEvents();
 
         await InvokeAsync(StateHasChanged);
     }
@@ -39,8 +43,15 @@ public sealed partial class DataflowEventsPage
     private async Task OnRefreshRequested()
         => await InvokeAsync(StateHasChanged);
 
-    private void SelectedEventChanged(object obj)
-        => PageService.SelectedEvent = obj as DataflowEventModel;
+    private void SelectedEventChanged(List<DataflowEventModel> items)
+    {
+        _selectedEvents = items;
+        PageService.SelectedEvent = items.FirstOrDefault();
+    }
+
+    // the table only applies a new list instance, so always replace it
+    private void UpdateSelectedEvents()
+        => _selectedEvents = PageService.SelectedEvent is { } selected ? [selected] : [];
 
     private void NavigateToManagement()
         => NavManager.NavigateToManagement();

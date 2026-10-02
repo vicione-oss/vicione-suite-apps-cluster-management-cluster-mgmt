@@ -12,6 +12,7 @@ using ViciOne.Cluster.Model;
 using ViciOne.Cluster.Model.Extensions;
 using ViciOne.Ui.Blazor.Components.Button.Enums;
 using ViciOne.Ui.Blazor.Components.Button.Extensions;
+using ViciOne.Ui.Blazor.Components.Tables.Shared.Models;
 using ViciOne.Ui.MonochromeIcons.Core.Enums;
 using ViciOne.Ui.MonochromeIcons.Core.Extensions;
 
@@ -24,6 +25,14 @@ public sealed partial class DebugEnginesPage : IEventConsumer<ClusterChanged>, I
     private readonly string _stopIconCssClass = MonochromeIconName.SwitchOff.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
     private readonly string _trashIconCssClass = MonochromeIconName.Delete.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
     private readonly string _infoIconCssClass = MonochromeIconName.InfoLight.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
+
+    private const string EngineHostNameColumnId = "EngineHostName";
+    private const string EngineNameColumnId = "EngineName";
+
+    // SimpleTable has no grouping, so sorting by host keeps the engines of one host together
+    private readonly SortingState _sortingState = SortingState.Empty
+        .WithColumnSorting(EngineHostNameColumnId, true)
+        .WithColumnSorting(EngineNameColumnId, true);
 
     private readonly CancellationTokenSource _tokenSource = new();
     private readonly AutoDisposeList<IDisposable> _subscriptionHandle = [];

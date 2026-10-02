@@ -33,6 +33,9 @@ internal partial class DataflowEventPageService(IDataflowEventBroker eventBroker
             Name = k.Name,
             ValueType = k.ValueType,
         })];
+
+        // keep the selection across reloads; the reload creates new model instances
+        SelectedEvent = Events.FirstOrDefault(e => e.EventId == SelectedEvent?.EventId);
     }
 
     public Task SetSelectedValue() => SetValue(SelectedEvent, SendInputValue);

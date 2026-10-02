@@ -29,8 +29,6 @@
     <PackageVersion Include="ViciOne.Suite.System.DataPort" Version="1.0.0" />
     <PackageVersion Include="ViciOne.Tree.Builder" Version="3.0.0" />
     <PackageVersion Include="ViciOne.Ui.ClusterEditor" Version="2.0.0" />
-    <!-- TEMPORARY: DxGrid still in use, ClusterEditor 2.0 no longer brings DevExpress. Remove with #300. -->
-    <PackageVersion Include="ViciOne.Ui.Shared.Dx" Version="0.19.1" />
     <PackageVersion Include="ViciOne.Ui.Design" Version="2.5.0" />
     <PackageVersion Include="ViciOne.Ui.Localization" Version="3.6.0" />
     <PackageVersion Include="ViciOne.Ui.MonochromeIcons.Components" Version="4.18.0" />

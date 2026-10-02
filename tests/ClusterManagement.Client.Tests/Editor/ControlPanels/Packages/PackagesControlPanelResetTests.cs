@@ -23,7 +23,6 @@ public class PackagesControlPanelResetTests
     {
         var ctx = new BunitContext();
         ctx.SetupSuiteServices();
-        ctx.SetupDevExpressBlazor();
         ctx.SetupControlPanelServices();
 
         ctx.Services.AddSingleton(_packageService);

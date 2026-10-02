@@ -1,10 +1,9 @@
-﻿using ClusterManagement.Client.Extensions;
+using ClusterManagement.Client.Extensions;
 using ClusterManagement.Client.Management.Localization;
 using ClusterManagement.Client.Management.Logging;
 using ClusterManagement.Client.Management.Models;
 using ClusterManagement.Client.Management.Services;
 using ClusterManagement.Public.Events;
-using DevExpress.Blazor.Internal;
 using Microsoft.AspNetCore.Components;
 using Sdk.Client.Infrastructure;
 using Sdk.Messaging;
@@ -29,6 +28,9 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
     private IDisposable? _subscriptionHandle;
     private string? _sagaState;
 
+    // the table only applies a new list instance, so SelectedCluster always replaces it
+    private List<ClusterInfoModel> _selectedClusters = [];
+
     [Inject] private IUiMediator Mediator { get; set; } = default!;
 
     [Inject] private IClusterManagementService ManagementService { get; set; } = default!;
@@ -37,7 +39,15 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
 
     private List<ClusterInfoModel> Clusters { get; } = [];
 
-    private ClusterInfoModel? SelectedCluster { get; set; }
+    private ClusterInfoModel? SelectedCluster
+    {
+        get;
+        set
+        {
+            field = value;
+            _selectedClusters = value is null ? [] : [value];
+        }
+    }
 
     protected override string PageTitle => Common.ModuleTitle;
 
@@ -116,6 +126,12 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
             await InvokeAsync(StateHasChanged);
     }
 
+    private void OnSelectedItemsChanged(List<ClusterInfoModel> selectedItems)
+    {
+        SelectedCluster = selectedItems.FirstOrDefault();
+        _selectedClusters = selectedItems;
+    }
+
     private async void OnClusterUpdateStarted(object? sender, ClusterUpdateStarted ev)
     {
         var model = Clusters.FirstOrDefault(k => k.IsMatch(ev.ClusterId, ev.TargetVersion));
@@ -157,12 +173,11 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
             return;
 
         // reset all clusters
-        Clusters.Where(k => Equals(k.Id, ev.ClusterId))
-            .ForEach(k =>
-            {
-                k.IsActive = false;
-                k.Status = "";
-            });
+        foreach (var cluster in Clusters.Where(k => Equals(k.Id, ev.ClusterId)))
+        {
+            cluster.IsActive = false;
+            cluster.Status = "";
+        }
 
         // set status on current
         model.Status = Common.StateActive;
@@ -211,8 +226,6 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
         }
     }
 
-    private void SelectedClusterChanged(object obj) => SelectedCluster = obj as ClusterInfoModel;
-
     public async Task Consume(ClientContext<ClusterChanged> context, CancellationToken cancellationToken)
     {
         if (context.Message.Action == CrudAction.Deleted)
@@ -257,13 +270,11 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
                 await ManagementService.ResetSagaState(clusterId, _tokenSource.Token);
             }
 
-            Clusters
-                .Where(k => !k.IsActive)
-                .ForEach(k =>
-                {
-                    k.Status = string.Empty;
-                    k.IsExecuting = false;
-                });
+            foreach (var cluster in Clusters.Where(k => !k.IsActive))
+            {
+                cluster.Status = string.Empty;
+                cluster.IsExecuting = false;
+            }
         }
         catch (Exception ex)
         {

@@ -61,6 +61,15 @@ namespace ClusterManagement.Client.Management.Localization {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Duration.
+        /// </summary>
+        internal static string Duration {
+            get {
+                return ResourceManager.GetString("Duration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Manage &amp; Deploy Cluster-Versions.
         /// </summary>
         internal static string ModuleDescription {

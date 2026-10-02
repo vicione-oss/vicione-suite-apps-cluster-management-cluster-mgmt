@@ -1,4 +1,4 @@
-﻿using Bunit;
+using Bunit;
 using ClusterManagement.Client.Editor.ControlPanels.Packages;
 using ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
 using ClusterManagement.Client.Editor.Extensions;
@@ -18,7 +18,6 @@ public class PackageDetailsControlPanelTests
     {
         var ctx = new BunitContext();
         ctx.SetupSuiteServices();
-        ctx.SetupDevExpressBlazor();
         ctx.SetupControlPanelServices();
 
         ctx.Services.AddSingleton(_packageService);

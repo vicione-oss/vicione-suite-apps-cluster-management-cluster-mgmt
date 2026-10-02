@@ -1,12 +1,15 @@
-﻿@using ClusterManagement.Client.DataflowEvents.Models
+@using ClusterManagement.Client.DataflowEvents.Models
 @using ClusterManagement.Public
 @using ViciOne.Ui.Blazor.Components.Button
 @using ViciOne.Ui.Blazor.Components.Button.Enums
+@using ViciOne.Ui.Blazor.Components.Tables.Shared.Enums
+@using ViciOne.Ui.Blazor.Components.Tables.SimpleTable.Components
+@using ViciOne.Ui.Blazor.Components.Tables.SimpleTable.Components.Columns
 @using ViciOne.Ui.Blazor.Components.TextBox
 @using ViciOne.Ui.Blazor.Components.Toolbar.Components
+@using ViciOne.Ui.Blazor.Components.Toolbar.Enums
 @using ViciOne.Ui.Localization.Resources
 @using ViciOne.Ui.MonochromeIcons.Core.Enums
-@using ViciOne.Ui.Blazor.Components.Toolbar.Enums
 
 @inherits ModulePageBase<ClusterManagementClientModule>
 @attribute [Route(Constants.ManagementEventsRoute)]
@@ -39,7 +42,7 @@
                 <ToolbarButton IconName="@MonochromeIconName.DataflowLight"
                                Text="@CommonVocabulary.Management"
                                OnClick="@NavigateToManagement" />
-                               
+
                 <ToolbarButton IconName="@MonochromeIconName.Refresh"
                                Text="@CommonVocabulary.RefreshVerb"
                                Tooltip="@CommonVocabulary.RefreshVerb"
@@ -57,79 +60,59 @@
     </div>
 
     <div class="cluster-events-grid">
-        <DxGrid AllowSelectRowByClick="true"
-                AllowGroup="false"
-                AutoCollapseDetailRow="true"
-                CssClass="cluster-events-grid__dx-grid"
-                Data="@PageService.Events"
-                KeyFieldName="@nameof(DataflowEventModel.EventId)"
-                SelectionMode="GridSelectionMode.Single"
-                SelectedDataItem="@PageService.SelectedEvent"
-                SelectedDataItemChanged="@SelectedEventChanged"
-                VirtualScrollingEnabled="true">
+        <SimpleTable TItem="DataflowEventModel"
+                     Items="@PageService.Events"
+                     SelectionMode="SelectionMode.Single"
+                     RowClickSelectionEnabled="true"
+                     Mode="TableLoadingMode.Virtualize"
+                     MaximumHeight="100%"
+                     SelectedItems="@_selectedEvents"
+                     SelectedItemsChanged="@SelectedEventChanged">
             <Columns>
-                <DxGridDataColumn Caption="@nameof(DataflowEventModel.EventId)"
-                                  FieldName="@nameof(DataflowEventModel.EventId)"
-                                  Width="15%" />
-
-                <DxGridDataColumn AllowGroup="false"
-                                  Caption="@CommonVocabulary.Name"
-                                  FieldName="@nameof(DataflowEventModel.Name)"
-                                  MinWidth="110"
-                                  Width="20%" />
-
-                <DxGridDataColumn AllowGroup="false"
-                                  Caption="@TechnicalTerms.ValueType"
-                                  FieldName="@nameof(DataflowEventModel.ValueType)"
-                                  Width="20%" />
-
-                <DxGridDataColumn AllowGroup="false"
-                                  Caption="@Localization.DataflowEventsPage.Writable"
-                                  FieldName="@nameof(DataflowEventModel.CanWrite)"
-                                  TextAlignment="GridTextAlignment.Left" />
-
-                <DxGridDataColumn AllowGroup="false"
-                                  Caption="@Localization.DataflowEventsPage.Readable"
-                                  FieldName="@nameof(DataflowEventModel.CanRead)"
-                                  TextAlignment="GridTextAlignment.Left" />
-
-                <DxGridDataColumn AllowGroup="false"
-                                  Caption="@CommonVocabulary.Value"
-                                  FieldName="@nameof(DataflowEventModel.DisplayValue)"
-                                  MinWidth="100" />
-
-                <DxGridDataColumn AllowGroup="false"
-                                  DisplayFormat="s"
-                                  Caption="@TechnicalTerms.Timestamp"
-                                  FieldName="@nameof(DataflowEventModel.Timestamp)" />
-
-                <DxGridCommandColumn Width="100px">
-                    <HeaderTemplate>
-                        @CommonVocabulary.ActionPlural
-                    </HeaderTemplate>
-                    <CellDisplayTemplate>
+                <SimpleTableTemplateColumn Id="EventId" Title="@nameof(DataflowEventModel.EventId)" Resizeable="false">
+                    <CellContent>
+                        @context.EventId
+                    </CellContent>
+                </SimpleTableTemplateColumn>
+                <SimpleTableTemplateColumn Id="Name" Title="@CommonVocabulary.Name" Resizeable="false">
+                    <CellContent>@context.Name</CellContent>
+                </SimpleTableTemplateColumn>
+                <SimpleTableTemplateColumn Id="ValueType" Title="@TechnicalTerms.ValueType" Resizeable="false">
+                    <CellContent>@context.ValueType</CellContent>
+                </SimpleTableTemplateColumn>
+                <SimpleTableTemplateColumn Id="Writable" Title="@Localization.DataflowEventsPage.Writable" Resizeable="false">
+                    <CellContent>@context.CanWrite</CellContent>
+                </SimpleTableTemplateColumn>
+                <SimpleTableTemplateColumn Id="Readable" Title="@Localization.DataflowEventsPage.Readable" Resizeable="false">
+                    <CellContent>@context.CanRead</CellContent>
+                </SimpleTableTemplateColumn>
+                <SimpleTableTemplateColumn Id="Value" Title="@CommonVocabulary.Value" Resizeable="false">
+                    <CellContent>@context.DisplayValue</CellContent>
+                </SimpleTableTemplateColumn>
+                <SimpleTableTemplateColumn Id="Timestamp" Title="@TechnicalTerms.Timestamp" Resizeable="false">
+                    <CellContent>@context.Timestamp?.ToString("s")</CellContent>
+                </SimpleTableTemplateColumn>
+                <SimpleTableTemplateColumn Id="Actions" Title="@CommonVocabulary.ActionPlural" Resizeable="false" Width="150">
+                    <CellContent>
                         <div class="action-column">
-                            @if (context.DataItem is DataflowEventModel model)
+                            @if (context.Subscription is null)
                             {
-                                if (model.Subscription is null)
-                                {
-                                    <Button IconCssClass="@_plusIconCssClass"
-                                            OnClick="@(() => PageService.SubscribeEvent(model))"
-                                            Title="@CommonVocabulary.Subscribe"
-                                            Size="@ButtonSize.Small" />
-                                }
-                                else
-                                {
-                                    <Button IconCssClass="@_minusIconCssClass"
-                                            OnClick="@(() => PageService.UnsubscribeEvent(model))"
-                                            Title="@CommonVocabulary.Unsubscribe"
-                                            Size="@ButtonSize.Small" />
-                                }
+                                <Button IconCssClass="@_plusIconCssClass"
+                                        OnClick="@(() => PageService.SubscribeEvent(context))"
+                                        Title="@CommonVocabulary.Subscribe"
+                                        Size="@ButtonSize.Small" />
+                            }
+                            else
+                            {
+                                <Button IconCssClass="@_minusIconCssClass"
+                                        OnClick="@(() => PageService.UnsubscribeEvent(context))"
+                                        Title="@CommonVocabulary.Unsubscribe"
+                                        Size="@ButtonSize.Small" />
                             }
                         </div>
-                    </CellDisplayTemplate>
-                </DxGridCommandColumn>
+                    </CellContent>
+                </SimpleTableTemplateColumn>
             </Columns>
-        </DxGrid>
+        </SimpleTable>
     </div>
 </div>
