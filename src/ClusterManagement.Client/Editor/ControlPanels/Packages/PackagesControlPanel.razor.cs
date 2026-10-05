@@ -23,11 +23,11 @@ namespace ClusterManagement.Client.Editor.ControlPanels.Packages;
 [ControlPanelCategory<ControlPanelCategoryDescriptor>]
 public partial class PackagesControlPanel
 {
-    private readonly string _uninstallIconCssClasses = @MonochromeIconName.UninstallLight.GetCssClasses(MonochromeIconSize.Small).ToSpaceSeparated();
-    private readonly string _updateIconCssClasses = @MonochromeIconName.InstallPendingLight.GetCssClasses(MonochromeIconSize.Small).ToSpaceSeparated();
-    private readonly string _uploadIconCssClasses = @MonochromeIconName.Export.GetCssClasses(MonochromeIconSize.Small).ToSpaceSeparated();
-    private readonly string _importIconCssClasses = @MonochromeIconName.Import.GetCssClasses(MonochromeIconSize.Small).ToSpaceSeparated();
-    private readonly string _deleteIconCssClasses = @MonochromeIconName.Delete.GetCssClasses(MonochromeIconSize.Small).ToSpaceSeparated();
+    private readonly string _uninstallIconCssClasses = @MonochromeIconName.UninstallLight.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated();
+    private readonly string _updateIconCssClasses = @MonochromeIconName.InstallPendingLight.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated();
+    private readonly string _uploadIconCssClasses = @MonochromeIconName.Export.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated();
+    private readonly string _importIconCssClasses = @MonochromeIconName.Import.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated();
+    private readonly string _deleteIconCssClasses = @MonochromeIconName.Delete.GetCssClasses(MonochromeIconSize.SmallMedium).ToSpaceSeparated();
 
     private SettingsFieldFileUpload<ClusterPackageUpload>? _fileUpload;
     // The upload field cancels a running upload when it gets a filename or ticket other than its own, so both are passed back as it reports them.
