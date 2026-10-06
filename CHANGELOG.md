@@ -49,6 +49,7 @@
 ### Fixed
 
 - Downloading IODDs no longer produces redundant archives with identical content for devices with multiple product variants
+- Load function blocks dialog, checking a function block no longer affects an equally named one in another namespace (e.g. `ACX.ViciOne.FunctionBlocks.Test` and `ACX.ViciOne.StandardFunction.Test`)
 - Write `packages.json`, `packages-ops.json` and cluster snapshots atomically so a crash or power loss during a write cannot leave corrupt files behind
 - Recover from corrupted or partially written package files on startup instead of failing module initialization
 - Replacing a cluster snapshot no longer leaves trailing data of the previous version in the file

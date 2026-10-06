@@ -1,0 +1,27 @@
+@using ViciOne.Ui.Blazor.Components.CheckBox
+@using ViciOne.Ui.TreeEditor.Templates
+@using ViciOne.Ui.TreeEditor.Templates.Fragments.Node
+
+@inherits NodeTemplate
+
+@Fragment(NodeContent)
+
+@code {
+    private RenderFragment NodeContent =>
+        @<text>
+            @* stop propagation so a click on the check box doesn't also select the node *@
+            <div class="check-container" @onclick:stopPropagation="true" @onpointerdown:stopPropagation="true">
+                <CheckBox TValue="bool?"
+                          Value="@_checkState"
+                          ValueChanged="@OnCheckedChanged"
+                          AllowIndeterminateState="true"
+                          ValueChecked="true"
+                          ValueUnchecked="false"
+                          ValueIndeterminate="null" />
+            </div>
+
+            @IconContainer.Fragment(Node.Icons)
+
+            <div class="node-text" title="@Node.DisplayText">@Node.DisplayText</div>
+        </text>;
+}
