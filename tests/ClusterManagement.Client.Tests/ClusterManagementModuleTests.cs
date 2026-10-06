@@ -1,4 +1,5 @@
-using ClusterManagement.Client.DataflowEvents.Services;
+﻿using ClusterManagement.Client.DataflowEvents.Services;
+using ClusterManagement.Client.Editor.FunctionBlockTree;
 using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Client.IoddManagement.IoddTree;
 using ClusterManagement.Client.IoddManagement.Services;
@@ -47,6 +48,7 @@ public class ClusterManagementModuleTests
         Assert.NotNull(serviceProvider.GetRequiredService<LoadClusterService>());
         Assert.NotNull(serviceProvider.GetRequiredService<SaveClusterService>());
         Assert.NotNull(serviceProvider.GetRequiredService<LoadFunctionBlocksService>());
+        Assert.NotNull(serviceProvider.GetRequiredService<FunctionBlockTreeAdapter>());
 
         // Assert - Management
         Assert.NotNull(serviceProvider.GetRequiredService<IClusterManagementService>());

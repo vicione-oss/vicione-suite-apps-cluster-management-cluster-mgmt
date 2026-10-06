@@ -1,51 +1,29 @@
 using AngleSharp.Dom;
 using Bunit;
+using Bunit.Rendering;
 using ClusterManagement.Client.Editor.Dialogs;
 using ClusterManagement.Client.Editor.Services;
+using ClusterManagement.Client.Tests.Editor.FunctionBlockTree;
 using ClusterManagement.Public.Designs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Sdk.Testing.Client;
 using ViciOne.Cluster.Model;
-using ViciOne.Ui.Blazor.Components.CheckBox.Extensions;
+using ViciOne.Ui.Blazor.Components.Dialog.Components;
 using ViciOne.Ui.Blazor.Components.Dialog.Extensions;
+using ViciOne.Ui.Blazor.Components.TestingHelpers.Dialog.Extensions;
+using ViciOne.Ui.Blazor.Components.Toolbar.Extensions;
 using ViciOne.Ui.ClusterEditor.Services;
 using ViciOne.Ui.Localization.Resources;
-using ViciOne.Ui.MonochromeIcons.Core.Enums;
-using ViciOne.Ui.MonochromeIcons.Core.Extensions;
 
 namespace ClusterManagement.Client.Tests.Editor.Dialogs;
 
-public class LoadFunctionBlockDialogTests
+public sealed class LoadFunctionBlockDialogTests
 {
-    private const string SkipMessage = "The dialog will be refactored and till then the tests will be disabled because they fail too often";
-
     private readonly IDesignProvider _designProvider = Substitute.For<IDesignProvider>();
     private readonly IClusterEditorManagement _clusterEditorManagement = Substitute.For<IClusterEditorManagement>();
 
-    private readonly ClusterDependency _dependencyFunctionBlockTest = new()
-    {
-        Name = "ACX.ViciOne.FunctionBlocks.Test",
-        Version = "1.0.0"
-    };
-
-    private readonly ClusterDependency _dependencyStandardFunctionTest = new()
-    {
-        Name = "ACX.ViciOne.StandardFunction.Test",
-        Version = "1.0.0"
-    };
-
-    private readonly ClusterDependency _dependencyStandardFunctionABC = new()
-    {
-        Name = "ACX.ViciOne.StandardFunction.ABC",
-        Version = "1.0.0"
-    };
-
-    private readonly ClusterDependency _dependencyStandardFunctionABCD = new()
-    {
-        Name = "ACX.ViciOne.StandardFunction.ABCD",
-        Version = "1.0.0"
-    };
+    private readonly ClusterDependency _functionBlocksTest = new() { Name = "ACX.ViciOne.FunctionBlocks.Test", Version = "1.0.0" };
+    private readonly ClusterDependency _standardFunctionTest = new() { Name = "ACX.ViciOne.StandardFunction.Test", Version = "1.0.0" };
 
     private LoadFunctionBlocksService SetupServices(BunitContext ctx)
     {
@@ -54,532 +32,123 @@ public class LoadFunctionBlockDialogTests
             _clusterEditorManagement,
             Substitute.For<ILogger<LoadFunctionBlocksService>>());
 
-        ctx.SetupSuiteServices();
+        ctx.SetupFunctionBlockSelection();
+        ctx.Services.AddDialog();
+        ctx.Services.AddToolbar();
         ctx.Services.AddSingleton(service);
-        ctx.Services.AddSingleton(Substitute.For<ILogger<LoadFunctionBlockDialog>>);
+        ctx.Services.AddSingleton(Substitute.For<ILogger<LoadFunctionBlockDialog>>());
+
+        _designProvider.GetClusterDependencies().Returns([_functionBlocksTest, _standardFunctionTest]);
 
         return service;
     }
 
-    [Obsolete("DevExpress was removed so the accessors need to be updated")]
-    private static IElement GetFunctionBlockByName(IRenderedComponent<LoadFunctionBlockDialog> component, string functionBlockName)
-        => component.FindAll("dxbl-check").First(fb => fb.InnerHtml.Contains(functionBlockName, StringComparison.OrdinalIgnoreCase));
-
-    private static IElement FindToolbarButton(IRenderedComponent<LoadFunctionBlockDialog> component, MonochromeIconName name)
-        => component.FindAll(".toolbar-button").First(k => k.InnerHtml.Contains(name.GetName().ToDashCase(), StringComparison.OrdinalIgnoreCase));
-
-    private static IElement GetCancelButton(IRenderedComponent<LoadFunctionBlockDialog> component)
-        => component.FindAll("button").First(b => b.InnerHtml.Contains(CommonVocabulary.Cancel, StringComparison.Ordinal));
-
-    private static IElement GetOkButton(IRenderedComponent<LoadFunctionBlockDialog> component)
-        => component.FindAll("button").First(b => b.InnerHtml.Contains(CommonVocabulary.Ok, StringComparison.Ordinal));
-
-    [Obsolete("DevExpress was removed so the accessors need to be updated")]
-    private static void SetSearchFilter(IRenderedComponent<LoadFunctionBlockDialog> component, string filter)
-        => component.Find(".dxbl-text-edit").TriggerEvent("ondxbl-input-editor.textinput", new EventArgs());
-
-    public class RenderComponent : LoadFunctionBlockDialogTests
+    private static async Task<IRenderedComponent<Dialog>> RenderOpenDialog(BunitContext ctx, LoadFunctionBlocksService service, params ClusterDependency[]? preSelected)
     {
-        [Fact]
-        public async Task ComponentGetsRendered()
-        {
-            // Arrange
-            await using var ctx = new BunitContext();
-            SetupServices(ctx);
-            ctx.Services.AddDialog();
-            ctx.Services.AddCheckBox();
+        await service.LoadPackageReferences(preSelected);
 
-            // Act
-            var sut = ctx.Render<LoadFunctionBlockDialog>();
+        var component = ctx.Render<LoadFunctionBlockDialog>();
+        var dialog = component.FindComponent<Dialog>();
+        dialog.WaitForState(dialog.HasComponent<Microsoft.AspNetCore.Components.Sections.SectionContent>);
 
-            // Assert
-            Assert.NotNull(sut);
-        }
+        return dialog;
     }
 
-    public class SetTreeList : LoadFunctionBlockDialogTests
+    /// <summary>
+    /// Renders the popup content (the tree) of the dialog. It is rendered detached and does not follow later state changes of the dialog.
+    /// </summary>
+    private static IRenderedComponent<ContainerFragment> RenderBody(BunitContext ctx, IRenderedComponent<Dialog> dialog)
     {
-        [Fact(Skip = SkipMessage)]
-        public async Task Generates_tree()
-        {
-            // Arrange
-            using var ctx = new BunitContext();
-            var service = SetupServices(ctx);
+        var content = dialog.RenderSectionContent(ctx);
+        content.WaitForAssertion(() => content.FindAll(".tree-node").Should().NotBeEmpty());
 
-            _designProvider.GetClusterDependencies().Returns(
-            [
-                _dependencyFunctionBlockTest,
-                _dependencyStandardFunctionTest,
-            ]);
-
-            await service.LoadPackageReferences();
-
-            // Act
-            var component = ctx.Render<LoadFunctionBlockDialog>();
-
-            // Assert
-            component.WaitForAssertion(() =>
-            {
-                component.Find(".all").Should().NotBeNull();
-                var container = component.Find(".sub-layer-container");
-
-                container.ParentElement?.InnerHtml.Should().Contain("ACX");
-                var children = Assert.Single(container.Children);
-                children.InnerHtml.Should().Contain("ViciOne");
-                children = children.Children.First(e => e.ClassList.Contains("sub-layer-container"));
-                children.Children.First().InnerHtml.Should().Contain("FunctionBlocks");
-                children.Children.Last().InnerHtml.Should().Contain("StandardFunction");
-                children.Children.First().Children.Last().InnerHtml.Should().Contain("Test");
-                children.Children.Last().Children.Last().InnerHtml.Should().Contain("Test");
-            });
-        }
-
-        [Fact(Skip = SkipMessage)]
-        public async Task Shows_message_when_dependencies_are_empty()
-        {
-            using var ctx = new BunitContext();
-            var service = SetupServices(ctx);
-
-            _designProvider.GetClusterDependencies().Returns([]);
-
-            await service.LoadPackageReferences();
-
-            // Act
-            var component = ctx.Render<LoadFunctionBlockDialog>();
-
-            // Assert
-            component.WaitForAssertion(() =>
-            {
-                component.Markup.Should().Contain(Client.Editor.Localization.LoadFunctionBlockDialog.NoFunctionBlockAvailable);
-            });
-        }
+        return content;
     }
 
-    public class OnCancelButtonClick : LoadFunctionBlockDialogTests
+    /// <summary>
+    /// Renders the footer with the current state of the dialog.
+    /// </summary>
+    private static IElement RenderOkButton(BunitContext ctx, IRenderedComponent<Dialog> dialog)
+        => ctx.Render(dialog.Instance.Footer!).FindAll("button").First(b => b.TextContent.Contains(CommonVocabulary.Ok, StringComparison.Ordinal));
+
+    private static IElement GetCancelButton(IRenderedComponent<ContainerFragment> content)
+        => content.FindAll(".footer button").First(b => b.TextContent.Contains(CommonVocabulary.Cancel, StringComparison.Ordinal));
+
+    private static IElement FindNode(IRenderedComponent<ContainerFragment> content, string text)
+        => content.FindAll(".tree-node").First(n => n.QuerySelector(".node-text")?.TextContent == text);
+
+    private static void WaitForEnabledOkButton(BunitContext ctx, IRenderedComponent<Dialog> dialog)
+        => dialog.WaitForAssertion(() => RenderOkButton(ctx, dialog).HasAttribute("disabled").Should().BeFalse());
+
+    [Fact]
+    public async Task Renders_without_open_dialog()
     {
-        [Fact(Skip = SkipMessage)]
-        public async Task Closes_popup()
-        {
-            // Arrange
-            using var ctx = new BunitContext();
-            var service = SetupServices(ctx);
+        await using var ctx = new BunitContext();
+        SetupServices(ctx);
 
-            _designProvider.GetClusterDependencies().Returns([]);
+        var sut = ctx.Render<LoadFunctionBlockDialog>();
 
-            await service.LoadPackageReferences();
-
-            var component = ctx.Render<LoadFunctionBlockDialog>();
-
-            component.WaitForAssertion(() =>
-            {
-                // Act
-                GetCancelButton(component).Click();
-
-                // Assert
-                component.Markup.Should().NotContain(Client.Editor.Localization.LoadFunctionBlockDialog.Header);
-            }, TimeSpan.FromSeconds(2));    // double time
-        }
+        Assert.NotNull(sut);
     }
 
-    public class OnCollapseAllClick : LoadFunctionBlockDialogTests
+    [Fact]
+    public async Task Ok_is_disabled_until_a_function_block_is_checked()
     {
-        [Fact(Skip = SkipMessage)]
-        public async Task All_nodes_get_collapsed()
-        {
-            // Arrange
-            using var ctx = new BunitContext();
-            var service = SetupServices(ctx);
+        await using var ctx = new BunitContext();
+        var service = SetupServices(ctx);
+        var dialog = await RenderOpenDialog(ctx, service);
+        var body = RenderBody(ctx, dialog);
 
-            _designProvider.GetClusterDependencies().Returns(
-            [
-                _dependencyFunctionBlockTest,
-            ]);
+        RenderOkButton(ctx, dialog).HasAttribute("disabled").Should().BeTrue();
 
-            await service.LoadPackageReferences();
+        await FindNode(body, "FunctionBlocks").QuerySelector("input")!.InputAsync(Xunit.TestContext.Current.CancellationToken);
 
-            var component = ctx.Render<LoadFunctionBlockDialog>();
-
-            // DX Toolbar is rendered async isn't available after rendering
-            component.WaitForAssertion(() =>
-            {
-                // Act
-                var button = FindToolbarButton(component, MonochromeIconName.CollapseAll);
-                button.Click();
-
-                // Assert
-                component.Markup.Should().NotContain("dropdown-icon expanded");
-            });
-        }
+        WaitForEnabledOkButton(ctx, dialog);
     }
 
-    public class OnCheckedChanged : LoadFunctionBlockDialogTests
+    [Fact]
+    public async Task Loads_only_the_checked_function_blocks()
     {
-        [Fact(Skip = SkipMessage)]
-        public async Task Checks_all_function_blocks()
-        {
-            // Arrange
-            using var ctx = new BunitContext();
-            var service = SetupServices(ctx);
+        await using var ctx = new BunitContext();
+        var service = SetupServices(ctx);
+        var dialog = await RenderOpenDialog(ctx, service);
+        var body = RenderBody(ctx, dialog);
 
-            _designProvider.GetClusterDependencies().Returns(
-            [
-                _dependencyFunctionBlockTest,
-                _dependencyStandardFunctionTest,
-            ]);
+        await FindNode(body, "StandardFunction").QuerySelector("input")!.InputAsync(Xunit.TestContext.Current.CancellationToken);
+        WaitForEnabledOkButton(ctx, dialog);
 
-            await service.LoadPackageReferences();
+        await RenderOkButton(ctx, dialog).ClickAsync();
 
-            var component = ctx.Render<LoadFunctionBlockDialog>();
-
-            component.WaitForAssertion(() =>
-            {
-                // Act
-                component.Find("dxbl-check").Change(new() { Value = true });
-
-                // Assert
-                component.Markup.Should().NotContain("unchecked").And.NotContain("indeterminate");
-            });
-        }
-
-        [Fact(Skip = SkipMessage)]
-        public async Task Unchecks_all_function_blocks()
-        {
-            // Arrange
-            using var ctx = new BunitContext();
-            var service = SetupServices(ctx);
-
-            _designProvider.GetClusterDependencies().Returns(
-            [
-                _dependencyFunctionBlockTest,
-                _dependencyStandardFunctionTest,
-            ]);
-
-            await service.LoadPackageReferences();
-
-            var component = ctx.Render<LoadFunctionBlockDialog>();
-
-            component.WaitForAssertion(() =>
-            {
-                // Act
-                var checkbox = component.Find("dxbl-check");
-                checkbox.Change(new() { Value = true });
-                checkbox.Change(new() { Value = false });
-
-                // Assert
-                component.Markup.Should().NotContain("-checked").And.NotContain("indeterminate");
-            });
-        }
+        _ = _designProvider.Received(1).GetFunctionBlockDesignIds(Arg.Is<IReadOnlyCollection<ClusterDependency>>(d => d.SequenceEqual(new[] { _standardFunctionTest })));
+        _clusterEditorManagement.Received(1).LoadFunctionBlockDesigns(Arg.Any<IEnumerable<Guid>>());
+        service.SelectedDependencies.Should().Equal(_standardFunctionTest);
+        service.DisplayDialog.Should().BeFalse();
     }
 
-    public class OnExpandAllClick : LoadFunctionBlockDialogTests
+    [Fact]
+    public async Task Does_not_offer_already_loaded_function_blocks()
     {
-        [Fact(Skip = SkipMessage)]
-        public async Task All_nodes_get_expanded()
-        {
-            // Arrange
-            using var ctx = new BunitContext();
-            var service = SetupServices(ctx);
+        await using var ctx = new BunitContext();
+        var service = SetupServices(ctx);
+        var dialog = await RenderOpenDialog(ctx, service, [_functionBlocksTest]);
 
-            _designProvider.GetClusterDependencies().Returns(
-            [
-                _dependencyFunctionBlockTest,
-            ]);
+        var body = RenderBody(ctx, dialog);
 
-            await service.LoadPackageReferences();
-
-            var component = ctx.Render<LoadFunctionBlockDialog>();
-
-            component.WaitForAssertion(() =>
-            {
-                // Act
-                var buttonCollapse = FindToolbarButton(component, MonochromeIconName.CollapseAll);
-                buttonCollapse.Click();
-
-                var buttonExpand = FindToolbarButton(component, MonochromeIconName.ExpandAll);
-                buttonExpand.Click();
-
-                // Assert
-                component.Markup.Should().Contain("dropdown-icon expanded");
-            });
-        }
+        FindNode(body, "StandardFunction").Should().NotBeNull();
+        body.FindAll(".node-text").Select(n => n.TextContent).Should().NotContain("FunctionBlocks");
     }
 
-    public class OnOkButtonClick : LoadFunctionBlockDialogTests
+    [Fact]
+    public async Task Cancel_closes_the_dialog_without_loading()
     {
-        [Fact(Skip = SkipMessage)]
-        public async Task Loads_only_checked_function_blocks()
-        {
-            // Arrange
-            using var ctx = new BunitContext();
-            var service = SetupServices(ctx);
+        await using var ctx = new BunitContext();
+        var service = SetupServices(ctx);
+        var dialog = await RenderOpenDialog(ctx, service);
+        var body = RenderBody(ctx, dialog);
 
-            _designProvider.GetClusterDependencies().Returns(
-            [
-                _dependencyFunctionBlockTest,
-                _dependencyStandardFunctionABC,
-            ]);
+        await GetCancelButton(body).ClickAsync();
 
-            await service.LoadPackageReferences();
-
-            var component = ctx.Render<LoadFunctionBlockDialog>();
-
-            component.WaitForAssertion(() =>
-            {
-                // Act
-                GetFunctionBlockByName(component, "abc").Change(new() { Value = true });
-                GetOkButton(component).Click();
-
-                // Assert
-                _clusterEditorManagement.Received(1).LoadFunctionBlockDesigns(Arg.Any<IEnumerable<Guid>>());
-            });
-        }
-
-        [Fact(Skip = SkipMessage)]
-        public async Task Loads_checked_functionblock_even_if_not_shown_in_current_filter()
-        {
-            // Arrange
-            using var ctx = new BunitContext();
-            var service = SetupServices(ctx);
-
-            _designProvider.GetClusterDependencies().Returns(
-            [
-                _dependencyFunctionBlockTest,
-                _dependencyStandardFunctionABC,
-            ]);
-
-            await service.LoadPackageReferences();
-            service.SelectedDependencies = [];
-
-            var component = ctx.Render<LoadFunctionBlockDialog>();
-
-            component.WaitForAssertion(() =>
-            {
-                // Act
-                GetFunctionBlockByName(component, "test").Change(new() { Value = true });
-                SetSearchFilter(component, "abc");
-                GetOkButton(component).Click();
-
-                // Assert
-                _clusterEditorManagement.Received(1).LoadFunctionBlockDesigns(Arg.Any<IEnumerable<Guid>>());
-            });
-        }
-    }
-
-    public class ShowFilteredFunctionBlocks : LoadFunctionBlockDialogTests
-    {
-        [Fact(Skip = SkipMessage)]
-        public async Task Checks_all_functionblocks_when_filtering()
-        {
-            // Arrange
-            using var ctx = new BunitContext();
-            var service = SetupServices(ctx);
-
-            _designProvider.GetClusterDependencies().Returns(
-            [
-                _dependencyFunctionBlockTest,
-                _dependencyStandardFunctionTest,
-                _dependencyStandardFunctionABC,
-                _dependencyStandardFunctionABCD,
-            ]);
-
-            await service.LoadPackageReferences();
-            service.SelectedDependencies = [];
-
-            var component = ctx.Render<LoadFunctionBlockDialog>();
-
-            component.WaitForAssertion(() =>
-            {
-                // Act
-                GetFunctionBlockByName(component, "Block").Change(new() { Value = true });
-                SetSearchFilter(component, "nB"); // filter only checked fb
-
-                // Assert
-                foreach (var cb in component.FindAll(".dxbl-checkbox"))
-                    cb.OuterHtml.Should().NotContain("unchecked").And.NotContain("indeterminate");
-            });
-        }
-
-        [Fact(Skip = SkipMessage)]
-        public async Task Checks_indeterminate_when_filtering()
-        {
-            // Arrange
-            using var ctx = new BunitContext();
-            var service = SetupServices(ctx);
-
-            _designProvider.GetClusterDependencies().Returns(
-            [
-                _dependencyStandardFunctionABC,
-                _dependencyStandardFunctionABCD,
-            ]);
-
-            await service.LoadPackageReferences();
-            service.SelectedDependencies = [];
-
-            var component = ctx.Render<LoadFunctionBlockDialog>();
-
-            component.WaitForAssertion(() =>
-            {
-                // Act
-                GetFunctionBlockByName(component, "abc").Change(new() { Value = true });
-                SetSearchFilter(component, "abc");
-
-                // Assert
-                var parent = GetFunctionBlockByName(component, "Standard");
-                parent.OuterHtml.Should().Contain("indeterminate");
-            });
-        }
-
-        [Fact(Skip = SkipMessage)]
-        public async Task Keeps_check_value_when_filtering()
-        {
-            // Arrange
-            using var ctx = new BunitContext();
-            var service = SetupServices(ctx);
-
-            _designProvider.GetClusterDependencies().Returns(
-            [
-                _dependencyStandardFunctionABC,
-            ]);
-
-            await service.LoadPackageReferences();
-
-            var component = ctx.Render<LoadFunctionBlockDialog>();
-
-            component.WaitForAssertion(() =>
-            {
-                // Act
-                GetFunctionBlockByName(component, "abc").Change(new() { Value = true });
-                SetSearchFilter(component, "abc");
-
-                // Assert
-                GetFunctionBlockByName(component, "abc").OuterHtml.Should().Contain("dxbl-checkbox-checked");
-            });
-        }
-
-        [Fact(Skip = SkipMessage)]
-        public async Task Unchecks_all_functionblocks_when_filtering()
-        {
-            // Arrange
-            using var ctx = new BunitContext();
-            var service = SetupServices(ctx);
-
-            _designProvider.GetClusterDependencies().Returns(
-            [
-                _dependencyFunctionBlockTest,
-                _dependencyStandardFunctionTest,
-                _dependencyStandardFunctionABC,
-                _dependencyStandardFunctionABCD,
-            ]);
-
-            await service.LoadPackageReferences();
-            service.SelectedDependencies = [];
-
-            var component = ctx.Render<LoadFunctionBlockDialog>();
-
-            component.WaitForAssertion(() =>
-            {
-                // Act
-                GetFunctionBlockByName(component, "Test").Change(new() { Value = true });
-                SetSearchFilter(component, "abc"); // filter only unchecked fb
-
-                // Assert
-                foreach (var cb in component.FindAll(".dxbl-checkbox"))
-                    cb.OuterHtml.Should().NotContain("dxbl-checkbox-checked").And.NotContain("indeterminate");
-            });
-        }
-
-
-        [Fact(Skip = SkipMessage)]
-        public async Task Only_shows_filtered_functionblocks()
-        {
-            // Arrange
-            using var ctx = new BunitContext();
-            var service = SetupServices(ctx);
-
-            _designProvider.GetClusterDependencies().Returns(
-            [
-                _dependencyFunctionBlockTest,
-                _dependencyStandardFunctionABC,
-            ]);
-
-            await service.LoadPackageReferences();
-
-            var component = ctx.Render<LoadFunctionBlockDialog>();
-            service.SelectedDependencies = [];
-
-            component.WaitForAssertion(() =>
-            {
-                // Act
-                SetSearchFilter(component, "test");
-
-                // Assert
-                component.Markup.Should().Contain("Test").And.NotContain("ABC");
-            });
-        }
-    }
-
-    public class ResetTree : LoadFunctionBlockDialogTests
-    {
-        [Fact(Skip = SkipMessage)]
-        public async Task Resets_check_states()
-        {
-            // Arrange
-            using var ctx = new BunitContext();
-            var service = SetupServices(ctx);
-
-            _designProvider.GetClusterDependencies().Returns(
-            [
-                _dependencyFunctionBlockTest,
-                _dependencyStandardFunctionTest,
-            ]);
-
-            await service.LoadPackageReferences();
-
-            var component = ctx.Render<LoadFunctionBlockDialog>();
-
-            component.WaitForAssertion(() =>
-            {
-                // Act
-                GetFunctionBlockByName(component, "nB").Change(new() { Value = true });
-                GetCancelButton(component).Click();
-
-                service.DisplayDialog = true;
-
-                // Assert
-                foreach (var cb in component.FindAll(".dxbl-checkbox"))
-                    cb.OuterHtml.Should().NotContain("dxbl-checkbox-checked");
-            });
-        }
-
-        [Fact(Skip = SkipMessage)]
-        public async Task Resets_filter_and_highlighting()
-        {
-            // Arrange
-            using var ctx = new BunitContext();
-            var service = SetupServices(ctx);
-
-            _designProvider.GetClusterDependencies().Returns(
-            [
-                _dependencyFunctionBlockTest,
-                _dependencyStandardFunctionTest,
-            ]);
-
-            await service.LoadPackageReferences();
-
-            var component = ctx.Render<LoadFunctionBlockDialog>();
-
-            component.WaitForAssertion(() =>
-            {
-                // Act
-                SetSearchFilter(component, "Vici");
-                GetCancelButton(component).Click();
-
-                service.DisplayDialog = true;
-
-                // Assert
-                component.Markup.Should().NotContain("searchHighlighter");
-                component.Find(".dxbl-text-edit").OuterHtml.Should().NotContain("Vici");
-            });
-        }
+        service.DisplayDialog.Should().BeFalse();
+        _clusterEditorManagement.DidNotReceive().LoadFunctionBlockDesigns(Arg.Any<IEnumerable<Guid>>());
     }
 }

@@ -2,6 +2,7 @@ using ClusterManagement.Client.Editor.ControlPanels.General;
 using ClusterManagement.Client.Editor.ControlPanels.General.Services;
 using ClusterManagement.Client.Editor.ControlPanels.Packages;
 using ClusterManagement.Client.Editor.ControlPanels.Packages.Services;
+using ClusterManagement.Client.Editor.FunctionBlockTree;
 using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Internal.Contracts;
@@ -25,6 +26,7 @@ internal static class IServiceCollectionExtensions
         services.AddScoped<LoadClusterService>();
         services.AddScoped<SaveClusterService>();
         services.AddScoped<LoadFunctionBlocksService>();
+        services.AddTransient<FunctionBlockTreeAdapter>();
 
         // FunctionBlock contract loading
         // wraps ISuiteRulesetProvider for ClusterEditor

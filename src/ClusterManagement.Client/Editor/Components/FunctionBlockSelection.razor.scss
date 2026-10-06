@@ -1,0 +1,94 @@
+@use "./../../Styles/design/colors";
+@use "./../../Styles/design/scrollbar";
+
+.content-container {
+    height: 100%;
+    display: grid;
+    grid-template-rows: min-content auto;
+}
+
+.all {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 7px;
+}
+
+.relative-container {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+.absolute-container {
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+    overflow: hidden;
+
+    &.hidden {
+        display: none;
+    }
+}
+
+.wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    height: 100%;
+    align-content: center;
+
+    div {
+        font-size: 12px;
+    }
+}
+
+.tree-container ::deep {
+    .expand-button .icon, .guideline {
+        // necessary because bootstrap breaks the layout otherwise
+        box-sizing: unset;
+    }
+
+    .icon-container > .icon > svg {
+        height: 24px;
+        width: 24px;
+
+        g {
+            fill: colors.$font;
+        }
+    }
+
+    // the TreeEditor lays a node out as icon | text | actions and pins its icon container to the first column,
+    // the check box of FunctionBlockCheckNode needs a column of its own in front of it
+    .tree-node {
+        grid-column-gap: 8px;
+        grid-template-columns: min-content min-content minmax(0, 1fr);
+    }
+
+    .check-container {
+        grid-column: 1;
+        display: flex;
+        align-items: center;
+    }
+
+    .icon-container {
+        grid-column: 2;
+    }
+
+    .node-text {
+        grid-column: 3;
+        height: 1.5em;
+        line-height: 1.5em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .tree-editor-container {
+        height: 100%;
+
+        @include scrollbar.adjust-styles();
+    }
+}

@@ -1,0 +1,29 @@
+@using ViciOne.Ui.Blazor.Components.CheckBox
+@using ViciOne.Ui.Localization.Resources
+@using ViciOne.Ui.TreeEditor
+
+<div class="content-container">
+    <div class="all">
+        <CheckBox TValue="bool?"
+                  Value="@Adapter.AllCheckState"
+                  ValueChanged="@((bool? value) => Adapter.SetAllChecked(value ?? true))"
+                  AllowIndeterminateState="true"
+                  ValueChecked="true"
+                  ValueUnchecked="false"
+                  ValueIndeterminate="null" />
+        <span class="text">@CommonVocabulary.All</span>
+    </div>
+
+    <div class="relative-container">
+        <div class="absolute-container tree-container @(Adapter.HasFunctionBlocks ? string.Empty : "hidden")">
+            <TreeEditor Builder="@_treeBuilder" />
+        </div>
+
+        @if (!Adapter.HasFunctionBlocks)
+        {
+            <div class="wrapper">
+                <div>@Localization.LoadFunctionBlockDialog.NoFunctionBlockAvailable</div>
+            </div>
+        }
+    </div>
+</div>

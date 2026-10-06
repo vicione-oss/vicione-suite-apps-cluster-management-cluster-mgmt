@@ -1,6 +1,7 @@
 using Blazor.Diagrams.Core.Geometry;
 using Bunit;
 using ClusterManagement.Client.Editor;
+using ClusterManagement.Client.Editor.FunctionBlockTree;
 using ClusterManagement.Client.Editor.Services;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Public.Designs;
@@ -10,6 +11,7 @@ using Sdk.Testing.Client;
 using ViciOne.Ui.Blazor.Components.Sidebar.Extensions;
 using ViciOne.Ui.ClusterEditor.Extensions;
 using ViciOne.Ui.ClusterEditor.Services;
+using ViciOne.Ui.MonochromeIcons.Assets.Services;
 
 namespace ClusterManagement.Client.Tests.Editor;
 
@@ -34,6 +36,8 @@ public sealed class DataflowEditorPageTests
         ctx.Services.AddScoped<LoadClusterService>();
         ctx.Services.AddScoped<SaveClusterService>();
         ctx.Services.AddScoped<LoadFunctionBlocksService>();
+        ctx.Services.AddTransient<FunctionBlockTreeAdapter>();
+        ctx.Services.AddSingleton(Substitute.For<IMonochromeIconSvgMarkupProvider>());
         ctx.Services.AddScoped(_ => Substitute.For<IResourceDownloadStateService>());
         ctx.Services.AddTransient(_ => HttpClientFactory.GetHttpClientWithResponse(version));
 
