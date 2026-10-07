@@ -179,7 +179,7 @@ include:
       tags:
         - saas-linux-small-amd64
   ### Prerelease to dev repository
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/release@v2.1.0
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/release@v2.1.1
     inputs:
       name: "Prerelease to JFrog"
       stage: release-dev
@@ -191,7 +191,7 @@ include:
       artifacts:
         - "build/**/*"
   ### Release to staging (on tag)
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/release@v2.1.0
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/release@v2.1.1
     inputs:
       name: "Release to JFrog"
       stage: release-staging
@@ -203,7 +203,7 @@ include:
       artifacts:
         - "build/**/*"
   ### Promote staging to production (on tag)
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/promote@v2.1.0
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/promote@v2.1.1
     inputs:
       name: "Public Release"
       stage: release-public
