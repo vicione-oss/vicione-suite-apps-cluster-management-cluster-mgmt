@@ -1,123 +1,112 @@
-@using ClusterManagement.Client.Management.Components;
+@using ClusterManagement.Client.Management.Components
 @using ClusterManagement.Client.Management.Localization
-@using ClusterManagement.Client.Management.Models
 @using ClusterManagement.Public
 @using Sdk.Authorization
-@using ViciOne.Ui.Blazor.Components.Button
-@using ViciOne.Ui.Blazor.Components.Button.Enums
-@using ViciOne.Ui.Blazor.Components.Tables.Shared.Enums
-@using ViciOne.Ui.Blazor.Components.Tables.SimpleTable.Components
-@using ViciOne.Ui.Blazor.Components.Tables.SimpleTable.Components.Columns
-@using ViciOne.Ui.Blazor.Components.Toolbar.Components
+@using ViciOne.Ui.Blazor.Components.Dialog.Components
 @using ViciOne.Ui.Localization.Resources
-@using ViciOne.Ui.MonochromeIcons.Core.Enums
 
 @attribute [Route(Constants.ManagementModuleRoute)]
 @attribute [ModuleAuthorize<ClusterManagementClientModule>(AccessLevel.Full)]
 
 @inherits ModulePageBase<ClusterManagementClientModule>
 
-
 <div class="cluster-mgmt">
-    <div class="cluster-mgmt-toolbar">
-        <Toolbar>
-            <ToolbarGroup>
-                <ToolbarContent Enabled="false" Tooltip="@SelectedCluster?.Key">
-                    @(SelectedCluster != null ? SelectedCluster.DisplayNameVersion : string.Empty)
-                </ToolbarContent>
-            </ToolbarGroup>
-            <ToolbarGroup AlignRight="true">
-                <ToolbarButton Text="@(string.Format(UserActions.ResetSomething, "Saga"))"
-                               OnClick="@ResetSagaStates"
-                               IconName="@MonochromeIconName.Delete" />
-
-                <ToolbarButton Text="@(string.Format(UserActions.GetSomething, "Saga"))"
-                               OnClick="@GetSagaState"
-                               IconName="@MonochromeIconName.Reload" />
-
-                <ToolbarButton Text="@TechnicalTerms.EventPlural"
-                               OnClick="@NavigateToEvents"
-                               IconName="@MonochromeIconName.Properties" />
-            </ToolbarGroup>
-        </Toolbar>
-    </div>
-
     @if (!_hasLoaded)
     {
         <LoadingSpinner Visible="true" />
     }
     else
     {
-        <div class="cluster-mgmt-grid">
-            <SimpleTable TItem="ClusterInfoModel"
-                         Items="@Clusters"
-                         SelectionMode="SelectionMode.Single"
-                         RowClickSelectionEnabled="true"
-                         SelectedItems="@_selectedClusters"
-                         SelectedItemsChanged="@OnSelectedItemsChanged">
-                <Columns>
-                    <SimpleTableTemplateColumn Id="Name" Title="@CommonVocabulary.Name">
-                        <CellContent>@context.DisplayName</CellContent>
-                    </SimpleTableTemplateColumn>
-                    <SimpleTableTemplateColumn Id="Description" Title="@CommonVocabulary.Description">
-                        <CellContent>@context.Description</CellContent>
-                    </SimpleTableTemplateColumn>
-                    <SimpleTableTemplateColumn Id="Version" Title="@TechnicalTerms.Version" Width="100">
-                        <CellContent>@context.Version</CellContent>
-                    </SimpleTableTemplateColumn>
-                    <SimpleTableTemplateColumn Id="Status" Title="@CommonVocabulary.Status" Width="120">
-                        <CellContent>@context.Status</CellContent>
-                    </SimpleTableTemplateColumn>
-                    <SimpleTableTemplateColumn Id="Duration" Title="@Common.Duration" Width="120">
-                        <CellContent>@context.DeploymentDuration</CellContent>
-                    </SimpleTableTemplateColumn>
-                    <SimpleTableTemplateColumn Id="Actions" Title="@CommonVocabulary.ActionPlural" Resizeable="false" Width="150">
-                        <CellContent>
-                            <div class="action-column">
-                                <Button IconCssClass="@_deployIconCssClass"
-                                        CssClass="borderless"
-                                        OnClick="@(async () => await DeployClusterVersion(context))"
-                                        Enabled="@(!context.IsActive && Clusters.All(k => !k.IsExecuting))"
-                                        Title="@CommonVocabulary.StartVerb"
-                                        Size="@ButtonSize.Small" />
+        <div class="overview">
+            <div class="full-row">
+                @if (ActiveVersion is { } active)
+                {
+                    <ActiveClusterHeader Active="@active"
+                                         Draft="@DraftVersion"
+                                         Deployment="@_deployment"
+                                         OnOpenEditor="@OpenEditor"
+                                         OnDeployDraft="@DeployDraft"
+                                         OnShowSagaState="@ShowSagaState"
+                                         OnResetSagaState="@ResetSagaStates" />
+                }
+                else
+                {
+                    <div class="notice">@(Versions.Count == 0 ? ClusterOverview.NoVersions : ClusterOverview.NoActiveVersion)</div>
+                }
+            </div>
 
-                                <Button IconCssClass="@(context.IsLatest ? _editIconCssClass : _infoIconCssClass)"
-                                        CssClass="borderless"
-                                        OnClick="@(() => HandleEdit(context))"
-                                        Enabled="@(!context.IsExecuting && context.IsLatest)"
-                                        Title="@CommonVocabulary.EditVerb"
-                                        Size="@ButtonSize.Small" />
+            @if (_summary is not null && ActiveVersion is not null)
+            {
+                <div class="full-row">
+                    <ClusterSummaryTiles Summary="@_summary" />
+                </div>
+            }
 
-                                <Button IconCssClass="@_downloadIconCssClass"
-                                        CssClass="borderless"
-                                        OnClick="@(() => DownloadClusterJson(context))"
-                                        Enabled="@(!context.IsExecuting)"
-                                        Title="@($"{CommonVocabulary.DownloadVerb} JSON")"
-                                        Size="@ButtonSize.Small" />
+            <div class="main-column">
+                @if (ActiveVersion is not null || _deployment is not null)
+                {
+                    <DeploymentPanel Deployment="@_deployment" Running="@ActiveVersion" />
+                }
 
-                                <Button IconCssClass="@_deleteIconCssClass"
-                                        CssClass="borderless"
-                                        OnClick="@(async () => await RemoveCluster(context))"
-                                        Enabled="@(!context.IsExecuting && !context.IsActive && !context.IsDefault)"
-                                        Title="@CommonVocabulary.Delete"
-                                        Size="@ButtonSize.Small" />
-                            </div>
-                        </CellContent>
-                    </SimpleTableTemplateColumn>
-                </Columns>
-            </SimpleTable>
+                @if (Versions.Count > 0)
+                {
+                    <ClusterVersionList Versions="@Versions"
+                                        Deployment="@_deployment"
+                                        OnDeploy="@DeployClusterVersion"
+                                        OnEdit="@HandleEdit"
+                                        OnDownload="@DownloadClusterJson"
+                                        OnDelete="@RemoveCluster" />
+                }
+            </div>
+
+            @if (ActiveVersion is { } running && _activeCluster is not null)
+            {
+                <div class="side-column">
+                    <RuntimePanel Cluster="@_activeCluster" />
+                    <DataflowEventsCard ActiveVersion="@running.Version" />
+                    <PackagesPanel Version="@running.Version" Dependencies="@_activeCluster.Dependencies" />
+                </div>
+            }
         </div>
     }
 
-    @if (!string.IsNullOrEmpty(_sagaState))
-    {
-        <div class="detail-container">
-            <p>@_sagaState</p>
-        </div>
-    }
-    else
-    {
-        <ClusterUpdateDisplay />
-    }
-
+    <Dialog @ref="@_refSagaStateDialog"
+            HeaderText="@ClusterOverview.ShowSagaState"
+            Width="520"
+            Height="@(_sagaStates.Count > 0 ? "300" : "220")">
+        <Body>
+            @if (_sagaError is not null)
+            {
+                <DialogBodyTextLayout>@_sagaError</DialogBodyTextLayout>
+            }
+            else if (_sagaStates.Count == 0)
+            {
+                <DialogBodyTextLayout>
+                    <p class="saga-headline">@ClusterOverview.NoSagaRunning</p>
+                    <p class="saga-hint">@ClusterOverview.NoSagaRunningHint</p>
+                </DialogBodyTextLayout>
+            }
+            else
+            {
+                <DialogBodyTextLayout>
+                    @foreach (var state in _sagaStates)
+                    {
+                        <dl class="saga-state" @key="state.ClusterId">
+                            <dt>@CommonVocabulary.State</dt>
+                            <dd class="mono">@state.CurrentState</dd>
+                            <dt>@ClusterOverview.SagaRunningVersion</dt>
+                            <dd class="mono">@state.ActiveVersion</dd>
+                            <dt>@ClusterOverview.SagaTargetVersion</dt>
+                            <dd class="mono">@state.TargetVersion</dd>
+                            <dt>@ClusterOverview.SagaCluster</dt>
+                            <dd class="mono muted">@state.ClusterId</dd>
+                        </dl>
+                    }
+                </DialogBodyTextLayout>
+            }
+        </Body>
+        <Footer>
+            <DialogFooterButton Text="@CommonVocabulary.CloseVerb" OnClick="@OnSagaStateCloseAsync" />
+        </Footer>
+    </Dialog>
 </div>

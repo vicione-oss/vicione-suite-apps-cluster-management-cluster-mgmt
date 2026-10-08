@@ -171,10 +171,12 @@ internal sealed class FunctionBlockTreeAdapter(IMonochromeIconSvgMarkupProvider 
     // the dependencies the user can see and therefore (un)check, i.e. the ones matching an active filter
     private IEnumerable<ClusterDependency> SelectableDependenciesOf(FunctionBlockTreeNode node)
     {
-        var filterActive = Builder.Filter.IsFilterActive;
+        // Builder is null once the tree builder got disposed, node templates may still recalculate afterwards
+        var filter = Builder?.Filter;
+        var filterActive = filter?.IsFilterActive == true;
 
         return node.SelfAndDescendants()
-            .Where(n => !filterActive || Builder.Filter.Match(n))
+            .Where(n => !filterActive || filter!.Match(n))
             .Select(n => n.Dependency)
             .OfType<ClusterDependency>();
     }

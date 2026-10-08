@@ -5,6 +5,7 @@ using System.Text.Json;
 using ClusterManagement.Backend.Diagnostics;
 using ClusterManagement.Backend.Extensions;
 using ClusterManagement.Backend.Mqtt;
+using ClusterManagement.Internal;
 using Sdk.SystemConfiguration;
 using Sdk.SystemConfiguration.Commands;
 using Semver;
@@ -18,7 +19,6 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
     IControlServiceManagement serviceManagement,
     IProcessManager? processManager = null) : IEngineHostPoolCommunication
 {
-    private const string PrivilegeIndicator = "-privileged";
     private const string ExecutableFileName = "executable";
     private const string ProcessIdFileName = "processid";
     private static readonly TimeSpan s_killProcessTimeout = TimeSpan.FromSeconds(15);
@@ -217,16 +217,13 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
             }
             catch (UnauthorizedAccessException)
             {
-                await serviceManagement.TryControlService(ServiceCommand.Start, $"enginehost-reset@{id}.service", cancellationToken);
+                await serviceManagement.TryControlService(ServiceCommand.Start, EngineHostUnits.Reset(id), cancellationToken);
             }
         }
     }
 
     private async Task StartService(Guid id, bool elevatedPrivileges, CancellationToken cancellationToken)
-    {
-        var privileged = elevatedPrivileges ? PrivilegeIndicator : string.Empty;
-        await serviceManagement.TryControlService(ServiceCommand.Start, $"enginehost{privileged}@{id}.service", cancellationToken);
-    }
+        => await serviceManagement.TryControlService(ServiceCommand.Start, EngineHostUnits.Of(id, elevatedPrivileges), cancellationToken);
 
     private async Task WriteFile(string directory, string fileName, string content, CancellationToken cancellationToken)
     {
@@ -268,14 +265,9 @@ internal sealed class ProcessEngineHostPoolCommunication(string installDirectory
 
     private async Task StopService(Guid id, CancellationToken cancellationToken)
     {
-        var service = await FindService($"enginehost*@{id}.service", cancellationToken);
+        var service = await FindService(EngineHostUnits.Pattern(id), cancellationToken);
         if (service is not null)
-        {
-            if (service.Contains(PrivilegeIndicator, StringComparison.OrdinalIgnoreCase))
-                await serviceManagement.TryControlService(ServiceCommand.Stop, $"enginehost{PrivilegeIndicator}@{id}.service", cancellationToken);
-            else
-                await serviceManagement.TryControlService(ServiceCommand.Stop, $"enginehost@{id}.service", cancellationToken);
-        }
+            await serviceManagement.TryControlService(ServiceCommand.Stop, EngineHostUnits.Of(id, EngineHostUnits.IsPrivileged(service)), cancellationToken);
     }
 
     private async Task<string?> FindService(string pattern, CancellationToken cancellationToken)

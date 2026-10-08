@@ -15,6 +15,16 @@ public static class ClusterErrors
     public const int CouldNotGetAppSettingsOfEngineHost = 107;
     public const int CouldNotGetRunStatesOfEngines = 109;
 
+    /// <summary>
+    /// The instance has no deployment of the engine, for example while a deployment is in progress or after a failed one.
+    /// </summary>
+    public const int EngineNotDeployed = 110;
+
+    /// <summary>
+    /// The engine is deployed on the instance, but its engine host did not answer.
+    /// </summary>
+    public const int EngineHostDidNotAnswer = 111;
+
     public const int CouldNotDeployEngine = 200;
     public const int CouldNotTearDownEngine = 201;
     public const int CouldNotStartEngine = 202;

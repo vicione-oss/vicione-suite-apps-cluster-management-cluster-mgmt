@@ -64,8 +64,29 @@ public class GetClusterInfosConsumerTests : TestWithDbContextSqlite<ClusterDbCon
         response.Results.Should()
             .BeEquivalentTo(testData,
                 options =>
-                    options.Excluding(k => k.IsActive),
+                    options.Excluding(k => k.IsActive).Excluding(k => k.Deployed),
                 "2 are active");
+    }
+
+    [Fact]
+    public async Task Active_version_carries_its_deployment_time()
+    {
+        // Arrange
+        await using var tester = new MassTransitTester(_configureServices);
+        var dbContext = tester.Services.GetRequiredService<IClusterDbContext>();
+        var cluster = new Cluster { Id = Guid.NewGuid(), Version = new(1, 0, 2) };
+        var active = dbContext.SaveActiveClusterVersion(cluster);
+
+        _snapshotStoreMock
+            .GetClusterInfos(null, Arg.Any<CancellationToken>())
+            .Returns([new(cluster.Id, cluster.Version, "Active"), new(cluster.Id, new(1, 0, 3), "Draft")]);
+
+        // Act
+        var response = await tester.TestRequest<GetClusterInfosResponse, GetClusterInfosRequest>(new GetClusterInfosRequest());
+
+        // Assert
+        response.Results.Should().ContainSingle(k => k.Deployed != null)
+            .Which.Should().Match<ClusterInfo>(k => k.Version == cluster.Version && k.Deployed == active.Deployed);
     }
 
     [Fact]

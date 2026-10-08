@@ -1,4 +1,5 @@
-﻿using ClusterManagement.Public.Requests;
+﻿using ClusterManagement.Backend.DeployCluster.Contracts;
+using ClusterManagement.Public.Requests;
 using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Snapshots;
@@ -11,9 +12,10 @@ public static class ClusterInfoFactory
             Description = cluster.Description,
         };
 
-    public static ClusterInfo CreateInfo(ClusterInfo info, bool isActive = false)
-        => new(info.Id, info.Version, info.Name, isActive)
+    public static ClusterInfo CreateInfo(ClusterInfo info, ActiveClusterInfo? active)
+        => new(info.Id, info.Version, info.Name, active is not null)
         {
             Description = info.Description,
+            Deployed = active?.Deployed,
         };
 }

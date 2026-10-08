@@ -1,0 +1,25 @@
+@using ClusterManagement.Client.Management.Localization
+
+<svg class="cycle-chart" viewBox="0 0 @Width @Height" preserveAspectRatio="none" role="img" aria-label="@_summary">
+    <title>@_summary</title>
+    @if (_limitY is { } limitY)
+    {
+        <defs>
+            <clipPath id="@_overLimitClipId">
+                <rect x="0" y="0" width="@Width" height="@Svg(limitY)"></rect>
+            </clipPath>
+        </defs>
+        <line class="limit" x1="0" x2="@Width" y1="@Svg(limitY)" y2="@Svg(limitY)"></line>
+    }
+    @foreach (var points in _segments)
+    {
+        <polyline class="line" points="@points"></polyline>
+    }
+    @if (_hasOverLimit)
+    {
+        @foreach (var points in _segments)
+        {
+            <polyline class="line over" points="@points" clip-path="url(#@_overLimitClipId)"></polyline>
+        }
+    }
+</svg>

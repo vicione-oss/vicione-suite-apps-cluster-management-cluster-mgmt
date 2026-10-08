@@ -1,15 +1,19 @@
 ﻿@use "./design/colors";
 @use "./../../../shared/styles/variables.scss";
 
-.cm-page-base {
-    display: grid;
-    grid-row-gap: 6px;
-    grid-template-rows: variables.$top-bar-height auto min-content;
+.cm-page-fill-base {
     position: absolute;
     bottom: 0;
     right: 0;
     left: 0;
-    top: 0;    
+    top: 0;
+}
+
+.cm-page-base {
+    @extend .cm-page-fill-base;
+    display: grid;
+    grid-row-gap: 6px;
+    grid-template-rows: variables.$top-bar-height auto min-content;
 }
 
 .cm-page-toolbar-base {

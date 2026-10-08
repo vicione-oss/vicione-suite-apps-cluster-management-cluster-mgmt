@@ -57,6 +57,27 @@ public class ClusterSerializerTests
         }
     }
 
+    public sealed class UntypedSerializerOptions_Type : ClusterSerializerTests
+    {
+        [Fact]
+        public async Task Reads_types_from_several_threads_at_once()
+        {
+            // Arrange
+            var typeNames = typeof(object).Assembly.GetExportedTypes()
+                .Where(t => !t.IsGenericTypeDefinition)
+                .Select(t => t.AssemblyQualifiedName!)
+                .ToArray();
+            var slices = typeNames.Chunk(typeNames.Length / 16).Select(slice => JsonSerializer.Serialize(slice)).ToArray();
+
+            // Act
+            var read = await Task.WhenAll(slices.Select(json => Task.Run(
+                () => JsonSerializer.Deserialize<Type[]>(json, ClusterSerializer.UntypedSerializerOptions)!, TestContext.Current.CancellationToken)));
+
+            // Assert
+            read.SelectMany(types => types).Select(t => t.AssemblyQualifiedName).Should().Equal(typeNames);
+        }
+    }
+
     public sealed class Compress_String
     {
         [Fact]

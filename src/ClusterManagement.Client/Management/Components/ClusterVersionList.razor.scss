@@ -1,0 +1,164 @@
+@use "sass:color";
+@use "./../../Styles/_shared.scss";
+@use "./../../Styles/design/colors";
+@use "./../../Styles/overview";
+
+.version-list {
+    @include overview.panel;
+
+    .panel-head {
+        @include overview.panel-head;
+
+        ::deep .button {
+            flex: none;
+        }
+    }
+
+    .panel-title {
+        @include overview.panel-title;
+    }
+
+    .rows {
+        overflow-x: auto;
+
+        // All versions scroll inside the panel instead of stretching the page.
+        &.scrolling {
+            max-height: 8 * 56px;
+            overflow-y: auto;
+        }
+    }
+
+    .row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 560px;
+        min-height: 56px;
+        padding: 0 16px;
+        border-bottom: 1px solid colors.$background-light;
+
+        &:last-child {
+            border-bottom: none;
+        }
+
+        &.active {
+            background-color: color.change(colors.$primary, $alpha: .07);
+        }
+    }
+
+    // Marks versions the collapsed list skips; the dashed line continues the timeline through the gap.
+    .gap-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 560px;
+        height: 32px;
+        padding: 0 overview.$panel-padding;
+        border-bottom: 1px solid colors.$background-light;
+
+        .gap-line {
+            width: 22px;
+            height: 100%;
+            flex: none;
+            background: linear-gradient(colors.$border 50%, transparent 50%) center / 1px 6px repeat-y;
+        }
+    }
+
+    .timeline {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        align-self: stretch;
+        width: 22px;
+
+        .line {
+            width: 1px;
+            flex: 1;
+            background-color: colors.$border;
+
+            &.hidden {
+                visibility: hidden;
+            }
+        }
+
+        .node {
+            width: 12px;
+            height: 12px;
+            box-sizing: border-box;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+        }
+    }
+
+    .version {
+        width: 72px;
+        flex: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: var(--bs-font-monospace);
+        font-size: 1.1rem;
+    }
+
+    .details {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-width: 0;
+
+        .name,
+        .muted {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .name {
+            color: colors.$font-light;
+        }
+    }
+
+    .list-footer {
+        padding: 4px overview.$panel-padding 8px;
+    }
+
+    .status {
+        width: 160px;
+        flex: none;
+    }
+
+    .actions {
+        @extend .cm-grid-action-column;
+        gap: 4px;
+    }
+
+    .muted {
+        @include overview.muted;
+    }
+
+    .chip {
+        @include overview.chip;
+    }
+
+    @include overview.status-colors;
+
+    @each $name, $color in overview.$status-colors {
+        .node.status-#{$name} {
+            color: $color;
+        }
+    }
+
+    .node.status-running {
+        background-color: currentColor;
+    }
+}
+
+.dialog-question {
+    margin: 0 0 8px;
+    color: colors.$font-light;
+}
+
+.dialog-consequence {
+    @include overview.muted;
+    margin: 0;
+}

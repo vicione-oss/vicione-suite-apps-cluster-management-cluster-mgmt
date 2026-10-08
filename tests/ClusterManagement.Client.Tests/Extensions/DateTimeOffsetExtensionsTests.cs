@@ -51,4 +51,18 @@ public class DateTimeOffsetExtensionsTests
             CultureInfo.CurrentCulture = previousCulture;
         }
     }
+
+    [Fact]
+    public void Should_format_the_24_hour_time_in_the_time_zone()
+    {
+        // Arrange
+        var value = new DateTimeOffset(2026, 9, 30, 12, 5, 33, TimeSpan.Zero);
+        var timeZone = TimeZoneInfo.CreateCustomTimeZone("UTC+02", TimeSpan.FromHours(2), "UTC+02", "UTC+02");
+
+        // Act
+        var formatted = value.To24HourTime(timeZone);
+
+        // Assert
+        formatted.Should().Be("14:05:33");
+    }
 }

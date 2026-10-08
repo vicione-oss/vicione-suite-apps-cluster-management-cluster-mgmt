@@ -1,0 +1,75 @@
+@use "sass:color";
+@use "./../design/colors";
+@use "./../../../../shared/styles/colors-staged";
+@use "variables";
+
+@mixin panel {
+    background-color: color.change(colors-staged.$color-content-dark, $alpha: .3);
+    border-radius: variables.$radius;
+}
+
+@mixin panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: variables.$panel-head-height;
+    padding: 0 variables.$panel-padding;
+    box-sizing: border-box;
+    border-bottom: 1px solid colors.$border;
+}
+
+@mixin panel-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: .2px;
+    color: colors.$font-light;
+}
+
+@mixin page-heading {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 300;
+    letter-spacing: .5px;
+    color: colors.$font-light;
+}
+
+@mixin muted {
+    color: colors-staged.$color-foreground;
+}
+
+@mixin chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: variables.$radius;
+    font-size: 12px;
+    letter-spacing: .4px;
+    white-space: nowrap;
+}
+
+@mixin dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: none;
+}
+
+/// Colors `.chip` and `.dot` children of an element carrying `status-<name>`.
+@mixin status-colors {
+    @each $name, $color in variables.$status-colors {
+        .status-#{$name} {
+            &.chip {
+                color: color.adjust($color, $lightness: 8%);
+                background-color: color.change($color, $alpha: .15);
+            }
+
+            &.dot {
+                background-color: $color;
+            }
+        }
+    }
+}

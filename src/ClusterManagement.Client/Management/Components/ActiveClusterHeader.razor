@@ -1,0 +1,54 @@
+@using ClusterManagement.Client.Extensions
+@using ClusterManagement.Client.Management.Localization
+@using ClusterManagement.Client.Management.Models
+@using ViciOne.Ui.Blazor.Components.Button
+@using ViciOne.Ui.Blazor.Components.Button.Enums
+@using ViciOne.Ui.MonochromeIcons.Components
+@using ViciOne.Ui.MonochromeIcons.Core.Enums
+
+<section class="active-cluster" aria-label="@Active.DisplayName">
+    <div class="cluster-icon">
+        <MonochromeIcon Name="MonochromeIconName.Cluster1" Size="MonochromeIconSize.Large" />
+    </div>
+
+    <div class="cluster-info">
+        <div class="title-row">
+            <h1 title="@Active.DisplayName">@Active.DisplayName</h1>
+            <span class="chip status-@StatusName"><span class="dot status-@StatusName"></span>@StatusText</span>
+            @if (Draft is not null)
+            {
+                <span class="chip status-draft">@string.Format(ClusterOverview.DraftReady, Draft.Version)</span>
+            }
+        </div>
+
+        <div class="description" title="@Active.Description">@Active.Description</div>
+
+        @if (Active.Deployed is not null)
+        {
+            <div class="facts">
+                <span><span class="muted">@ClusterOverview.Deployed</span> @Active.Deployed.Value.ToShortDateAnd24HourTime(TimeProvider.LocalTimeZone)</span>
+            </div>
+        }
+    </div>
+
+    <div class="actions">
+        <Button Text="@ClusterOverview.OpenInEditor"
+                IconCssClass="@_editIconCssClass"
+                OnClick="@OnOpenEditor" />
+
+        <Button Text="@DeployText"
+                Title="@(Draft is null ? ClusterOverview.NothingToDeploy : null)"
+                IconCssClass="@_deployIconCssClass"
+                CssClass="cm-primary"
+                Enabled="@(Draft is not null && Deployment?.IsRunning != true)"
+                OnClick="@OnDeployDraft" />
+
+        <Button IconCssClass="@_sagaStateIconCssClass"
+                Title="@ClusterOverview.ShowSagaState"
+                OnClick="@OnShowSagaState" />
+
+        <Button IconCssClass="@_resetIconCssClass"
+                Title="@ClusterOverview.ResetSagaState"
+                OnClick="@OnResetSagaState" />
+    </div>
+</section>

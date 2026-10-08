@@ -6,9 +6,15 @@
 
 - `Public`
   - `ClusterSerializer` class, added asynchronous compress methods
+  - `ClusterInfo.Deployed`, when the active version was deployed
   - `OpcUaClientConnection` contract and `ConnectionType.OpcUaClient` / `Connection.SetOpcUaClientConnection` / `Connection.GetOpcUaClientConnection` extension members for configuring a client-side connection to an OPC UA server
   - `OpcUaServerConnection` contract and `ConnectionType.OpcUaServer` / `Connection.SetOpcUaServerConnection` / `Connection.GetOpcUaServerConnection` extension members for configuring a server-side OPC UA connection, bound to a single network interface by name
   - OPC UA client and server connections can be created and edited in the suite's connection settings dialog: the backend registers both types with `IConnectionTypeRegistry`, and the client contributes localized settings components and validators via `IConnectionTypeUiRegistry`
+- Cluster Manager collects the cycle reports of every engine host in the running version from module start, over one MQTT connection per broker, so its cycle time charts are filled when the page opens
+- Cluster Manager runtime panel: engine state per engine host, live cycle time chart per engine and per engine host chain read from the broker its instance deployed it with, and a journal link per engine host on the same instance
+- Cluster Manager marks engine hosts whose chain takes longer than its cycle time
+- Cluster Manager warns when a deployment is rejected because another one is still running
+- Cluster Manager deploys the default cluster from a quick action in the version list, after a confirmation
 - Deploy DataPort trees with envelope children (datapoints under a datapoint): the parent keeps its own connector and channel, and every child gets a connector that the parent transfers with the parent's transfer mode; serving them needs a DataPort provider built for envelope children (`dp-mqtt` from `2.0.0`)
 
 ### Removed
@@ -18,7 +24,12 @@
 
 ### Changed
 
-- Replaced DevExpress `DxGrid` with `SimpleTable` on the management, dataflow events and debug engines pages
+- Cluster Manager shows the running cluster with its deployment time, topology counts and packages next to a version timeline
+- Cluster Manager opens the dataflow events from a card on the page instead of a toolbar button, and its deployment state tools (Get Saga, Reset Saga) sit in the cluster header
+- Dataflow events page matches the Cluster Manager, groups events by dataflow, container, function block, input or output, or value type, writes Boolean inputs with a checkbox and other inputs with Enter or the send button, and copies a value with a click
+- Cluster Manager deployments show their phases, the error of each instance and whether the rollback succeeded, instead of a status and duration column
+- Deleting a cluster version asks for confirmation
+- Replaced DevExpress `DxGrid` with `SimpleTable` on the debug engines page
 - Package uploads in the cluster editor now stream to disk instead of loading the whole archive into memory, increasing the maximum package upload size from 2 MB to 10 MB
 - IODD downloads are grouped by vendor, one archive per vendor instead of one per selected device variant
 - Failed IODD uploads show an error banner, and the IODD action buttons match the package panel
@@ -28,9 +39,11 @@
 - Engine hosts write log event properties such as `SOURCE_CONTEXT`, `ENGINE_ID` and `EVENT_ID` as separate journal fields, not only inside `SYSLOG_STRUCTURED_DATA`
 - `Public`
   - `IoddChanged`, added the error codes `IoddFileNotFound` and `IoddFileOutsideUploadDirectory`
+  - `ClusterErrors`, added the error codes `EngineNotDeployed` and `EngineHostDidNotAnswer`
   - `IIoddStore`, replaced `FillDeviceArchive` with `FillVendorArchive` which archives several devices of a vendor as `<vendor-id>/<device-id>/<IODD files>`
   - `DownloadIoddRequest`, replaced `Id` with `VendorId` and `DeviceIds`
   - `DownloadIoddResponse`, `Filename` now contains the vendor archive name `iodds-<vendor name>.zip`
+  - **Breaking:** `IDataflowEvent`, added `FunctionBlockId`, `FunctionBlockName`, `ConnectorName`, `DataflowName` and `ContainerPath`
 - **Breaking:** Fail a deployment with a message naming the node and the declaring node type when a tree node is linked against the transfer direction its node type declares or inherits from an ancestor or the DataPort; directions a node type declares are narrowed to those its ancestors transfer
 - **Breaking:** Fail a deployment when an envelope child is linked in a direction the ruleset's `LinkDirections` does not allow; a predefined child such as a validity derived from the parent value is sent with its parent's message but must never be linked
 
@@ -38,6 +51,7 @@
 - `AspNetCore.SassCompiler` package, update version to `1.105.1`
 - `MQTTnet` package, update version to `5.2.0.1603`
 - `System.IO.Abstractions`, updated to version `22.3.0`
+- `System.IO.Abstractions` package, added to `ClusterManagement.Internal`
 - `ViciOne.Suite.Sdk` packages, update to version `3.2.0`
 - `ViciOne.Ui.ClusterEditor` package, update to `2.0.0`
 - `ViciOne.Ui.Design` package, update version to `2.5.0`
@@ -48,6 +62,7 @@
 
 ### Fixed
 
+- `ClusterSerializer` reads several clusters at the same time; concurrent reads corrupted its type cache and failed the load
 - Downloading IODDs no longer produces redundant archives with identical content for devices with multiple product variants
 - Load function blocks dialog, checking a function block no longer affects an equally named one in another namespace (e.g. `ACX.ViciOne.FunctionBlocks.Test` and `ACX.ViciOne.StandardFunction.Test`)
 - Write `packages.json`, `packages-ops.json` and cluster snapshots atomically so a crash or power loss during a write cannot leave corrupt files behind

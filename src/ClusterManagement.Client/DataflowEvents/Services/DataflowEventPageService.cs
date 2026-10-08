@@ -1,4 +1,5 @@
 ﻿using ClusterManagement.Client.DataflowEvents.Models;
+using ClusterManagement.Public.DataflowEvents;
 using Microsoft.Extensions.Logging;
 using Sdk.Client.Services;
 
@@ -6,14 +7,11 @@ namespace ClusterManagement.Client.DataflowEvents.Services;
 
 internal partial class DataflowEventPageService(IDataflowEventBroker eventBroker, IMessageBannerService bannerService, ILogger<DataflowEventPageService> logger) : IAsyncDisposable
 {
+    private Dictionary<Guid, DataflowEventModel> _eventsById = [];
+
     public List<DataflowEventModel> Events { get; private set; } = [];
-    public DataflowEventModel? SelectedEvent { get; set; }
-    public string? ActiveVersion { get; private set; }
+    public Version? ActiveVersion { get; private set; }
     public Guid? ActiveClusterId { get; private set; }
-    public string? SendInputValue { get; set; }
-    public bool CanSetValue => SelectedEvent is not null
-        && SelectedEvent.CanWrite
-        && !string.IsNullOrEmpty(SendInputValue);
 
     public event Func<Task>? RefreshRequested;
 
@@ -22,37 +20,53 @@ internal partial class DataflowEventPageService(IDataflowEventBroker eventBroker
         var dataflowEvents = await eventBroker.GetEvents();
         var clusterInfo = await eventBroker.GetCurrentClusterInfo();
 
-        ActiveVersion = $"v{clusterInfo?.Version}";
+        ActiveVersion = clusterInfo?.Version;
         ActiveClusterId = clusterInfo?.Id;
 
-        Events = [.. dataflowEvents.Select(k => new DataflowEventModel
-        {
-            CanRead = k.CanRead,
-            CanWrite = k.CanWrite,
-            EventId = k.EventId,
-            Name = k.Name,
-            ValueType = k.ValueType,
-        })];
+        // A reload creates new models; what was typed, written, received and subscribed for an event stays.
+        var previous = _eventsById;
+        Events = [.. dataflowEvents.Select(k => CreateModel(k, previous.GetValueOrDefault(k.EventId)))];
+        _eventsById = Events.ToDictionary(e => e.EventId);
 
-        // keep the selection across reloads; the reload creates new model instances
-        SelectedEvent = Events.FirstOrDefault(e => e.EventId == SelectedEvent?.EventId);
+        foreach (var removed in previous.Values.Where(e => !_eventsById.ContainsKey(e.EventId)))
+            await RemoveSubscription(removed);
     }
 
-    public Task SetSelectedValue() => SetValue(SelectedEvent, SendInputValue);
+    private static DataflowEventModel CreateModel(IDataflowEvent dataflowEvent, DataflowEventModel? previous)
+        => new()
+        {
+            CanRead = dataflowEvent.CanRead,
+            CanWrite = dataflowEvent.CanWrite,
+            EventId = dataflowEvent.EventId,
+            Name = dataflowEvent.Name,
+            ValueType = dataflowEvent.ValueType,
+            FunctionBlockId = dataflowEvent.FunctionBlockId,
+            FunctionBlockName = dataflowEvent.FunctionBlockName,
+            ConnectorName = dataflowEvent.ConnectorName,
+            DataflowName = dataflowEvent.DataflowName,
+            ContainerPath = dataflowEvent.ContainerPath,
+            PendingValue = previous?.PendingValue,
+            Value = previous?.Value,
+            Timestamp = previous?.Timestamp,
+            Subscription = previous?.Subscription,
+        };
 
-    public async Task SetValue(DataflowEventModel? eventModel, string? value)
+    /// <returns><c>false</c> when nothing was written; a failure is shown as a banner.</returns>
+    public async Task<bool> SetValue(DataflowEventModel? eventModel, string? value)
     {
         if (eventModel is null || string.IsNullOrEmpty(value))
-            return;
+            return false;
 
         try
         {
             await eventBroker.SetValue(eventModel.EventId, value);
+            return true;
         }
         catch (Exception ex)
         {
             bannerService.ShowMessageBanner(Sdk.MessageBanner.Contracts.MessageType.Warning, ex.Message);
             LogSetValueError(logger, ex, value, eventModel.EventId);
+            return false;
         }
     }
 
@@ -67,7 +81,7 @@ internal partial class DataflowEventPageService(IDataflowEventBroker eventBroker
     private static async Task RemoveSubscription(DataflowEventModel eventModel)
     {
         if (eventModel.Subscription is null)
-            return; // should not happen
+            return;
 
         await eventModel.Subscription.DisposeAsync();
         eventModel.Subscription = null;
@@ -129,8 +143,10 @@ internal partial class DataflowEventPageService(IDataflowEventBroker eventBroker
         }
     }
 
-    private async Task OnValueChanged(DataflowEventModel model, DateTime timestamp, string? value)
+    // A subscription outlives the model it was made for when the events are reloaded; the value goes to the current one.
+    private async Task OnValueChanged(DataflowEventModel subscribedModel, DateTime timestamp, string? value)
     {
+        var model = _eventsById.GetValueOrDefault(subscribedModel.EventId, subscribedModel);
         model.Timestamp = timestamp;
         model.Value = value;
         if (RefreshRequested is not null)

@@ -1,6 +1,7 @@
 ﻿using Bunit;
 using ClusterManagement.Client.Management.Services;
 using ClusterManagement.Client.Services;
+using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Enums;
 using ClusterManagement.Public.Events;
 using Microsoft.Extensions.DependencyInjection;
@@ -97,5 +98,50 @@ public class ClusterManagementPageServiceTests
         monitor.Should()
             .Raise(nameof(ClusterManagementPageService.OnClusterUpdateFailed))
             .WithArgs<ClusterUpdateFailed>(ev => ev == statusEvent);
+    }
+
+    [Fact]
+    public async Task Consume_event_should_trigger_cluster_update_rejected_for_the_own_deployment()
+    {
+        // Arrange
+        using var ctx = new BunitContext();
+        IUiMediator mediator = default!;
+        ctx.SetupSuiteServices(setup => mediator = setup.ClientMediator);
+        ctx.Services.AddSingleton(_clusterService);
+        ctx.Services.AddSingleton<ClusterManagementPageService>();
+        var service = ctx.Services.GetRequiredService<ClusterManagementPageService>();
+        await service.DeployCluster(Guid.NewGuid(), new Version(0, 1, 2), CancellationToken.None);
+        var command = mediator.ReceivedCalls().Select(c => c.GetArguments()[0]).OfType<DeployCluster>().Single();
+        var statusEvent = new ClusterUpdateRejected(command.CorrelationId, command.ClusterId, new Version(0, 1, 0), new Version(0, 1, 1), new Version(0, 1, 2));
+        using var monitor = service.Monitor();
+
+        // Act
+        await service.Consume(new ClientContext<ClusterUpdateRejected>(statusEvent, command.CorrelationId), CancellationToken.None);
+
+        // Assert
+        monitor.Should()
+            .Raise(nameof(ClusterManagementPageService.OnClusterUpdateRejected))
+            .WithArgs<ClusterUpdateRejected>(ev => ev == statusEvent);
+    }
+
+    [Fact]
+    public async Task Consume_event_should_ignore_the_rejected_deployment_of_another_session()
+    {
+        // Arrange
+        using var ctx = new BunitContext();
+        ctx.SetupSuiteServices();
+        ctx.Services.AddSingleton(_clusterService);
+        ctx.Services.AddSingleton<ClusterManagementPageService>();
+        var service = ctx.Services.GetRequiredService<ClusterManagementPageService>();
+        await service.DeployCluster(Guid.NewGuid(), new Version(0, 1, 2), CancellationToken.None);
+        var correlationId = Guid.NewGuid();
+        var statusEvent = new ClusterUpdateRejected(correlationId, Guid.NewGuid(), new Version(0, 1, 0), new Version(0, 1, 1), new Version(0, 1, 3));
+        using var monitor = service.Monitor();
+
+        // Act
+        await service.Consume(new ClientContext<ClusterUpdateRejected>(statusEvent, correlationId), CancellationToken.None);
+
+        // Assert
+        monitor.Should().NotRaise(nameof(ClusterManagementPageService.OnClusterUpdateRejected));
     }
 }

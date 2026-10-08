@@ -1,0 +1,326 @@
+using ClusterManagement.Client.Management.Models;
+using ClusterManagement.Public.Enums;
+using ClusterManagement.Public.Events;
+using ClusterManagement.Public.Requests;
+using Sdk.Messaging;
+using ViciOne.Cluster.Model;
+
+namespace ClusterManagement.Client.Tests.Management;
+
+public class DeploymentProgressModelTests
+{
+    private static readonly Guid s_correlationId = Guid.NewGuid();
+    private static readonly Guid s_clusterId = Guid.NewGuid();
+    private static readonly Guid s_nodeId = Guid.NewGuid();
+    private static readonly Guid s_instanceId = Guid.NewGuid();
+    private static readonly Version s_targetVersion = new(0, 1, 2);
+
+    [Fact]
+    public void Starts_with_one_entry_per_instance()
+    {
+        // Act
+        var progress = Start();
+
+        // Assert
+        progress.Phase.Should().Be(DeploymentPhase.Starting);
+        progress.IsRunning.Should().BeTrue();
+        progress.Instances.Should().ContainSingle()
+            .Which.Should().Match<InstanceProgressModel>(i => i.Name == "CoreOS" && i.NodeName == "edge-1");
+    }
+
+    [Theory]
+    [InlineData("CommittingCluster", DeploymentPhase.Committing)]
+    [InlineData("AddingClusterNodes", DeploymentPhase.AddingNodes)]
+    [InlineData("UpdatingDeployments", DeploymentPhase.UpdatingDeployments)]
+    [InlineData("CleaningClusterNodes", DeploymentPhase.CleaningUp)]
+    [InlineData("CleaningCluster", DeploymentPhase.CleaningUp)]
+    [InlineData("RollingBackDeployments", DeploymentPhase.RollingBack)]
+    [InlineData("RollingBackCommit", DeploymentPhase.RollingBack)]
+    public void Transition_enters_the_matching_phase(string sagaState, DeploymentPhase expected)
+    {
+        // Arrange
+        var progress = Start();
+
+        // Act
+        progress.Apply(Transition(sagaState));
+
+        // Assert
+        progress.Phase.Should().Be(expected);
+    }
+
+    [Fact]
+    public void Transition_to_an_unknown_state_keeps_the_phase()
+    {
+        // Arrange
+        var progress = Start();
+        progress.Apply(Transition("UpdatingDeployments"));
+
+        // Act
+        progress.Apply(Transition("Final"));
+
+        // Assert
+        progress.Phase.Should().Be(DeploymentPhase.UpdatingDeployments);
+    }
+
+    [Fact]
+    public void Update_of_an_instance_marks_it_updated()
+    {
+        // Arrange
+        var progress = Start();
+
+        // Act
+        progress.Apply(InstanceChange(ClusterUpdateChange.Update));
+
+        // Assert
+        progress.Instances[0].IsUpdated.Should().BeTrue();
+        progress.Instances[0].HasFailed.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Update_with_an_error_marks_the_instance_failed()
+    {
+        // Arrange
+        var progress = Start();
+
+        // Act
+        progress.Apply(InstanceChange(ClusterUpdateChange.Update, new ErrorInfo(201, "Engine start failed")));
+
+        // Assert
+        progress.Instances[0].IsUpdated.Should().BeFalse();
+        progress.Instances[0].Error!.Message.Should().Be("Engine start failed");
+    }
+
+    [Fact]
+    public void Error_after_an_update_takes_back_the_update_of_the_instance()
+    {
+        // Arrange
+        var progress = Start();
+        progress.Apply(InstanceChange(ClusterUpdateChange.Update));
+
+        // Act
+        progress.Apply(InstanceChange(ClusterUpdateChange.Start, new ErrorInfo(202, "Engine host did not start")));
+
+        // Assert
+        progress.Instances[0].IsUpdated.Should().BeFalse();
+        progress.Instances[0].HasFailed.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Completion_stops_the_deployment_and_keeps_its_duration()
+    {
+        // Arrange
+        var progress = Start();
+
+        // Act
+        progress.Complete(new ClusterUpdateCompleted(s_correlationId, s_clusterId, s_targetVersion, TimeSpan.FromSeconds(4)));
+
+        // Assert
+        progress.Phase.Should().Be(DeploymentPhase.Completed);
+        progress.IsRunning.Should().BeFalse();
+        progress.Duration.Should().Be(TimeSpan.FromSeconds(4));
+    }
+
+    [Fact]
+    public void Failure_keeps_reason_duration_and_errors_per_instance()
+    {
+        // Arrange
+        var progress = Start();
+        progress.Apply(Transition("UpdatingDeployments"));
+
+        // Act
+        progress.Fail(Failed("UpdatingDeployments"));
+
+        // Assert
+        progress.Phase.Should().Be(DeploymentPhase.Failed);
+        progress.FailedPhase.Should().Be(DeploymentPhase.UpdatingDeployments);
+        progress.FailureReason.Should().Be("At least one application update failed");
+        progress.Duration.Should().Be(TimeSpan.FromSeconds(8));
+        progress.Instances[0].Error!.Message.Should().Be("Error while connecting host");
+        progress.RollbackFailed.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Failure_during_rollback_reports_a_failed_rollback()
+    {
+        // Arrange
+        var progress = Start();
+        progress.Apply(Transition("UpdatingDeployments"));
+        progress.Apply(Transition("RollingBackDeployments"));
+
+        // Act
+        progress.Fail(Failed("RollingBackDeployments"));
+
+        // Assert
+        progress.HasRolledBack.Should().BeTrue();
+        progress.RollbackFailed.Should().BeTrue();
+        progress.FailurePhase.Should().Be(DeploymentPhase.UpdatingDeployments);
+    }
+
+    [Fact]
+    public void Failure_without_a_state_falls_back_to_the_current_phase()
+    {
+        // Arrange
+        var progress = Start();
+        progress.Apply(Transition("CommittingCluster"));
+
+        // Act
+        progress.Fail(Failed(null));
+
+        // Assert
+        progress.FailedPhase.Should().Be(DeploymentPhase.Committing);
+    }
+
+    [Fact]
+    public void Failure_before_the_start_keeps_reason_and_duration_without_instances()
+    {
+        // Act
+        var progress = DeploymentProgressModel.FailedBeforeStart(new ClusterUpdateFailed(s_correlationId, s_clusterId, s_targetVersion)
+        {
+            State = "Initial",
+            Reason = "Cluster v0.1.2 not found.",
+            Duration = TimeSpan.FromSeconds(1),
+        });
+
+        // Assert
+        progress.Matches(s_clusterId, s_targetVersion).Should().BeTrue();
+        progress.Phase.Should().Be(DeploymentPhase.Failed);
+        progress.FailureReason.Should().Be("Cluster v0.1.2 not found.");
+        progress.Duration.Should().Be(TimeSpan.FromSeconds(1));
+        progress.StartedAt.Should().BeNull();
+        progress.Instances.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Resume_enters_the_phase_of_the_running_saga()
+    {
+        // Act
+        var progress = DeploymentProgressModel.Resume(new DeploymentState(s_clusterId, "UpdatingDeployments", new Version(0, 1, 1), s_targetVersion), null);
+
+        // Assert
+        progress.Phase.Should().Be(DeploymentPhase.UpdatingDeployments);
+        progress.StartedAt.Should().BeNull();
+        progress.Instances.Should().BeEmpty();
+        progress.Matches(s_clusterId, s_targetVersion).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Resume_lists_the_instance_of_every_node_of_the_target_version()
+    {
+        // Arrange
+        var slaveId = Guid.NewGuid();
+        var target = new Cluster
+        {
+            NodeGroups =
+            [
+                new ClusterNodeGroup
+                {
+                    Nodes =
+                    [
+                        Node("edge-1", new ClusterApplication { Id = s_instanceId, Name = "Master", Type = ClusterApplicationType.CoreOsMaster }),
+                        Node("edge-2", new ClusterApplication { Id = slaveId, Name = "Slave", Type = ClusterApplicationType.CoreOsSlave }),
+                        Node("plc"),
+                    ],
+                },
+            ],
+        };
+
+        // Act
+        var progress = DeploymentProgressModel.Resume(new DeploymentState(s_clusterId, "UpdatingDeployments", new Version(0, 1, 1), s_targetVersion), target);
+        progress.Apply(InstanceChange(ClusterUpdateChange.Update));
+
+        // Assert
+        progress.Instances.Select(i => (i.Name, i.NodeName)).Should().Equal(("Master", "edge-1"), ("Slave", "edge-2"));
+        progress.Instances.Single(i => i.Id == s_instanceId).IsUpdated.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Steps_mark_reached_phases_done_and_the_current_one_running()
+    {
+        // Arrange
+        var progress = Start();
+        progress.Apply(Transition("UpdatingDeployments"));
+
+        // Act
+        var steps = progress.GetSteps();
+
+        // Assert
+        steps.Select(s => s.State).Should().Equal(
+            DeploymentStepState.Done, DeploymentStepState.Done, DeploymentStepState.Current, DeploymentStepState.Pending, DeploymentStepState.Pending);
+    }
+
+    [Fact]
+    public void Steps_of_a_completed_deployment_are_all_done()
+    {
+        // Arrange
+        var progress = Start();
+        progress.Complete(new ClusterUpdateCompleted(s_correlationId, s_clusterId, s_targetVersion, TimeSpan.FromSeconds(4)));
+
+        // Act
+        var steps = progress.GetSteps();
+
+        // Assert
+        steps.Should().OnlyContain(s => s.State == DeploymentStepState.Done);
+    }
+
+    [Fact]
+    public void Steps_of_a_failed_rollback_show_the_failed_phase_and_the_failed_rollback()
+    {
+        // Arrange
+        var progress = Start();
+        progress.Apply(Transition("UpdatingDeployments"));
+        progress.Apply(Transition("RollingBackDeployments"));
+        progress.Fail(Failed("RollingBackDeployments"));
+
+        // Act
+        var steps = progress.GetSteps();
+
+        // Assert
+        steps.Should().HaveCount(6);
+        steps[2].Should().Be(new DeploymentStep(DeploymentPhase.UpdatingDeployments, DeploymentStepState.Failed));
+        steps[^1].Should().Be(new DeploymentStep(DeploymentPhase.RollingBack, DeploymentStepState.Failed));
+    }
+
+    [Fact]
+    public void Steps_of_a_successful_rollback_show_it_done()
+    {
+        // Arrange
+        var progress = Start();
+        progress.Apply(Transition("UpdatingDeployments"));
+        progress.Apply(Transition("RollingBackDeployments"));
+        progress.Fail(Failed("UpdatingDeployments"));
+
+        // Act
+        var steps = progress.GetSteps();
+
+        // Assert
+        steps[^1].Should().Be(new DeploymentStep(DeploymentPhase.RollingBack, DeploymentStepState.Done));
+    }
+
+    private static DeploymentProgressModel Start()
+        => DeploymentProgressModel.Start(
+            new ClusterUpdateStarted(s_correlationId, s_clusterId, s_targetVersion)
+            {
+                NodeApplications = new() { [s_nodeId] = s_instanceId },
+                Nodes = new() { [s_nodeId] = "edge-1" },
+                Applications = new() { [s_instanceId] = "CoreOS" },
+            },
+            DateTimeOffset.UnixEpoch);
+
+    private static ClusterNode Node(string name, params ClusterApplication[] applications)
+        => new() { Id = Guid.NewGuid(), Name = name, Applications = [.. applications] };
+
+    private static ClusterUpdateChanged Transition(string sagaState)
+        => new(s_correlationId, s_clusterId, s_targetVersion, sagaState) { Change = ClusterUpdateChange.Transition };
+
+    private static ClusterUpdateChanged InstanceChange(ClusterUpdateChange change, ErrorInfo? error = null)
+        => new(s_correlationId, s_clusterId, s_targetVersion, "UpdatingDeployments") { Change = change, ApplicationId = s_instanceId, Error = error };
+
+    private static ClusterUpdateFailed Failed(string? sagaState)
+        => new(s_correlationId, s_clusterId, s_targetVersion)
+        {
+            State = sagaState,
+            Reason = "At least one application update failed",
+            Duration = TimeSpan.FromSeconds(8),
+            ErrorsByApplication = new() { [s_instanceId] = new ErrorInfo(-1, "Error while connecting host") },
+        };
+}

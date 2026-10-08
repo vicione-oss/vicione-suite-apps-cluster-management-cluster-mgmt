@@ -1,5 +1,4 @@
 ﻿using System.IO.Abstractions;
-using ClusterManagement.Backend.Mqtt.Extensions;
 using ClusterManagement.Internal.Extensions;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;

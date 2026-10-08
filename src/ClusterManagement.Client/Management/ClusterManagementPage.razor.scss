@@ -1,21 +1,87 @@
-﻿@use "./../Styles/_shared.scss";
+@use "./../Styles/_shared.scss";
+@use "./../Styles/design/colors";
+@use "./../Styles/overview";
 
 .cluster-mgmt {
-    @extend .cm-page-base;
+    @extend .cm-page-fill-base;
+    overflow: auto;
 
-    .cluster-mgmt-toolbar {
-        @extend .cm-page-toolbar-base;
+    // Tiles and columns share one grid so the column split lines up with the tile edges.
+    .overview {
+        display: grid;
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+        gap: overview.$gap;
+        padding: overview.$page-padding;
     }
 
-    .cluster-mgmt-grid {
-        @extend .cm-page-grid-base;
+    .full-row {
+        grid-column: 1 / -1;
+        min-width: 0;
+    }
 
-        .action-column {
-            @extend .cm-grid-action-column;
+    .main-column,
+    .side-column {
+        display: flex;
+        flex-direction: column;
+        gap: overview.$gap;
+        min-width: 0;
+    }
+
+    .main-column {
+        grid-column: 1 / 6;
+    }
+
+    .side-column {
+        grid-column: 6 / 9;
+    }
+
+    .notice {
+        @include overview.panel;
+        padding: overview.$panel-padding;
+        color: colors.$font;
+    }
+
+    @media (max-width: 1100px) {
+        .main-column,
+        .side-column {
+            grid-column: 1 / -1;
         }
     }
+}
 
-    .detail-container {
-        @extend .cm-page-detail-container-base;
+// The dialog is rendered outside .cluster-mgmt, so its content is styled at the top level.
+.saga-headline {
+    margin: 0 0 8px;
+    color: colors.$font-light;
+}
+
+.saga-hint {
+    @include overview.muted;
+    margin: 0;
+}
+
+.saga-state {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 8px 24px;
+    margin: 0;
+    padding: 4px 0;
+
+    dt {
+        @include overview.muted;
+        font-weight: 400;
+    }
+
+    dd {
+        margin: 0;
+        color: colors.$font-light;
+    }
+
+    .mono {
+        font-family: var(--bs-font-monospace);
+    }
+
+    .muted {
+        @include overview.muted;
     }
 }

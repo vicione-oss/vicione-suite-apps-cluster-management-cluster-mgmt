@@ -49,13 +49,13 @@ public sealed partial class GetDataflowEventsConsumer(IClusterDbContext dbContex
             var connectors = builder.Cache.EventEnabledConnectors;
             var dataflowConnectors = connectors.Where(k => functionBlockIds.Contains(k.FunctionBlock.Id));
 
-            dataflowEvents = GetAllEventEnabledConnectorEvents(dataflowConnectors, resolver, logger);
+            dataflowEvents = GetAllEventEnabledConnectorEvents(dataflowConnectors, builder.Cache.Dataflows, resolver, logger);
         }
         else if (message.ClusterId is not null)
         {
             var connectors = builder.Cache.EventEnabledConnectors;
 
-            dataflowEvents = GetAllEventEnabledConnectorEvents(connectors, resolver, logger);
+            dataflowEvents = GetAllEventEnabledConnectorEvents(connectors, builder.Cache.Dataflows, resolver, logger);
         }
         else
         {
@@ -75,9 +75,11 @@ public sealed partial class GetDataflowEventsConsumer(IClusterDbContext dbContex
         };
     }
 
-    private static List<IDataflowEvent> GetAllEventEnabledConnectorEvents(IEnumerable<Connector> connectors, IDependencyResolver dependencyResolver, ILogger logger)
+    private static List<IDataflowEvent> GetAllEventEnabledConnectorEvents(IEnumerable<Connector> connectors, IReadOnlyCollection<Dataflow> dataflows,
+        IDependencyResolver dependencyResolver, ILogger logger)
     {
         var events = new List<IDataflowEvent>();
+        var dataflowNames = dataflows.ToDictionary(d => d.Root.Id, d => d.Name);
 
         foreach (var connector in connectors)
         {
@@ -86,13 +88,13 @@ public sealed partial class GetDataflowEventsConsumer(IClusterDbContext dbContex
                 // Inputs
                 if (connector is ConnectorInput input)
                 {
-                    events.Add(CreateDataflowEvent(dependencyResolver, input.FunctionBlock, input));
+                    events.Add(CreateDataflowEvent(dependencyResolver, input.FunctionBlock, input, LocationOf(input.FunctionBlock, dataflowNames)));
                 }
 
                 // Outputs
                 else if (connector is ConnectorOutput output)
                 {
-                    events.Add(CreateDataflowEvent(dependencyResolver, output.FunctionBlock, output));
+                    events.Add(CreateDataflowEvent(dependencyResolver, output.FunctionBlock, output, LocationOf(output.FunctionBlock, dataflowNames)));
                 }
             }
             catch (Exception ex)
@@ -104,7 +106,8 @@ public sealed partial class GetDataflowEventsConsumer(IClusterDbContext dbContex
         return events;
     }
 
-    private static DataflowEvent CreateDataflowEvent(IDependencyResolver dependencyResolver, FunctionBlock functionBlock, ConnectorInput input)
+    private static DataflowEvent CreateDataflowEvent(IDependencyResolver dependencyResolver, FunctionBlock functionBlock, ConnectorInput input,
+        FunctionBlockLocation location)
     {
         var functionBlockDesign = dependencyResolver.ResolveFunctionBlockDesign(functionBlock.DesignId);
         var connectorDesign = functionBlockDesign.GetInputs().FirstOrDefault(x => x.Id == input.DesignId)
@@ -115,11 +118,17 @@ public sealed partial class GetDataflowEventsConsumer(IClusterDbContext dbContex
             CanWrite = true,
             EventId = input.Id,
             Name = $"{functionBlock.Name}.{input.Name}",
-            ValueType = DataTypeCompatibilityValidator.DetermineValueType(connectorDesign.ConnectorType).AssemblyQualifiedName ?? string.Empty
+            ValueType = DataTypeCompatibilityValidator.DetermineValueType(connectorDesign.ConnectorType).AssemblyQualifiedName ?? string.Empty,
+            FunctionBlockId = functionBlock.Id,
+            FunctionBlockName = functionBlock.Name,
+            ConnectorName = input.Name,
+            DataflowName = location.DataflowName,
+            ContainerPath = location.ContainerPath,
         };
     }
 
-    private static DataflowEvent CreateDataflowEvent(IDependencyResolver dependencyResolver, FunctionBlock functionBlock, ConnectorOutput output)
+    private static DataflowEvent CreateDataflowEvent(IDependencyResolver dependencyResolver, FunctionBlock functionBlock, ConnectorOutput output,
+        FunctionBlockLocation location)
     {
         var functionBlockDesign = dependencyResolver.ResolveFunctionBlockDesign(functionBlock.DesignId);
         var connectorDesign = functionBlockDesign.GetOutputs().FirstOrDefault(x => x.Id == output.DesignId)
@@ -131,7 +140,26 @@ public sealed partial class GetDataflowEventsConsumer(IClusterDbContext dbContex
             EventId = output.Id,
             Name = $"{functionBlock.Name}.{output.Name}",
             ValueType = DataTypeCompatibilityValidator.DetermineValueType(connectorDesign.ConnectorType).AssemblyQualifiedName ?? string.Empty,
+            FunctionBlockId = functionBlock.Id,
+            FunctionBlockName = functionBlock.Name,
+            ConnectorName = output.Name,
+            DataflowName = location.DataflowName,
+            ContainerPath = location.ContainerPath,
         };
+    }
+
+    // A function block's child containers lead up to the root container of its dataflow.
+    private static FunctionBlockLocation LocationOf(FunctionBlock functionBlock, Dictionary<Guid, string> dataflowNames)
+    {
+        var containerPath = new List<string>();
+        var container = functionBlock.Container;
+        while (container is ChildContainer child)
+        {
+            containerPath.Insert(0, child.Name);
+            container = child.Parent;
+        }
+
+        return new FunctionBlockLocation(dataflowNames.GetValueOrDefault(container.Id, container.Name), containerPath);
     }
 
     public override Task<GetDataflowEventsResponse> HandleException(GetDataflowEventsRequest message, Exception e, CancellationToken cancellationToken)
@@ -155,7 +183,19 @@ public sealed partial class GetDataflowEventsConsumer(IClusterDbContext dbContex
         public required string Name { get; set; }
 
         public required string ValueType { get; set; }
+
+        public required Guid FunctionBlockId { get; set; }
+
+        public required string FunctionBlockName { get; set; }
+
+        public required string ConnectorName { get; set; }
+
+        public required string DataflowName { get; set; }
+
+        public required IReadOnlyList<string> ContainerPath { get; set; }
     }
+
+    private sealed record FunctionBlockLocation(string DataflowName, IReadOnlyList<string> ContainerPath);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Failed to create dataflow events for FunctionBlock {Name} {Id}")]
     private static partial void LogCreateDataflowEventError(ILogger logger, Exception exception, string name, Guid id);

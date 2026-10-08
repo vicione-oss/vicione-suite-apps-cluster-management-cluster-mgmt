@@ -1,0 +1,19 @@
+@use "./../design/colors";
+@use "./../../../../shared/styles/colors-staged";
+
+// Spacing, surfaces and type follow the suite: settings groups for panels, the start page for headings and tiles.
+$page-padding: 24px;
+$gap: 16px;
+$panel-padding: 16px;
+$panel-head-height: 48px;
+$radius: 3px;
+
+$status-colors: (
+    "running": colors-staged.$color-green,
+    "deploying": colors.$primary,
+    "failed": colors.$error,
+    "draft": colors-staged.$color-blue,
+    "default": colors-staged.$color-foreground,
+    "previous": colors-staged.$color-foreground,
+    "warning": colors-staged.$color-warning,
+);

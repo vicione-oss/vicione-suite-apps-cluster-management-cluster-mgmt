@@ -1,11 +1,10 @@
-﻿using ClusterManagement.Client.Management.Localization;
-using ClusterManagement.Public.Requests;
+﻿using ClusterManagement.Public.Requests;
 
 namespace ClusterManagement.Client.Management.Models;
 
-public sealed class ClusterInfoModel : IComparable<ClusterInfoModel>, IEquatable<ClusterInfoModel>
+public sealed class ClusterInfoModel(ClusterInfo info) : IComparable<ClusterInfoModel>, IEquatable<ClusterInfoModel>
 {
-    private readonly ClusterInfo _clusterInfo;
+    private readonly ClusterInfo _clusterInfo = info;
 
     /// <summary>
     /// Wrap the original cluster to avoid its IEquatable 
@@ -18,34 +17,18 @@ public sealed class ClusterInfoModel : IComparable<ClusterInfoModel>, IEquatable
 
     public string DisplayNameVersion => $"{_clusterInfo.Name} v{_clusterInfo.Version}";
 
-    public string Description => _clusterInfo.Description ?? "-";
+    public string? Description => _clusterInfo.Description;
 
     /// <summary>
-    /// Provide a unique key value for data grid rows
+    /// Unique per cluster version, for example as the key of its row in the version list
     /// </summary>
     public string Key => $"{Id}-{Version}";
 
-    public bool IsActive { get; set; }
-    public bool IsExecuting { get; set; }
-    public bool IsDefault { get; set; }
+    public DateTimeOffset? Deployed => _clusterInfo.Deployed;
 
+    public bool IsActive { get; } = info.IsActive;
+    public bool IsDefault { get; } = info.Version == Public.Constants.DefaultClusterVersion;
     public bool IsLatest { get; set; }
-    public string Status { get; set; } = string.Empty;
-    public TimeSpan? DeploymentDuration { get; set; }
-
-    public List<DeploymentErrorModel> DeploymentErrors { get; } = [];
-
-    public ClusterInfoModel(ClusterInfo info)
-    {
-        _clusterInfo = info;
-        IsActive = info.IsActive;
-
-        if (IsActive)
-            Status = Common.StateActive;
-
-        if (info.Version == Public.Constants.DefaultClusterVersion)
-            IsDefault = true;
-    }
 
     public int CompareTo(ClusterInfoModel? other)
     {

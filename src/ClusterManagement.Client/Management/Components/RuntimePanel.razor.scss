@@ -1,0 +1,189 @@
+@use "./../../Styles/_shared.scss";
+@use "./../../Styles/design/colors";
+@use "./../../../../shared/styles/colors-staged";
+@use "./../../Styles/overview";
+
+.runtime {
+    @include overview.panel;
+
+    // In a narrow column the head wraps; the padding keeps the wrapped lines off the panel edges.
+    .panel-head {
+        @include overview.panel-head;
+        flex-wrap: wrap;
+        row-gap: 8px;
+        padding-block: 8px;
+    }
+
+    .panel-title {
+        @include overview.panel-title;
+    }
+
+    .head-info {
+        @extend .cm-grid-action-column;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        white-space: nowrap;
+    }
+
+    .hosts {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-height: 640px;
+        padding: overview.$panel-padding;
+        overflow-y: auto;
+    }
+
+    .host {
+        flex: none;
+        background-color: colors.$background-darker;
+        border-radius: overview.$radius;
+    }
+
+    .checked {
+        min-width: 110px;
+        text-align: right;
+    }
+
+    // Two lines: the host with its chips, and below it the cycle of all its engines against the host's cycle time, on
+    // the same axis as the engine charts below.
+    .host-head {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 10px 12px;
+        border-bottom: 1px solid colors.$background-light;
+
+        .host-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .name {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        .host-cycle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            ::deep .cycle-chart {
+                width: 96px;
+                height: 24px;
+                flex: none;
+                background-color: transparent;
+            }
+        }
+
+        // Starts where the engine names below start, after their state dot.
+        .cycle-time {
+            @include overview.muted;
+            flex: 1;
+            min-width: 0;
+            padding-left: 18px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 12px;
+
+            &.over {
+                color: colors-staged.$color-warning;
+            }
+        }
+    }
+
+    // One compact row per engine: state, a sparkline of the last minute and the latest cycle.
+    .engine {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 44px;
+        padding: 0 12px;
+
+        & + .engine {
+            border-top: 1px solid colors.$background-light;
+        }
+
+        ::deep .cycle-chart {
+            width: 96px;
+            height: 24px;
+            flex: none;
+            background-color: transparent;
+        }
+    }
+
+    .engine-name {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-width: 0;
+
+        .name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .state {
+            font-size: 12px;
+        }
+    }
+
+    .cycle-value {
+        width: 64px;
+        text-align: right;
+        white-space: nowrap;
+        font-family: var(--bs-font-monospace);
+
+        &.over {
+            color: colors-staged.$color-warning;
+        }
+    }
+
+    // Keeps the host cycle aligned with the engine rows below, which end with a journal link.
+    .log-spacer {
+        width: 24px;
+        flex: none;
+    }
+
+    .log-link {
+        display: inline-flex;
+        color: colors.$font;
+
+        &:hover {
+            color: colors.$primary;
+        }
+
+        &.unavailable {
+            opacity: .4;
+            cursor: help;
+
+            &:hover {
+                color: colors.$font;
+            }
+        }
+    }
+
+    .muted {
+        @include overview.muted;
+    }
+
+    .chip {
+        @include overview.chip;
+    }
+
+    .dot {
+        @include overview.dot;
+    }
+
+    @include overview.status-colors;
+}

@@ -1,0 +1,94 @@
+@using ClusterManagement.Client.Management.Localization
+@using ClusterManagement.Client.Management.Models
+@using ViciOne.Ui.Blazor.Components.Button
+@using ViciOne.Ui.Blazor.Components.Button.Enums
+@using ViciOne.Ui.Localization.Resources
+@using ViciOne.Ui.MonochromeIcons.Components
+@using ViciOne.Ui.MonochromeIcons.Core.Enums
+
+<section class="runtime" aria-label="@ClusterOverview.Runtime">
+    <div class="panel-head">
+        <h2 class="panel-title">@ClusterOverview.Runtime</h2>
+        <div class="head-info">
+            <span class="muted checked">@CheckedText</span>
+            @if (EngineCount > 0)
+            {
+                <span class="chip status-@EnginesStatusName">@string.Format(ClusterOverview.EnginesRunning, RunningCount, EngineCount)</span>
+            }
+            @if (HostsOverCycleTime is > 0 and var hostsOver)
+            {
+                <span class="chip status-warning">@string.Format(ClusterOverview.HostsOverCycleTime, hostsOver)</span>
+            }
+            <Button IconCssClass="@_refreshIconCssClass"
+                    CssClass="borderless"
+                    Title="@CommonVocabulary.RefreshVerb"
+                    Size="@ButtonSize.Small"
+                    Busy="@_isLoading"
+                    OnClick="@ReloadStates" />
+        </div>
+    </div>
+
+    <div class="hosts">
+        @if (_hosts.Count == 0)
+        {
+            <div class="muted">@ClusterOverview.NoEngines</div>
+        }
+
+        @foreach (var host in _hosts)
+        {
+            var chain = ChainWindow(host);
+            var isOverCycleTime = IsOverCycleTime(chain, host.CycleTime);
+            var latestChainCycle = CycleMonitor.Series.Latest(host.Id, _now);
+
+            <div class="host" @key="host.Id">
+                <div class="host-head">
+                    <div class="host-title">
+                        <MonochromeIcon Name="MonochromeIconName.TopologyApplicationLight" Size="MonochromeIconSize.SmallMedium" />
+                        <span class="name" title="@host.Name">@host.Name</span>
+                        @if (isOverCycleTime)
+                        {
+                            <span class="chip status-warning">@ClusterOverview.CycleTimeExceeded</span>
+                        }
+                        @if (host.ElevatedPrivileges)
+                        {
+                            <span class="chip status-default">@ClusterOverview.Privileged</span>
+                        }
+                    </div>
+                    <div class="host-cycle" title="@HostCycleTitle(host, latestChainCycle)">
+                        <span class="cycle-time @(isOverCycleTime ? "over" : null)">
+                            @(host.CycleTime > 0 ? string.Format(ClusterOverview.HostCycleTime, host.CycleTime) : null)
+                        </span>
+                        <CycleTimeChart Samples="@chain" Limit="@host.CycleTime" />
+                        <span class="cycle-value @(latestChainCycle > host.CycleTime && host.CycleTime > 0 ? "over" : null)">@FormatMilliseconds(latestChainCycle)</span>
+                        @if (HasLocalJournal(host))
+                        {
+                            <a class="log-link" href="@JournalLink(host)" title="@ClusterOverview.ShowLogs" aria-label="@ClusterOverview.ShowLogs">
+                                <MonochromeIcon Name="MonochromeIconName.SystemMessagesLight" Size="MonochromeIconSize.SmallMedium" />
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="log-link unavailable" title="@ClusterOverview.LogsOnOtherInstance" aria-label="@ClusterOverview.LogsOnOtherInstance">
+                                <MonochromeIcon Name="MonochromeIconName.SystemMessagesLight" Size="MonochromeIconSize.SmallMedium" />
+                            </span>
+                        }
+                    </div>
+                </div>
+
+                @foreach (var engine in host.Engines)
+                {
+                    <div class="engine" @key="engine.EngineId">
+                        <span class="dot status-@(engine.IsChecked ? EngineStatusName(engine) : "previous")"></span>
+                        <div class="engine-name">
+                            <span class="name" title="@engine.EngineName">@engine.EngineName</span>
+                            <span class="state muted">@(engine.IsChecked ? EngineStateText(engine) : "…")</span>
+                        </div>
+                        <CycleTimeChart Samples="@CycleWindow(engine)" Limit="@engine.MinCycleTime" />
+                        <span class="cycle-value" title="@ClusterOverview.LatestCycle">@FormatMilliseconds(LatestCycle(engine))</span>
+                        <span class="log-spacer"></span>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</section>
