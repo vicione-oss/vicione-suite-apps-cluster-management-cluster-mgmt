@@ -61,15 +61,6 @@ namespace ClusterManagement.Client.Management.Localization {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Duration.
-        /// </summary>
-        internal static string Duration {
-            get {
-                return ResourceManager.GetString("Duration", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Manage &amp; Deploy Cluster-Versions.
         /// </summary>
         internal static string ModuleDescription {
@@ -87,40 +78,5 @@ namespace ClusterManagement.Client.Management.Localization {
             }
         }
         
-        /// <summary>
-        ///   Looks up a localized string similar to Active.
-        /// </summary>
-        internal static string StateActive {
-            get {
-                return ResourceManager.GetString("StateActive", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Deployment failed.
-        /// </summary>
-        internal static string StateFailed {
-            get {
-                return ResourceManager.GetString("StateFailed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Started....
-        /// </summary>
-        internal static string StateStarted {
-            get {
-                return ResourceManager.GetString("StateStarted", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Updating.....
-        /// </summary>
-        internal static string StateUpdating {
-            get {
-                return ResourceManager.GetString("StateUpdating", resourceCulture);
-            }
-        }
     }
 }

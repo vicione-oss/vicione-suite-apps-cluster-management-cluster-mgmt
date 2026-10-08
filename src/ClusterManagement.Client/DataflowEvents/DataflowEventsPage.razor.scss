@@ -1,39 +1,322 @@
 @use "./../Styles/_shared.scss";
+@use "./../Styles/design/colors";
+@use "./../Styles/overview";
 
 .cluster-events {
-    @extend .cm-page-base;
+    @extend .cm-page-fill-base;
+    display: flex;
+    flex-direction: column;
+    gap: overview.$gap;
+    padding: overview.$page-padding;
+    box-sizing: border-box;
 
-    .cluster-events-toolbar {
-        @extend .cm-page-toolbar-base;
+    .events-head {
+        @include overview.panel;
+        display: flex;
+        flex: none;
+        flex-direction: column;
+        gap: 12px;
+        padding: overview.$panel-padding;
+    }
 
-        .events-input-value {
-            margin: 0px 4px 0px 4px;
+    .back-link {
+        align-self: flex-start;
+        color: colors.$primary;
+        text-decoration: none;
+
+        &:hover {
+            color: colors.$accent-hover;
         }
     }
 
-    .cluster-events-grid {
-        @extend .cm-page-grid-base;
-        // keep the grid row from growing with the rows, so the virtualized table can scroll
+    .title-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+
+        h1 {
+            @include overview.page-heading;
+        }
+    }
+
+    .actions,
+    .chips {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .actions ::deep .filter {
+        width: 260px;
+    }
+
+    .shown {
+        margin-right: 8px;
+    }
+
+    .gap {
+        margin-left: 12px;
+    }
+
+    .spacer {
+        flex: 1;
+    }
+
+    // Pill buttons, so the grouping reads as a choice and not as an action.
+    ::deep .button.chip-toggle {
+        min-width: 0;
+        height: 30px;
+        padding: 0 12px;
+        border-color: colors.$border;
+        border-radius: 15px;
+        background-color: transparent;
+        color: colors.$font;
+        font-size: 13px;
+
+        &:hover {
+            border-color: colors.$background-light-hover;
+        }
+
+        &.active {
+            border-color: colors.$primary;
+            background-color: colors.$primary;
+            color: colors.$theme;
+        }
+    }
+
+    .legend {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+    }
+
+    .events-table {
+        @include overview.panel;
+        flex: 1;
         min-height: 0;
-        overflow: hidden;
+        overflow: auto;
+    }
 
-        .action-column {
-            @extend .cm-grid-action-column;
+    // Below its minimum width the table scrolls inside its panel instead of cutting columns.
+    table {
+        width: 100%;
+        min-width: 640px;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    .type-column {
+        width: 140px;
+    }
+
+    .value-column {
+        width: 200px;
+    }
+
+    .time-column {
+        width: 150px;
+    }
+
+    .subscribe-column {
+        width: 104px;
+    }
+
+    // The function block and container groups already name the location; narrow screens keep the room for values.
+    @media (max-width: 1000px) {
+        .location-column,
+        .location {
+            display: none;
         }
     }
 
-    .cluster-events-send {
-        margin: 12px;
-        display: grid;
-        grid-template-rows: 28px 28px;
-        grid-template-columns: auto 1fr;
-        grid-column-gap: 10px;
-        grid-row-gap: 5px;
+    .empty td {
+        height: 64px;
+        text-align: center;
+        @include overview.muted;
+    }
 
-        .send-row {
-            display: inline-grid;
-            grid-template-columns: 1fr auto 1fr;
-            grid-column-gap: 5px;
+    .write-check {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        cursor: pointer;
+    }
+
+    .hidden-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        height: 34px;
+        padding: 0 10px;
+        border-bottom: 1px solid colors.$border;
+        background-color: colors.$background-dark;
+        text-align: left;
+        font-weight: 500;
+        font-size: 12px;
+        @include overview.muted;
+    }
+
+    td {
+        height: 36px;
+        padding: 0 10px;
+        border-bottom: 1px solid colors.$background-light;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .group td {
+        background-color: colors.$background-light;
+    }
+
+    .event:hover td {
+        background-color: colors.$background-dark;
+    }
+
+    .nested td:first-child {
+        padding-left: 32px;
+    }
+
+    .group-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    ::deep .button.group-toggle {
+        min-width: 0;
+        padding: 0;
+        border-style: none;
+        background-color: transparent;
+        color: colors.$font-light;
+        font-weight: 500;
+
+        .text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
+    }
+
+    .group-counts {
+        flex: none;
+        margin-left: auto;
+        font-size: 11px;
+        font-family: var(--bs-font-monospace);
+    }
+
+    .connector {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        max-width: 100%;
+    }
+
+    .connector-icon {
+        display: inline-flex;
+        flex: none;
+    }
+
+    .connector-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        b {
+            font-weight: 500;
+            color: colors.$font-light;
+        }
+    }
+
+    // The field takes the whole value column next to its send button, like the values of the outputs. The cell holds
+    // its visually hidden label; without a positioned box around it, the label lands far below the table, where the
+    // virtualized table measures it as part of the rendered rows.
+    .write {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+
+        ::deep .value-input {
+            flex: 1;
+            width: auto;
+            min-width: 0;
+        }
+    }
+
+    .copy-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    // The value is the button, so a click copies it; the frame and the copy icon only show on hover. The frame
+    // reaches into the cell padding, so the value starts at the column edge like the header, checkboxes and fields.
+    ::deep .button.copy {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        max-width: calc(100% + 10px);
+        min-width: 0;
+        margin-left: -10px;
+        padding: 0 9px;
+        border-color: transparent;
+        background-color: transparent;
+        color: colors.$font-light;
+        font-family: var(--bs-font-monospace);
+        font-size: 13px;
+
+        .text {
+            order: -1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .monochrome-icon {
+            flex: none;
+            margin: 0;
+            opacity: 0;
+        }
+
+        &:hover,
+        &:focus-visible {
+            border-color: colors.$border;
+            background-color: colors.$background-dark;
+
+            .monochrome-icon {
+                opacity: 1;
+            }
+        }
+    }
+
+    .copied {
+        flex: none;
+        font-family: inherit;
+        font-size: 11px;
+        color: colors.$primary;
+    }
+
+    .time {
+        font-size: 11px;
+        font-family: var(--bs-font-monospace);
+    }
+
+    .muted {
+        @include overview.muted;
     }
 }

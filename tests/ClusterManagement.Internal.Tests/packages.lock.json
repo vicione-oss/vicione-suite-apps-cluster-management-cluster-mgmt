@@ -1062,6 +1062,7 @@
         "dependencies": {
           "MQTTnet": "[5.2.0.1603, )",
           "Semver": "[3.0.0, )",
+          "System.IO.Abstractions": "[22.3.0, )",
           "ViciOne.Suite.ClusterManagement.Public": "[1.0.0, )",
           "ViciOne.Tree.Builder": "[3.0.0, )"
         }

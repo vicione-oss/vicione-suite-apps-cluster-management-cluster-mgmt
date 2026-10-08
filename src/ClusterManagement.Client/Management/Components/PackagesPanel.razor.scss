@@ -1,0 +1,54 @@
+@use "./../../Styles/design/colors";
+@use "./../../Styles/overview";
+
+.packages {
+    @include overview.panel;
+
+    .panel-head {
+        @include overview.panel-head;
+    }
+
+    .panel-title {
+        @include overview.panel-title;
+    }
+
+    .rows {
+        padding: 8px overview.$panel-padding;
+    }
+
+    .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 0;
+        border-bottom: 1px solid colors.$background-light;
+
+        &:last-child {
+            border-bottom: none;
+        }
+    }
+
+    .name {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .version {
+        max-width: 45%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: var(--bs-font-monospace);
+    }
+
+    .list-footer {
+        margin-top: 8px;
+    }
+
+    .muted {
+        @include overview.muted;
+    }
+}

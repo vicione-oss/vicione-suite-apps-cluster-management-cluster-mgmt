@@ -1,0 +1,33 @@
+@using ClusterManagement.Client.Management.Localization
+@using ViciOne.Ui.Blazor.Components.Button
+@using ViciOne.Ui.Blazor.Components.Button.Enums
+
+<section class="packages" aria-label="@Title">
+    <div class="panel-head">
+        <h2 class="panel-title">@Title</h2>
+    </div>
+
+    <div class="rows">
+        @if (Dependencies.Count == 0)
+        {
+            <div class="muted">@ClusterOverview.NoPackages</div>
+        }
+
+        @foreach (var dependency in VisibleDependencies)
+        {
+            <div class="row" @key="dependency.Name">
+                <span class="name" title="@dependency.Name">@dependency.Name</span>
+                <span class="version muted" title="@dependency.Version">@dependency.Version</span>
+            </div>
+        }
+
+        @if (Dependencies.Count > CollapsedCount)
+        {
+            <div class="list-footer">
+                <Button Text="@(_showAll ? ClusterOverview.ShowFewer : string.Format(ClusterOverview.ShowAllPackages, Dependencies.Count))"
+                        Size="@ButtonSize.Small"
+                        OnClick="@(() => _showAll = !_showAll)" />
+            </div>
+        }
+    </div>
+</section>

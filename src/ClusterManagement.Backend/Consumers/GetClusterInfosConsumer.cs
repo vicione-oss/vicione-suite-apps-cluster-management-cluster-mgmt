@@ -15,7 +15,7 @@ public sealed class GetClusterInfosConsumer(IClusterDbContext dbContext, ICluste
     {
         var activeInfos = await dbContext.ActiveClusters.AsNoTracking().ToListAsync(cancellationToken);
         var fileInfos = (await snapshotStore.GetClusterInfos(message.ClusterId, cancellationToken))
-            .Select(k => ClusterInfoFactory.CreateInfo(k, activeInfos.Any(active => active.Id == k.Id && active.Version == k.Version)))
+            .Select(k => ClusterInfoFactory.CreateInfo(k, activeInfos.FirstOrDefault(active => active.Id == k.Id && active.Version == k.Version)))
             .ToList();
 
         fileInfos.Sort(new ClusterInfoSorter());

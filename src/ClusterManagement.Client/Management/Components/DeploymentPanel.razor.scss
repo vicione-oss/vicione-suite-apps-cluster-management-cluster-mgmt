@@ -1,0 +1,227 @@
+@use "sass:color";
+@use "./../../Styles/design/colors";
+@use "./../../../../shared/styles/colors-staged";
+@use "./../../Styles/overview";
+
+.deployment {
+    @include overview.panel;
+
+    &.failed {
+        box-shadow: inset 3px 0 0 colors.$error;
+    }
+
+    .panel-head {
+        @include overview.panel-head;
+    }
+
+    .panel-title {
+        @include overview.panel-title;
+    }
+
+    .body {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: overview.$panel-padding;
+    }
+
+    .headline {
+        font-size: 18px;
+        font-weight: 300;
+        letter-spacing: .3px;
+        color: colors.$font-light;
+    }
+
+    // A horizontal flow: each step is a node, the line into it shows how far the deployment got.
+    .flow {
+        display: grid;
+        grid-auto-columns: minmax(0, 1fr);
+        grid-auto-flow: column;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .flow-step {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        color: colors-staged.$color-foreground;
+
+        &::before {
+            content: "";
+            position: absolute;
+            top: 11px;
+            right: calc(50% + 14px);
+            left: calc(-50% + 14px);
+            height: 2px;
+            background-color: colors.$border;
+        }
+
+        &:first-child::before {
+            display: none;
+        }
+
+        .node {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            box-sizing: border-box;
+            border: 2px solid colors.$border;
+            border-radius: 50%;
+            background-color: colors.$background-darker;
+            font-size: 11px;
+            line-height: 1;
+        }
+
+        .label {
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 12px;
+            letter-spacing: .4px;
+        }
+
+        &.done {
+            color: colors.$font;
+
+            &::before {
+                background-color: colors-staged.$color-green;
+            }
+
+            .node {
+                border-color: colors-staged.$color-green;
+                color: colors-staged.$color-green;
+            }
+        }
+
+        &.current {
+            color: colors.$font-light;
+
+            &::before {
+                background: linear-gradient(90deg, colors-staged.$color-green, colors.$primary);
+            }
+
+            .node {
+                border-color: colors.$primary;
+                color: colors.$primary;
+                animation: cm-pulse 1.6s ease-in-out infinite;
+
+                @media (prefers-reduced-motion: reduce) {
+                    animation: none;
+                }
+            }
+        }
+
+        &.failed {
+            color: colors.$font-light;
+
+            &::before {
+                background-color: colors.$error;
+            }
+
+            .node {
+                border-color: colors.$error;
+                background-color: colors.$error;
+                color: colors.$background-darker;
+            }
+        }
+
+        &.rollback::before {
+            height: 0;
+            border-top: 2px dashed colors.$error;
+            background: none;
+        }
+    }
+
+    @keyframes cm-pulse {
+        0%, 100% {
+            box-shadow: 0 0 0 0 color.change(colors.$primary, $alpha: .5);
+        }
+
+        50% {
+            box-shadow: 0 0 0 5px color.change(colors.$primary, $alpha: 0);
+        }
+    }
+
+    .status-line {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 24px;
+
+        .muted {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    .instance {
+        background-color: colors.$background-darker;
+        border: 1px solid colors.$border;
+        border-radius: overview.$radius;
+
+        &.failed {
+            border-color: color.change(colors.$error, $alpha: .5);
+        }
+    }
+
+    .instance-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 40px;
+        padding: 0 12px;
+
+        .name {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: colors.$font-light;
+        }
+
+        .node {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    .error {
+        max-height: 160px;
+        overflow: auto;
+        margin: 0 12px 12px;
+        padding: 10px;
+        white-space: pre-wrap;
+        font-size: 12px;
+        background-color: colors-staged.$color-background-dark;
+        border-radius: overview.$radius;
+        color: colors.$font;
+    }
+
+    .muted {
+        @include overview.muted;
+    }
+
+    .chip {
+        @include overview.chip;
+    }
+
+    .dot {
+        @include overview.dot;
+    }
+
+    @include overview.status-colors;
+}

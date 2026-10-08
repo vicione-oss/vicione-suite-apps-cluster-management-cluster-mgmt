@@ -117,25 +117,10 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="Duration" xml:space="preserve">
-    <value>Duration</value>
-  </data>
   <data name="ModuleDescription" xml:space="preserve">
     <value>Manage &amp; Deploy Cluster-Versions</value>
   </data>
   <data name="ModuleTitle" xml:space="preserve">
     <value>Cluster Manager</value>
-  </data>
-  <data name="StateActive" xml:space="preserve">
-    <value>Active</value>
-  </data>
-  <data name="StateStarted" xml:space="preserve">
-    <value>Started...</value>
-  </data>
-  <data name="StateUpdating" xml:space="preserve">
-    <value>Updating....</value>
-  </data>
-  <data name="StateFailed" xml:space="preserve">
-    <value>Deployment failed</value>
   </data>
 </root>

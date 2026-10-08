@@ -61,6 +61,231 @@ namespace ClusterManagement.Client.DataflowEvents.Localization {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to All events.
+        /// </summary>
+        internal static string AllEvents {
+            get {
+                return ResourceManager.GetString("AllEvents", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Connector.
+        /// </summary>
+        internal static string Connector {
+            get {
+                return ResourceManager.GetString("Connector", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Copied.
+        /// </summary>
+        internal static string Copied {
+            get {
+                return ResourceManager.GetString("Copied", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Event datapoints of the running version v{0}.
+        /// </summary>
+        internal static string DataflowEventsOfVersion {
+            get {
+                return ResourceManager.GetString("DataflowEventsOfVersion", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} of {1} shown.
+        /// </summary>
+        internal static string EventsShown {
+            get {
+                return ResourceManager.GetString("EventsShown", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by block, connector or path.
+        /// </summary>
+        internal static string FilterByName {
+            get {
+                return ResourceManager.GetString("FilterByName", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Group by.
+        /// </summary>
+        internal static string GroupBy {
+            get {
+                return ResourceManager.GetString("GroupBy", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Container.
+        /// </summary>
+        internal static string GroupByContainer {
+            get {
+                return ResourceManager.GetString("GroupByContainer", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dataflow.
+        /// </summary>
+        internal static string GroupByDataflow {
+            get {
+                return ResourceManager.GetString("GroupByDataflow", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Input / output.
+        /// </summary>
+        internal static string GroupByDirection {
+            get {
+                return ResourceManager.GetString("GroupByDirection", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Function block.
+        /// </summary>
+        internal static string GroupByFunctionBlock {
+            get {
+                return ResourceManager.GetString("GroupByFunctionBlock", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to None.
+        /// </summary>
+        internal static string GroupByNone {
+            get {
+                return ResourceManager.GetString("GroupByNone", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Value type.
+        /// </summary>
+        internal static string GroupByValueType {
+            get {
+                return ResourceManager.GetString("GroupByValueType", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} in · {1} out.
+        /// </summary>
+        internal static string GroupCounts {
+            get {
+                return ResourceManager.GetString("GroupCounts", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to input, written.
+        /// </summary>
+        internal static string InputLegend {
+            get {
+                return ResourceManager.GetString("InputLegend", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Inputs.
+        /// </summary>
+        internal static string Inputs {
+            get {
+                return ResourceManager.GetString("Inputs", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Inputs · written into the cluster.
+        /// </summary>
+        internal static string InputsGroup {
+            get {
+                return ResourceManager.GetString("InputsGroup", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Input · {0} · written into the cluster.
+        /// </summary>
+        internal static string InputTitle {
+            get {
+                return ResourceManager.GetString("InputTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Where.
+        /// </summary>
+        internal static string Location {
+            get {
+                return ResourceManager.GetString("Location", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The running version has no event datapoints.
+        /// </summary>
+        internal static string NoEvents {
+            get {
+                return ResourceManager.GetString("NoEvents", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No events match the filter.
+        /// </summary>
+        internal static string NoMatchingEvents {
+            get {
+                return ResourceManager.GetString("NoMatchingEvents", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to output, read.
+        /// </summary>
+        internal static string OutputLegend {
+            get {
+                return ResourceManager.GetString("OutputLegend", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Outputs.
+        /// </summary>
+        internal static string Outputs {
+            get {
+                return ResourceManager.GetString("Outputs", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Outputs · read from the cluster.
+        /// </summary>
+        internal static string OutputsGroup {
+            get {
+                return ResourceManager.GetString("OutputsGroup", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Output · {0} · read from the cluster.
+        /// </summary>
+        internal static string OutputTitle {
+            get {
+                return ResourceManager.GetString("OutputTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Event Viewer.
         /// </summary>
         internal static string PageTitle {
@@ -69,21 +294,49 @@ namespace ClusterManagement.Client.DataflowEvents.Localization {
             }
         }
         
-        /// <summary>
-        ///   Looks up a localized string similar to Readable.
-        /// </summary>
-        internal static string Readable {
-            get {
-                return ResourceManager.GetString("Readable", resourceCulture);
-            }
-        }
         
         /// <summary>
-        ///   Looks up a localized string similar to Writable.
+        ///   Looks up a localized string similar to Show.
         /// </summary>
-        internal static string Writable {
+        internal static string Show {
             get {
-                return ResourceManager.GetString("Writable", resourceCulture);
+                return ResourceManager.GetString("Show", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Subscribed.
+        /// </summary>
+        internal static string Subscribed {
+            get {
+                return ResourceManager.GetString("Subscribed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Value, Enter writes.
+        /// </summary>
+        internal static string ValueEnterWrites {
+            get {
+                return ResourceManager.GetString("ValueEnterWrites", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Value for {0}.
+        /// </summary>
+        internal static string ValueFor {
+            get {
+                return ResourceManager.GetString("ValueFor", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Write {0}.
+        /// </summary>
+        internal static string WriteValue {
+            get {
+                return ResourceManager.GetString("WriteValue", resourceCulture);
             }
         }
     }

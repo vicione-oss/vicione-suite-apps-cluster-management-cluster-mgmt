@@ -1,0 +1,148 @@
+@using ClusterManagement.Client.Management.Localization
+@using ClusterManagement.Client.Management.Models
+@using ViciOne.Ui.Blazor.Components.Button
+@using ViciOne.Ui.Blazor.Components.Button.Enums
+@using ViciOne.Ui.Blazor.Components.Dialog.Components
+@using ViciOne.Ui.Localization.Resources
+
+<section class="version-list" aria-label="@TechnicalTerms.VersionPlural">
+    <div class="panel-head">
+        <h2 class="panel-title">@TechnicalTerms.VersionPlural</h2>
+        @if (DefaultVersion is not null)
+        {
+            <Button Text="@ClusterOverview.DeployDefault"
+                    IconCssClass="@_deployIconCssClass"
+                    Size="@ButtonSize.Small"
+                    Enabled="@CanDeployDefault"
+                    OnClick="@OnDefaultDeployShowAsync" />
+        }
+    </div>
+
+    <div class="rows @(_showAll ? "scrolling" : null)">
+        @{ var visible = VisibleVersions; }
+        @for (var i = 0; i < visible.Count; i++)
+        {
+            var version = visible[i];
+            var status = ClusterVersionStatuses.Of(version, Deployment);
+            var statusName = StatusName(status);
+            var hidden = HiddenBefore(visible, i);
+
+            @if (hidden > 0)
+            {
+                <div class="gap-row" @key="@("gap-" + version.Key)">
+                    <span class="gap-line"></span>
+                    <Button Text="@string.Format(ClusterOverview.HiddenVersions, hidden)"
+                            Size="@ButtonSize.Small"
+                            OnClick="@(() => _showAll = true)" />
+                </div>
+            }
+
+            <div class="row @(version.IsActive ? "active" : null)" @key="version.Key">
+                <div class="timeline">
+                    <span class="line @(i == 0 ? "hidden" : null)"></span>
+                    <span class="node status-@statusName"></span>
+                    <span class="line @(i == visible.Count - 1 ? "hidden" : null)"></span>
+                </div>
+                <div class="version" title="@version.Version">@version.Version</div>
+                <div class="details">
+                    <span class="name" title="@version.DisplayName">@version.DisplayName</span>
+                    @if (!string.IsNullOrEmpty(version.Description))
+                    {
+                        <span class="muted" title="@version.Description">@version.Description</span>
+                    }
+                </div>
+                <div class="status">
+                    @if (status != ClusterVersionStatus.Previous)
+                    {
+                        <span class="chip status-@statusName">@StatusText(status)</span>
+                    }
+                </div>
+                <div class="actions">
+                    <Button IconCssClass="@_deployIconCssClass"
+                            CssClass="borderless"
+                            Title="@ClusterOverview.DeployThisVersion"
+                            Size="@ButtonSize.Small"
+                            Enabled="@(!version.IsActive && !IsDeploying)"
+                            OnClick="@(() => OnDeploy.InvokeAsync(version))" />
+
+                    <Button IconCssClass="@_editIconCssClass"
+                            CssClass="borderless"
+                            Title="@ClusterOverview.EditVersion"
+                            Size="@ButtonSize.Small"
+                            Enabled="@(version.IsLatest && !IsDeploying)"
+                            OnClick="@(() => OnEdit.InvokeAsync(version))" />
+
+                    <Button IconCssClass="@_downloadIconCssClass"
+                            CssClass="borderless"
+                            Title="@ClusterOverview.DownloadJson"
+                            Size="@ButtonSize.Small"
+                            OnClick="@(() => OnDownload.InvokeAsync(version))" />
+
+                    <Button IconCssClass="@_deleteIconCssClass"
+                            CssClass="borderless"
+                            Title="@ClusterOverview.DeleteVersion"
+                            Size="@ButtonSize.Small"
+                            Enabled="@(!version.IsActive && !version.IsDefault && !IsDeploying)"
+                            OnClick="@(() => OnDeleteShowAsync(version))" />
+                </div>
+            </div>
+        }
+
+        @if (HiddenAfter(visible) is > 0 and var trailing)
+        {
+            <div class="gap-row" @key="@("gap-end")">
+                <span class="gap-line"></span>
+                <Button Text="@string.Format(ClusterOverview.HiddenVersions, trailing)"
+                        Size="@ButtonSize.Small"
+                        OnClick="@(() => _showAll = true)" />
+            </div>
+        }
+    </div>
+
+    @if (_showAll && Versions.Count > CollapsedCount)
+    {
+        <div class="list-footer">
+            <Button Text="@ClusterOverview.ShowFewer"
+                    Size="@ButtonSize.Small"
+                    OnClick="@(() => _showAll = false)" />
+        </div>
+    }
+</section>
+
+<Dialog @ref="@_refDefaultDeployDialog"
+        HeaderText="@ClusterOverview.DeployDefault"
+        Width="420"
+        Height="200">
+    <Body>
+        <DialogBodyTextLayout>
+            <p class="dialog-question">@DefaultDeployQuestion</p>
+            @if (RunningVersion is { } running)
+            {
+                <p class="dialog-consequence">@string.Format(ClusterOverview.DeployDefaultConsequence, running)</p>
+            }
+        </DialogBodyTextLayout>
+    </Body>
+    <Footer>
+        <DialogFooterButton Text="@ClusterOverview.Deploy" OnClick="@OnDefaultDeployOkAsync" />
+        <DialogFooterButton Text="@CommonVocabulary.Cancel" OnClick="@OnDefaultDeployCloseAsync" />
+    </Footer>
+</Dialog>
+
+<Dialog @ref="@_refDeleteDialog"
+        HeaderText="@ClusterOverview.DeleteVersion"
+        Width="420"
+        Height="200">
+    <Body>
+        <DialogBodyTextLayout>
+            @if (_pendingDelete is not null)
+            {
+                <p class="dialog-question">@string.Format(ClusterOverview.DeleteConfirmation, _pendingDelete.DisplayName, _pendingDelete.Version)</p>
+                <p class="dialog-consequence">@ClusterOverview.DeleteConsequence</p>
+            }
+        </DialogBodyTextLayout>
+    </Body>
+    <Footer>
+        <DialogFooterButton Text="@CommonVocabulary.Delete" OnClick="@OnDeleteOkAsync" />
+        <DialogFooterButton Text="@CommonVocabulary.Cancel" OnClick="@OnDeleteCloseAsync" />
+    </Footer>
+</Dialog>

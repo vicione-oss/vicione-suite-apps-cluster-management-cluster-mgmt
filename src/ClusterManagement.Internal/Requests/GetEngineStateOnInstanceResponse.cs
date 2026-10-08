@@ -11,6 +11,12 @@ public sealed record GetEngineStateOnInstanceResponse : IResponse
         => RequestError = errorInfo;
 
     public EngineState? EngineState { get; init; }
+
+    /// <summary>
+    /// Id the engine host knows the engine by, for example as chain link in its cycle reports; set whenever the engine
+    /// is deployed on the instance, also with <see cref="Public.ErrorHandling.ClusterErrors.EngineHostDidNotAnswer"/>.
+    /// </summary>
+    public Guid? DeploymentId { get; init; }
     public ErrorInfo? RequestError { get; init; }
 }
 

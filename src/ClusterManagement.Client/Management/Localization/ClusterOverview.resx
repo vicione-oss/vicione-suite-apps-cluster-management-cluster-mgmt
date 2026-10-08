@@ -1,0 +1,417 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="CheckedAt" xml:space="preserve">
+    <value>checked {0}</value>
+  </data>
+  <data name="CompactBillions" xml:space="preserve">
+    <value>{0:0.#} B</value>
+  </data>
+  <data name="CompactMillions" xml:space="preserve">
+    <value>{0:0.#} M</value>
+  </data>
+  <data name="CompactThousands" xml:space="preserve">
+    <value>{0:0.#} K</value>
+  </data>
+  <data name="CycleChartNoData" xml:space="preserve">
+    <value>No cycle reports yet</value>
+  </data>
+  <data name="CycleChartSummary" xml:space="preserve">
+    <value>Slowest cycle {0:0.0} ms in the last {1} s, configured cycle time {2} ms</value>
+  </data>
+  <data name="CycleTimeExceeded" xml:space="preserve">
+    <value>Cycle time exceeded in the last minute</value>
+  </data>
+  <data name="DataPorts" xml:space="preserve">
+    <value>DataPorts</value>
+  </data>
+  <data name="DataflowEventCount" xml:space="preserve">
+    <value>{0} event datapoints, {1} writable</value>
+  </data>
+  <data name="DataflowEvents" xml:space="preserve">
+    <value>Dataflow events</value>
+  </data>
+  <data name="Dataflows" xml:space="preserve">
+    <value>Dataflows</value>
+  </data>
+  <data name="Datapoints" xml:space="preserve">
+    <value>Datapoints</value>
+  </data>
+  <data name="DeleteConfirmation" xml:space="preserve">
+    <value>Delete {0} v{1}?</value>
+  </data>
+  <data name="DeleteConsequence" xml:space="preserve">
+    <value>This cannot be undone.</value>
+  </data>
+  <data name="DeleteVersion" xml:space="preserve">
+    <value>Delete version</value>
+  </data>
+  <data name="Deploy" xml:space="preserve">
+    <value>Deploy</value>
+  </data>
+  <data name="DeployDefault" xml:space="preserve">
+    <value>Deploy default cluster</value>
+  </data>
+  <data name="DeployDefaultConfirmation" xml:space="preserve">
+    <value>Deploy the default cluster v{0}?</value>
+  </data>
+  <data name="DeployDefaultConsequence" xml:space="preserve">
+    <value>It replaces the running version v{0} and its engines.</value>
+  </data>
+  <data name="DeployThisVersion" xml:space="preserve">
+    <value>Deploy this version</value>
+  </data>
+  <data name="DeployVersion" xml:space="preserve">
+    <value>Deploy v{0}</value>
+  </data>
+  <data name="Deployed" xml:space="preserve">
+    <value>Deployed</value>
+  </data>
+  <data name="DeployingVersion" xml:space="preserve">
+    <value>Deploying v{0}</value>
+  </data>
+  <data name="Deployment" xml:space="preserve">
+    <value>Deployment</value>
+  </data>
+  <data name="DeploymentCompleted" xml:space="preserve">
+    <value>v{0} deployed in {1}</value>
+  </data>
+  <data name="DeploymentFailed" xml:space="preserve">
+    <value>Deployment of v{0} failed</value>
+  </data>
+  <data name="DeploymentRejected" xml:space="preserve">
+    <value>Deployment of v{0} was rejected because v{1} is still being deployed.</value>
+  </data>
+  <data name="DownloadJson" xml:space="preserve">
+    <value>Download JSON</value>
+  </data>
+  <data name="DraftReady" xml:space="preserve">
+    <value>Draft v{0} ready</value>
+  </data>
+  <data name="EditVersion" xml:space="preserve">
+    <value>Edit in Cluster Editor</value>
+  </data>
+  <data name="EngineHosts" xml:space="preserve">
+    <value>Engine hosts</value>
+  </data>
+  <data name="EngineNotDeployed" xml:space="preserve">
+    <value>Not deployed</value>
+  </data>
+  <data name="EngineNotReachable" xml:space="preserve">
+    <value>Not reachable</value>
+  </data>
+  <data name="EngineRunning" xml:space="preserve">
+    <value>Running</value>
+  </data>
+  <data name="EngineStarting" xml:space="preserve">
+    <value>Starting</value>
+  </data>
+  <data name="EngineStopped" xml:space="preserve">
+    <value>Stopped</value>
+  </data>
+  <data name="EngineStopping" xml:space="preserve">
+    <value>Stopping</value>
+  </data>
+  <data name="Engines" xml:space="preserve">
+    <value>Engines</value>
+  </data>
+  <data name="EnginesRunning" xml:space="preserve">
+    <value>{0} of {1} engines running</value>
+  </data>
+  <data name="FailedInPhase" xml:space="preserve">
+    <value>Failed in phase {0} after {1}</value>
+  </data>
+  <data name="FunctionBlocks" xml:space="preserve">
+    <value>Function blocks</value>
+  </data>
+  <data name="HiddenVersions" xml:space="preserve">
+    <value>⋯ {0} more versions</value>
+  </data>
+  <data name="HostCycleHint" xml:space="preserve">
+    <value>All engines of this host run in one cycle</value>
+  </data>
+  <data name="HostCycleTime" xml:space="preserve">
+    <value>cycle time {0} ms</value>
+  </data>
+  <data name="HostCycleUsage" xml:space="preserve">
+    <value>{0} of {1} ms ({2:0.##} %)</value>
+  </data>
+  <data name="HostsOverCycleTime" xml:space="preserve">
+    <value>{0} over cycle time in the last minute</value>
+  </data>
+  <data name="InstanceFailed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="InstanceStarted" xml:space="preserve">
+    <value>Started</value>
+  </data>
+  <data name="InstanceUpdated" xml:space="preserve">
+    <value>Updated</value>
+  </data>
+  <data name="InstanceWaiting" xml:space="preserve">
+    <value>Waiting</value>
+  </data>
+  <data name="InstancesUpdated" xml:space="preserve">
+    <value>{0} of {1} instances updated</value>
+  </data>
+  <data name="LastDeploymentFailed" xml:space="preserve">
+    <value>Last deployment failed</value>
+  </data>
+  <data name="LatestCycle" xml:space="preserve">
+    <value>Latest cycle</value>
+  </data>
+  <data name="LinkedDatapointsHint" xml:space="preserve">
+    <value>Linked datapoints / all datapoints of all DataPorts. Linked ones are read or written by a function block.</value>
+  </data>
+  <data name="LogsOnOtherInstance" xml:space="preserve">
+    <value>The log of this engine host is in the journal of the instance that runs it</value>
+  </data>
+  <data name="NoActiveVersion" xml:space="preserve">
+    <value>No version is running. Deploy one of the versions below to start the cluster.</value>
+  </data>
+  <data name="NoDataflowEvents" xml:space="preserve">
+    <value>The running version has no event datapoints.</value>
+  </data>
+  <data name="NoDeploymentObserved" xml:space="preserve">
+    <value>Running since {0}</value>
+  </data>
+  <data name="NoEngines" xml:space="preserve">
+    <value>The running version has no engines.</value>
+  </data>
+  <data name="NoPackages" xml:space="preserve">
+    <value>This version uses no packages.</value>
+  </data>
+  <data name="NoSagaRunning" xml:space="preserve">
+    <value>No deployment is running</value>
+  </data>
+  <data name="NoSagaRunningHint" xml:space="preserve">
+    <value>The deployment state machine has no open deployment. Resetting the deployment state is only needed when a deployment hangs.</value>
+  </data>
+  <data name="NoVersions" xml:space="preserve">
+    <value>There is no cluster version yet. Create one in the Cluster Editor.</value>
+  </data>
+  <data name="Nodes" xml:space="preserve">
+    <value>Nodes</value>
+  </data>
+  <data name="NothingToDeploy" xml:space="preserve">
+    <value>There is no newer version to deploy</value>
+  </data>
+  <data name="OnNode" xml:space="preserve">
+    <value>on {0}</value>
+  </data>
+  <data name="OpenDataflowEvents" xml:space="preserve">
+    <value>Open dataflow events</value>
+  </data>
+  <data name="OpenInEditor" xml:space="preserve">
+    <value>Open in Cluster Editor</value>
+  </data>
+  <data name="PackagesOfVersion" xml:space="preserve">
+    <value>Packages in v{0}</value>
+  </data>
+  <data name="PhaseAddingNodes" xml:space="preserve">
+    <value>Add nodes</value>
+  </data>
+  <data name="PhaseCleaningUp" xml:space="preserve">
+    <value>Clean up</value>
+  </data>
+  <data name="PhaseCommitting" xml:space="preserve">
+    <value>Commit</value>
+  </data>
+  <data name="PhaseCompleted" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="PhaseFailed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="PhaseRollingBack" xml:space="preserve">
+    <value>Roll back</value>
+  </data>
+  <data name="PhaseStarting" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="PhaseUpdatingDeployments" xml:space="preserve">
+    <value>Update deployments</value>
+  </data>
+  <data name="Privileged" xml:space="preserve">
+    <value>privileged</value>
+  </data>
+  <data name="ResetSagaState" xml:space="preserve">
+    <value>Reset deployment state</value>
+  </data>
+  <data name="RollbackFailed" xml:space="preserve">
+    <value>The rollback failed too. Check the runtime before deploying again.</value>
+  </data>
+  <data name="RolledBack" xml:space="preserve">
+    <value>The previous version was restored.</value>
+  </data>
+  <data name="Running" xml:space="preserve">
+    <value>Running</value>
+  </data>
+  <data name="RunningVersion" xml:space="preserve">
+    <value>Running v{0}</value>
+  </data>
+  <data name="RunningVersionDeployed" xml:space="preserve">
+    <value>v{0} is running</value>
+  </data>
+  <data name="Runtime" xml:space="preserve">
+    <value>Runtime</value>
+  </data>
+  <data name="SagaCluster" xml:space="preserve">
+    <value>Cluster</value>
+  </data>
+  <data name="SagaRunningVersion" xml:space="preserve">
+    <value>Running version</value>
+  </data>
+  <data name="SagaTargetVersion" xml:space="preserve">
+    <value>Target version</value>
+  </data>
+  <data name="ShowAllInstances" xml:space="preserve">
+    <value>Show all {0} instances</value>
+  </data>
+  <data name="ShowAllPackages" xml:space="preserve">
+    <value>Show all {0} packages</value>
+  </data>
+  <data name="ShowFewer" xml:space="preserve">
+    <value>Show fewer</value>
+  </data>
+  <data name="ShowInstance" xml:space="preserve">
+    <value>Show the instance</value>
+  </data>
+  <data name="ShowLogs" xml:space="preserve">
+    <value>Show the log of this engine host</value>
+  </data>
+  <data name="ShowSagaState" xml:space="preserve">
+    <value>Show deployment state</value>
+  </data>
+  <data name="StartedAt" xml:space="preserve">
+    <value>Started {0}</value>
+  </data>
+  <data name="VersionDeploying" xml:space="preserve">
+    <value>Deploying</value>
+  </data>
+  <data name="VersionDraft" xml:space="preserve">
+    <value>Draft · latest</value>
+  </data>
+  <data name="VersionFailed" xml:space="preserve">
+    <value>Deployment failed</value>
+  </data>
+  <data name="VersionPrevious" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+</root>

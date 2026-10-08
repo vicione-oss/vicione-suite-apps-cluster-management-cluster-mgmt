@@ -1,0 +1,51 @@
+@using ClusterManagement.Client.Management.Localization
+@using ClusterManagement.Client.Management.Models
+@using ViciOne.Ui.Blazor.Components.Button
+@using ViciOne.Ui.Blazor.Components.Button.Enums
+
+<section class="deployment @(Deployment?.Phase == DeploymentPhase.Failed ? "failed" : null)" aria-label="@ClusterOverview.Deployment">
+    <div class="panel-head">
+        <h2 class="panel-title">@ClusterOverview.Deployment</h2>
+        <span class="muted">@StartedText</span>
+    </div>
+
+    <div class="body">
+        <div class="headline">@Headline</div>
+
+        <ol class="flow" aria-label="@ClusterOverview.Deployment">
+            @foreach (var step in Steps)
+            {
+                <li class="flow-step @StepClass(step.State) @(step.Phase == DeploymentPhase.RollingBack ? "rollback" : null)" @key="step.Phase">
+                    <span class="node" aria-hidden="true">@StepMark(step.State)</span>
+                    <span class="label" title="@PhaseText(step.Phase)">@PhaseText(step.Phase)</span>
+                </li>
+            }
+        </ol>
+
+        <div class="status-line">
+            <span class="muted" title="@StatusLine">@StatusLine</span>
+            @if (Deployment?.Instances.Count > 0)
+            {
+                <Button Text="@ShowInstancesText"
+                        Size="@ButtonSize.Small"
+                        OnClick="@(() => _showAll = !_showAll)" />
+            }
+        </div>
+
+        @foreach (var instance in VisibleInstances)
+        {
+            <div class="instance @(instance.HasFailed ? "failed" : null)" @key="instance.Id">
+                <div class="instance-head">
+                    <span class="dot status-@InstanceStatusName(instance)"></span>
+                    <span class="name" title="@instance.Name">@instance.Name</span>
+                    <span class="muted node" title="@instance.NodeName">@string.Format(ClusterOverview.OnNode, instance.NodeName)</span>
+                    <span class="chip status-@InstanceStatusName(instance)">@InstanceStatusText(instance)</span>
+                </div>
+                @if (instance.Error is not null)
+                {
+                    <pre class="error">@instance.Error.Message</pre>
+                }
+            </div>
+        }
+    </div>
+</section>

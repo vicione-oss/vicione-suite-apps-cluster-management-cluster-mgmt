@@ -6,11 +6,36 @@ namespace ClusterManagement.Client.Tests.DataflowEvents;
 
 internal static class DataflowEventTestUtils
 {
-    public static IDataflowEvent CreateInputEvent()
-        => new TestDataflowEvent { EventId = Guid.NewGuid(), Name = "ConnectorInput", ValueType = "System.Bool", CanWrite = true };
+    public static IDataflowEvent CreateInputEvent(string functionBlockName = "Crest", string connectorName = "Threshold", params string[] containerPath)
+        => new TestDataflowEvent
+        {
+            EventId = Guid.NewGuid(),
+            Name = $"{functionBlockName}.{connectorName}",
+            ValueType = "System.Double, System.Private.CoreLib",
+            CanWrite = true,
+            FunctionBlockName = functionBlockName,
+            ConnectorName = connectorName,
+            ContainerPath = containerPath,
+        };
 
-    public static IDataflowEvent CreateOutputEvent()
-        => new TestDataflowEvent { EventId = Guid.NewGuid(), Name = "ConnectorOutput", ValueType = "System.Bool", CanRead = true };
+    public static IDataflowEvent CreateBooleanInputEvent(string functionBlockName, string connectorName)
+    {
+        var input = (TestDataflowEvent)CreateInputEvent(functionBlockName, connectorName);
+        input.ValueType = "System.Boolean, System.Private.CoreLib";
+        return input;
+    }
+
+    public static IDataflowEvent CreateOutputEvent(string functionBlockName = "Crest", string connectorName = "Value", params string[] containerPath)
+        => new TestDataflowEvent
+        {
+            EventId = Guid.NewGuid(),
+            Name = $"{functionBlockName}.{connectorName}",
+            ValueType = "System.Double, System.Private.CoreLib",
+            CanRead = true,
+            FunctionBlockName = functionBlockName,
+            ConnectorName = connectorName,
+            ContainerPath = containerPath,
+        };
 
 
     public static IUiMediator SetupDataflowEventRequest(this IUiMediator mediator, params IDataflowEvent[] clusterEvents)
@@ -37,6 +62,16 @@ internal static class DataflowEventTestUtils
         public string? Unit { get; set; }
 
         public required string ValueType { get; set; }
+
+        public Guid FunctionBlockId { get; set; } = Guid.NewGuid();
+
+        public required string FunctionBlockName { get; set; }
+
+        public required string ConnectorName { get; set; }
+
+        public string DataflowName { get; set; } = "Line 3";
+
+        public IReadOnlyList<string> ContainerPath { get; set; } = [];
 
         public bool Equals(IDataflowEvent? other) => EventId.Equals(other?.EventId);
     }

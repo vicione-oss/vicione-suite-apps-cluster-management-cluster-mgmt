@@ -137,6 +137,57 @@ public class GetDataflowEventsConsumerTests : TestWithDbContextSqlite<ClusterDbC
         response.Results.Should().ContainSingle(k => k.EventId == connectors[1].Id);
     }
 
+    [Fact]
+    public async Task Events_name_their_function_block_connector_dataflow_and_containers()
+    {
+        // Arrange
+        using var builder = ClusterFactory.CreateComplexCluster(ClusterComplexity.Complex);
+        var fbDesign = builder.Cache.FunctionBlockDesigns.First();
+        var dataflow = builder.Editors.Cluster.AddDataflow("Line 3", new Version(0, 0, 1));
+        var pump = builder.Editors.Container.AddContainer(dataflow.Root, "Pump 1");
+        var vibration = builder.Editors.Container.AddContainer(pump, "Vibration");
+        var functionBlock = builder.Editors.Container.AddFunctionBlock(vibration, fbDesign.Key, "Crest");
+        var input = functionBlock.Inputs.First();
+        builder.Editors.Connector.SetEventEnabled(true, input);
+
+        await using var tester = new MassTransitTester(cfg => SetupConsumer(cfg, builder.DependencyResolver));
+        tester.Services.GetRequiredService<IClusterDbContext>().SaveActiveClusterVersion(builder.Cluster);
+        _snapshotStore.SetupLoad(builder.Cluster);
+
+        var request = new GetDataflowEventsRequest() { ClusterId = builder.Cluster.Id, DataflowId = dataflow.Id };
+
+        // Act
+        var response = await tester.TestRequest<GetDataflowEventsResponse, GetDataflowEventsRequest>(request);
+
+        // Assert
+        var dataflowEvent = response.Results.Should().ContainSingle().Which;
+        dataflowEvent.FunctionBlockId.Should().Be(functionBlock.Id);
+        dataflowEvent.FunctionBlockName.Should().Be("Crest");
+        dataflowEvent.ConnectorName.Should().Be(input.Name);
+        dataflowEvent.DataflowName.Should().Be("Line 3");
+        dataflowEvent.ContainerPath.Should().Equal("Pump 1", "Vibration");
+    }
+
+    [Fact]
+    public async Task A_function_block_directly_in_the_dataflow_has_no_container_path()
+    {
+        // Arrange
+        using var builder = ClusterFactory.CreateComplexCluster(ClusterComplexity.Complex);
+        var dataflow = AddDataflowWithTwoEventEnabledConnectors(builder, out _);
+
+        await using var tester = new MassTransitTester(cfg => SetupConsumer(cfg, builder.DependencyResolver));
+        tester.Services.GetRequiredService<IClusterDbContext>().SaveActiveClusterVersion(builder.Cluster);
+        _snapshotStore.SetupLoad(builder.Cluster);
+
+        var request = new GetDataflowEventsRequest() { ClusterId = builder.Cluster.Id, DataflowId = dataflow.Id };
+
+        // Act
+        var response = await tester.TestRequest<GetDataflowEventsResponse, GetDataflowEventsRequest>(request);
+
+        // Assert
+        response.Results.Should().HaveCount(2).And.OnlyContain(e => e.DataflowName == "Second" && e.ContainerPath.Count == 0);
+    }
+
     private static Dataflow AddDataflowWithTwoEventEnabledConnectors(ClusterBuilder builder, out IConnector[] connectors)
     {
         var fbDesign = builder.Cache.FunctionBlockDesigns.First();

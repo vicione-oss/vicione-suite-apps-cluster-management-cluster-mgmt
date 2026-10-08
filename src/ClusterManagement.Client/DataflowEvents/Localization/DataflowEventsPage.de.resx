@@ -117,13 +117,97 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="AllEvents" xml:space="preserve">
+    <value>Alle Events</value>
+  </data>
+  <data name="Connector" xml:space="preserve">
+    <value>Konnektor</value>
+  </data>
+  <data name="Copied" xml:space="preserve">
+    <value>Kopiert</value>
+  </data>
+  <data name="DataflowEventsOfVersion" xml:space="preserve">
+    <value>Event-Datenpunkte der aktiven Version v{0}</value>
+  </data>
+  <data name="EventsShown" xml:space="preserve">
+    <value>{0} von {1} angezeigt</value>
+  </data>
+  <data name="FilterByName" xml:space="preserve">
+    <value>Nach Block, Konnektor oder Pfad filtern</value>
+  </data>
+  <data name="GroupBy" xml:space="preserve">
+    <value>Gruppieren nach</value>
+  </data>
+  <data name="GroupByContainer" xml:space="preserve">
+    <value>Container</value>
+  </data>
+  <data name="GroupByDataflow" xml:space="preserve">
+    <value>Dataflow</value>
+  </data>
+  <data name="GroupByDirection" xml:space="preserve">
+    <value>Eingang / Ausgang</value>
+  </data>
+  <data name="GroupByFunctionBlock" xml:space="preserve">
+    <value>Funktionsblock</value>
+  </data>
+  <data name="GroupByNone" xml:space="preserve">
+    <value>Keine</value>
+  </data>
+  <data name="GroupByValueType" xml:space="preserve">
+    <value>Werttyp</value>
+  </data>
+  <data name="GroupCounts" xml:space="preserve">
+    <value>{0} ein · {1} aus</value>
+  </data>
+  <data name="InputLegend" xml:space="preserve">
+    <value>Eingang, wird geschrieben</value>
+  </data>
+  <data name="Inputs" xml:space="preserve">
+    <value>Eingänge</value>
+  </data>
+  <data name="InputsGroup" xml:space="preserve">
+    <value>Eingänge · werden in den Cluster geschrieben</value>
+  </data>
+  <data name="InputTitle" xml:space="preserve">
+    <value>Eingang · {0} · wird in den Cluster geschrieben</value>
+  </data>
+  <data name="Location" xml:space="preserve">
+    <value>Ort</value>
+  </data>
+  <data name="NoEvents" xml:space="preserve">
+    <value>Die laufende Version hat keine Event-Datenpunkte</value>
+  </data>
+  <data name="NoMatchingEvents" xml:space="preserve">
+    <value>Keine Events passen zum Filter</value>
+  </data>
+  <data name="OutputLegend" xml:space="preserve">
+    <value>Ausgang, wird gelesen</value>
+  </data>
+  <data name="Outputs" xml:space="preserve">
+    <value>Ausgänge</value>
+  </data>
+  <data name="OutputsGroup" xml:space="preserve">
+    <value>Ausgänge · werden aus dem Cluster gelesen</value>
+  </data>
+  <data name="OutputTitle" xml:space="preserve">
+    <value>Ausgang · {0} · wird aus dem Cluster gelesen</value>
+  </data>
   <data name="PageTitle" xml:space="preserve">
     <value>Ereignis Anzeige</value>
   </data>
-  <data name="Readable" xml:space="preserve">
-    <value>Lesbar</value>
+  <data name="Show" xml:space="preserve">
+    <value>Anzeigen</value>
   </data>
-  <data name="Writable" xml:space="preserve">
-    <value>Beschreibbar</value>
+  <data name="Subscribed" xml:space="preserve">
+    <value>Abonniert</value>
+  </data>
+  <data name="ValueEnterWrites" xml:space="preserve">
+    <value>Wert, Enter schreibt</value>
+  </data>
+  <data name="ValueFor" xml:space="preserve">
+    <value>Wert für {0}</value>
+  </data>
+  <data name="WriteValue" xml:space="preserve">
+    <value>{0} schreiben</value>
   </data>
 </root>

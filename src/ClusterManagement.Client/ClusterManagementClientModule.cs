@@ -7,6 +7,7 @@ using ClusterManagement.Client.Editor.Extensions;
 using ClusterManagement.Client.IoddManagement.Extensions;
 using ClusterManagement.Client.Localization;
 using ClusterManagement.Client.Management.Extensions;
+using ClusterManagement.Client.Management.Services;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Internal;
 using ClusterManagement.Public;
@@ -59,6 +60,8 @@ public sealed class ClusterManagementClientModule : ClientModule
 
         services.GetRequiredService<IJournalMonitoring>()
             .AddFilterEntry(Constants.EngineHostJournalFilterKey, ClusterTerms.EngineHost, Constants.EngineHostJournalFilter, 10);
+
+        services.GetRequiredService<EngineCycleCollector>().Start();
 
         return Task.CompletedTask;
     };

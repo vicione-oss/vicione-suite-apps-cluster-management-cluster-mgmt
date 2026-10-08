@@ -17,6 +17,7 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
     IEventConsumer<ClusterUpdateChanged>,
     IEventConsumer<ClusterUpdateCompleted>,
     IEventConsumer<ClusterUpdateFailed>,
+    IEventConsumer<ClusterUpdateRejected>,
     IDisposable
 {
     private readonly IUiMediator _mediator;
@@ -29,6 +30,7 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
     public event EventHandler<ClusterUpdateChanged>? OnClusterUpdateChanged;
     public event EventHandler<ClusterUpdateCompleted>? OnClusterUpdateCompleted;
     public event EventHandler<ClusterUpdateFailed>? OnClusterUpdateFailed;
+    public event EventHandler<ClusterUpdateRejected>? OnClusterUpdateRejected;
     public event EventHandler<ClusterUpdateStarted>? OnClusterUpdateStarted;
 
     public ClusterManagementPageService(IUiMediator mediator, IClusterService clusterService, ILogger<ClusterManagementPageService> logger)
@@ -41,6 +43,7 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
         _subscriptionHandle.Add(_mediator.Register<ClusterUpdateChanged>(this));
         _subscriptionHandle.Add(_mediator.Register<ClusterUpdateCompleted>(this));
         _subscriptionHandle.Add(_mediator.Register<ClusterUpdateFailed>(this));
+        _subscriptionHandle.Add(_mediator.Register<ClusterUpdateRejected>(this));
     }
 
     public void Dispose()
@@ -100,6 +103,16 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
     {
         LogReceivedEvent(nameof(ClusterUpdateFailed), context.CorrelationId);
         OnClusterUpdateFailed?.Invoke(this, context.Message);
+        return Task.CompletedTask;
+    }
+
+    // The rejection carries the correlation id of the rejected command, so only the session that sent it is told.
+    public Task Consume(ClientContext<ClusterUpdateRejected> context, CancellationToken cancellationToken)
+    {
+        LogReceivedEvent(nameof(ClusterUpdateRejected), context.CorrelationId);
+        if (context.Message.CorrelationId == CorrelationId)
+            OnClusterUpdateRejected?.Invoke(this, context.Message);
+
         return Task.CompletedTask;
     }
 

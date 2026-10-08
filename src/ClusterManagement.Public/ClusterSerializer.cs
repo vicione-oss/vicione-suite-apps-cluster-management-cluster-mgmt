@@ -17,7 +17,7 @@ public static class ClusterSerializer
     public static JsonSerializerOptions? TypedSerializerOptions { get; private set; }
     public static JsonSerializerOptions UntypedSerializerOptions { get; } = new()
     {
-        Converters = { new TypeJsonConverter(), },
+        Converters = { new SynchronizedTypeJsonConverter(new TypeJsonConverter()), },
     };
 
     public static JsonSerializerOptions CreateSerializerOptions()
@@ -27,7 +27,7 @@ public static class ClusterSerializer
         {
             Converters =
             {
-                new TypeJsonConverter(),
+                new SynchronizedTypeJsonConverter(new TypeJsonConverter()),
                 new TypeNameHandlingConfig(additionalAssemblies: assemblies.Length > 0 ? assemblies : null, useTypeCache: false),
             },
         };

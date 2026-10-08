@@ -1,0 +1,95 @@
+@use "./../../Styles/design/colors";
+@use "./../../Styles/overview";
+
+.active-cluster {
+    @include overview.panel;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: overview.$gap 24px;
+    padding: overview.$panel-padding;
+
+    .cluster-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 64px;
+        height: 64px;
+        flex: none;
+        color: colors.$primary;
+    }
+
+    .cluster-info {
+        display: flex;
+        flex: 1 1 360px;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .title-row {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 12px;
+
+        h1 {
+            @include overview.page-heading;
+            min-width: 0;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    .description,
+    .muted {
+        @include overview.muted;
+    }
+
+    // One line each, kept even when empty, so the header keeps its height when another version starts running.
+    .description,
+    .facts {
+        min-height: 1.5em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+
+        // Fills the deploy button with the primary color, as the main action of the page. The rules depend on the
+        // internal `.button` class of the Button component of ViciOne.Ui.Blazor.Components 6.2.0. Re-check them after
+        // updating that package.
+        ::deep .button.cm-primary {
+            min-width: 160px;
+            justify-content: center;
+            background-color: colors.$primary;
+            border-color: colors.$primary;
+            color: colors.$background-darker;
+        }
+
+        ::deep .button.cm-primary:disabled,
+        ::deep .button.cm-primary.disabled {
+            background-color: transparent;
+            border-color: colors.$border;
+            color: colors.$font;
+        }
+    }
+
+    .chip {
+        @include overview.chip;
+        flex: none;
+    }
+
+    .dot {
+        @include overview.dot;
+    }
+
+    @include overview.status-colors;
+}

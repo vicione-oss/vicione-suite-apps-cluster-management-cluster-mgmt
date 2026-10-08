@@ -1,0 +1,15 @@
+<section class="summary-tiles">
+    @foreach (var tile in Tiles)
+    {
+        <div class="tile" @key="tile.Label" title="@Tooltip(tile)">
+            <div class="value @SizeClass(tile)">
+                @Format(tile.Value)
+                @if (tile.Of is { } of)
+                {
+                    <span class="of">/ @Format(of)</span>
+                }
+            </div>
+            <div class="label">@tile.Label</div>
+        </div>
+    }
+</section>

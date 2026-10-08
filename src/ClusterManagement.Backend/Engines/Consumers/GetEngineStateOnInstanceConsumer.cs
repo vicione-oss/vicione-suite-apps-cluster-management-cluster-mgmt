@@ -1,6 +1,7 @@
 ﻿using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Internal.Requests;
+using ClusterManagement.Public.ErrorHandling;
 using Microsoft.EntityFrameworkCore;
 using Sdk.Backend.Messaging;
 using Sdk.Messaging;
@@ -28,6 +29,7 @@ public sealed class GetEngineStateOnInstanceConsumer(IEngineHostCommunication en
 
                 return new()
                 {
+                    DeploymentId = deployment.Id,
                     EngineState = engineState switch
                     {
                         EngineState.Running => Internal.Requests.EngineState.Running,
@@ -40,10 +42,14 @@ public sealed class GetEngineStateOnInstanceConsumer(IEngineHostCommunication en
             }
             catch (Exception ex)
             {
-                throw new ErrorInfoException($"Cannot retrieve state for engine '{message.EngineId}'.", ex);
+                // The deployment id lets the caller match the engine's cycle reports while its host restarts.
+                return new(new ErrorInfo(ClusterErrors.EngineHostDidNotAnswer, $"Cannot retrieve state for engine '{message.EngineId}': {ex.Message}"))
+                {
+                    DeploymentId = deployment.Id,
+                };
             }
         }
 
-        throw new ErrorInfoException($"Cannot find engine '{message.EngineId}'.");
+        throw new ErrorInfoException(ClusterErrors.EngineNotDeployed, $"Cannot find engine '{message.EngineId}'.");
     }
 }

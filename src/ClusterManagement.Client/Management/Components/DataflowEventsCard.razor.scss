@@ -1,0 +1,31 @@
+@use "./../../Styles/design/colors";
+@use "./../../Styles/overview";
+
+.dataflow-events {
+    @include overview.panel;
+
+    .panel-head {
+        @include overview.panel-head;
+    }
+
+    .panel-title {
+        @include overview.panel-title;
+    }
+
+    .content {
+        padding: overview.$panel-padding;
+    }
+
+    .open-link {
+        color: colors.$primary;
+        text-decoration: none;
+
+        &:hover {
+            color: colors.$accent-hover;
+        }
+    }
+
+    .muted {
+        @include overview.muted;
+    }
+}

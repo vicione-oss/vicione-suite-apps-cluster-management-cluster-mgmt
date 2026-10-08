@@ -1,59 +1,57 @@
+using System.Globalization;
 using ClusterManagement.Client.Extensions;
 using ClusterManagement.Client.Management.Localization;
 using ClusterManagement.Client.Management.Logging;
 using ClusterManagement.Client.Management.Models;
 using ClusterManagement.Client.Management.Services;
 using ClusterManagement.Public.Events;
+using ClusterManagement.Public.Requests;
 using Microsoft.AspNetCore.Components;
 using Sdk.Client.Infrastructure;
-using Sdk.Messaging;
-using ViciOne.Ui.Blazor.Components.Button.Enums;
-using ViciOne.Ui.Blazor.Components.Button.Extensions;
-using ViciOne.Ui.MonochromeIcons.Core.Enums;
-using ViciOne.Ui.MonochromeIcons.Core.Extensions;
+using Sdk.Client.Services;
+using Sdk.MessageBanner.Contracts;
+using ViciOne.Cluster.Model;
+using ViciOne.Ui.Blazor.Components.Dialog.Components;
 
 namespace ClusterManagement.Client.Management;
 
 public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChanged>
 {
-    private readonly string _deployIconCssClass = MonochromeIconName.SendLight.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
-    private readonly string _editIconCssClass = MonochromeIconName.Edit.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
-    private readonly string _infoIconCssClass = MonochromeIconName.InfoLight.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
-    private readonly string _downloadIconCssClass = MonochromeIconName.Export.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
-    private readonly string _deleteIconCssClass = MonochromeIconName.Delete.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
-
     private readonly CancellationTokenSource _tokenSource = new();
 
     private bool _hasLoaded;
     private IDisposable? _subscriptionHandle;
-    private string? _sagaState;
-
-    // the table only applies a new list instance, so SelectedCluster always replaces it
-    private List<ClusterInfoModel> _selectedClusters = [];
+    private Dialog? _refSagaStateDialog;
+    private string? _sagaError;
+    private List<DeploymentState> _sagaStates = [];
+    private Cluster? _activeCluster;
+    private ClusterTopologySummary? _summary;
+    private DeploymentProgressModel? _deployment;
 
     [Inject] private IUiMediator Mediator { get; set; } = default!;
-
     [Inject] private IClusterManagementService ManagementService { get; set; } = default!;
-
+    [Inject] private IMessageBannerService MessageBannerService { get; set; } = default!;
     [Inject] private NavigationManager NavManager { get; set; } = default!;
+    [Inject(Key = Sdk.Constants.ClientTimeProviderServiceKey)] private TimeProvider TimeProvider { get; set; } = default!;
 
-    private List<ClusterInfoModel> Clusters { get; } = [];
+    private List<ClusterInfoModel> Versions { get; set; } = [];
 
-    private ClusterInfoModel? SelectedCluster
-    {
-        get;
-        set
-        {
-            field = value;
-            _selectedClusters = value is null ? [] : [value];
-        }
-    }
+    private ClusterInfoModel? ActiveVersion => Versions.FirstOrDefault(v => v.IsActive);
+
+    // The versions list every cluster; the header deploys the newest version of the one that runs.
+    private ClusterInfoModel? DraftVersion => Versions.FirstOrDefault(v => v.IsLatest && !v.IsActive && (ActiveVersion is null || v.Id == ActiveVersion.Id));
 
     protected override string PageTitle => Common.ModuleTitle;
 
     protected override async ValueTask DisposeInternal()
     {
         _subscriptionHandle?.Dispose();
+
+        ManagementService.OnClusterUpdateStarted -= OnClusterUpdateStarted;
+        ManagementService.OnClusterUpdateChanged -= OnClusterUpdateChanged;
+        ManagementService.OnClusterUpdateCompleted -= OnClusterUpdateCompleted;
+        ManagementService.OnClusterUpdateFailed -= OnClusterUpdateFailed;
+        ManagementService.OnClusterUpdateRejected -= OnClusterUpdateRejected;
 
         try
         {
@@ -65,11 +63,6 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
             // Ignore: CancellationTokenSource was already disposed.
         }
 
-        ManagementService.OnClusterUpdateStarted -= OnClusterUpdateStarted;
-        ManagementService.OnClusterUpdateChanged -= OnClusterUpdateChanged;
-        ManagementService.OnClusterUpdateCompleted -= OnClusterUpdateCompleted;
-        ManagementService.OnClusterUpdateFailed -= OnClusterUpdateFailed;
-
         await base.DisposeInternal();
     }
 
@@ -77,130 +70,147 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
     {
         await base.OnInitializedAsync();
 
-        await ReloadClusterList();
-
-        _hasLoaded = true;
+        // Subscribed before loading, so a deployment that starts meanwhile is seen through its events.
         _subscriptionHandle = Mediator.Register(this);
-
-        //https://learn.microsoft.com/en-us/archive/msdn-magazine/2013/march/async-await-best-practices-in-asynchronous-programming
         ManagementService.OnClusterUpdateStarted += OnClusterUpdateStarted;
         ManagementService.OnClusterUpdateChanged += OnClusterUpdateChanged;
         ManagementService.OnClusterUpdateCompleted += OnClusterUpdateCompleted;
         ManagementService.OnClusterUpdateFailed += OnClusterUpdateFailed;
+        ManagementService.OnClusterUpdateRejected += OnClusterUpdateRejected;
 
-        await UpdateCurrentDeploymentsState();
+        await ReloadVersions();
+        await ResumeRunningDeployment();
+
+        _hasLoaded = true;
     }
 
-    private async Task ReloadClusterList()
+    public async Task Consume(ClientContext<ClusterChanged> context, CancellationToken cancellationToken)
+        => await InvokeAsync(ReloadVersionsAndRender);
+
+    private async Task ReloadVersionsAndRender()
     {
-        Clusters.Clear();
-
-        var versions = await ManagementService.QueryClusterVersions(null, _tokenSource.Token);
-        if (versions.Count != 0)
-            Clusters.AddRange(versions);
-
-        SelectedCluster = Clusters.FirstOrDefault();
+        await ReloadVersions();
+        StateHasChanged();
     }
 
-    private async Task UpdateCurrentDeploymentsState()
+    private async Task ReloadVersions()
     {
-        var clusterIds = Clusters.GroupBy(k => k.Id).Select(k => k.Key).ToArray();
+        Versions = await ManagementService.QueryClusterVersions(null, _tokenSource.Token);
+        await ReloadActiveCluster();
+    }
 
-        foreach (var clusterId in clusterIds)
+    private async Task ReloadActiveCluster()
+    {
+        var active = ActiveVersion;
+        if (active is null || (_activeCluster?.Id == active.Id && _activeCluster.Version == active.Version))
+            return;
+
+        try
+        {
+            _activeCluster = await ManagementService.QueryCluster(active.Id, active.Version, _tokenSource.Token);
+            _summary = ClusterTopologySummary.Create(_activeCluster);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            // The previous version's cluster must not be shown as the running one; the next reload tries again.
+            _activeCluster = null;
+            _summary = null;
+            Logger.LogFailure(e, nameof(ReloadActiveCluster));
+        }
+    }
+
+    // Every cluster is asked, also one without a running version: its first deployment may be in progress.
+    // A deployment whose events arrived while loading is newer than any queried state and is kept.
+    private async Task ResumeRunningDeployment()
+    {
+        foreach (var clusterId in Versions.Select(v => v.Id).Distinct())
         {
             var state = await ManagementService.QueryClusterDeploymentState(clusterId, _tokenSource.Token);
             if (state is null)
                 continue;
 
-            // If we have already a running state we don't override it
-            var model = Clusters.FirstOrDefault(k => k.IsMatch(state.ClusterId, state.TargetVersion));
-            if (model is null || !string.IsNullOrEmpty(model.Status))
-                return;
-
-            // We just display the saga state as status because there'll be a redesign soon
-            model.Status = state.CurrentState;
-            model.IsExecuting = true;
+            var target = await QueryTargetCluster(state);
+            _deployment ??= DeploymentProgressModel.Resume(state, target);
+            return;
         }
-
-        if (clusterIds.Length > 0)
-            await InvokeAsync(StateHasChanged);
     }
 
-    private void OnSelectedItemsChanged(List<ClusterInfoModel> selectedItems)
+    // Without the target version the deployment is still shown, only without its instances.
+    private async Task<Cluster?> QueryTargetCluster(DeploymentState state)
     {
-        SelectedCluster = selectedItems.FirstOrDefault();
-        _selectedClusters = selectedItems;
+        try
+        {
+            return await ManagementService.QueryCluster(state.ClusterId, state.TargetVersion, _tokenSource.Token);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            Logger.LogFailure(e, nameof(QueryTargetCluster));
+            return null;
+        }
     }
 
     private async void OnClusterUpdateStarted(object? sender, ClusterUpdateStarted ev)
-    {
-        var model = Clusters.FirstOrDefault(k => k.IsMatch(ev.ClusterId, ev.TargetVersion));
-        if (model is null)
-            return;
-
-        model.Status = Common.StateStarted;
-        model.IsExecuting = true;
-
-        await InvokeAsync(StateHasChanged);
-    }
+        => await UpdateDeployment(() => _deployment = DeploymentProgressModel.Start(ev, TimeProvider.GetUtcNow()));
 
     private async void OnClusterUpdateChanged(object? sender, ClusterUpdateChanged ev)
-    {
-        var model = Clusters.FirstOrDefault(k => k.IsMatch(ev.ClusterId, ev.TargetVersion));
-        if (model is null)
-            return;
+        => await UpdateDeployment(() => DeploymentFor(ev.ClusterId, ev.TargetVersion)?.Apply(ev));
 
-        model.Status = ev.CurrentState ?? Common.StateUpdating;
-        model.IsExecuting = true;
-        model.DeploymentDuration = null;
-        model.DeploymentErrors.Clear();
-
-        if (ev.ApplicationId is not null && ev.Error is not null)
+    // A deployment whose versions cannot be loaded fails before the saga reports its start.
+    private async void OnClusterUpdateFailed(object? sender, ClusterUpdateFailed ev)
+        => await UpdateDeployment(() =>
         {
-            if (model.DeploymentErrors.All(k => k.ApplicationId != ev.ApplicationId))
-            {
-                model.DeploymentErrors.Add(new DeploymentErrorModel(ev.ApplicationId.Value, ev.Error.ErrorCode, ev.Error.Message));
-            }
-        }
-
-        await InvokeAsync(StateHasChanged);
-    }
+            if (DeploymentFor(ev.ClusterId, ev.Version) is { } deployment)
+                deployment.Fail(ev);
+            else
+                _deployment = DeploymentProgressModel.FailedBeforeStart(ev);
+        });
 
     private async void OnClusterUpdateCompleted(object? sender, ClusterUpdateCompleted ev)
-    {
-        var model = Clusters.FirstOrDefault(k => k.IsMatch(ev.ClusterId, ev.NewVersion));
-        if (model is null)
-            return;
-
-        // reset all clusters
-        foreach (var cluster in Clusters.Where(k => Equals(k.Id, ev.ClusterId)))
+        => await HandleEvent(async () =>
         {
-            cluster.IsActive = false;
-            cluster.Status = "";
-        }
+            DeploymentFor(ev.ClusterId, ev.NewVersion)?.Complete(ev);
+            await ReloadVersions();
+            StateHasChanged();
+        });
 
-        // set status on current
-        model.Status = Common.StateActive;
-        model.IsActive = true;
-        model.IsExecuting = false;
-        model.DeploymentDuration = ev.Duration;
-        model.DeploymentErrors.Clear();
+    private async void OnClusterUpdateRejected(object? sender, ClusterUpdateRejected ev)
+        => await HandleEvent(() =>
+        {
+            MessageBannerService.ShowMessageBanner(MessageType.Warning,
+                string.Format(CultureInfo.CurrentCulture, ClusterOverview.DeploymentRejected, ev.RejectedVersion, ev.TargetVersion));
+            return Task.CompletedTask;
+        });
 
-        await InvokeAsync(StateHasChanged);
-    }
+    private DeploymentProgressModel? DeploymentFor(Guid clusterId, Version version)
+        => _deployment?.Matches(clusterId, version) == true ? _deployment : null;
 
-    private async void OnClusterUpdateFailed(object? sender, ClusterUpdateFailed ev)
+    private Task UpdateDeployment(Action update)
+        => HandleEvent(() =>
+        {
+            update();
+            StateHasChanged();
+            return Task.CompletedTask;
+        });
+
+    // The deployment events arrive in async void handlers, where an exception would be lost; the renderer reports it instead.
+    private async Task HandleEvent(Func<Task> handle)
     {
-        var model = Clusters.FirstOrDefault(k => k.IsMatch(ev.ClusterId, ev.Version));
-        if (model is null)
-            return;
-
-        model.Status = Common.StateFailed;
-        model.IsExecuting = false;
-        model.DeploymentErrors.AddRange(ev.ErrorsByApplication.Select(k => new DeploymentErrorModel(k.Key, k.Value.ErrorCode, k.Value.Message)));
-
-        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await InvokeAsync(handle);
+        }
+        catch (Exception) when (_tokenSource.IsCancellationRequested)
+        {
+            // The page was closed while handling the event.
+        }
+        catch (Exception e)
+        {
+            await DispatchExceptionAsync(e);
+        }
     }
+
+    private Task DeployDraft()
+        => DraftVersion is { } draft ? DeployClusterVersion(draft) : Task.CompletedTask;
 
     private async Task DeployClusterVersion(ClusterInfoModel model)
     {
@@ -226,95 +236,60 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
         }
     }
 
-    public async Task Consume(ClientContext<ClusterChanged> context, CancellationToken cancellationToken)
+    private void OpenEditor()
     {
-        if (context.Message.Action == CrudAction.Deleted)
-        {
-            var deleted = Clusters.FirstOrDefault(k => k.IsMatch(context.Message.ClusterId, context.Message.Version));
-            if (deleted is null)
-                return;
-
-            Clusters.Remove(deleted);
-            SelectedCluster = null;
-
-            // set state if latest item was deleted
-            var latest = Clusters.FirstOrDefault();
-            latest?.IsLatest = true;
-        }
-        else
-        {
-            await ReloadClusterList();
-        }
-
-        await InvokeAsync(StateHasChanged);
+        if (Versions.FirstOrDefault(v => v.IsLatest) is { } latest)
+            NavManager.NavigateToEditor(latest);
     }
 
     private void HandleEdit(ClusterInfoModel model)
     {
-        if (!model.IsLatest)
-            return;
-
-        NavManager.NavigateToEditor(model);
+        if (model.IsLatest)
+            NavManager.NavigateToEditor(model);
     }
 
     private async Task ResetSagaStates()
     {
         try
         {
-            var clusterIds = Clusters.GroupBy(k => k.Id).Select(k => k.Key);
-            if (clusterIds is null)
-                return;
-
-            foreach (var clusterId in clusterIds)
-            {
+            foreach (var clusterId in Versions.Select(v => v.Id).Distinct())
                 await ManagementService.ResetSagaState(clusterId, _tokenSource.Token);
-            }
 
-            foreach (var cluster in Clusters.Where(k => !k.IsActive))
-            {
-                cluster.Status = string.Empty;
-                cluster.IsExecuting = false;
-            }
+            _deployment = null;
         }
         catch (Exception ex)
         {
             Logger.LogFailure(ex, nameof(ResetSagaStates));
-            _sagaState = ex.Message;
+            _sagaError = ex.Message;
+            _sagaStates = [];
+            await _refSagaStateDialog!.ShowAsync();
         }
-
-        await InvokeAsync(StateHasChanged);
     }
 
-    private async Task GetSagaState()
+    private async Task ShowSagaState()
     {
+        _sagaError = null;
+        _sagaStates = [];
+
         try
         {
-            _sagaState = null;
-
-            var clusterIds = Clusters.GroupBy(k => k.Id).Select(k => k.Key);
-            if (clusterIds is null)
-                return;
-
-            foreach (var clusterId in clusterIds)
+            foreach (var clusterId in Versions.Select(v => v.Id).Distinct())
             {
-                var state = await ManagementService.QueryClusterDeploymentState(clusterId, _tokenSource.Token);
-                if (state is null)
-                    continue;
-
-                _sagaState += $"Cluster {clusterId} - State: {state.CurrentState}, ActiveVersion: {state.ActiveVersion}, TargetVersion: {state.TargetVersion}\n";
+                if (await ManagementService.QueryClusterDeploymentState(clusterId, _tokenSource.Token) is { } state)
+                    _sagaStates.Add(state);
             }
         }
         catch (Exception ex)
         {
-            Logger.LogFailure(ex, nameof(GetSagaState));
-            _sagaState = ex.Message;
+            Logger.LogFailure(ex, nameof(ShowSagaState));
+            _sagaError = ex.Message;
         }
 
-        await InvokeAsync(StateHasChanged);
+        await _refSagaStateDialog!.ShowAsync();
     }
 
-    private void NavigateToEvents()
-        => NavManager.NavigateToManagementEvents();
+    private async Task OnSagaStateCloseAsync()
+        => await _refSagaStateDialog!.CloseAsync();
 
     private async Task DownloadClusterJson(ClusterInfoModel model)
     {

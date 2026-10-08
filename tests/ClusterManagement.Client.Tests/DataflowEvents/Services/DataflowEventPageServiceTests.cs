@@ -50,7 +50,65 @@ public class DataflowEventPageServiceTests
             service.Events.Should().ContainSingle(k => k.CanRead, "output");
 
             service.ActiveClusterId.Should().Be(_clusterInfo.Id);
-            service.ActiveVersion.Should().Be($"v{_clusterInfo.Version}");
+            service.ActiveVersion.Should().Be(_clusterInfo.Version);
+        }
+
+        [Fact]
+        public async Task Should_keep_the_pending_value_of_an_input_across_reloads()
+        {
+            // Arrange
+            var service = CreateService(_inputEvent, _outputEvent);
+            await service.LoadDataflowEvents();
+            service.Events.Single(k => k.EventId == _inputEvent.EventId).PendingValue = "42";
+
+            // Act
+            await service.LoadDataflowEvents();
+
+            // Assert
+            service.Events.Single(k => k.EventId == _inputEvent.EventId).PendingValue.Should().Be("42");
+            service.Events.Single(k => k.EventId == _outputEvent.EventId).PendingValue.Should().BeNull();
+        }
+
+        [Fact]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "xUnit1051:Calls to methods which accept CancellationToken should use TestContext.Current.CancellationToken", Justification = "Overload method")]
+        public async Task Should_keep_the_subscription_of_an_event_across_reloads_and_deliver_its_values_to_the_new_model()
+        {
+            // Arrange
+            var service = CreateService(_inputEvent, _outputEvent);
+            Func<DateTime, string?, Task>? handler = null;
+            var subscription = Substitute.For<IAsyncDisposable>();
+            _eventBroker.Subscribe(_outputEvent.EventId, Arg.Do<Func<DateTime, string?, Task>>(h => handler = h)).Returns(subscription);
+            await service.LoadDataflowEvents();
+            await service.SubscribeEvent(service.Events.Single(k => k.EventId == _outputEvent.EventId));
+
+            // Act
+            await service.LoadDataflowEvents();
+            await handler!(new DateTime(2026, 10, 6, 12, 0, 0, DateTimeKind.Utc), "7");
+
+            // Assert
+            var reloaded = service.Events.Single(k => k.EventId == _outputEvent.EventId);
+            reloaded.Subscription.Should().BeSameAs(subscription);
+            reloaded.Value.Should().Be("7");
+            await subscription.DidNotReceive().DisposeAsync();
+        }
+
+        [Fact]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "xUnit1051:Calls to methods which accept CancellationToken should use TestContext.Current.CancellationToken", Justification = "Overload method")]
+        public async Task Should_end_the_subscription_of_an_event_that_is_gone_after_a_reload()
+        {
+            // Arrange
+            var service = CreateService(_inputEvent, _outputEvent);
+            var subscription = Substitute.For<IAsyncDisposable>();
+            _eventBroker.Subscribe(_outputEvent.EventId, Arg.Any<Func<DateTime, string?, Task>>()).Returns(subscription);
+            await service.LoadDataflowEvents();
+            await service.SubscribeEvent(service.Events.Single(k => k.EventId == _outputEvent.EventId));
+            _eventBroker.GetEvents().Returns([_inputEvent]);
+
+            // Act
+            await service.LoadDataflowEvents();
+
+            // Assert
+            await subscription.Received(1).DisposeAsync();
         }
     }
 
