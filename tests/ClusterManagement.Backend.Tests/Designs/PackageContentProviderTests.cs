@@ -187,6 +187,8 @@ public class PackageContentProviderTests
             var provider = _services.GetRequiredService<PackageContentProvider>();
             var dependency = new ClusterDependency { Name = "TestPackage", Version = "1.0.0" };
 
+            SetupClusterManagementAssemblyContext();
+
             await provider.TryAddPackage(dependency, [], [], false, TestContext.Current.CancellationToken);
 
             // Act

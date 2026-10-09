@@ -55,7 +55,7 @@
 - `System.IO.Abstractions`, updated to version `22.3.0`
 - `System.IO.Abstractions` package, added to `ClusterManagement.Internal`
 - `ViciOne.Suite.Sdk` packages, update to version `3.2.0`
-- `ViciOne.Ui.ClusterEditor` package, update to `2.0.0`
+- `ViciOne.Ui.ClusterEditor` package, update to `2.1.0`
 - `ViciOne.Ui.Design` package, update version to `2.5.0`
 - `ViciOne.Ui.MonochromeIcons.Assets` package, update version to `4.18.0`
 - `ViciOne.Ui.Localization` package, update version to `3.6.0`

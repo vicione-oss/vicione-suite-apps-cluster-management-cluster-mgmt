@@ -17,6 +17,7 @@ using ViciOne.Ui.Blazor.Components.CheckBox;
 using ViciOne.Ui.Blazor.Components.CheckBox.Extensions;
 using ViciOne.Ui.Blazor.Components.SearchBox;
 using ViciOne.Ui.Blazor.Components.TestingHelpers.Button.Extensions;
+using ViciOne.Ui.Blazor.Components.TestingHelpers.TextBox.Extensions;
 using ViciOne.Ui.Blazor.Components.TextBox;
 using ViciOne.Ui.Blazor.Components.Toolbar.Extensions;
 using ViciOne.Ui.Localization.Resources;
@@ -51,6 +52,7 @@ public sealed class DataflowEventsPageTests
         ctx.Services.AddClientTimeProvider(now: _now);
         ctx.Services.AddSingleton(_eventBroker);
         ctx.Services.AddSingleton(_managementService);
+        ctx.JSInterop.SetupForTextBox();
         AddPageService(ctx);
         SetupTreeKeys(ctx);
 
@@ -722,6 +724,7 @@ public sealed class DataflowEventsPageTests
         AddPageService(ctx);
         SetupTreeKeys(ctx);
         ctx.Services.AddCheckBox();
+        ctx.JSInterop.SetupForTextBox();
         _eventBroker.GetEvents().Returns(events);
 
         return ctx.Render<DataflowEventsPage>();

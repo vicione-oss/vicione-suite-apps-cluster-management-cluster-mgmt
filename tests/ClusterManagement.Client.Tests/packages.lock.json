@@ -51,14 +51,14 @@
       },
       "ViciOne.Ui.Blazor.Components.TestingHelpers": {
         "type": "Direct",
-        "requested": "[6.2.0, )",
-        "resolved": "6.2.0",
-        "contentHash": "7FOoO4ArnQfiMkIzCruV8O0AA5H/EqYwyO/N+pArpphxHmk3VcidXwQoAKp1SV1+nvMyae5W6GIyyTKfhGiP5Q==",
+        "requested": "[6.5.0, )",
+        "resolved": "6.5.0",
+        "contentHash": "7FzaWqLfT/yvz831o22LJxz3gzl7kPF4RsIaZDBueKgRDy8muyIOT3tHSCgGgtyS8n81zJOY0XB4q4cBV8Amrg==",
         "dependencies": {
           "AwesomeAssertions": "9.3.0",
           "Bunit": "2.7.2",
           "NSubstitute": "5.3.0",
-          "ViciOne.Ui.Blazor.Components": "6.2.0"
+          "ViciOne.Ui.Blazor.Components": "6.5.0"
         }
       },
       "xunit.v3.mtp-v2": {
@@ -985,8 +985,8 @@
       },
       "ViciOne.Ui.Blazor.Components": {
         "type": "Transitive",
-        "resolved": "6.2.0",
-        "contentHash": "GuKxymJUzsZOLqAtP5Nd4MV5qe75P/O2th8WRo9b5wP2JdGfNB6d4QQghWQDpukdSucgg5APP2ooBRKKxXJjIg==",
+        "resolved": "6.5.0",
+        "contentHash": "NyJOffMmrQkKAsYB8Frp4xB2bzq7xxFuPpctQk26HlE9beIgBiOVBaE1kYr3oel2mFFXukLC/wzOpXQFnjwGFw==",
         "dependencies": {
           "Microsoft.AspNetCore.Components.QuickGrid": "10.0.12",
           "Microsoft.AspNetCore.Components.Web": "10.0.12",
@@ -1126,7 +1126,7 @@
           "Microsoft.Extensions.Http": "[10.0.12, )",
           "ViciOne.Suite.ClusterManagement.Internal": "[1.0.0, )",
           "ViciOne.Suite.Sdk.Client": "[3.2.0, )",
-          "ViciOne.Ui.ClusterEditor": "[2.0.0, )",
+          "ViciOne.Ui.ClusterEditor": "[2.1.0, )",
           "ViciOne.Ui.Localization": "[3.6.0, )",
           "ViciOne.Ui.MonochromeIcons.Components": "[4.18.0, )"
         }
@@ -1349,15 +1349,15 @@
       },
       "ViciOne.Ui.ClusterEditor": {
         "type": "CentralTransitive",
-        "requested": "[2.0.0, )",
-        "resolved": "2.0.0",
-        "contentHash": "Ifh/x4fEoFp10cg629oNRtbZ1P5y2fBT8IM+/cJj8aQlOrl3vJgRyQbuSVdYAXDiMdzpOCIJrgQG1CRShH1sJA==",
+        "requested": "[2.1.0, )",
+        "resolved": "2.1.0",
+        "contentHash": "lpKPkO22RF0SiVXzAwRnY1egFwKaqllQA7HvPpxggQ82+Cha8AucjicUAjfSCu/lk15GufXZJC3oxDsR7zcVPQ==",
         "dependencies": {
           "Markdig": "0.42.0",
           "Microsoft.Extensions.Localization": "10.0.12",
           "ViciOne.Cluster.Builder": "1.0.0",
           "ViciOne.Tree.Builder": "3.0.0",
-          "ViciOne.Ui.Blazor.Components": "6.2.0",
+          "ViciOne.Ui.Blazor.Components": "6.5.0",
           "ViciOne.Ui.Localization": "3.6.0",
           "ViciOne.Ui.MonochromeIcons.Components": "4.18.0",
           "ViciOne.Ui.TreeEditor": "2.0.1",
