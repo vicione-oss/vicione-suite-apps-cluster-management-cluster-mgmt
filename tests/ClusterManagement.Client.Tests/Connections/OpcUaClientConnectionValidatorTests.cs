@@ -15,7 +15,6 @@ public sealed class OpcUaClientConnectionValidatorTests
         SubscriptionPublishingIntervalMilliseconds = 1000,
         AuthenticationMode = OpcUaAuthenticationMode.Anonymous,
         ApplicationCertificateSubject = "CN=OPC-UA Client",
-        ApplicationCertificatesPath = "/var/lib/opcua/pki/own",
     };
 
     [Fact]

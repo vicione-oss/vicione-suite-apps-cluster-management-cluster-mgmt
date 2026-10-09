@@ -24,6 +24,9 @@ public sealed partial class OpcUaServerConnectionSettings : ConnectionSettingsCo
 
     [Inject] private ILogger<OpcUaServerConnectionSettings> Logger { get; set; } = default!;
 
+    // A secured server checks client certificates against its trusted store.
+    private bool RequiresTrustedClientCertificates => Connection.SecurityPolicy != OpcUaSecurityPolicy.None;
+
     /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {

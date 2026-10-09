@@ -1,0 +1,13 @@
+@use "./../../../shared/styles/colors-staged";
+
+// Spans both columns of the settings grid, like the SDK's settings information block.
+.security-policy-warning {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    font-size: 12px;
+    letter-spacing: .4px;
+    color: colors-staged.$color-warning;
+}

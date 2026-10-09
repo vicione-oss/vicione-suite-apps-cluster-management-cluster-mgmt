@@ -70,15 +70,6 @@ namespace ClusterManagement.Client.Connections.Localization {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Application certificates path.
-        /// </summary>
-        internal static string ApplicationCertificatesPath {
-            get {
-                return ResourceManager.GetString("ApplicationCertificatesPath", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Application name.
         /// </summary>
         internal static string ApplicationName {
@@ -248,7 +239,16 @@ namespace ClusterManagement.Client.Connections.Localization {
                 return ResourceManager.GetString("SecurityPolicyNone", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Without a security policy the connection is unencrypted. Use with caution!.
+        /// </summary>
+        internal static string SecurityPolicyNoneWarning {
+            get {
+                return ResourceManager.GetString("SecurityPolicyNoneWarning", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Subscription publishing interval (ms).
         /// </summary>
@@ -259,11 +259,20 @@ namespace ClusterManagement.Client.Connections.Localization {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Trusted certificates path.
+        ///   Looks up a localized string similar to Trusted client certificates path.
         /// </summary>
-        internal static string TrustedCertificatesPath {
+        internal static string TrustedClientCertificatesPath {
             get {
-                return ResourceManager.GetString("TrustedCertificatesPath", resourceCulture);
+                return ResourceManager.GetString("TrustedClientCertificatesPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Place the certificates of the clients allowed to connect in this directory..
+        /// </summary>
+        internal static string TrustedClientCertificatesPathSubline {
+            get {
+                return ResourceManager.GetString("TrustedClientCertificatesPathSubline", resourceCulture);
             }
         }
         
@@ -277,20 +286,38 @@ namespace ClusterManagement.Client.Connections.Localization {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Place the CA certificates that issued the trusted certificates in this directory..
+        /// </summary>
+        internal static string TrustedIssuerCertificatesPathSubline {
+            get {
+                return ResourceManager.GetString("TrustedIssuerCertificatesPathSubline", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Trusted server certificates path.
+        /// </summary>
+        internal static string TrustedServerCertificatesPath {
+            get {
+                return ResourceManager.GetString("TrustedServerCertificatesPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Place the certificates of the servers to connect to in this directory..
+        /// </summary>
+        internal static string TrustedServerCertificatesPathSubline {
+            get {
+                return ResourceManager.GetString("TrustedServerCertificatesPathSubline", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Use custom transport quotas.
         /// </summary>
         internal static string UseCustomTransportQuotas {
             get {
                 return ResourceManager.GetString("UseCustomTransportQuotas", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The application certificates path is required..
-        /// </summary>
-        internal static string ValidationApplicationCertificatesPathRequired {
-            get {
-                return ResourceManager.GetString("ValidationApplicationCertificatesPathRequired", resourceCulture);
             }
         }
         

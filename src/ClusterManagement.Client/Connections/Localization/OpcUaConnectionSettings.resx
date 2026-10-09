@@ -103,17 +103,26 @@
   <data name="ApplicationCertificateSubject" xml:space="preserve">
     <value>Application certificate subject</value>
   </data>
-  <data name="ApplicationCertificatesPath" xml:space="preserve">
-    <value>Application certificates path</value>
+  <data name="AutoAcceptUntrustedCertificates" xml:space="preserve">
+    <value>Auto-accept untrusted certificates</value>
   </data>
-  <data name="TrustedCertificatesPath" xml:space="preserve">
-    <value>Trusted certificates path</value>
+  <data name="TrustedClientCertificatesPath" xml:space="preserve">
+    <value>Trusted client certificates path</value>
+  </data>
+  <data name="TrustedClientCertificatesPathSubline" xml:space="preserve">
+    <value>Place the certificates of the clients allowed to connect in this directory.</value>
+  </data>
+  <data name="TrustedServerCertificatesPath" xml:space="preserve">
+    <value>Trusted server certificates path</value>
+  </data>
+  <data name="TrustedServerCertificatesPathSubline" xml:space="preserve">
+    <value>Place the certificates of the servers to connect to in this directory.</value>
   </data>
   <data name="TrustedIssuerCertificatesPath" xml:space="preserve">
     <value>Trusted issuer certificates path</value>
   </data>
-  <data name="AutoAcceptUntrustedCertificates" xml:space="preserve">
-    <value>Auto-accept untrusted certificates</value>
+  <data name="TrustedIssuerCertificatesPathSubline" xml:space="preserve">
+    <value>Place the CA certificates that issued the trusted certificates in this directory.</value>
   </data>
   <data name="AuthModeAnonymous" xml:space="preserve">
     <value>Anonymous</value>
@@ -123,6 +132,9 @@
   </data>
   <data name="SecurityPolicyNone" xml:space="preserve">
     <value>None (no security)</value>
+  </data>
+  <data name="SecurityPolicyNoneWarning" xml:space="preserve">
+    <value>Without a security policy the connection is unencrypted. Use with caution!</value>
   </data>
   <data name="SecurityPolicyBasic256Sha256Sign" xml:space="preserve">
     <value>Basic256Sha256 - Sign</value>
@@ -162,9 +174,6 @@
   </data>
   <data name="ValidationApplicationCertificateSubjectRequired" xml:space="preserve">
     <value>The application certificate subject is required.</value>
-  </data>
-  <data name="ValidationApplicationCertificatesPathRequired" xml:space="preserve">
-    <value>The application certificates path is required.</value>
   </data>
   <data name="ValidationPublishingIntervalPositive" xml:space="preserve">
     <value>The publishing interval must be greater than zero.</value>

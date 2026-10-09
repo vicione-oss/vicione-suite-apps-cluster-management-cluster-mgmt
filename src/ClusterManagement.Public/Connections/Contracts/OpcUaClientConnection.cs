@@ -85,6 +85,7 @@ public sealed record OpcUaClientConnection : IConnection
     /// Gets or sets the path of the directory the client's application instance certificate is loaded from.
     /// </summary>
     /// <remarks>
+    /// Not editable in the connection settings dialog, a new connection gets a directory of its own below the workspace home.
     /// Maps to the DataPort's <c>ApplicationCertificatesStorePath</c>. When set, <c>ApplicationCertificatesStoreType</c> is
     /// <c>Directory</c>; when <see langword="null"/> or empty, it is <c>None</c>.
     /// </remarks>
@@ -94,6 +95,7 @@ public sealed record OpcUaClientConnection : IConnection
     /// Gets or sets the path of the directory trusted server certificates are loaded from.
     /// </summary>
     /// <remarks>
+    /// Not editable in the connection settings dialog, a new connection gets a directory of its own below the workspace home.
     /// Maps to the DataPort's <c>TrustedCertificatesStorePath</c>. When set, <c>TrustedCertificatesStoreType</c> is
     /// <c>Directory</c>; when <see langword="null"/> or empty, it is <c>None</c>.
     /// </remarks>
@@ -103,6 +105,7 @@ public sealed record OpcUaClientConnection : IConnection
     /// Gets or sets the path of the directory trusted issuer (CA) certificates are loaded from.
     /// </summary>
     /// <remarks>
+    /// Not editable in the connection settings dialog, a new connection gets a directory of its own below the workspace home.
     /// Maps to the DataPort's <c>TrustedIssuerCertificatesStorePath</c>. When set, <c>TrustedIssuerCertificatesStoreType</c>
     /// is <c>Directory</c>; when <see langword="null"/> or empty, it is <c>None</c>.
     /// </remarks>
