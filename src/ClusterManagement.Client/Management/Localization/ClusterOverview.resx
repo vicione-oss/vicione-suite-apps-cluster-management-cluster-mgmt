@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="BackToClusterManager" xml:space="preserve">
+    <value>Back to the Cluster Manager</value>
+  </data>
   <data name="CheckedAt" xml:space="preserve">
     <value>checked {0}</value>
   </data>
@@ -302,6 +305,9 @@
   </data>
   <data name="NoSagaRunningHint" xml:space="preserve">
     <value>The deployment state machine has no open deployment. Resetting the deployment state is only needed when a deployment hangs.</value>
+  </data>
+  <data name="NoVersionRunning" xml:space="preserve">
+    <value>No version running</value>
   </data>
   <data name="NoVersions" xml:space="preserve">
     <value>There is no cluster version yet. Create one in the Cluster Editor.</value>

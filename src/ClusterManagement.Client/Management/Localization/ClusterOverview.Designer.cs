@@ -61,6 +61,15 @@ namespace ClusterManagement.Client.Management.Localization {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Back to the Cluster Manager.
+        /// </summary>
+        internal static string BackToClusterManager {
+            get {
+                return ResourceManager.GetString("BackToClusterManager", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to checked {0}.
         /// </summary>
         internal static string CheckedAt {
@@ -618,6 +627,15 @@ namespace ClusterManagement.Client.Management.Localization {
             }
         }
 
+        /// <summary>
+        ///   Looks up a localized string similar to No version running.
+        /// </summary>
+        internal static string NoVersionRunning {
+            get {
+                return ResourceManager.GetString("NoVersionRunning", resourceCulture);
+            }
+        }
+        
         /// <summary>
         ///   Looks up a localized string similar to There is no cluster version yet. Create one in the Cluster Editor..
         /// </summary>

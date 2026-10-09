@@ -1,4 +1,5 @@
 @using ClusterManagement.Client.DataflowEvents.Models
+@using ClusterManagement.Client.Management.Components
 @using ClusterManagement.Public
 @using Microsoft.AspNetCore.Components.Web.Virtualization
 @using ViciOne.Ui.Blazor.Components.Button
@@ -13,7 +14,7 @@
 
 <div class="cluster-events">
     <section class="events-head">
-        <a class="back-link" href="@Constants.ManagementModuleRoute">← @CommonVocabulary.Management</a>
+        <ClusterStatusLink ClusterId="@PageService.ActiveClusterId" RunningVersion="@PageService.ActiveVersion" IsLoading="@_isLoading" />
 
         <div class="title-row">
             <div class="title">
@@ -35,11 +36,6 @@
                     <Button Text="@ToggleExpansionText"
                             OnClick="@ToggleExpansion" />
                 }
-                <Button Text="@ToggleSubscriptionsText"
-                        OnClick="@ToggleSubscriptions" />
-                <Button IconCssClass="@_refreshIconCssClass"
-                        Title="@CommonVocabulary.RefreshVerb"
-                        OnClick="@RefreshDataflowEvents" />
             </div>
         </div>
 
@@ -69,49 +65,56 @@
     </section>
 
     <section class="events-table">
-        <table>
+        @* The table renders only the rows in view, so it tells assistive technology how many there are and where each one sits. *@
+        <table @ref="_table" role="@(_grouping == DataflowEventGrouping.None ? null : "treegrid")" aria-label="@(_grouping == DataflowEventGrouping.None ? null : Localization.DataflowEventsPage.PageTitle)"
+               aria-rowcount="@(_rows.Count + 1)">
             <colgroup>
                 <col class="connector-column" />
                 <col class="location-column" />
                 <col class="type-column" />
                 <col class="value-column" />
                 <col class="time-column" />
-                <col class="subscribe-column" />
             </colgroup>
             <thead>
-                <tr>
+                <tr aria-rowindex="1">
                     <th scope="col">@Localization.DataflowEventsPage.Connector</th>
                     <th scope="col" class="location">@Localization.DataflowEventsPage.Location</th>
                     <th scope="col">@TechnicalTerms.ValueType</th>
                     <th scope="col">@CommonVocabulary.Value</th>
                     <th scope="col">@TechnicalTerms.Timestamp</th>
-                    <th scope="col">@Localization.DataflowEventsPage.Subscribed</th>
                 </tr>
             </thead>
             <tbody>
                 @* ItemSize is the row height the stylesheet gives every cell. Twenty rows on either side stay rendered, so a
                    server round trip while scrolling does not show as an empty area. *@
-                <Virtualize Items="@_rows" Context="row" SpacerElement="tr" ItemSize="36" OverscanCount="20">
+                <Virtualize @ref="_virtualize" ItemsProvider="@ProvideRows" Context="row" SpacerElement="tr" ItemSize="36" OverscanCount="20">
                     @if (row.Event is not { } dataflowEvent)
                     {
-                        var isExpanded = IsExpanded(row.Group);
-                        <tr class="group" @key="row.Group.Key">
-                            <td colspan="6">
+                        var node = row.Node;
+                        var isExpanded = IsExpanded(node);
+                        @* A click anywhere on the row toggles the group. The suite's Button passes its click on, so the chevron
+                           sits in a span that stops it, or one click would toggle the group twice. *@
+                        <tr class="group" @key="node.Group.Key" style="@IndentStyle(row.Level)" @onclick="@(() => ToggleGroup(node))" aria-rowindex="@row.RowIndex"
+                            aria-level="@row.Level" aria-setsize="@row.SetSize" aria-posinset="@row.Position" aria-expanded="@(isExpanded ? "true" : "false")">
+                            <td colspan="5">
                                 <div class="group-row">
-                                    <Button Text="@GroupLabel(row.Group)"
-                                            Title="@GroupLabel(row.Group)"
-                                            IconCssClass="@(isExpanded ? _collapseIconCssClass : _expandIconCssClass)"
-                                            CssClass="group-toggle"
-                                            Size="@ButtonSize.Small"
-                                            OnClick="@(() => ToggleGroup(row.Group))" />
-                                    <span class="muted group-counts">@string.Format(Localization.DataflowEventsPage.GroupCounts, row.Group.InputCount, row.Group.OutputCount)</span>
+                                    <span class="own-click" @onclick:stopPropagation="true">
+                                        <Button Text="@node.Name"
+                                                Title="@string.Join(" › ", node.Path)"
+                                                IconCssClass="@(isExpanded ? _collapseIconCssClass : _expandIconCssClass)"
+                                                CssClass="group-toggle"
+                                                Size="@ButtonSize.Small"
+                                                OnClick="@(() => ToggleGroup(node))" />
+                                    </span>
+                                    <span class="muted group-counts">@string.Format(Localization.DataflowEventsPage.GroupCounts, node.Group.InputCount, node.Group.OutputCount)</span>
                                 </div>
                             </td>
                         </tr>
                     }
                     else
                     {
-                        <tr class="event @(_grouping == DataflowEventGrouping.None ? null : "nested")" @key="dataflowEvent.EventId">
+                        <tr class="event @(row.Level is null ? null : "nested")" @key="dataflowEvent.EventId" style="@IndentStyle(row.Level)" tabindex="-1"
+                            aria-rowindex="@row.RowIndex" aria-level="@row.Level" aria-setsize="@row.SetSize" aria-posinset="@row.Position">
                             <td>
                                 <span class="connector">
                                     <span class="connector-icon" role="img" title="@DirectionTitle(dataflowEvent)" aria-label="@DirectionTitle(dataflowEvent)">@ConnectorIcon(dataflowEvent)</span>
@@ -167,32 +170,13 @@
                                 }
                             </td>
                             <td class="muted time" title="@TimeTitle(dataflowEvent.Timestamp)">@TimeText(dataflowEvent.Timestamp)</td>
-                            <td>
-                                @if (dataflowEvent.CanRead)
-                                {
-                                    @if (dataflowEvent.Subscription is null)
-                                    {
-                                        <Button IconCssClass="@_plusIconCssClass"
-                                                OnClick="@(() => PageService.SubscribeEvent(dataflowEvent))"
-                                                Title="@CommonVocabulary.Subscribe"
-                                                Size="@ButtonSize.Small" />
-                                    }
-                                    else
-                                    {
-                                        <Button IconCssClass="@_minusIconCssClass"
-                                                OnClick="@(() => PageService.UnsubscribeEvent(dataflowEvent))"
-                                                Title="@CommonVocabulary.Unsubscribe"
-                                                Size="@ButtonSize.Small" />
-                                    }
-                                }
-                            </td>
                         </tr>
                     }
                 </Virtualize>
-                @if (_groups.Count == 0)
+                @if (_nodes.Count == 0)
                 {
                     <tr class="empty">
-                        <td colspan="6">@(PageService.Events.Count == 0 ? Localization.DataflowEventsPage.NoEvents : Localization.DataflowEventsPage.NoMatchingEvents)</td>
+                        <td colspan="5">@(PageService.Events.Count == 0 ? Localization.DataflowEventsPage.NoEvents : Localization.DataflowEventsPage.NoMatchingEvents)</td>
                     </tr>
                 }
             </tbody>

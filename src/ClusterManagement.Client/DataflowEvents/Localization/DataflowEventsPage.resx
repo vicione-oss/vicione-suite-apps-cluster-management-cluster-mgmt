@@ -198,9 +198,6 @@
   <data name="Show" xml:space="preserve">
     <value>Show</value>
   </data>
-  <data name="Subscribed" xml:space="preserve">
-    <value>Subscribed</value>
-  </data>
   <data name="ValueEnterWrites" xml:space="preserve">
     <value>Value, Enter writes</value>
   </data>

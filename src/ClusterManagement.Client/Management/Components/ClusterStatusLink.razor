@@ -1,0 +1,12 @@
+@using ClusterManagement.Client.Management.Localization
+@using ClusterManagement.Public
+@using ViciOne.Ui.MonochromeIcons.Components
+@using ViciOne.Ui.MonochromeIcons.Core.Enums
+
+<a class="cluster-status-link" href="@Constants.ManagementModuleRoute" title="@ClusterOverview.BackToClusterManager">
+    <MonochromeIcon Name="MonochromeIconName.ExpanderLightLeft" Size="MonochromeIconSize.SmallMedium" />
+    <span class="target">@Common.ModuleTitle</span>
+    <span class="separator" aria-hidden="true"></span>
+    <span class="dot status-@StatusName" aria-hidden="true"></span>
+    <span class="status">@StatusText</span>
+</a>

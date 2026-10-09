@@ -3,6 +3,7 @@ using ClusterManagement.Client.DataflowEvents.Models;
 using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Client.Extensions;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web.Virtualization;
 using Microsoft.JSInterop;
 using ViciOne.Ui.Blazor.Components.Button.Enums;
 using ViciOne.Ui.Blazor.Components.Button.Extensions;
@@ -15,19 +16,18 @@ namespace ClusterManagement.Client.DataflowEvents;
 
 public sealed partial class DataflowEventsPage
 {
-    // Up to this many events the groups start expanded; larger dataflows start with the overview of their groups.
+    // Up to this many events the flat groups start expanded; larger dataflows start with the overview of their groups.
+    // The container tree always starts with its dataflows only.
     private const int ExpandedEventLimit = 60;
     private const int ConnectorIconSize = 24;
     private const string LegendColor = "rgb(140, 140, 140)";
+    private const string TreeKeysModule = "./_content/ViciOne.Suite.ClusterManagement.Client/DataflowEvents/DataflowEventsPage.razor.js";
 
     private static readonly TimeSpan s_copiedDuration = TimeSpan.FromSeconds(1.5);
     private static readonly TimeSpan s_renderDelay = TimeSpan.FromMilliseconds(250);
     private static readonly MarkupString s_legendInputIcon = new(ColoredIconFactory.GetConnectorIcon(LegendColor, true, ConnectorIconSize));
     private static readonly MarkupString s_legendOutputIcon = new(ColoredIconFactory.GetConnectorIcon(LegendColor, false, ConnectorIconSize));
 
-    private readonly string _plusIconCssClass = MonochromeIconName.PlusSlim.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
-    private readonly string _minusIconCssClass = MonochromeIconName.MinusSlim.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
-    private readonly string _refreshIconCssClass = MonochromeIconName.Refresh.GetCssClasses(ButtonSize.Medium.ToMonochromeIconSize()).ToSpaceSeparated();
     private readonly string _sendIconCssClass = MonochromeIconName.SendLight.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
     private readonly string _copyIconCssClass = MonochromeIconName.Duplicate.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
     private readonly string _expandIconCssClass = MonochromeIconName.ExpanderLightRight.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
@@ -40,13 +40,17 @@ public sealed partial class DataflowEventsPage
     // Failed writes per Boolean input; a new key recreates its checkbox, which keeps the clicked state in the browser.
     private readonly Dictionary<Guid, int> _failedWrites = [];
 
-    private IReadOnlyList<DataflowEventGroup> _groups = [];
+    private IReadOnlyList<DataflowEventNode> _nodes = [];
     private List<TableRow> _rows = [];
+    private Virtualize<TableRow>? _virtualize;
+    private ElementReference _table;
+    private IJSObjectReference? _treeKeys;
     private int _isRenderScheduled;
-    private DataflowEventGrouping _grouping = DataflowEventGrouping.FunctionBlock;
+    private DataflowEventGrouping _grouping = DataflowEventGrouping.Container;
     private DataflowEventDirection _direction = DataflowEventDirection.All;
     private bool _expandByDefault;
     private bool _expandFilteredByDefault = true;
+    private bool _isLoading = true;
     private string? _filter;
     private Guid? _copiedEventId;
 
@@ -76,14 +80,9 @@ public sealed partial class DataflowEventsPage
         (DataflowEventDirection.Outputs, Localization.DataflowEventsPage.Outputs),
     ];
 
-    private bool IsSubscribed => PageService.Events.Any(e => e.Subscription is not null);
+    private int ShownCount => _nodes.Sum(n => n.Group.Events.Count);
 
-    private int ShownCount => _groups.Sum(g => g.Events.Count);
-
-    private bool IsAnyGroupExpanded => _groups.Any(IsExpanded);
-
-    private string ToggleSubscriptionsText
-        => string.Format(CultureInfo.CurrentCulture, IsSubscribed ? UserActions.UnsubscribeSomething : UserActions.SubscribeSomething, CommonVocabulary.All);
+    private bool IsAnyGroupExpanded => _nodes.Any(IsExpanded);
 
     private string ToggleExpansionText
         => string.Format(CultureInfo.CurrentCulture, IsAnyGroupExpanded ? UserActions.CollapseSomething : UserActions.ExpandSomething, CommonVocabulary.All);
@@ -93,23 +92,46 @@ public sealed partial class DataflowEventsPage
         await base.OnInitializedAsync();
 
         await PageService.LoadDataflowEvents();
-        _expandByDefault = PageService.Events.Count <= ExpandedEventLimit;
+        _isLoading = false;
+        _expandByDefault = OpensExpanded(_grouping);
         UpdateGroups();
         PageService.RefreshRequested += OnRefreshRequested;
+        PageService.EventsChanged += OnEventsChanged;
     }
 
-    private async Task RefreshDataflowEvents()
+    protected override async Task OnAfterRenderedAsync(bool firstRender)
     {
-        await PageService.LoadDataflowEvents();
-        UpdateGroups();
+        await base.OnAfterRenderedAsync(firstRender);
+        if (!firstRender)
+            return;
 
-        await InvokeAsync(StateHasChanged);
+        _treeKeys = await JSRuntime.InvokeAsync<IJSObjectReference>("import", _tokenSource.Token, TreeKeysModule);
+        await _treeKeys.InvokeVoidAsync("attach", _tokenSource.Token, _table);
     }
 
-    private Task ToggleSubscriptions()
-        => IsSubscribed ? PageService.UnsubscribeAll() : PageService.SubscribeAll();
+    // A deployment changes the events of the running version; the page shows them without a refresh.
+    private async Task OnEventsChanged()
+    {
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                await PageService.LoadDataflowEvents();
+                UpdateGroups();
+                StateHasChanged();
+            });
+        }
+        catch (Exception) when (_tokenSource.IsCancellationRequested)
+        {
+            // The page was closed while reloading.
+        }
+        catch (Exception e)
+        {
+            await DispatchExceptionAsync(e);
+        }
+    }
 
-    // A new filter opens every group it found; the groups can then be closed again.
+    // A new filter opens every group and branch it found; they can then be closed again.
     private void ApplyFilter(string? filter)
     {
         _filter = filter;
@@ -121,6 +143,7 @@ public sealed partial class DataflowEventsPage
     private void SetGrouping(DataflowEventGrouping grouping)
     {
         _grouping = grouping;
+        _expandByDefault = OpensExpanded(grouping);
         _toggledGroups.Clear();
         UpdateGroups();
     }
@@ -131,40 +154,72 @@ public sealed partial class DataflowEventsPage
         UpdateGroups();
     }
 
+    private bool OpensExpanded(DataflowEventGrouping grouping)
+        => grouping != DataflowEventGrouping.Container && PageService.Events.Count <= ExpandedEventLimit;
+
+    // Every grouping but the container tree is one level of groups, each heading the events it holds.
     private void UpdateGroups()
     {
-        _groups = DataflowEventGroups.Build(PageService.Events, _grouping, _direction, _filter);
+        _nodes = _grouping == DataflowEventGrouping.Container
+            ? DataflowEventTree.Build(PageService.Events, _direction, _filter)
+            : [.. DataflowEventGroups.Build(PageService.Events, _grouping, _direction, _filter).Select(g => new DataflowEventNode(g, [GroupLabel(g)], g.Events, []))];
         UpdateRows();
     }
 
-    // The table renders only the rows in view, so it lists the headings and the events of expanded groups as one list.
+    // The table renders only the rows in view, so it lists the visible headings and events of the tree as one list.
     private void UpdateRows()
     {
         List<TableRow> rows = [];
-        foreach (var group in _groups)
+        if (_grouping == DataflowEventGrouping.None)
+            rows.AddRange(_nodes.SelectMany(node => node.Events.Select(dataflowEvent => new TableRow(node, dataflowEvent, null, null, null))));
+        else
+            AddRows(rows, _nodes, level: 1, firstPosition: 1);
+
+        // The heading row of the table is row 1.
+        _rows = [.. rows.Select((row, i) => row with { RowIndex = i + 2 })];
+        _ = _virtualize?.RefreshDataAsync();
+    }
+
+    // The rows come from memory at once; the ones the table asks for are the ones it renders, so their outputs are the
+    // ones to subscribe.
+    private ValueTask<ItemsProviderResult<TableRow>> ProvideRows(ItemsProviderRequest request)
+    {
+        // A request made before the rows shrank may start behind their end.
+        var start = Math.Min(request.StartIndex, _rows.Count);
+        var rows = _rows.GetRange(start, Math.Min(request.Count, _rows.Count - start));
+        PageService.ShowEvents(rows.Where(row => row.Event is not null).Select(row => row.Event!));
+        return ValueTask.FromResult(new ItemsProviderResult<TableRow>(rows, _rows.Count));
+    }
+
+    // Below an expanded node come its own events, then its containers, all counted as one set of siblings.
+    private void AddRows(List<TableRow> rows, IReadOnlyList<DataflowEventNode> nodes, int level, int firstPosition)
+    {
+        var setSize = firstPosition - 1 + nodes.Count;
+        for (var i = 0; i < nodes.Count; i++)
         {
-            if (_grouping != DataflowEventGrouping.None)
-                rows.Add(new(group, null));
+            var node = nodes[i];
+            rows.Add(new(node, null, level, setSize, firstPosition + i));
+            if (!IsExpanded(node))
+                continue;
 
-            if (IsExpanded(group))
-                rows.AddRange(group.Events.Select(dataflowEvent => new TableRow(group, dataflowEvent)));
+            var childCount = node.Events.Count + node.Children.Count;
+            rows.AddRange(node.Events.Select((dataflowEvent, j) => new TableRow(node, dataflowEvent, level + 1, childCount, j + 1)));
+            AddRows(rows, node.Children, level + 1, node.Events.Count + 1);
         }
-
-        _rows = rows;
     }
 
     // Without grouping there is nothing to collapse.
-    private bool IsExpanded(DataflowEventGroup group)
-        => _grouping == DataflowEventGrouping.None || ExpandsByDefault != _toggledGroups.Contains(group.Key);
+    private bool IsExpanded(DataflowEventNode node)
+        => _grouping == DataflowEventGrouping.None || ExpandsByDefault != _toggledGroups.Contains(node.Group.Key);
 
     private bool ExpandsByDefault => IsFiltered ? _expandFilteredByDefault : _expandByDefault;
 
     private bool IsFiltered => !string.IsNullOrWhiteSpace(_filter);
 
-    private void ToggleGroup(DataflowEventGroup group)
+    private void ToggleGroup(DataflowEventNode node)
     {
-        if (!_toggledGroups.Add(group.Key))
-            _toggledGroups.Remove(group.Key);
+        if (!_toggledGroups.Add(node.Group.Key))
+            _toggledGroups.Remove(node.Group.Key);
 
         UpdateRows();
     }
@@ -219,6 +274,9 @@ public sealed partial class DataflowEventsPage
     private static string ChipCssClass(bool isActive)
         => isActive ? "chip-toggle active" : "chip-toggle";
 
+    private static string? IndentStyle(int? level)
+        => level is { } value ? string.Create(CultureInfo.InvariantCulture, $"--level: {value}") : null;
+
     // Containers lead, so function blocks of the same name in different containers stay apart at a glance.
     private string GroupLabel(DataflowEventGroup group)
     {
@@ -226,7 +284,6 @@ public sealed partial class DataflowEventsPage
         return _grouping switch
         {
             DataflowEventGrouping.Dataflow => first.DataflowName,
-            DataflowEventGrouping.Container => first.Location,
             DataflowEventGrouping.FunctionBlock => $"{first.Location} › {first.FunctionBlockName}",
             DataflowEventGrouping.Direction => first.CanWrite ? Localization.DataflowEventsPage.InputsGroup : Localization.DataflowEventsPage.OutputsGroup,
             DataflowEventGrouping.ValueType => ValueTypeNames.Short(first.ValueType),
@@ -313,9 +370,14 @@ public sealed partial class DataflowEventsPage
     }
 
     /// <summary>
-    /// One row of the table: the heading of <see cref="Group"/> without an <see cref="Event"/>, or one of its events.
+    /// One row of the table: the heading of <see cref="Node"/> without an <see cref="Event"/>, or one of its events.
+    /// <see cref="Level"/>, <see cref="SetSize"/> and <see cref="Position"/> place the row among its siblings in the tree;
+    /// without grouping they are <c>null</c>.
     /// </summary>
-    private readonly record struct TableRow(DataflowEventGroup Group, DataflowEventModel? Event);
+    private readonly record struct TableRow(DataflowEventNode Node, DataflowEventModel? Event, int? Level, int? SetSize, int? Position)
+    {
+        public int RowIndex { get; init; }
+    }
 
     protected override async ValueTask DisposeInternal()
     {
@@ -332,9 +394,27 @@ public sealed partial class DataflowEventsPage
         if (PageService != null)
         {
             PageService.RefreshRequested -= OnRefreshRequested;
+            PageService.EventsChanged -= OnEventsChanged;
             await PageService.DisposeAsync();
         }
 
+        await DetachTreeKeys();
         await base.DisposeInternal();
+    }
+
+    private async Task DetachTreeKeys()
+    {
+        if (_treeKeys is null)
+            return;
+
+        try
+        {
+            await _treeKeys.InvokeVoidAsync("detach", _table);
+            await _treeKeys.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is gone, and the page with it.
+        }
     }
 }

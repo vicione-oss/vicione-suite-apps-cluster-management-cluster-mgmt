@@ -1,4 +1,5 @@
-﻿using ClusterManagement.Public.DataflowEvents;
+﻿using ClusterManagement.Client.DataflowEvents.Services;
+using ClusterManagement.Public.DataflowEvents;
 using ClusterManagement.Public.Requests;
 using Sdk.Client.Infrastructure;
 
@@ -37,6 +38,33 @@ internal static class DataflowEventTestUtils
             ContainerPath = containerPath,
         };
 
+
+    public static IDataflowEvent InDataflow(this IDataflowEvent dataflowEvent, string dataflowName)
+    {
+        ((TestDataflowEvent)dataflowEvent).DataflowName = dataflowName;
+        return dataflowEvent;
+    }
+
+    /// <summary>
+    /// Lets <paramref name="broker"/> subscribe every event of a request, each with a new subscription.
+    /// </summary>
+    public static IDataflowEventBroker SubscribesEveryEvent(this IDataflowEventBroker broker)
+    {
+        broker.Subscribe(Arg.Any<IReadOnlyDictionary<Guid, Func<DateTime, string?, Task>>>(), Arg.Any<CancellationToken>())
+            .Returns(call => new DataflowEventSubscriptions(
+                call.Arg<IReadOnlyDictionary<Guid, Func<DateTime, string?, Task>>>().ToDictionary(h => h.Key, _ => Substitute.For<IAsyncDisposable>()),
+                new Dictionary<Guid, Exception>()));
+
+        return broker;
+    }
+
+    /// <summary>
+    /// The handlers of each request to subscribe several events at once that <paramref name="broker"/> received, in order.
+    /// </summary>
+    public static List<IReadOnlyDictionary<Guid, Func<DateTime, string?, Task>>> SubscribeRequests(this IDataflowEventBroker broker)
+        => [.. broker.ReceivedCalls()
+            .Select(c => c.GetArguments().FirstOrDefault())
+            .OfType<IReadOnlyDictionary<Guid, Func<DateTime, string?, Task>>>()];
 
     public static IUiMediator SetupDataflowEventRequest(this IUiMediator mediator, params IDataflowEvent[] clusterEvents)
     {

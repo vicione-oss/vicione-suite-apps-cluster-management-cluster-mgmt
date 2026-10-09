@@ -26,7 +26,9 @@
 
 - Cluster Manager shows the running cluster with its deployment time, topology counts and packages next to a version timeline
 - Cluster Manager opens the dataflow events from a card on the page instead of a toolbar button, and its deployment state tools (Get Saga, Reset Saga) sit in the cluster header
-- Dataflow events page matches the Cluster Manager, groups events by dataflow, container, function block, input or output, or value type, writes Boolean inputs with a checkbox and other inputs with Enter or the send button, and copies a value with a click
+- Dataflow events page matches the Cluster Manager, opens with a tree of dataflows and their containers that expands one level at a time, opens or closes a group with a click anywhere on its row, groups events by dataflow, function block, input or output, or value type, subscribes the outputs in view instead of offering subscribe buttons, writes Boolean inputs with a checkbox and other inputs with Enter or the send button, and copies a value with a click
+- Dataflow events page reloads its events after a deployment, so its refresh button is gone
+- Dataflow events page links back to the Cluster Manager with the running version, or the deployment in progress and its phase
 - Cluster Manager deployments show their phases, the error of each instance and whether the rollback succeeded, instead of a status and duration column
 - Deleting a cluster version asks for confirmation
 - Replaced DevExpress `DxGrid` with `SimpleTable` on the debug engines page
@@ -72,6 +74,8 @@
 - Recognize cluster packages with a SemVer prerelease version such as `2.0.0-beta.1`, which were missing from the package list and failed to download or upload
 - Reject package uploads whose version is not valid SemVer, such as `2.0.0-01`, which kept all packages from loading on the next start
 - Sort a package's version list by version instead of alphabetically when it contains uploaded versions, e.g. `1.10.0` above `1.9.0`
+- `IEventBroker.Subscribe` no longer keeps the handler when it fails, and no longer fails when a handler throws on the last value
+- Dataflow events page no longer stops receiving values when a write or subscription reconnects to the broker after the connection dropped
 
 ## 2.3.0 - 2026-07-13
 
