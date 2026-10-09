@@ -9,6 +9,7 @@ using ClusterManagement.Public.ErrorHandling;
 using ClusterManagement.Public.Events;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
+using Sdk.Authorization;
 using Sdk.Client.Infrastructure;
 using Sdk.Instance;
 using Sdk.Utils;
@@ -27,6 +28,9 @@ public sealed partial class RuntimePanel : IAsyncDisposable,
 {
     // Route of the suite's journal page, which takes a journalctl-style filter.
     private const string JournalRoute = "journal";
+
+    // The suite's journal page requires this feature of the system module; the Sdk does not publish its name.
+    private const string LogViewerFeature = "Log viewer";
 
     private readonly string _refreshIconCssClass = MonochromeIconName.Refresh.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
     private static readonly TimeSpan s_chartInterval = TimeSpan.FromSeconds(1);
@@ -58,6 +62,9 @@ public sealed partial class RuntimePanel : IAsyncDisposable,
     [Inject] private ILogger<RuntimePanel> Logger { get; set; } = default!;
 
     [Parameter, EditorRequired] public Cluster Cluster { get; set; } = default!;
+
+    internal static string? LogViewerPolicy { get; }
+        = ModulePolicyProvider.GetPolicy(Sdk.Constants.SystemModuleId, AccessLevel.Full, LogViewerFeature);
 
     private string CheckedText => _checkedAt is { } checkedAt
         ? string.Format(CultureInfo.CurrentCulture, ClusterOverview.CheckedAt, checkedAt.To24HourTime(TimeProvider.LocalTimeZone))

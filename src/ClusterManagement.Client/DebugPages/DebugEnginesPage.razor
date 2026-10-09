@@ -1,3 +1,4 @@
+@using Sdk.Authorization
 @using ViciOne.Ui.Blazor.Components.Button
 @using ViciOne.Ui.Blazor.Components.Button.Enums
 @using ViciOne.Ui.Blazor.Components.Tables.SimpleTable.Components
@@ -9,6 +10,7 @@
 
 @inherits ModulePageBase<ClusterManagementClientModule>
 @attribute [Route(DebugConstants.DebugEnginesRoute)]
+@attribute [ModuleAuthorize<ClusterManagementClientModule>(AccessLevel.Full)]
 
 <div class="debug-engines">
     <div class="debug-engines-toolbar">

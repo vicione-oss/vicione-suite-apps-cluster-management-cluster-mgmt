@@ -11,7 +11,7 @@
   - `OpcUaServerConnection` contract and `ConnectionType.OpcUaServer` / `Connection.SetOpcUaServerConnection` / `Connection.GetOpcUaServerConnection` extension members for configuring a server-side OPC UA connection, bound to a single network interface by name
   - OPC UA client and server connections can be created and edited in the suite's connection settings dialog: the backend registers both types with `IConnectionTypeRegistry`, and the client contributes localized settings components and validators via `IConnectionTypeUiRegistry`
 - Cluster Manager collects the cycle reports of every engine host in the running version from module start, over one MQTT connection per broker, so its cycle time charts are filled when the page opens
-- Cluster Manager runtime panel: engine state per engine host, live cycle time chart per engine and per engine host chain read from the broker its instance deployed it with, and a journal link per engine host on the same instance
+- Cluster Manager runtime panel: engine state per engine host, live cycle time chart per engine and per engine host chain read from the broker its instance deployed it with, and a journal link per engine host on the same instance for users allowed to view the log
 - Cluster Manager marks engine hosts whose chain takes longer than its cycle time
 - Cluster Manager warns when a deployment is rejected because another one is still running
 - Cluster Manager deploys the default cluster from a quick action in the version list, after a confirmation
@@ -79,6 +79,7 @@
 - A deployment that fails while committing the target version shows the commit error
 - A deployment whose target or active cluster cannot be loaded is reported as failed instead of staying in progress
 - Dataflow events page no longer stops receiving values when a write or subscription reconnects to the broker after the connection dropped
+- The dataflow events page and the debug engines page require full access to Cluster Management like its other pages; any signed-in user could open them by URL, write dataflow inputs and start, stop or tear down engines
 
 ## 2.3.0 - 2026-07-13
 
