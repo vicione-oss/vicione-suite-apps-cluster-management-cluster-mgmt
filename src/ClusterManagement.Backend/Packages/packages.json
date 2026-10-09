@@ -41,11 +41,11 @@
     },
     {
         "Name": "ViciOne.Driver.IoTCore",
-        "Version": "2.1.0"
+        "Version": "2.2.0"
     },
     {
         "Name": "ViciOne.Driver.Vse",
-        "Version": "2.1.0"
+        "Version": "2.2.0"
     },
     {
         "Name": "ifm.moneo.Counter.Pieces",
@@ -81,15 +81,15 @@
     },
     {
         "Name": "ViciOne.Suite.DataPort.Mqtt",
-        "Version": "2.0.0-beta1"
+        "Version": "2.0.0-beta2"
     },
     {
         "Name": "ViciOne.Suite.DataPort.OpcUa.Client",
-        "Version": "1.0.0-beta1"
+        "Version": "1.0.0-beta2"
     },
     {
         "Name": "ViciOne.Suite.DataPort.OpcUa.Server",
-        "Version": "1.0.0-beta1"
+        "Version": "1.0.0-beta2"
     },
     {
         "Name": "ViciOne.Suite.DataPort.PostgreSql",
