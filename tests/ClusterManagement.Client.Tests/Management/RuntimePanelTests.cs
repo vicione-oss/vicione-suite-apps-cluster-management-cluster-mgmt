@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using Bunit;
+using Bunit.TestDoubles;
 using ClusterManagement.Client.Management.Components;
 using ClusterManagement.Client.Management.Localization;
 using ClusterManagement.Client.Management.Models;
@@ -27,6 +28,7 @@ public class RuntimePanelTests
     private readonly Engine _otherEngine = new() { Id = Guid.NewGuid(), Name = "Line-Monitor", MinCycleTime = 500 };
     private readonly MQTTnet.IMqttClient _client = Substitute.For<MQTTnet.IMqttClient>();
     private IUiMediator _mediator = default!;
+    private BunitAuthorizationContext _authorization = default!;
 
     [Fact]
     public async Task Shows_the_state_of_every_engine()
@@ -346,6 +348,7 @@ public class RuntimePanelTests
         var cluster = Cluster((_instanceId, _engine));
         var host = cluster.NodeGroups[0].Nodes[0].Applications[0].EngineHosts[0];
         host.ElevatedPrivileges = elevatedPrivileges;
+        AllowLogViewer();
 
         // Act
         var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, cluster));
@@ -362,6 +365,7 @@ public class RuntimePanelTests
         // Arrange
         await using var ctx = new BunitContext();
         Setup(ctx);
+        AllowLogViewer();
 
         // Act
         var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_otherInstanceId, _otherEngine))));
@@ -370,6 +374,21 @@ public class RuntimePanelTests
         var logLink = sut.Find(".host-head .log-link");
         logLink.TagName.Should().Be("SPAN");
         logLink.GetAttribute("title").Should().Be(ClusterOverview.LogsOnOtherInstance);
+    }
+
+    [Fact]
+    public async Task Does_not_offer_the_journal_to_a_user_without_the_log_viewer_right()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        Setup(ctx);
+
+        // Act
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_instanceId, _engine), (_otherInstanceId, _otherEngine))));
+
+        // Assert
+        sut.FindAll(".log-link").Should().BeEmpty();
+        sut.FindAll(".host-head .log-spacer").Should().HaveCount(2);
     }
 
     [Fact]
@@ -433,6 +452,8 @@ public class RuntimePanelTests
     private void Setup(BunitContext ctx)
     {
         ctx.SetupSuiteServices(setup => _mediator = setup.ClientMediator);
+        _authorization = ctx.AddAuthorization();
+        _authorization.SetAuthorized("operator");
 
         var brokerProvider = Substitute.For<IEngineHostBrokerProvider>();
         brokerProvider.FindBrokers(Arg.Any<IReadOnlyCollection<Guid>>(), Arg.Any<CancellationToken>())
@@ -451,6 +472,9 @@ public class RuntimePanelTests
         ctx.Services.AddSingleton(services => new EngineCycleMonitor(brokerProvider, services.GetRequiredService<EngineCycleHub>(),
             Substitute.For<ILogger<EngineCycleMonitor>>()));
     }
+
+    private void AllowLogViewer()
+        => _authorization.SetPolicies(RuntimePanel.LogViewerPolicy!);
 
     private static Cluster Cluster(params (Guid InstanceId, Engine Engine)[] engines)
         => new()

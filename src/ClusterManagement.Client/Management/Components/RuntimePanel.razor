@@ -1,5 +1,6 @@
 @using ClusterManagement.Client.Management.Localization
 @using ClusterManagement.Client.Management.Models
+@using Microsoft.AspNetCore.Components.Authorization
 @using ViciOne.Ui.Blazor.Components.Button
 @using ViciOne.Ui.Blazor.Components.Button.Enums
 @using ViciOne.Ui.Localization.Resources
@@ -60,18 +61,25 @@
                         </span>
                         <CycleTimeChart Samples="@chain" Limit="@host.CycleTime" />
                         <span class="cycle-value @(latestChainCycle > host.CycleTime && host.CycleTime > 0 ? "over" : null)">@FormatMilliseconds(latestChainCycle)</span>
-                        @if (HasLocalJournal(host))
-                        {
-                            <a class="log-link" href="@JournalLink(host)" title="@ClusterOverview.ShowLogs" aria-label="@ClusterOverview.ShowLogs">
-                                <MonochromeIcon Name="MonochromeIconName.SystemMessagesLight" Size="MonochromeIconSize.SmallMedium" />
-                            </a>
-                        }
-                        else
-                        {
-                            <span class="log-link unavailable" title="@ClusterOverview.LogsOnOtherInstance" aria-label="@ClusterOverview.LogsOnOtherInstance">
-                                <MonochromeIcon Name="MonochromeIconName.SystemMessagesLight" Size="MonochromeIconSize.SmallMedium" />
-                            </span>
-                        }
+                        <AuthorizeView Policy="@LogViewerPolicy">
+                            <Authorized>
+                                @if (HasLocalJournal(host))
+                                {
+                                    <a class="log-link" href="@JournalLink(host)" title="@ClusterOverview.ShowLogs" aria-label="@ClusterOverview.ShowLogs">
+                                        <MonochromeIcon Name="MonochromeIconName.SystemMessagesLight" Size="MonochromeIconSize.SmallMedium" />
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="log-link unavailable" title="@ClusterOverview.LogsOnOtherInstance" aria-label="@ClusterOverview.LogsOnOtherInstance">
+                                        <MonochromeIcon Name="MonochromeIconName.SystemMessagesLight" Size="MonochromeIconSize.SmallMedium" />
+                                    </span>
+                                }
+                            </Authorized>
+                            <NotAuthorized>
+                                <span class="log-spacer"></span>
+                            </NotAuthorized>
+                        </AuthorizeView>
                     </div>
                 </div>
 

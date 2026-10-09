@@ -2,6 +2,7 @@
 @using ClusterManagement.Client.Management.Components
 @using ClusterManagement.Public
 @using Microsoft.AspNetCore.Components.Web.Virtualization
+@using Sdk.Authorization
 @using ViciOne.Ui.Blazor.Components.Button
 @using ViciOne.Ui.Blazor.Components.Button.Enums
 @using ViciOne.Ui.Blazor.Components.CheckBox
@@ -11,6 +12,7 @@
 
 @inherits ModulePageBase<ClusterManagementClientModule>
 @attribute [Route(Constants.ManagementEventsRoute)]
+@attribute [ModuleAuthorize<ClusterManagementClientModule>(AccessLevel.Full)]
 
 <div class="cluster-events">
     <section class="events-head">
