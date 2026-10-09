@@ -54,6 +54,9 @@ public partial class DeployClusterStateMachineTests
             // -> complete rollback
             await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _applicationId);
 
+            // -> remove the created node
+            await harness.PublishClusterNodeCleaned(_correlationId, _clusterId, _nodeIdToAdd);
+
             // Assert
             await harness.AssertClusterUpdateFailed(_correlationId, prepared.Item2.Version);
         }

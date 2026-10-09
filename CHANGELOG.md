@@ -75,6 +75,9 @@
 - Reject package uploads whose version is not valid SemVer, such as `2.0.0-01`, which kept all packages from loading on the next start
 - Sort a package's version list by version instead of alphabetically when it contains uploaded versions, e.g. `1.10.0` above `1.9.0`
 - `IEventBroker.Subscribe` no longer keeps the handler when it fails, and no longer fails when a handler throws on the last value
+- A deployment whose rollback cannot remove the committed version is reported as failed instead of staying in progress
+- A deployment that fails while committing the target version shows the commit error
+- A deployment whose target or active cluster cannot be loaded is reported as failed instead of staying in progress
 - Dataflow events page no longer stops receiving values when a write or subscription reconnects to the broker after the connection dropped
 
 ## 2.3.0 - 2026-07-13

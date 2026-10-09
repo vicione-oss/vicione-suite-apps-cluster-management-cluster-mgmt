@@ -1,4 +1,5 @@
 ﻿using ClusterManagement.Backend.DbContext;
+using ClusterManagement.Backend.DeployCluster.Contracts;
 using ClusterManagement.Backend.Tests.Extensions;
 using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Enums;
@@ -46,8 +47,11 @@ public partial class DeployClusterStateMachineTests
 
             // Act
             await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _applicationId);
+            await harness.AssertDeployClusterState(_correlationId, x => x.RollingBackClusterNodes);
+            await harness.PublishClusterNodeCleaned(_correlationId, _clusterId, _nodeIdToAdd);
 
             // Assert
+            Assert.True(await harness.Sent.Any<CleanClusterNodesCommand>(k => k.Context.Message.NodesToClean.Contains(_nodeIdToAdd), TestContext.Current.CancellationToken));
             await harness.AssertClusterUpdateFailed(_correlationId, prepared.Item2.Version);
 
             var dbContext = provider.GetRequiredService<IClusterDbContext>();
@@ -67,6 +71,8 @@ public partial class DeployClusterStateMachineTests
 
             // Act
             await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _applicationId);
+            await harness.AssertDeployClusterState(_correlationId, x => x.RollingBackClusterNodes);
+            await harness.PublishClusterNodeCleaned(_correlationId, _clusterId, _nodeIdToAdd);
 
             // Assert
             await harness.AssertClusterUpdateFailed(_correlationId, prepared.Item2.Version);

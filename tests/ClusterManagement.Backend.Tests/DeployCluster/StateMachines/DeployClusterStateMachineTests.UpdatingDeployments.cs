@@ -1,4 +1,5 @@
 ﻿using ClusterManagement.Backend.DbContext;
+using ClusterManagement.Backend.DeployCluster.StateMachines;
 using ClusterManagement.Backend.Tests.Extensions;
 using ClusterManagement.Public.Commands;
 using MassTransit.Testing;
@@ -86,6 +87,27 @@ public partial class DeployClusterStateMachineTests
 
             // Assert
             await harness.AssertDeployClusterState(_correlationId, x => x.RollingBackDeployments);
+        }
+
+        [Fact]
+        public async Task Should_fail_if_active_cluster_json_cannot_be_loaded_for_rollback()
+        {
+            // Arrange
+            await using var provider = SetupServiceProvider();
+
+            var prepared = SetupSagaClusterWithExistingTargetVersion(provider, _snapshotStore);
+            _snapshotStore.LoadCompressedJson(_clusterId, prepared.Item1!.Version, Arg.Any<CancellationToken>())
+                .Returns(Task.FromException<byte[]>(new InvalidOperationException("Snapshot not found")));
+            var harness = provider.GetTestHarness();
+            await TransitionToUpdatingDeployments(harness, prepared.Item2.Version);
+
+            // Act
+            await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _applicationId);
+
+            // Assert
+            await harness.AssertClusterUpdateFailed(_correlationId, prepared.Item2.Version);
+            var sagaHarness = harness.GetSagaStateMachineHarness<DeployClusterStateMachine, DeployClusterState>();
+            Assert.Null(await sagaHarness.NotExists(_correlationId));
         }
 
         [Fact]

@@ -25,110 +25,73 @@ public sealed partial class DeployClusterStateMachine
             ctx.Message.DeletePreviousVersionOnSuccess,
             ctx.Message.Options is not null);
 
-        try
+        ctx.Saga.CorrelationId = ctx.Message.CorrelationId;
+        ctx.Saga.ClusterId = ctx.Message.ClusterId;
+        ctx.Saga.Started = DateTime.UtcNow;
+
+        using var scope = _services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<IClusterDbContext>();
+        var snapshotStore = scope.ServiceProvider.GetRequiredService<IClusterSnapshotStore>();
+
+        // Load active cluster version
+        var activeVersion = await dbContext.ActiveClusters.FirstOrDefaultAsync(c => c.Id == ctx.Message.ClusterId, ctx.CancellationToken)
+            ?? throw new InvalidOperationException($"Could not load active cluster id = {ctx.Message.ClusterId}.");
+
+        ctx.Saga.ActiveVersion = activeVersion.Version;
+        ctx.Saga.RemoveVersion = !ctx.Message.DeletePreviousVersionOnSuccess
+            ? DeployClusterState.EmptyVersion
+            : activeVersion.Version;
+
+        // Target does not exist yet so continue with transition to CommittingClusterChange
+        if (ctx.Message.Options is not null)
         {
-            ctx.Saga.CorrelationId = ctx.Message.CorrelationId;
-            ctx.Saga.ClusterId = ctx.Message.ClusterId;
-            ctx.Saga.Started = DateTime.UtcNow;
-
-            using var scope = _services.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<IClusterDbContext>();
-            var snapshotStore = scope.ServiceProvider.GetRequiredService<IClusterSnapshotStore>();
-
-            // Load active cluster version
-            var activeVersion = await dbContext.ActiveClusters.FirstOrDefaultAsync(c => c.Id == ctx.Message.ClusterId, ctx.CancellationToken)
-                ?? throw new InvalidOperationException($"Could not load active cluster id = {ctx.Message.ClusterId}.");
-
-            ctx.Saga.ActiveVersion = activeVersion.Version;
-            ctx.Saga.RemoveVersion = !ctx.Message.DeletePreviousVersionOnSuccess
-                ? DeployClusterState.EmptyVersion
-                : activeVersion.Version;
-
-            // Target does not exist yet so continue with transition to CommittingClusterChange
-            if (ctx.Message.Options is not null)
-            {
-                var commitVersion = await snapshotStore.GetLatestVersionIncrement(ctx.Saga.ClusterId, ctx.Message.Options.IncrementKind);
-                ctx.Saga.CommitVersion = commitVersion;
-                return;
-            }
-
-            // Target an existing version or use incremented version on commit
-            if (ctx.Message.TargetVersion is null)
-                throw new InvalidOperationException($"Specify an existing TargetVersion or use DeployOptions to commit a target version for cluster {ctx.Message.ClusterId}.");
-
-            ctx.Saga.TargetVersion = ctx.Message.TargetVersion;
-
-            var activeCluster = await snapshotStore.Load(ctx.Message.ClusterId, activeVersion.Version, ctx.CancellationToken) ??
-                throw new ArgumentException($"Active Cluster {ctx.Message.ClusterId} v{activeVersion.Version} not found.");
-
-            var targetCluster = await snapshotStore.Load(ctx.Message.ClusterId, ctx.Message.TargetVersion, ctx.CancellationToken)
-                    ?? throw new ArgumentException($"Cluster {ctx.Message.ClusterId} v{ctx.Message.TargetVersion} not found.");
-
-            // If we set the version on commit metainfo it's not set for the cluster
-            targetCluster.Version = ctx.Message.TargetVersion;
-
-            await PublishClusterUpdateStarted(ctx, activeCluster, targetCluster);
+            var commitVersion = await snapshotStore.GetLatestVersionIncrement(ctx.Saga.ClusterId, ctx.Message.Options.IncrementKind);
+            ctx.Saga.CommitVersion = commitVersion;
+            return;
         }
-        catch (Exception ex)
-        {
-            ctx.Saga.InitializeFailed = true;
 
-            LogInitFailed(_logger, ex, ctx.CorrelationId, ctx.Message.ClusterId);
+        // Target an existing version or use incremented version on commit
+        if (ctx.Message.TargetVersion is null)
+            throw new InvalidOperationException($"Specify an existing TargetVersion or use DeployOptions to commit a target version for cluster {ctx.Message.ClusterId}.");
 
-            // Send failed event here instead of binding action to have access to error details
-            var failed = new ClusterUpdateFailed(ctx.Saga.CorrelationId, ctx.Saga.ClusterId, ctx.Saga.TargetVersion)
-            {
-                Duration = DateTime.UtcNow - ctx.Saga.Started,
-                Reason = ex.Message,
-                State = nameof(Initial)
-            };
+        ctx.Saga.TargetVersion = ctx.Message.TargetVersion;
 
-            await ctx.Publish(failed, ctx.CancellationToken);
-        }
+        var activeCluster = await snapshotStore.Load(ctx.Message.ClusterId, activeVersion.Version, ctx.CancellationToken) ??
+            throw new ArgumentException($"Active Cluster {ctx.Message.ClusterId} v{activeVersion.Version} not found.");
+
+        var targetCluster = await snapshotStore.Load(ctx.Message.ClusterId, ctx.Message.TargetVersion, ctx.CancellationToken)
+                ?? throw new ArgumentException($"Cluster {ctx.Message.ClusterId} v{ctx.Message.TargetVersion} not found.");
+
+        // If we set the version on commit metainfo it's not set for the cluster
+        targetCluster.Version = ctx.Message.TargetVersion;
+
+        await PublishClusterUpdateStarted(ctx, activeCluster, targetCluster);
     }
 
     private async Task ClusterChangeCommitted(BehaviorContext<DeployClusterState, ClusterChanged> ctx)
     {
         LogEvent(ctx, nameof(ClusterChangeCommitted));
 
-        try
-        {
-            if (ctx.Message.Action != CrudAction.Created)
-                throw new InvalidOperationException($"Target cluster version '{ctx.Saga.TargetVersion}' could not be created.");
+        if (ctx.Message.Action != CrudAction.Created)
+            throw new InvalidOperationException($"Target cluster version '{ctx.Saga.TargetVersion}' could not be created.");
 
-            if (ctx.Message.Version != ctx.Saga.CommitVersion)
-                throw new InvalidOperationException($"Create cluster version '{ctx.Message.Version}' does not match expected target version '{ctx.Saga.CommitVersion}'.");
+        if (ctx.Message.Version != ctx.Saga.CommitVersion)
+            throw new InvalidOperationException($"Create cluster version '{ctx.Message.Version}' does not match expected target version '{ctx.Saga.CommitVersion}'.");
 
-            // The cluster version was created successfully so it's out target version now
-            ctx.Saga.TargetVersion = ctx.Saga.CommitVersion;
-            LogCreatedCommitVersion(_logger, ctx.CorrelationId, ctx.Saga.ClusterId, ctx.Saga.CommitVersion);
+        // The cluster version was created successfully so it's out target version now
+        ctx.Saga.TargetVersion = ctx.Saga.CommitVersion;
+        LogCreatedCommitVersion(_logger, ctx.CorrelationId, ctx.Saga.ClusterId, ctx.Saga.CommitVersion);
 
-            using var scope = _services.CreateScope();
-            var snapshotStore = scope.ServiceProvider.GetRequiredService<IClusterSnapshotStore>();
+        using var scope = _services.CreateScope();
+        var snapshotStore = scope.ServiceProvider.GetRequiredService<IClusterSnapshotStore>();
 
-            var activeCluster = await snapshotStore.Load(ctx.Message.ClusterId, ctx.Saga.ActiveVersion, ctx.CancellationToken) ??
-                throw new ArgumentException($"Active Cluster {ctx.Message.ClusterId} version '{ctx.Saga.ActiveVersion}' not found.");
+        var activeCluster = await snapshotStore.Load(ctx.Message.ClusterId, ctx.Saga.ActiveVersion, ctx.CancellationToken) ??
+            throw new ArgumentException($"Active Cluster {ctx.Message.ClusterId} version '{ctx.Saga.ActiveVersion}' not found.");
 
-            var targetCluster = await snapshotStore.Load(ctx.Message.ClusterId, ctx.Saga.TargetVersion, ctx.CancellationToken)
-                    ?? throw new ArgumentException($"Target Cluster {ctx.Message.ClusterId} version '{ctx.Saga.TargetVersion}' not found.");
+        var targetCluster = await snapshotStore.Load(ctx.Message.ClusterId, ctx.Saga.TargetVersion, ctx.CancellationToken)
+                ?? throw new ArgumentException($"Target Cluster {ctx.Message.ClusterId} version '{ctx.Saga.TargetVersion}' not found.");
 
-            await PublishClusterUpdateStarted(ctx, activeCluster, targetCluster);
-        }
-        catch (Exception ex)
-        {
-            ctx.Saga.InitializeFailed = true;
-            LogCreatedCommitVersionFailed(_logger, ex, ctx.Saga.CorrelationId, ctx.Saga.ClusterId, ctx.Saga.CommitVersion);
-
-            // Send failed event here instead of binding action to have access to error details
-            var failed = new ClusterUpdateFailed(ctx.Saga.CorrelationId, ctx.Saga.ClusterId, ctx.Saga.TargetVersion)
-            {
-                Duration = DateTime.UtcNow - ctx.Saga.Started,
-                Reason = ex.Message,
-                State = nameof(CommittingCluster)
-            };
-
-            await ctx.Publish(failed, ctx.CancellationToken);
-        }
+        await PublishClusterUpdateStarted(ctx, activeCluster, targetCluster);
     }
 
     private static async Task PublishClusterUpdateStarted<TMessage>(BehaviorContext<DeployClusterState, TMessage> ctx, Cluster activeCluster, Cluster targetCluster)
@@ -204,25 +167,14 @@ public sealed partial class DeployClusterStateMachine
     }
 
     private void PreviousClusterDeleted(BehaviorContext<DeployClusterState, ClusterChanged> ctx)
-    {
-        LogEvent(ctx, nameof(PreviousClusterDeleted));
-
-        // Our only interest is the remove event of our active version
-        if (ctx.Message.Version is null)
-            return;
-
-        if (ctx.Message.Action != CrudAction.Deleted)
-            return;
-
-        LogRemovedPreviousCluster(_logger, ctx.Saga.CorrelationId, ctx.Message.Version);
-    }
+        => LogRemovedPreviousCluster(_logger, ctx.Saga.CorrelationId, ctx.Saga.RemoveVersion);
 
     private void CommitClusterDeleteFailed(BehaviorContext<DeployClusterState, ClusterError> ctx)
     {
         LogEvent(ctx, nameof(CommitClusterDeleteFailed));
 
         // Our only interest is the remove of our created version
-        if (ctx.Saga.IsCommitVersionEmpty())
+        if (ctx.Saga.IsCommitVersionEmpty() || ctx.Message.Version != ctx.Saga.CommitVersion)
             return;
 
         if (ctx.Message.Error?.ErrorCode != Public.Events.ClusterError.DeleteFailed)
@@ -234,18 +186,7 @@ public sealed partial class DeployClusterStateMachine
     }
 
     private void PreviousClusterDeleteFailed(BehaviorContext<DeployClusterState, ClusterError> ctx)
-    {
-        LogEvent(ctx, nameof(PreviousClusterDeleteFailed));
-
-        // Our only interest is the remove of our created version
-        if (ctx.Saga.ActiveVersion != ctx.Message.Version)
-            return;
-
-        if (ctx.Message.Error?.ErrorCode != Public.Events.ClusterError.DeleteFailed)
-            return;
-
-        LogRemovePreviousClusterFailed(_logger, ctx.Saga.CorrelationId, ctx.Saga.ActiveVersion);
-    }
+        => LogRemovePreviousClusterFailed(_logger, ctx.Saga.CorrelationId, ctx.Saga.RemoveVersion);
 
     private Task AddingClusterNodesWhenClusterNodeAdded(
         BehaviorContext<DeployClusterState, ClusterNodeAddedEvent> ctx)
@@ -283,7 +224,11 @@ public sealed partial class DeployClusterStateMachine
         BehaviorContext<DeployClusterState, ClusterNodeDeploymentsUpdatedEvent> ctx)
     {
         // instanceId -> appId 1:1 currently
-        ctx.Saga.ClusterApplicationsUpdateFinished.Add(ctx.Message.ClusterApplicationId, null);
+        if (!ctx.Saga.ClusterApplicationsUpdateFinished.TryAdd(ctx.Message.ClusterApplicationId, null))
+        {
+            LogDuplicateDeploymentReply(_logger, ctx.Saga.CorrelationId, ctx.Message.ClusterApplicationId);
+            return Task.CompletedTask;
+        }
 
         LogProcessNodeDeploymentUpdated(_logger, ctx.Saga.CorrelationId, ctx.Message.ClusterApplicationId);
 
@@ -299,8 +244,13 @@ public sealed partial class DeployClusterStateMachine
     private Task ProcessNodeDeploymentFailed(
         BehaviorContext<DeployClusterState, ClusterNodeDeploymentsUpdateFailedEvent> ctx)
     {
+        if (!ctx.Saga.ClusterApplicationsUpdateFinished.TryAdd(ctx.Message.ClusterApplicationId, ctx.Message.ErrorInfo))
+        {
+            LogDuplicateDeploymentReply(_logger, ctx.Saga.CorrelationId, ctx.Message.ClusterApplicationId);
+            return Task.CompletedTask;
+        }
+
         ctx.Saga.AtLeastOneDeployReturnedError = true;
-        ctx.Saga.ClusterApplicationsUpdateFinished.Add(ctx.Message.ClusterApplicationId, ctx.Message.ErrorInfo);
 
         LogProcessNodeDeploymentFailed(_logger, ctx.Saga.CorrelationId, ctx.Message.ClusterApplicationId);
 
@@ -325,7 +275,12 @@ public sealed partial class DeployClusterStateMachine
     private void ProcessRollbackNodeDeploymentUpdated(
         BehaviorContext<DeployClusterState, ClusterNodeDeploymentsUpdatedEvent> ctx)
     {
-        ctx.Saga.ClusterApplicationsUpdateFinished.Add(ctx.Message.ClusterApplicationId, null);
+        if (!ctx.Saga.ClusterApplicationsUpdateFinished.TryAdd(ctx.Message.ClusterApplicationId, null))
+        {
+            LogDuplicateDeploymentReply(_logger, ctx.Saga.CorrelationId, ctx.Message.ClusterApplicationId);
+            return;
+        }
+
         LogEvent(ctx,
             $"{nameof(ctx.Saga.ClusterApplicationsUpdateFinished)} appId:{ctx.Message.ClusterApplicationId} appsFinished:{string.Join(", ", ctx.Saga.ClusterApplicationsUpdateFinished.Keys)}");
     }
@@ -333,7 +288,12 @@ public sealed partial class DeployClusterStateMachine
     private void ProcessRollbackNodeDeploymentFailed(
         BehaviorContext<DeployClusterState, ClusterNodeDeploymentsUpdateFailedEvent> ctx)
     {
-        ctx.Saga.ClusterApplicationsUpdateFinished.Add(ctx.Message.ClusterApplicationId, ctx.Message.ErrorInfo);
+        if (!ctx.Saga.ClusterApplicationsUpdateFinished.TryAdd(ctx.Message.ClusterApplicationId, ctx.Message.ErrorInfo))
+        {
+            LogDuplicateDeploymentReply(_logger, ctx.Saga.CorrelationId, ctx.Message.ClusterApplicationId);
+            return;
+        }
+
         LogEvent(ctx,
             string.Format(CultureInfo.InvariantCulture,
                 "{0} appId:{1} appsFinished:{2} with {3} errors",
@@ -344,8 +304,8 @@ public sealed partial class DeployClusterStateMachine
     }
 
     /// <summary>
-    /// Set the active cluster version to target version and publish <see cref="ClusterUpdateCompleted"/>
-    /// </summary>    
+    /// Log the deployment duration and publish <see cref="ClusterUpdateCompleted"/>
+    /// </summary>
     private async Task CompleteClusterUpdate<TMessage>(BehaviorContext<DeployClusterState, TMessage> ctx)
         where TMessage : class
     {
@@ -355,8 +315,8 @@ public sealed partial class DeployClusterStateMachine
     }
 
     /// <summary>
-    /// Set the active cluster version to target version and publish <see cref="ClusterUpdateCompleted"/>
-    /// </summary>    
+    /// Set the active cluster version to the target version
+    /// </summary>
     private async Task UpdateActiveCluster<TMessage>(BehaviorContext<DeployClusterState, TMessage> ctx)
         where TMessage : class
     {

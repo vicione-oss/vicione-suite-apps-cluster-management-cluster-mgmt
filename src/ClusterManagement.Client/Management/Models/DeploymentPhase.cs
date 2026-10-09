@@ -23,7 +23,7 @@ internal static class DeploymentPhases
         "AddingClusterNodes" => DeploymentPhase.AddingNodes,
         "UpdatingDeployments" => DeploymentPhase.UpdatingDeployments,
         "CleaningClusterNodes" or "CleaningCluster" => DeploymentPhase.CleaningUp,
-        "RollingBackDeployments" or "RollingBackCommit" => DeploymentPhase.RollingBack,
+        "RollingBackDeployments" or "RollingBackClusterNodes" or "RollingBackCommit" => DeploymentPhase.RollingBack,
         _ => null,
     };
 }

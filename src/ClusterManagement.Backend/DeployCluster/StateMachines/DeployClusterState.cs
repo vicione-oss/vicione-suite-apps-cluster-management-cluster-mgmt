@@ -38,5 +38,9 @@ public sealed class DeployClusterState : SagaStateMachineInstance
 
     public bool AtLeastOneDeployReturnedError { get; set; }
 
+    /// <summary>
+    /// No longer used: start failures are handled with Catch in the state machine.
+    /// Kept to avoid a schema migration for the persisted column.
+    /// </summary>
     public bool InitializeFailed { get; set; }
 }

@@ -9,6 +9,7 @@ namespace ClusterManagement.Backend.Consumers;
 /// the messages one by one. Using the context all messages will be pushed
 /// to the bus when the consumer has finished
 /// </summary>
+/// <remarks>Placeholder: answers per node without touching infrastructure; the Docker/Kubernetes integration replaces it.</remarks>
 public sealed class CleanClusterNodesConsumer(ISuiteMediator mediator) : IConsumer<CleanClusterNodesCommand>
 {
     private readonly ISuiteMediator _mediator = mediator;

@@ -36,6 +36,7 @@ public class DeploymentProgressModelTests
     [InlineData("CleaningCluster", DeploymentPhase.CleaningUp)]
     [InlineData("RollingBackDeployments", DeploymentPhase.RollingBack)]
     [InlineData("RollingBackCommit", DeploymentPhase.RollingBack)]
+    [InlineData("RollingBackClusterNodes", DeploymentPhase.RollingBack)]
     public void Transition_enters_the_matching_phase(string sagaState, DeploymentPhase expected)
     {
         // Arrange

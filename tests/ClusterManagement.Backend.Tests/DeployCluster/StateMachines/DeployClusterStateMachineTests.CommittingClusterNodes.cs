@@ -2,6 +2,7 @@
 using ClusterManagement.Backend.Tests.Extensions;
 using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Enums;
+using ClusterManagement.Public.Events;
 using ClusterManagement.Tests.Tools;
 using MassTransit.Testing;
 using NSubstitute.ReceivedExtensions;
@@ -35,6 +36,26 @@ public partial class DeployClusterStateMachineTests
         }
 
         [Fact]
+        public async Task Should_reject_deploy_cluster_if_saga_is_committing_cluster()
+        {
+            // Arrange
+            await using var provider = SetupServiceProvider();
+            SetupSagaClusterActiveVersionOnly(provider);
+            var commitVersion = _activeVersion.GetVersionIncrement(VersionIncrementKind.Patch);
+            var options = SetupDeployOptions(commitVersion);
+            var harness = provider.GetTestHarness();
+            await harness.Start();
+            await harness.DeployCluster(_correlationId, _clusterId, null, options);
+            await harness.AssertDeployClusterState(_correlationId, x => x.CommittingCluster);
+
+            // Act
+            await harness.DeployCluster(_correlationId, _clusterId, _deployAttemptVersion);
+
+            // Assert
+            await harness.AssertDeployClusterRejected(_correlationId, _deployAttemptVersion);
+        }
+
+        [Fact]
         public async Task Should_fail_on_commit_cluster_failed()
         {
             // Arrange
@@ -49,8 +70,10 @@ public partial class DeployClusterStateMachineTests
             await harness.DeployCluster(_correlationId, _clusterId, commitVersion, options);
             await harness.PublishClusterChangeFailed(_correlationId, _clusterId, commitVersion);
 
-            // Assert            
+            // Assert
             await harness.AssertClusterUpdateFailed(_correlationId, commitVersion);
+            Assert.True(await harness.Published.Any<ClusterUpdateFailed>(k => k.Context.Message.Reason == "TestFailure", TestContext.Current.CancellationToken),
+                "Commit error should be the failure reason");
         }
 
         [Fact]

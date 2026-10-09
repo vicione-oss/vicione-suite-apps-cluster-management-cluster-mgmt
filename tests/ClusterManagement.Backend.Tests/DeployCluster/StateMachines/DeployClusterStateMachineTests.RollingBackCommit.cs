@@ -85,11 +85,11 @@ public partial class DeployClusterStateMachineTests
             await TransitionToRollingBackCommit(harness, options, commitVersion);
 
             // Act
-            await harness.PublishClusterErrorDeleteFailed(_correlationId, _clusterId);
+            await harness.PublishClusterErrorDeleteFailed(_correlationId, _clusterId, commitVersion);
 
             // Assert
             await harness.Consumed.Any<ClusterError>(k => k.Context.Message.ClusterId == _clusterId, TestContext.Current.CancellationToken);
-            (await harness.GetDeployClusterState(cancellationToken: TestContext.Current.CancellationToken)).IsCommitVersionEmpty().Should().BeTrue();
+            await harness.AssertClusterUpdateFailed(_correlationId, commitVersion);
         }
 
         [Fact]
