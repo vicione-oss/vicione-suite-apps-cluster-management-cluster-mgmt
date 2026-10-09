@@ -91,9 +91,9 @@ public sealed record OpcUaServerConnection : IConnection
 
     /// <summary>
     /// Gets or sets the security policy applied to connections accepted by the server.
-    /// Defaults to <see cref="OpcUaSecurityPolicy.Basic256Sha256SignAndEncrypt"/>.
+    /// Defaults to <see cref="OpcUaSecurityPolicy.None"/>.
     /// </summary>
-    public OpcUaSecurityPolicy SecurityPolicy { get; set; } = OpcUaSecurityPolicy.Basic256Sha256SignAndEncrypt;
+    public OpcUaSecurityPolicy SecurityPolicy { get; set; } = OpcUaSecurityPolicy.None;
 
     /// <summary>
     /// Gets or sets the minimum publishing interval, in milliseconds, the server accepts from a client
@@ -145,8 +145,8 @@ public sealed record OpcUaServerConnection : IConnection
     /// Gets or sets the path of the directory the server's application instance certificate is loaded from.
     /// </summary>
     /// <remarks>
-    /// Required, the server cannot start without its own application instance certificate. Maps to the DataPort's
-    /// <c>ApplicationCertificatesStorePath</c>, with <c>ApplicationCertificatesStoreType</c> set to <c>Directory</c>.
+    /// Not editable in the connection settings dialog, a new connection gets a directory of its own below the workspace home.
+    /// Maps to the DataPort's <c>ApplicationCertificatesStorePath</c>, with <c>ApplicationCertificatesStoreType</c> set to <c>Directory</c>.
     /// </remarks>
     public string ApplicationCertificatesPath { get; set; } = string.Empty;
 
@@ -154,6 +154,7 @@ public sealed record OpcUaServerConnection : IConnection
     /// Gets or sets the path of the directory trusted client certificates are loaded from.
     /// </summary>
     /// <remarks>
+    /// Not editable in the connection settings dialog, a new connection gets a directory of its own below the workspace home.
     /// Maps to the DataPort's <c>TrustedCertificatesStorePath</c>. When set, <c>TrustedCertificatesStoreType</c> is
     /// <c>Directory</c>; when <see langword="null"/> or empty, it is <c>None</c>.
     /// </remarks>
@@ -163,6 +164,7 @@ public sealed record OpcUaServerConnection : IConnection
     /// Gets or sets the path of the directory trusted issuer (CA) certificates are loaded from.
     /// </summary>
     /// <remarks>
+    /// Not editable in the connection settings dialog, a new connection gets a directory of its own below the workspace home.
     /// Maps to the DataPort's <c>TrustedIssuerCertificatesStorePath</c>. When set, <c>TrustedIssuerCertificatesStoreType</c>
     /// is <c>Directory</c>; when <see langword="null"/> or empty, it is <c>None</c>.
     /// </remarks>

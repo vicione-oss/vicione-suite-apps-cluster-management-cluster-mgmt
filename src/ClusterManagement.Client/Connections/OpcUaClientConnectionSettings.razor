@@ -93,25 +93,21 @@
                           @bind-Value:after="NotifyChanged" />
 </SettingsField>
 
-<SettingsField Label="@OpcUaConnectionSettings.ApplicationCertificatesPath">
-    <SettingsFieldTextBox Placeholder="@OpcUaConnectionSettings.ApplicationCertificatesPath"
-                          @bind-Value="@Connection.ApplicationCertificatesPath"
-                          @bind-Value:after="NotifyChanged" />
-</SettingsField>
-
-<SettingsField Label="@OpcUaConnectionSettings.TrustedCertificatesPath">
-    <SettingsFieldTextBox Placeholder="@OpcUaConnectionSettings.TrustedCertificatesPath"
-                          @bind-Value="@Connection.TrustedCertificatesPath"
-                          @bind-Value:after="NotifyChanged" />
-</SettingsField>
-
-<SettingsField Label="@OpcUaConnectionSettings.TrustedIssuerCertificatesPath">
-    <SettingsFieldTextBox Placeholder="@OpcUaConnectionSettings.TrustedIssuerCertificatesPath"
-                          @bind-Value="@Connection.TrustedIssuerCertificatesPath"
-                          @bind-Value:after="NotifyChanged" />
-</SettingsField>
-
 <SettingsField Label="@OpcUaConnectionSettings.AutoAcceptUntrustedCertificates">
     <SettingsFieldSwitch @bind-Value="@Connection.AutoAcceptUntrustedCertificates"
                          @bind-Value:after="NotifyChanged" />
+</SettingsField>
+
+@* Unlike the server, the client has no security policy of its own, it uses whatever the server's endpoint offers,
+   so the trusted stores are always shown. *@
+<SettingsField Label="@OpcUaConnectionSettings.TrustedServerCertificatesPath">
+    <SettingsFieldTextBox Value="@Connection.TrustedCertificatesPath"
+                          ReadOnly="true"
+                          Subline="@OpcUaConnectionSettings.TrustedServerCertificatesPathSubline" />
+</SettingsField>
+
+<SettingsField Label="@OpcUaConnectionSettings.TrustedIssuerCertificatesPath">
+    <SettingsFieldTextBox Value="@Connection.TrustedIssuerCertificatesPath"
+                          ReadOnly="true"
+                          Subline="@OpcUaConnectionSettings.TrustedIssuerCertificatesPathSubline" />
 </SettingsField>

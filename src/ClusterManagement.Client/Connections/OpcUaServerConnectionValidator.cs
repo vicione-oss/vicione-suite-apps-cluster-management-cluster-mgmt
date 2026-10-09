@@ -56,10 +56,6 @@ public sealed class OpcUaServerConnectionValidator : ItemValidatorBase<OpcUaServ
 
         if (string.IsNullOrWhiteSpace(item.ApplicationCertificateSubject))
             AddError(nameof(OpcUaServerConnection.ApplicationCertificateSubject), OpcUaConnectionSettings.ValidationApplicationCertificateSubjectRequired);
-
-        // The server cannot start without its own application instance certificate.
-        if (string.IsNullOrWhiteSpace(item.ApplicationCertificatesPath))
-            AddError(nameof(OpcUaServerConnection.ApplicationCertificatesPath), OpcUaConnectionSettings.ValidationApplicationCertificatesPathRequired);
     }
 
     private bool ValidatePublishingInterval(int value, int minimum, int maximum, string key)

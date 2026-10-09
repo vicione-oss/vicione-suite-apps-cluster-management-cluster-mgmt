@@ -103,17 +103,26 @@
   <data name="ApplicationCertificateSubject" xml:space="preserve">
     <value>Antragsteller des Anwendungszertifikats</value>
   </data>
-  <data name="ApplicationCertificatesPath" xml:space="preserve">
-    <value>Pfad der Anwendungszertifikate</value>
-  </data>
-  <data name="TrustedCertificatesPath" xml:space="preserve">
-    <value>Pfad für vertrauenswürdige Zertifikate</value>
-  </data>
-  <data name="TrustedIssuerCertificatesPath" xml:space="preserve">
-    <value>Pfad für vertrauenswürdige Aussteller-Zertifikate</value>
-  </data>
   <data name="AutoAcceptUntrustedCertificates" xml:space="preserve">
     <value>Nicht vertrauenswürdige Zertifikate automatisch akzeptieren</value>
+  </data>
+  <data name="TrustedClientCertificatesPath" xml:space="preserve">
+    <value>Pfad der vertrauenswürdigen Client-Zertifikate</value>
+  </data>
+  <data name="TrustedClientCertificatesPathSubline" xml:space="preserve">
+    <value>Legen Sie die Zertifikate der Clients, die sich verbinden dürfen, in diesem Verzeichnis ab.</value>
+  </data>
+  <data name="TrustedServerCertificatesPath" xml:space="preserve">
+    <value>Pfad der vertrauenswürdigen Server-Zertifikate</value>
+  </data>
+  <data name="TrustedServerCertificatesPathSubline" xml:space="preserve">
+    <value>Legen Sie die Zertifikate der Server, mit denen verbunden wird, in diesem Verzeichnis ab.</value>
+  </data>
+  <data name="TrustedIssuerCertificatesPath" xml:space="preserve">
+    <value>Pfad der vertrauenswürdigen Aussteller-Zertifikate</value>
+  </data>
+  <data name="TrustedIssuerCertificatesPathSubline" xml:space="preserve">
+    <value>Legen Sie die CA-Zertifikate, die die vertrauenswürdigen Zertifikate ausgestellt haben, in diesem Verzeichnis ab.</value>
   </data>
   <data name="AuthModeAnonymous" xml:space="preserve">
     <value>Anonym</value>
@@ -123,6 +132,9 @@
   </data>
   <data name="SecurityPolicyNone" xml:space="preserve">
     <value>Keine (ohne Sicherheit)</value>
+  </data>
+  <data name="SecurityPolicyNoneWarning" xml:space="preserve">
+    <value>Ohne Sicherheitsrichtlinie ist die Verbindung unverschlüsselt. Mit Vorsicht verwenden!</value>
   </data>
   <data name="SecurityPolicyBasic256Sha256Sign" xml:space="preserve">
     <value>Basic256Sha256 - Signieren</value>
@@ -162,9 +174,6 @@
   </data>
   <data name="ValidationApplicationCertificateSubjectRequired" xml:space="preserve">
     <value>Der Antragsteller des Anwendungszertifikats ist erforderlich.</value>
-  </data>
-  <data name="ValidationApplicationCertificatesPathRequired" xml:space="preserve">
-    <value>Der Pfad der Anwendungszertifikate ist erforderlich.</value>
   </data>
   <data name="ValidationPublishingIntervalPositive" xml:space="preserve">
     <value>Das Veröffentlichungsintervall muss größer als null sein.</value>

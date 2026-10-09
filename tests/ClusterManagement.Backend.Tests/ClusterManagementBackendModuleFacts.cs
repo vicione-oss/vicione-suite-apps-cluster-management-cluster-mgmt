@@ -1,4 +1,5 @@
 ﻿using System.IO.Abstractions;
+using System.IO.Abstractions.TestingHelpers;
 using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Backend.Engines;
@@ -12,6 +13,7 @@ using Microsoft.Extensions.Hosting;
 using Sdk.Backend.Artifacts;
 using Sdk.Backend.IO;
 using Sdk.Backend.Messaging;
+using Sdk.Backend.Modules;
 using Sdk.Connections;
 using Sdk.Connections.Contracts;
 using Sdk.Instance;
@@ -91,24 +93,39 @@ public class ClusterManagementBackendModuleFacts
         [Fact]
         public void Registers_the_opc_ua_client_and_server_connection_types()
         {
+            var fileSystem = new MockFileSystem();
+            var workspaceProvider = Substitute.For<IWorkspaceProvider<ClusterManagementBackendModule>>();
+            workspaceProvider.Home.Returns("home");
             var registry = Substitute.For<IConnectionTypeRegistry>();
             var app = Substitute.For<IApplicationBuilder>();
             var serviceProvider = Substitute.For<IServiceProvider>();
             serviceProvider.GetService(typeof(IConnectionTypeRegistry)).Returns(registry);
+            serviceProvider.GetService(typeof(IFileSystem)).Returns(fileSystem);
+            serviceProvider.GetService(typeof(IWorkspaceProvider<ClusterManagementBackendModule>)).Returns(workspaceProvider);
             app.ApplicationServices.Returns(serviceProvider);
+
+            Func<IConnection>? createClientConnection = null;
+            Func<IConnection>? createServerConnection = null;
+            registry.Register<OpcUaClientConnection, DefaultJsonConnectionSerializer<OpcUaClientConnection>>(
+                ConnectionType.OpcUaClient.Name,
+                Arg.Do<Func<IConnection>>(factory => createClientConnection = factory),
+                Arg.Any<DefaultJsonConnectionSerializer<OpcUaClientConnection>>(),
+                null);
+            registry.Register<OpcUaServerConnection, DefaultJsonConnectionSerializer<OpcUaServerConnection>>(
+                ConnectionType.OpcUaServer.Name,
+                Arg.Do<Func<IConnection>>(factory => createServerConnection = factory),
+                Arg.Any<DefaultJsonConnectionSerializer<OpcUaServerConnection>>(),
+                null);
 
             new ClusterManagementBackendModule().UseServices(app);
 
-            registry.Received(1).Register<OpcUaClientConnection, DefaultJsonConnectionSerializer<OpcUaClientConnection>>(
-                ConnectionType.OpcUaClient.Name,
-                Arg.Any<Func<IConnection>>(),
-                Arg.Any<DefaultJsonConnectionSerializer<OpcUaClientConnection>>(),
-                null);
-            registry.Received(1).Register<OpcUaServerConnection, DefaultJsonConnectionSerializer<OpcUaServerConnection>>(
-                ConnectionType.OpcUaServer.Name,
-                Arg.Any<Func<IConnection>>(),
-                Arg.Any<DefaultJsonConnectionSerializer<OpcUaServerConnection>>(),
-                null);
+            var certificatesPath = fileSystem.Path.Combine("home", "ua-certs");
+            createClientConnection.Should().NotBeNull();
+            createClientConnection().Should().BeOfType<OpcUaClientConnection>()
+                .Which.ApplicationCertificatesPath.Should().StartWith(certificatesPath);
+            createServerConnection.Should().NotBeNull();
+            createServerConnection().Should().BeOfType<OpcUaServerConnection>()
+                .Which.ApplicationCertificatesPath.Should().StartWith(certificatesPath);
         }
     }
 }

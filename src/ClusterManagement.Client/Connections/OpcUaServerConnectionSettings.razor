@@ -4,6 +4,8 @@
 @using Sdk.Client.Connections
 @using ViciOne.Ui.Blazor.Components.SpinEdit
 @using ViciOne.Ui.Localization.Resources
+@using ViciOne.Ui.MonochromeIcons.Components
+@using ViciOne.Ui.MonochromeIcons.Core.Enums
 
 @inherits ConnectionSettingsComponentBase<OpcUaServerConnection>
 
@@ -48,6 +50,28 @@
                            TextSelector="@(item => item.Text)"
                            ValueSelector="@(item => item.Value)" />
 </SettingsField>
+
+@if (!RequiresTrustedClientCertificates)
+{
+    <div class="security-policy-warning" role="alert">
+        <MonochromeIcon Name="MonochromeIconName.WarningLight" Size="MonochromeIconSize.SmallMedium" />
+        <span>@OpcUaConnectionSettings.SecurityPolicyNoneWarning</span>
+    </div>
+}
+else
+{
+    <SettingsField Label="@OpcUaConnectionSettings.TrustedClientCertificatesPath">
+        <SettingsFieldTextBox Value="@Connection.TrustedCertificatesPath"
+                              ReadOnly="true"
+                              Subline="@OpcUaConnectionSettings.TrustedClientCertificatesPathSubline" />
+    </SettingsField>
+
+    <SettingsField Label="@OpcUaConnectionSettings.TrustedIssuerCertificatesPath">
+        <SettingsFieldTextBox Value="@Connection.TrustedIssuerCertificatesPath"
+                              ReadOnly="true"
+                              Subline="@OpcUaConnectionSettings.TrustedIssuerCertificatesPathSubline" />
+    </SettingsField>
+}
 
 <SettingsField Label="@OpcUaConnectionSettings.UseCustomTransportQuotas">
     <SettingsFieldSwitch @bind-Value="@Connection.UseCustomTransportQuotas"
@@ -106,24 +130,6 @@
     <SettingsFieldTextBox @bind-Value="@Connection.ApplicationCertificateSubject"
                           @bind-Value:after="NotifyChanged"
                           Placeholder="@OpcUaConnectionSettings.ApplicationCertificateSubject" />
-</SettingsField>
-
-<SettingsField Label="@OpcUaConnectionSettings.ApplicationCertificatesPath">
-    <SettingsFieldTextBox @bind-Value="@Connection.ApplicationCertificatesPath"
-                          @bind-Value:after="NotifyChanged"
-                          Placeholder="@OpcUaConnectionSettings.ApplicationCertificatesPath" />
-</SettingsField>
-
-<SettingsField Label="@OpcUaConnectionSettings.TrustedCertificatesPath">
-    <SettingsFieldTextBox @bind-Value="@Connection.TrustedCertificatesPath"
-                          @bind-Value:after="NotifyChanged"
-                          Placeholder="@OpcUaConnectionSettings.TrustedCertificatesPath" />
-</SettingsField>
-
-<SettingsField Label="@OpcUaConnectionSettings.TrustedIssuerCertificatesPath">
-    <SettingsFieldTextBox @bind-Value="@Connection.TrustedIssuerCertificatesPath"
-                          @bind-Value:after="NotifyChanged"
-                          Placeholder="@OpcUaConnectionSettings.TrustedIssuerCertificatesPath" />
 </SettingsField>
 
 <SettingsField Label="@OpcUaConnectionSettings.AutoAcceptUntrustedCertificates">

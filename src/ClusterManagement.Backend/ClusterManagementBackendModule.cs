@@ -1,4 +1,5 @@
-﻿using ClusterManagement.Backend.DbContext;
+﻿using ClusterManagement.Backend.Connections;
+using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.DeployCluster.Persistence;
 using ClusterManagement.Backend.DeployCluster.StateMachines;
 using ClusterManagement.Backend.Designs.Extensions;
@@ -56,11 +57,12 @@ public sealed class ClusterManagementBackendModule : BackendModule
     public override void UseServices(IApplicationBuilder app)
     {
         var registry = app.ApplicationServices.GetRequiredService<IConnectionTypeRegistry>();
+        var opcUaConnectionFactory = ActivatorUtilities.CreateInstance<OpcUaConnectionFactory>(app.ApplicationServices);
 
         registry.Register<OpcUaClientConnection, DefaultJsonConnectionSerializer<OpcUaClientConnection>>(
-            ConnectionType.OpcUaClient, () => new OpcUaClientConnection(), new(), null);
+            ConnectionType.OpcUaClient, opcUaConnectionFactory.CreateClientConnection, new(), null);
         registry.Register<OpcUaServerConnection, DefaultJsonConnectionSerializer<OpcUaServerConnection>>(
-            ConnectionType.OpcUaServer, () => new OpcUaServerConnection(), new(), null);
+            ConnectionType.OpcUaServer, opcUaConnectionFactory.CreateServerConnection, new(), null);
 
         base.UseServices(app);
     }

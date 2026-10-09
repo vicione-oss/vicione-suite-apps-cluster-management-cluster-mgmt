@@ -17,7 +17,6 @@ public sealed class OpcUaServerConnectionValidatorTests
         MaxPublishingIntervalMilliseconds = 1000,
         AuthenticationMode = OpcUaAuthenticationMode.Anonymous,
         ApplicationCertificateSubject = "CN=OPC-UA Server, DC=localhost",
-        ApplicationCertificatesPath = "/var/lib/opcua/pki/own",
     };
 
     [Fact]
@@ -28,23 +27,11 @@ public sealed class OpcUaServerConnectionValidatorTests
         errors.Should().BeEmpty();
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData(" ")]
-    public void Should_require_an_application_certificates_path(string path)
-    {
-        var connection = ValidConnection();
-        connection.ApplicationCertificatesPath = path;
-
-        var errors = new OpcUaServerConnectionValidator().Validate(connection);
-
-        errors.Should().ContainKey(nameof(OpcUaServerConnection.ApplicationCertificatesPath));
-    }
-
     [Fact]
-    public void Should_not_require_trusted_certificates_paths()
+    public void Should_not_require_certificates_paths()
     {
         var connection = ValidConnection();
+        connection.ApplicationCertificatesPath = string.Empty;
         connection.TrustedCertificatesPath = null;
         connection.TrustedIssuerCertificatesPath = null;
 
