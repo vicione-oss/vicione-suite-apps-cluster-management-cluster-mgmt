@@ -80,7 +80,7 @@ public sealed partial class DeploymentPanel
     private static string FailureText(DeploymentProgressModel deployment)
     {
         var failedIn = Format(ClusterOverview.FailedInPhase,
-            PhaseText(deployment.FailurePhase ?? deployment.ForwardPhase),
+            (deployment.FailurePhase ?? deployment.ForwardPhase).ToText(),
             deployment.Duration?.ToDisplayText(CultureInfo.CurrentCulture));
 
         // Before the first phase no step is marked failed and no instance has an error, so only the reason explains it.
@@ -110,18 +110,6 @@ public sealed partial class DeploymentPanel
         DeploymentStepState.Failed => "✕",
         DeploymentStepState.Current => "●",
         _ => "○",
-    };
-
-    private static string PhaseText(DeploymentPhase phase) => phase switch
-    {
-        DeploymentPhase.Committing => ClusterOverview.PhaseCommitting,
-        DeploymentPhase.AddingNodes => ClusterOverview.PhaseAddingNodes,
-        DeploymentPhase.UpdatingDeployments => ClusterOverview.PhaseUpdatingDeployments,
-        DeploymentPhase.CleaningUp => ClusterOverview.PhaseCleaningUp,
-        DeploymentPhase.RollingBack => ClusterOverview.PhaseRollingBack,
-        DeploymentPhase.Completed => ClusterOverview.PhaseCompleted,
-        DeploymentPhase.Failed => ClusterOverview.PhaseFailed,
-        _ => ClusterOverview.PhaseStarting,
     };
 
     private static string InstanceStatusName(InstanceProgressModel instance) => instance switch

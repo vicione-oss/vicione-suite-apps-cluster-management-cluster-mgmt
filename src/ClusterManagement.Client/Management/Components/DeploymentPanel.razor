@@ -1,3 +1,4 @@
+@using ClusterManagement.Client.Management.Extensions
 @using ClusterManagement.Client.Management.Localization
 @using ClusterManagement.Client.Management.Models
 @using ViciOne.Ui.Blazor.Components.Button
@@ -17,7 +18,7 @@
             {
                 <li class="flow-step @StepClass(step.State) @(step.Phase == DeploymentPhase.RollingBack ? "rollback" : null)" @key="step.Phase">
                     <span class="node" aria-hidden="true">@StepMark(step.State)</span>
-                    <span class="label" title="@PhaseText(step.Phase)">@PhaseText(step.Phase)</span>
+                    <span class="label" title="@step.Phase.ToText()">@step.Phase.ToText()</span>
                 </li>
             }
         </ol>

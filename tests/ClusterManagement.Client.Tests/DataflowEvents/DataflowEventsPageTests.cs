@@ -2,9 +2,14 @@ using System.Globalization;
 using Bunit;
 using ClusterManagement.Client.DataflowEvents;
 using ClusterManagement.Client.DataflowEvents.Services;
+using ClusterManagement.Client.Management.Localization;
+using ClusterManagement.Client.Management.Services;
+using ClusterManagement.Public;
 using ClusterManagement.Public.DataflowEvents;
 using ClusterManagement.Public.Requests;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using Sdk.Client.Modules.Localization.Extensions;
 using Sdk.Testing.Client;
 using ViciOne.Ui.Blazor.Components.Button;
@@ -22,8 +27,12 @@ namespace ClusterManagement.Client.Tests.DataflowEvents;
 public sealed class DataflowEventsPageTests
 {
     private const string ClipboardWrite = "navigator.clipboard.writeText";
+    private const string TreeKeysModule = "./_content/ViciOne.Suite.ClusterManagement.Client/DataflowEvents/DataflowEventsPage.razor.js";
 
-    private readonly IDataflowEventBroker _eventBroker = Substitute.For<IDataflowEventBroker>();
+    private readonly IDataflowEventBroker _eventBroker = Substitute.For<IDataflowEventBroker>().SubscribesEveryEvent();
+    private readonly IClusterManagementService _managementService = Substitute.For<IClusterManagementService>();
+    private readonly FakeTimeProvider _subscriptionClock = new();
+    private BunitJSModuleInterop? _treeKeys;
     private readonly IDataflowEvent _inputEvent = DataflowEventTestUtils.CreateInputEvent("Crest", "Threshold", "Pump 1");
     private readonly IDataflowEvent _outputEvent = DataflowEventTestUtils.CreateOutputEvent("Axis", "Value", "Pump 2");
     private readonly DateTimeOffset _now = new(2026, 10, 4, 12, 0, 0, TimeSpan.Zero);
@@ -41,7 +50,9 @@ public sealed class DataflowEventsPageTests
         ctx.Services.AddToolbar();
         ctx.Services.AddClientTimeProvider(now: _now);
         ctx.Services.AddSingleton(_eventBroker);
-        ctx.Services.AddSingleton<DataflowEventPageService>();
+        ctx.Services.AddSingleton(_managementService);
+        AddPageService(ctx);
+        SetupTreeKeys(ctx);
 
         // Act
         var sut = ctx.Render<DataflowEventsPage>();
@@ -65,6 +76,38 @@ public sealed class DataflowEventsPageTests
     }
 
     [Fact]
+    public async Task Reloads_the_events_after_a_deployment()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx);
+#pragma warning disable xUnit1051 // The page service loads through the overload without a token, so that is the one to set up.
+        _eventBroker.GetEvents().Returns([_inputEvent, _outputEvent, DataflowEventTestUtils.CreateOutputEvent("Scale", "Weight")]);
+#pragma warning restore xUnit1051
+
+        // Act
+        _eventBroker.EventsChanged += Raise.Event<Func<Task>>();
+
+        // Assert
+        sut.WaitForAssertion(() => sut.Find(".shown").TextContent.Should().Be(string.Format(CultureInfo.CurrentCulture, DataflowEventsText.EventsShown, 3, 3)));
+    }
+
+    [Fact]
+    public async Task Links_back_to_the_Cluster_Manager_with_the_running_version()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        _eventBroker.GetCurrentClusterInfo().Returns(new ClusterInfo(Guid.NewGuid(), new Version(0, 1, 2), "Cluster", IsActive: true));
+
+        // Act
+        var sut = RenderPage(ctx);
+
+        // Assert
+        sut.Find("a.cluster-status-link").GetAttribute("href").Should().Be(Constants.ManagementModuleRoute);
+        sut.Find(".cluster-status-link .status").TextContent.Should().Be(string.Format(CultureInfo.CurrentCulture, ClusterOverview.RunningVersionDeployed, "0.1.2"));
+    }
+
+    [Fact]
     public async Task Names_no_version_without_a_running_cluster()
     {
         // Arrange
@@ -82,9 +125,10 @@ public sealed class DataflowEventsPageTests
     {
         // Arrange
         await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx);
 
         // Act
-        var sut = RenderPage(ctx);
+        await Chip(sut, DataflowEventsText.GroupByFunctionBlock).FindInnerButton().ClickAsync(new());
 
         // Assert
         GroupToggles(sut).Select(b => b.Instance.Text).Should().Equal("Line 3 › Pump 1 › Crest", "Line 3 › Pump 2 › Axis");
@@ -99,7 +143,7 @@ public sealed class DataflowEventsPageTests
         await using var ctx = new BunitContext();
 
         // Act
-        var sut = RenderPage(ctx);
+        var sut = await RenderExpandedPage(ctx);
 
         // Assert
         sut.FindAll(".event .connector-icon").Select(e => e.GetAttribute("title")).Should().Equal(
@@ -127,7 +171,7 @@ public sealed class DataflowEventsPageTests
     {
         // Arrange
         await using var ctx = new BunitContext();
-        var sut = RenderPage(ctx);
+        var sut = await RenderExpandedPage(ctx);
 
         // Act
         await Chip(sut, DataflowEventsText.Inputs).FindInnerButton().ClickAsync(new());
@@ -142,6 +186,7 @@ public sealed class DataflowEventsPageTests
         // Arrange
         await using var ctx = new BunitContext();
         var sut = RenderPage(ctx);
+        await Chip(sut, DataflowEventsText.GroupByFunctionBlock).FindInnerButton().ClickAsync(new());
 
         // Act
         await GroupToggles(sut).First().FindInnerButton().ClickAsync(new());
@@ -151,17 +196,33 @@ public sealed class DataflowEventsPageTests
     }
 
     [Fact]
-    public async Task Container_groups_name_the_whole_path()
+    public async Task A_click_anywhere_on_a_group_row_collapses_the_group()
     {
         // Arrange
         await using var ctx = new BunitContext();
         var sut = RenderPage(ctx);
+        await Chip(sut, DataflowEventsText.GroupByFunctionBlock).FindInnerButton().ClickAsync(new());
 
         // Act
-        await Chip(sut, DataflowEventsText.GroupByContainer).FindInnerButton().ClickAsync(new());
+        await sut.Find("tr.group .group-counts").ClickAsync(new());
 
         // Assert
-        GroupToggles(sut).Select(b => b.Instance.Text).Should().Equal("Line 3 › Pump 1", "Line 3 › Pump 2");
+        sut.FindAll(".event .connector-name").Select(e => e.TextContent).Should().Equal("Axis.Value");
+    }
+
+    [Fact]
+    public async Task The_chevron_of_a_group_row_keeps_its_click_from_the_row()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+
+        // Act
+        var sut = RenderPage(ctx);
+
+        // Assert
+        // bUnit passes no click on from an element with a handler of its own, so the place the browser stops it is checked.
+        sut.FindAll("tr.group button").Should().ContainSingle()
+            .Which.ParentElement!.HasAttribute("blazor:onclick:stoppropagation").Should().BeTrue();
     }
 
     [Fact]
@@ -194,7 +255,94 @@ public sealed class DataflowEventsPageTests
     }
 
     [Fact]
-    public async Task A_group_the_filter_opened_can_be_closed()
+    public async Task The_container_tree_opens_with_its_dataflows_only()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var otherDataflowOutput = DataflowEventTestUtils.CreateOutputEvent("Scale", "Weight").InDataflow("Line 4");
+
+        // Act
+        var sut = RenderPage(ctx, _inputEvent, _outputEvent, otherDataflowOutput);
+
+        // Assert
+        Rows(sut).Should().Equal("Line 3", "Line 4");
+    }
+
+    [Fact]
+    public async Task Expanding_a_node_shows_its_events_and_then_its_containers()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var dataflowOutput = DataflowEventTestUtils.CreateOutputEvent("Scale", "Weight");
+        var sut = RenderPage(ctx, _inputEvent, _outputEvent, dataflowOutput);
+
+        // Act
+        await GroupToggles(sut).Single().FindInnerButton().ClickAsync(new());
+
+        // Assert
+        Rows(sut).Should().Equal("Line 3", "Scale.Weight", "Pump 1", "Pump 2");
+    }
+
+    [Fact]
+    public async Task A_node_names_its_own_level_and_counts_everything_below_it()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx);
+
+        // Act
+        await GroupToggles(sut).Single().FindInnerButton().ClickAsync(new());
+
+        // Assert
+        GroupToggles(sut).Single(b => b.Instance.Text == "Pump 1").Instance.Title.Should().Be("Line 3 › Pump 1");
+        sut.Find(".group .group-counts").TextContent.Should().Be(string.Format(CultureInfo.CurrentCulture, DataflowEventsText.GroupCounts, 1, 1));
+    }
+
+    [Fact]
+    public async Task Expand_all_opens_the_whole_tree()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx);
+
+        // Act
+        await ExpandAll(sut);
+
+        // Assert
+        Rows(sut).Should().Equal("Line 3", "Pump 1", "Crest.Threshold", "Pump 2", "Axis.Value");
+    }
+
+    [Fact]
+    public async Task Collapse_all_closes_the_whole_tree()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx);
+        await ExpandAll(sut);
+
+        // Act
+        await sut.FindComponents<Button>().Single(b => b.Instance.Text == AllEvents(UserActions.CollapseSomething)).FindInnerButton().ClickAsync(new());
+
+        // Assert
+        Rows(sut).Should().Equal("Line 3");
+    }
+
+    [Fact]
+    public async Task A_filter_opens_the_branches_with_a_match()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx);
+
+        // Act
+        await sut.InvokeAsync(() => sut.FindComponent<SearchBox>().Instance.TextChanging.InvokeAsync("axis"));
+
+        // Assert
+        Rows(sut).Should().Equal("Line 3", "Pump 2", "Axis.Value");
+    }
+
+    [Fact]
+    public async Task A_branch_the_filter_opened_can_be_closed()
     {
         // Arrange
         await using var ctx = new BunitContext();
@@ -202,10 +350,85 @@ public sealed class DataflowEventsPageTests
         await sut.InvokeAsync(() => sut.FindComponent<SearchBox>().Instance.TextChanging.InvokeAsync("line 3"));
 
         // Act
-        await GroupToggles(sut).First().FindInnerButton().ClickAsync(new());
+        await GroupToggles(sut).Single(b => b.Instance.Text == "Pump 1").FindInnerButton().ClickAsync(new());
 
         // Assert
-        sut.FindAll(".event .connector-name").Select(e => e.TextContent).Should().Equal("Axis.Value");
+        Rows(sut).Should().Equal("Line 3", "Pump 1", "Pump 2", "Axis.Value");
+    }
+
+    [Fact]
+    public async Task Changing_the_grouping_closes_the_tree_again()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx);
+        await GroupToggles(sut).Single().FindInnerButton().ClickAsync(new());
+        await Chip(sut, DataflowEventsText.GroupByDataflow).FindInnerButton().ClickAsync(new());
+
+        // Act
+        await Chip(sut, DataflowEventsText.GroupByContainer).FindInnerButton().ClickAsync(new());
+
+        // Assert
+        Rows(sut).Should().Equal("Line 3");
+    }
+
+    [Fact]
+    public async Task Rows_tell_assistive_technology_their_place_in_the_tree()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var dataflowOutput = DataflowEventTestUtils.CreateOutputEvent("Scale", "Weight");
+        var sut = RenderPage(ctx, _inputEvent, _outputEvent, dataflowOutput);
+
+        // Act
+        await GroupToggles(sut).Single().FindInnerButton().ClickAsync(new());
+
+        // Assert
+        sut.Find("table").GetAttribute("role").Should().Be("treegrid");
+        sut.Find("table").GetAttribute("aria-label").Should().Be(DataflowEventsText.PageTitle);
+        sut.FindAll("tr.group, tr.event").Select(TreePlace).Should().Equal("1 1/1 true", "2 1/3 ", "2 2/3 false", "2 3/3 false");
+    }
+
+    [Fact]
+    public async Task Rows_tell_assistive_technology_how_many_there_are_and_where_each_one_sits()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+
+        // Act
+        var sut = await RenderExpandedPage(ctx);
+
+        // Assert
+        sut.Find("table").GetAttribute("aria-rowcount").Should().Be("6");
+        sut.FindAll("tr").Select(row => row.GetAttribute("aria-rowindex")).OfType<string>().Should().Equal("1", "2", "3", "4", "5", "6");
+    }
+
+    [Fact]
+    public async Task Hands_the_table_to_the_arrow_keys_of_the_tree()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+
+        // Act
+        RenderPage(ctx);
+
+        // Assert
+        _treeKeys!.VerifyInvoke("attach").Arguments.Should().ContainSingle().Which.Should().BeOfType<ElementReference>();
+    }
+
+    [Fact]
+    public async Task Without_grouping_the_table_is_no_tree()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx);
+
+        // Act
+        await Chip(sut, DataflowEventsText.GroupByNone).FindInnerButton().ClickAsync(new());
+
+        // Assert
+        sut.Find("table").HasAttribute("role").Should().BeFalse();
+        sut.FindAll("tr.event").Should().OnlyContain(row => !row.HasAttribute("aria-level"));
     }
 
     [Fact]
@@ -260,16 +483,11 @@ public sealed class DataflowEventsPageTests
     {
         // Arrange
         await using var ctx = new BunitContext();
-        Func<DateTime, string?, Task>? onValue = null;
-#pragma warning disable xUnit1051 // The page service subscribes through the overload without a token, so that is the one to set up.
-        _eventBroker.Subscribe(_outputEvent.EventId, Arg.Do<Func<DateTime, string?, Task>>(handler => onValue = handler))
-            .Returns(Substitute.For<IAsyncDisposable>());
-#pragma warning restore xUnit1051
-        var sut = RenderPage(ctx);
-        await SubscribeButtons(sut).Single().FindInnerButton().ClickAsync(new());
+        var sut = await RenderExpandedPage(ctx);
+        var onValue = await ValueHandler(sut, _outputEvent);
 
         // Act
-        await sut.InvokeAsync(() => onValue!(_now.AddDays(days).UtcDateTime, "1.5"));
+        await sut.InvokeAsync(() => onValue(_now.AddDays(days).UtcDateTime, "1.5"));
 
         // Assert
         var expected = showsDate ? $"{_now.AddDays(days).ToString("d", CultureInfo.CurrentCulture)} 12:00:00" : "12:00:00";
@@ -281,16 +499,11 @@ public sealed class DataflowEventsPageTests
     {
         // Arrange
         await using var ctx = new BunitContext();
-        Func<DateTime, string?, Task>? onValue = null;
-#pragma warning disable xUnit1051 // The page service subscribes through the overload without a token, so that is the one to set up.
-        _eventBroker.Subscribe(_outputEvent.EventId, Arg.Do<Func<DateTime, string?, Task>>(handler => onValue = handler))
-            .Returns(Substitute.For<IAsyncDisposable>());
-#pragma warning restore xUnit1051
-        var sut = RenderPage(ctx, TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin"), _inputEvent, _outputEvent);
-        await SubscribeButtons(sut).Single().FindInnerButton().ClickAsync(new());
+        var sut = await RenderExpandedPage(ctx, TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin"), _inputEvent, _outputEvent);
+        var onValue = await ValueHandler(sut, _outputEvent);
 
         // Act
-        await sut.InvokeAsync(() => onValue!(new DateTime(2026, 10, 4, 10, 0, 0, DateTimeKind.Unspecified), "1.5"));
+        await sut.InvokeAsync(() => onValue(new DateTime(2026, 10, 4, 10, 0, 0, DateTimeKind.Unspecified), "1.5"));
 
         // Assert
         sut.WaitForAssertion(() => sut.Find(".event .time:not(:empty)").TextContent.Trim().Should().Be("12:00:00"));
@@ -301,15 +514,10 @@ public sealed class DataflowEventsPageTests
     {
         // Arrange
         await using var ctx = new BunitContext();
-        Func<DateTime, string?, Task>? onValue = null;
-#pragma warning disable xUnit1051 // The page service subscribes through the overload without a token, so that is the one to set up.
-        _eventBroker.Subscribe(_outputEvent.EventId, Arg.Do<Func<DateTime, string?, Task>>(handler => onValue = handler))
-            .Returns(Substitute.For<IAsyncDisposable>());
-#pragma warning restore xUnit1051
-        var sut = RenderPage(ctx);
-        await SubscribeButtons(sut).Single().FindInnerButton().ClickAsync(new());
+        var sut = await RenderExpandedPage(ctx);
+        var onValue = await ValueHandler(sut, _outputEvent);
         var rendersBeforeOne = sut.RenderCount;
-        await sut.InvokeAsync(() => onValue!(_now.UtcDateTime, "0"));
+        await sut.InvokeAsync(() => onValue(_now.UtcDateTime, "0"));
         sut.WaitForAssertion(() => sut.Find(".copy-cell .copy").TextContent.Should().Contain("0"));
         var rendersOfOne = sut.RenderCount - rendersBeforeOne;
         var rendersBeforeBurst = sut.RenderCount;
@@ -318,7 +526,7 @@ public sealed class DataflowEventsPageTests
         for (var i = 1; i <= 20; i++)
         {
             var value = i.ToString(CultureInfo.InvariantCulture);
-            await sut.InvokeAsync(() => onValue!(_now.UtcDateTime, value));
+            await sut.InvokeAsync(() => onValue(_now.UtcDateTime, value));
         }
 
         // Assert
@@ -331,16 +539,11 @@ public sealed class DataflowEventsPageTests
     {
         // Arrange
         await using var ctx = new BunitContext();
-        Func<DateTime, string?, Task>? onValue = null;
-#pragma warning disable xUnit1051 // The page service subscribes through the overload without a token, so that is the one to set up.
-        _eventBroker.Subscribe(_outputEvent.EventId, Arg.Do<Func<DateTime, string?, Task>>(handler => onValue = handler))
-            .Returns(Substitute.For<IAsyncDisposable>());
-#pragma warning restore xUnit1051
-        var sut = RenderPage(ctx);
-        await SubscribeButtons(sut).Single().FindInnerButton().ClickAsync(new());
+        var sut = await RenderExpandedPage(ctx);
+        var onValue = await ValueHandler(sut, _outputEvent);
 
         // Act
-        await sut.InvokeAsync(() => onValue!(default, "0"));
+        await sut.InvokeAsync(() => onValue(default, "0"));
 
         // Assert
         sut.WaitForAssertion(() => sut.Find(".copy-cell .copy").TextContent.Should().Contain("0"));
@@ -354,7 +557,7 @@ public sealed class DataflowEventsPageTests
         await using var ctx = new BunitContext();
 
         // Act
-        var sut = RenderPage(ctx);
+        var sut = await RenderExpandedPage(ctx);
 
         // Assert
         var label = sut.Find(".write label");
@@ -367,7 +570,7 @@ public sealed class DataflowEventsPageTests
     {
         // Arrange
         await using var ctx = new BunitContext();
-        var sut = RenderPage(ctx);
+        var sut = await RenderExpandedPage(ctx);
         await sut.InvokeAsync(() => ValueInput(sut).Instance.ValueChanging.InvokeAsync("3.5"));
 
         // Act
@@ -382,7 +585,7 @@ public sealed class DataflowEventsPageTests
     {
         // Arrange
         await using var ctx = new BunitContext();
-        var sut = RenderPage(ctx);
+        var sut = await RenderExpandedPage(ctx);
         await sut.InvokeAsync(() => ValueInput(sut).Instance.ValueChanging.InvokeAsync("3.5"));
 
         // Act
@@ -399,7 +602,7 @@ public sealed class DataflowEventsPageTests
         await using var ctx = new BunitContext();
 
         // Act
-        var sut = RenderPage(ctx);
+        var sut = await RenderExpandedPage(ctx);
 
         // Assert
         WriteButton(sut).Instance.Enabled.Should().BeFalse();
@@ -410,7 +613,7 @@ public sealed class DataflowEventsPageTests
     {
         // Arrange
         await using var ctx = new BunitContext();
-        var sut = RenderPage(ctx);
+        var sut = await RenderExpandedPage(ctx);
 
         // Act
         await sut.InvokeAsync(() => ValueInput(sut).Instance.EnterPressed.InvokeAsync());
@@ -425,7 +628,7 @@ public sealed class DataflowEventsPageTests
         // Arrange
         await using var ctx = new BunitContext();
         var booleanInput = DataflowEventTestUtils.CreateBooleanInputEvent("Scan", "Trigger");
-        var sut = RenderPage(ctx, booleanInput, _outputEvent);
+        var sut = await RenderExpandedPage(ctx, booleanInput, _outputEvent);
 
         // Act
         await sut.InvokeAsync(() => sut.FindComponent<CheckBox<bool>>().Instance.ValueChanged.InvokeAsync(true));
@@ -441,14 +644,9 @@ public sealed class DataflowEventsPageTests
         // Arrange
         await using var ctx = new BunitContext();
         ctx.JSInterop.SetupVoid(ClipboardWrite, _ => true).SetVoidResult();
-        Func<DateTime, string?, Task>? onValue = null;
-#pragma warning disable xUnit1051 // The page service subscribes through the overload without a token, so that is the one to set up.
-        _eventBroker.Subscribe(_outputEvent.EventId, Arg.Do<Func<DateTime, string?, Task>>(handler => onValue = handler))
-            .Returns(Substitute.For<IAsyncDisposable>());
-#pragma warning restore xUnit1051
-        var sut = RenderPage(ctx);
-        await SubscribeButtons(sut).Single().FindInnerButton().ClickAsync(new());
-        await sut.InvokeAsync(() => onValue!(new DateTime(2026, 10, 4, 12, 0, 0, DateTimeKind.Utc), "2.91"));
+        var sut = await RenderExpandedPage(ctx);
+        var onValue = await ValueHandler(sut, _outputEvent);
+        await sut.InvokeAsync(() => onValue(new DateTime(2026, 10, 4, 12, 0, 0, DateTimeKind.Utc), "2.91"));
         sut.WaitForElement(".copy-cell");
 
         // Act
@@ -460,54 +658,32 @@ public sealed class DataflowEventsPageTests
     }
 
     [Fact]
-    public async Task Subscribe_all_subscribes_the_readable_events()
+    public async Task Subscribes_the_outputs_it_shows()
     {
         // Arrange
         await using var ctx = new BunitContext();
-        var sut = RenderPage(ctx);
+        var sut = await RenderExpandedPage(ctx);
 
         // Act
-        await ToggleButton(sut).FindInnerButton().ClickAsync(new());
+        await ValueHandler(sut, _outputEvent);
 
         // Assert
-#pragma warning disable xUnit1051 // The page service subscribes through the overload without a token, so that is the call to check.
-        await _eventBroker.Received(1).Subscribe(_outputEvent.EventId, Arg.Any<Func<DateTime, string?, Task>>());
-        await _eventBroker.DidNotReceive().Subscribe(_inputEvent.EventId, Arg.Any<Func<DateTime, string?, Task>>());
-#pragma warning restore xUnit1051
-        ToggleButton(sut).Instance.Text.Should().Be(AllEvents(UserActions.UnsubscribeSomething));
+        _eventBroker.SubscribeRequests().Should().ContainSingle().Which.Keys.Should().Equal(_outputEvent.EventId);
     }
 
     [Fact]
-    public async Task Unsubscribe_all_ends_every_subscription()
+    public async Task Subscribes_no_outputs_below_a_closed_node()
     {
         // Arrange
         await using var ctx = new BunitContext();
-        var subscription = Substitute.For<IAsyncDisposable>();
-#pragma warning disable xUnit1051 // The page service subscribes through the overload without a token, so that is the one to set up.
-        _eventBroker.Subscribe(_outputEvent.EventId, Arg.Any<Func<DateTime, string?, Task>>()).Returns(subscription);
-#pragma warning restore xUnit1051
-        var sut = RenderPage(ctx);
-        await ToggleButton(sut).FindInnerButton().ClickAsync(new());
-
-        // Act
-        await ToggleButton(sut).FindInnerButton().ClickAsync(new());
-
-        // Assert
-        await subscription.Received(1).DisposeAsync();
-        ToggleButton(sut).Instance.Text.Should().Be(AllEvents(UserActions.SubscribeSomething));
-    }
-
-    [Fact]
-    public async Task Only_outputs_can_be_subscribed()
-    {
-        // Arrange
-        await using var ctx = new BunitContext();
-
-        // Act
         var sut = RenderPage(ctx);
 
+        // Act
+        _subscriptionClock.Advance(ShownEventSubscriptions.SettleTime);
+        await sut.InvokeAsync(() => { });
+
         // Assert
-        SubscribeButtons(sut).Should().ContainSingle();
+        _eventBroker.SubscribeRequests().Should().BeEmpty();
     }
 
     [Fact]
@@ -518,7 +694,7 @@ public sealed class DataflowEventsPageTests
         var booleanInput = DataflowEventTestUtils.CreateBooleanInputEvent("Scan", "Trigger");
         _eventBroker.SetValue(booleanInput.EventId, Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromException(new InvalidOperationException("broker unreachable")));
-        var sut = RenderPage(ctx, booleanInput, _outputEvent);
+        var sut = await RenderExpandedPage(ctx, booleanInput, _outputEvent);
         var clicked = sut.FindComponent<CheckBox<bool>>().Instance;
 
         // Act
@@ -542,15 +718,62 @@ public sealed class DataflowEventsPageTests
         ctx.Services.AddToolbar();
         ctx.Services.AddClientTimeProvider(timeZone, _now);
         ctx.Services.AddSingleton(_eventBroker);
-        ctx.Services.AddSingleton<DataflowEventPageService>();
+        ctx.Services.AddSingleton(_managementService);
+        AddPageService(ctx);
+        SetupTreeKeys(ctx);
         ctx.Services.AddCheckBox();
         _eventBroker.GetEvents().Returns(events);
 
         return ctx.Render<DataflowEventsPage>();
     }
 
-    private static IRenderedComponent<Button> ToggleButton(IRenderedComponent<DataflowEventsPage> sut)
-        => sut.FindComponents<Button>().Single(b => b.Instance.Text == AllEvents(UserActions.SubscribeSomething) || b.Instance.Text == AllEvents(UserActions.UnsubscribeSomething));
+    private Task<IRenderedComponent<DataflowEventsPage>> RenderExpandedPage(BunitContext ctx)
+        => RenderExpandedPage(ctx, _inputEvent, _outputEvent);
+
+    private Task<IRenderedComponent<DataflowEventsPage>> RenderExpandedPage(BunitContext ctx, params IDataflowEvent[] events)
+        => RenderExpandedPage(ctx, TimeZoneInfo.Utc, events);
+
+    // The container tree opens with its dataflows only; the rows of the events show once it is expanded.
+    private async Task<IRenderedComponent<DataflowEventsPage>> RenderExpandedPage(BunitContext ctx, TimeZoneInfo timeZone, params IDataflowEvent[] events)
+    {
+        var sut = RenderPage(ctx, timeZone, events);
+        await ExpandAll(sut);
+        return sut;
+    }
+
+    private static Task ExpandAll(IRenderedComponent<DataflowEventsPage> sut)
+        => sut.FindComponents<Button>().Single(b => b.Instance.Text == AllEvents(UserActions.ExpandSomething)).FindInnerButton().ClickAsync(new());
+
+    // A heading shows its name, an event its function block and connector.
+    private static IEnumerable<string> Rows(IRenderedComponent<DataflowEventsPage> sut)
+        => sut.FindAll("tr.group, tr.event").Select(row => row.ClassList.Contains("group")
+            ? row.QuerySelector(".group-toggle")!.TextContent.Trim()
+            : row.QuerySelector(".connector-name")!.TextContent);
+
+    private static string TreePlace(AngleSharp.Dom.IElement row)
+        => $"{row.GetAttribute("aria-level")} {row.GetAttribute("aria-posinset")}/{row.GetAttribute("aria-setsize")} {row.GetAttribute("aria-expanded")}";
+
+    // The arrow keys of the tree run in the browser; the test only sees the table handed to them.
+    private void SetupTreeKeys(BunitContext ctx)
+    {
+        _treeKeys = ctx.JSInterop.SetupModule(TreeKeysModule);
+        _treeKeys.SetupVoid("attach", _ => true);
+        _treeKeys.SetupVoid("detach", _ => true);
+    }
+
+    // The page's clock stands still at _now; the subscriptions run on one the test moves on.
+    private void AddPageService(BunitContext ctx)
+        => ctx.Services.AddSingleton(services => ActivatorUtilities.CreateInstance<DataflowEventPageService>(services, _subscriptionClock));
+
+    // The page subscribes the outputs it shows once they have held for a moment; the subscription goes on on the
+    // renderer's dispatcher.
+    private async Task<Func<DateTime, string?, Task>> ValueHandler(IRenderedComponent<DataflowEventsPage> sut, IDataflowEvent dataflowEvent)
+    {
+        _subscriptionClock.Advance(ShownEventSubscriptions.SettleTime);
+        await sut.InvokeAsync(() => { });
+
+        return _eventBroker.SubscribeRequests().Single(handlers => handlers.ContainsKey(dataflowEvent.EventId))[dataflowEvent.EventId];
+    }
 
     private IRenderedComponent<Button> WriteButton(IRenderedComponent<DataflowEventsPage> sut)
         => sut.FindComponents<Button>().Single(b => b.Instance.Title == string.Format(CultureInfo.CurrentCulture, DataflowEventsText.WriteValue, _inputEvent.Name));
@@ -563,9 +786,6 @@ public sealed class DataflowEventsPageTests
 
     private static IEnumerable<IRenderedComponent<Button>> GroupToggles(IRenderedComponent<DataflowEventsPage> sut)
         => sut.FindComponents<Button>().Where(b => b.Instance.CssClass == "group-toggle");
-
-    private static IEnumerable<IRenderedComponent<Button>> SubscribeButtons(IRenderedComponent<DataflowEventsPage> sut)
-        => sut.FindComponents<Button>().Where(b => b.Instance.Title == CommonVocabulary.Subscribe);
 
     private static string AllEvents(string action)
         => string.Format(CultureInfo.CurrentCulture, action, CommonVocabulary.All);

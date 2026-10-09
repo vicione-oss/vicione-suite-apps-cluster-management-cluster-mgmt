@@ -34,7 +34,7 @@ public class DataflowEventMqttHandlerTests
         {
             // Arrange
             await using var handler = CreateHandler(false);
-            var action = () => handler.Subscribe(_outputEvent);
+            var action = () => handler.Subscribe([_outputEvent]);
 
             // Act + Assert
             await action.Should().ThrowAsync<InvalidOperationException>();
@@ -47,7 +47,7 @@ public class DataflowEventMqttHandlerTests
             await using var handler = CreateHandler();
 
             // Act
-            await handler.Subscribe(_outputEvent, TestContext.Current.CancellationToken);
+            await handler.Subscribe([_outputEvent], TestContext.Current.CancellationToken);
 
             // Assert
             await _mqttClient.Received().ConnectAsync(Arg.Any<MqttClientOptions>(), Arg.Any<CancellationToken>());
@@ -61,7 +61,7 @@ public class DataflowEventMqttHandlerTests
             _mqttClient.IsConnected.Returns(true);
 
             // Act
-            await handler.Subscribe(_outputEvent, TestContext.Current.CancellationToken);
+            await handler.Subscribe([_outputEvent], TestContext.Current.CancellationToken);
 
             // Assert
             await _mqttClient.DidNotReceive().ConnectAsync(Arg.Any<MqttClientOptions>(), Arg.Any<CancellationToken>());
@@ -74,10 +74,94 @@ public class DataflowEventMqttHandlerTests
             await using var handler = CreateHandler();
 
             // Act
-            await handler.Subscribe(_outputEvent, TestContext.Current.CancellationToken);
+            await handler.Subscribe([_outputEvent], TestContext.Current.CancellationToken);
 
             // Assert
             await _mqttClient.Received().SubscribeAsync(Arg.Any<MqttClientSubscribeOptions>(), Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Should_subscribe_to_the_topics_of_several_events_with_one_packet()
+        {
+            // Arrange
+            await using var handler = CreateHandler();
+            var otherOutput = DataflowEventTestUtils.CreateOutputEvent("Axis", "Speed");
+
+            // Act
+            await handler.Subscribe([_outputEvent, otherOutput], TestContext.Current.CancellationToken);
+
+            // Assert
+            await _mqttClient.Received(1).SubscribeAsync(Arg.Is<MqttClientSubscribeOptions>(o =>
+                o.TopicFilters.Select(f => f.Topic).SequenceEqual(new[] { _outputEvent.EventId.ToString(), otherOutput.EventId.ToString() })),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Should_subscribe_the_topics_of_a_failed_packet_again_after_a_reconnect()
+        {
+            // Arrange
+            await using var handler = CreateHandler();
+            _mqttClient.SubscribeAsync(Arg.Any<MqttClientSubscribeOptions>(), Arg.Any<CancellationToken>())
+                .Returns(Task.FromException<MqttClientSubscribeResult>(new InvalidOperationException("connection lost")), Task.FromResult<MqttClientSubscribeResult>(null!));
+            var subscribe = () => handler.Subscribe([_outputEvent], TestContext.Current.CancellationToken);
+            await subscribe.Should().ThrowAsync<InvalidOperationException>();
+
+            // Act
+            await handler.ResetAndReconnect(TestContext.Current.CancellationToken);
+
+            // Assert
+            await _mqttClient.Received(2).SubscribeAsync(Arg.Any<MqttClientSubscribeOptions>(), Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Should_subscribe_the_topics_again_when_a_later_request_finds_the_connection_dropped()
+        {
+            // Arrange
+            await using var handler = CreateHandler();
+            await handler.Subscribe([_outputEvent], TestContext.Current.CancellationToken);
+
+            // Act
+            await handler.PublishValue(_inputEvent.EventId, "1", _inputEvent.ValueType, TestContext.Current.CancellationToken);
+
+            // Assert
+            await _mqttClient.Received(2).SubscribeAsync(Arg.Any<MqttClientSubscribeOptions>(), Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Should_subscribe_every_topic_again_with_one_packet_after_a_reconnect()
+        {
+            // Arrange
+            await using var handler = CreateHandler();
+            var otherOutput = DataflowEventTestUtils.CreateOutputEvent("Axis", "Speed");
+            await handler.Subscribe([_outputEvent], TestContext.Current.CancellationToken);
+            await handler.Subscribe([otherOutput], TestContext.Current.CancellationToken);
+            _mqttClient.ClearReceivedCalls();
+
+            // Act
+            await handler.ResetAndReconnect(TestContext.Current.CancellationToken);
+
+            // Assert
+            await _mqttClient.Received(1).SubscribeAsync(Arg.Is<MqttClientSubscribeOptions>(o =>
+                o.TopicFilters.Select(f => f.Topic).Order().SequenceEqual(new[] { _outputEvent.EventId.ToString(), otherOutput.EventId.ToString() }.Order())),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Should_not_subscribe_forgotten_topics_again_after_a_reconnect()
+        {
+            // Arrange
+            await using var handler = CreateHandler();
+            _mqttClient.SubscribeAsync(Arg.Any<MqttClientSubscribeOptions>(), Arg.Any<CancellationToken>())
+                .Returns(Task.FromException<MqttClientSubscribeResult>(new InvalidOperationException("connection lost")));
+            var subscribe = () => handler.Subscribe([_outputEvent], TestContext.Current.CancellationToken);
+            await subscribe.Should().ThrowAsync<InvalidOperationException>();
+            handler.Forget([_outputEvent]);
+
+            // Act
+            await handler.ResetAndReconnect(TestContext.Current.CancellationToken);
+
+            // Assert
+            await _mqttClient.Received(1).SubscribeAsync(Arg.Any<MqttClientSubscribeOptions>(), Arg.Any<CancellationToken>());
         }
     }
 
@@ -88,7 +172,7 @@ public class DataflowEventMqttHandlerTests
         {
             // Arrange
             await using var handler = CreateHandler(false);
-            var action = () => handler.Unsubscribe(_outputEvent);
+            var action = () => handler.Unsubscribe([_outputEvent]);
 
             // Act + Assert
             await action.Should().ThrowAsync<InvalidOperationException>();
@@ -101,7 +185,7 @@ public class DataflowEventMqttHandlerTests
             await using var handler = CreateHandler();
 
             // Act
-            await handler.Unsubscribe(_outputEvent, TestContext.Current.CancellationToken);
+            await handler.Unsubscribe([_outputEvent], TestContext.Current.CancellationToken);
 
             // Assert
             await _mqttClient.Received().ConnectAsync(Arg.Any<MqttClientOptions>(), Arg.Any<CancellationToken>());
@@ -114,10 +198,47 @@ public class DataflowEventMqttHandlerTests
             await using var handler = CreateHandler();
 
             // Act
-            await handler.Unsubscribe(_outputEvent, TestContext.Current.CancellationToken);
+            await handler.Unsubscribe([_outputEvent], TestContext.Current.CancellationToken);
 
-            // Assert            
+            // Assert
             await _mqttClient.Received().UnsubscribeAsync(Arg.Any<MqttClientUnsubscribeOptions>(), Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Should_unsubscribe_from_the_topics_of_several_events_with_one_packet()
+        {
+            // Arrange
+            await using var handler = CreateHandler();
+            var otherOutput = DataflowEventTestUtils.CreateOutputEvent("Axis", "Speed");
+
+            // Act
+            await handler.Unsubscribe([_outputEvent, otherOutput], TestContext.Current.CancellationToken);
+
+            // Assert
+            await _mqttClient.Received(1).UnsubscribeAsync(Arg.Is<MqttClientUnsubscribeOptions>(o =>
+                o.TopicFilters.SequenceEqual(new[] { _outputEvent.EventId.ToString(), otherOutput.EventId.ToString() })),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Should_go_out_only_after_an_earlier_subscribe()
+        {
+            // Arrange
+            await using var handler = CreateHandler();
+            _mqttClient.IsConnected.Returns(true);
+            var subscribed = new TaskCompletionSource<MqttClientSubscribeResult>();
+            _mqttClient.SubscribeAsync(Arg.Any<MqttClientSubscribeOptions>(), Arg.Any<CancellationToken>()).Returns(subscribed.Task);
+            var subscribe = handler.Subscribe([_outputEvent], TestContext.Current.CancellationToken);
+
+            // Act
+            var unsubscribe = handler.Unsubscribe([_outputEvent], TestContext.Current.CancellationToken);
+            var unsubscribedWhileSubscribing = _mqttClient.ReceivedCalls().Any(c => c.GetMethodInfo().Name == nameof(IMqttClient.UnsubscribeAsync));
+            subscribed.SetResult(null!);
+            await Task.WhenAll(subscribe, unsubscribe);
+
+            // Assert
+            unsubscribedWhileSubscribing.Should().BeFalse();
+            await _mqttClient.Received(1).UnsubscribeAsync(Arg.Any<MqttClientUnsubscribeOptions>(), Arg.Any<CancellationToken>());
         }
     }
 
@@ -128,7 +249,7 @@ public class DataflowEventMqttHandlerTests
         {
             // Arrange
             await using var handler = CreateHandler(false);
-            var action = () => handler.Subscribe(_outputEvent);
+            var action = () => handler.Subscribe([_outputEvent]);
 
             // Act + Assert
             await action.Should().ThrowAsync<InvalidOperationException>();
@@ -141,7 +262,7 @@ public class DataflowEventMqttHandlerTests
             await using var handler = CreateHandler();
 
             // Act
-            await handler.Subscribe(_outputEvent, TestContext.Current.CancellationToken);
+            await handler.Subscribe([_outputEvent], TestContext.Current.CancellationToken);
 
             // Assert
             await _mqttClient.Received().ConnectAsync(Arg.Any<MqttClientOptions>(), Arg.Any<CancellationToken>());
@@ -185,7 +306,7 @@ public class DataflowEventMqttHandlerTests
             var receivedEvent = false;
 
             handler.EventReceivedAsync += (args) => { receivedEvent = true; return Task.CompletedTask; };
-            await handler.Subscribe(_outputEvent, TestContext.Current.CancellationToken);
+            await handler.Subscribe([_outputEvent], TestContext.Current.CancellationToken);
 
             // Act
             _mqttClient.ApplicationMessageReceivedAsync += Raise.Event<Func<MqttApplicationMessageReceivedEventArgs, Task>>(receivedArgs);
@@ -203,7 +324,7 @@ public class DataflowEventMqttHandlerTests
             var receivedEvent = false;
 
             handler.EventReceivedAsync += (args) => { receivedEvent = true; return Task.CompletedTask; };
-            await handler.Subscribe(_outputEvent, TestContext.Current.CancellationToken);
+            await handler.Subscribe([_outputEvent], TestContext.Current.CancellationToken);
 
             // Act
             _mqttClient.ApplicationMessageReceivedAsync += Raise.Event<Func<MqttApplicationMessageReceivedEventArgs, Task>>(receivedArgs);
@@ -224,7 +345,7 @@ public class DataflowEventMqttHandlerTests
             var receivedEvent = false;
 
             handler.EventReceivedAsync += (args) => { receivedEvent = true; return Task.CompletedTask; };
-            await handler.Subscribe(_outputEvent, TestContext.Current.CancellationToken);
+            await handler.Subscribe([_outputEvent], TestContext.Current.CancellationToken);
 
             // Act
             _mqttClient.ApplicationMessageReceivedAsync += Raise.Event<Func<MqttApplicationMessageReceivedEventArgs, Task>>(receivedArgs);

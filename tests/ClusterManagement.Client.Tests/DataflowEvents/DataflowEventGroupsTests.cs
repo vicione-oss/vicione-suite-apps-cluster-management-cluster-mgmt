@@ -38,16 +38,6 @@ public class DataflowEventGroupsTests
     }
 
     [Fact]
-    public void Groups_by_container()
-    {
-        // Act
-        var groups = DataflowEventGroups.Build([_threshold, _axisUnit], DataflowEventGrouping.Container, DataflowEventDirection.All, null);
-
-        // Assert
-        groups.Select(g => g.Events[0].Location).Should().Equal("Line 3 › Pump 1", "Line 3 › Pump 2");
-    }
-
-    [Fact]
     public void Groups_by_direction_into_inputs_and_outputs()
     {
         // Act

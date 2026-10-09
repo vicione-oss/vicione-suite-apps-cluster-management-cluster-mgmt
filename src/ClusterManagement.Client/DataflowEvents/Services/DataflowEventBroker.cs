@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using ClusterManagement.Client.DataflowEvents.Models;
-using ClusterManagement.Client.Extensions;
 using ClusterManagement.Public.DataflowEvents;
 using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
@@ -26,6 +26,8 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
     private CancellationTokenSource? _reconnectCts;
     private Task? _reconnectTask;
     private volatile bool _isCacheInvalid;
+
+    public event Func<Task>? EventsChanged;
 
     public DataflowEventBroker(IUiMediator mediator, IDataflowEventMqttHandler mqttHandler, ILogger<DataflowEventBroker> logger)
     {
@@ -54,21 +56,18 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
 
         _mqttHandler.EventReceivedAsync -= OnEventReceivedAsync;
 
-        if (_availableEvents is not null)
+        if (_availableEvents is { } availableEvents)
         {
-            foreach (var runtimeEvent in _dataflowRuntimeEvents.Values)
+            List<IDataflowEvent> subscribedEvents = [.. _dataflowRuntimeEvents.Keys
+                .Select(availableEvents.GetValueOrDefault)
+                .OfType<IDataflowEvent>()];
+            try
             {
-                if (!_availableEvents.TryGetValue(runtimeEvent.EventId, out var dataflowEvent))
-                    continue;
-
-                try
-                {
-                    await _mqttHandler.Unsubscribe(dataflowEvent);
-                }
-                catch (Exception ex)
-                {
-                    LogUnsubscribeDuringDisposeFailed(_logger, ex, dataflowEvent.EventId);
-                }
+                await _mqttHandler.Unsubscribe(subscribedEvents);
+            }
+            catch (Exception ex)
+            {
+                LogUnsubscribeDuringDisposeFailed(_logger, ex, subscribedEvents.Count);
             }
         }
 
@@ -155,32 +154,143 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
 
     public async Task<IAsyncDisposable> Subscribe(Guid eventId, Func<DateTime, string?, Task> handler, CancellationToken cancellationToken = default)
     {
+        var result = await Subscribe(new Dictionary<Guid, Func<DateTime, string?, Task>> { [eventId] = handler }, cancellationToken);
+        if (result.Failures.TryGetValue(eventId, out var failure))
+            ExceptionDispatchInfo.Throw(failure);
+
+        return result.Subscriptions[eventId];
+    }
+
+    public async Task<DataflowEventSubscriptions> Subscribe(IReadOnlyDictionary<Guid, Func<DateTime, string?, Task>> handlers, CancellationToken cancellationToken = default)
+    {
+        var availableEvents = await LoadAvailableEvents(cancellationToken);
+        Dictionary<Guid, Exception> failures = [];
+        var joined = Join(availableEvents, handlers, failures);
+        await RequestTopics([.. joined.Where(s => s.IsFirst)], cancellationToken);
+        var subscriptions = await AwaitTopics(joined, failures, cancellationToken);
+        return new(subscriptions, failures);
+    }
+
+    private async Task<Dictionary<Guid, IDataflowEvent>> LoadAvailableEvents(CancellationToken cancellationToken)
+    {
         _ = await UpdateEventCache(cancellationToken);
+        return _availableEvents ?? throw new InvalidOperationException($"Failed to init events");
+    }
 
-        if (_availableEvents is null)
-            throw new InvalidOperationException($"Failed to init events");
-
-        if (!_availableEvents.TryGetValue(eventId, out var dataflowEvent))
-            throw new ArgumentException($"Event '{eventId}' does not exist");
-
-        if (!dataflowEvent.CanRead)
-            throw new ArgumentException($"Event '{eventId}' is not readable");
-
-        var runtimeEvent = _dataflowRuntimeEvents.GetOrAdd(eventId, _ => new DataflowRuntimeEvent { EventId = eventId });
-        var count = runtimeEvent.AddSubscription(handler);
-
-        if (count == 1)
+    private List<Subscription> Join(Dictionary<Guid, IDataflowEvent> availableEvents,
+        IReadOnlyDictionary<Guid, Func<DateTime, string?, Task>> handlers, Dictionary<Guid, Exception> failures)
+    {
+        List<Subscription> joined = [];
+        foreach (var (eventId, handler) in handlers)
         {
-            await _mqttHandler.Subscribe(dataflowEvent, cancellationToken);
+            if (!availableEvents.TryGetValue(eventId, out var dataflowEvent))
+            {
+                failures[eventId] = new ArgumentException($"Event '{eventId}' does not exist");
+                continue;
+            }
 
-            LogSubscribedEvent(_logger, dataflowEvent.EventId);
+            if (!dataflowEvent.CanRead)
+            {
+                failures[eventId] = new ArgumentException($"Event '{eventId}' is not readable");
+                continue;
+            }
+
+            var runtimeEvent = _dataflowRuntimeEvents.GetOrAdd(eventId, _ => new DataflowRuntimeEvent { EventId = eventId });
+            var subscription = new Subscription(this, dataflowEvent, runtimeEvent, handler);
+            subscription.Join();
+            joined.Add(subscription);
         }
-        else if (runtimeEvent.Timestamp.HasValue)
+
+        return joined;
+    }
+
+    // One request for the events that had no handler yet; handlers that join meanwhile wait for its outcome.
+    private async Task RequestTopics(List<Subscription> firstSubscriptions, CancellationToken cancellationToken)
+    {
+        if (firstSubscriptions.Count == 0)
+            return;
+
+        try
         {
-            await handler(runtimeEvent.Timestamp.Value, runtimeEvent.Value);
+            await _mqttHandler.Subscribe([.. firstSubscriptions.Select(s => s.Event)], cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            foreach (var subscription in firstSubscriptions)
+                subscription.EndTopicRequest(ex);
+
+            return;
         }
 
-        return AsyncDisposable.Create((runtimeEvent, handler), Unsubscribe);
+        foreach (var subscription in firstSubscriptions)
+        {
+            subscription.EndTopicRequest(null);
+            LogSubscribedEvent(_logger, subscription.EventId);
+        }
+    }
+
+    // A failed request ends its handlers, so a later attempt asks again. Once no handler is left, the topic is forgotten at
+    // once, before another caller can subscribe it anew.
+    private async Task<Dictionary<Guid, IAsyncDisposable>> AwaitTopics(List<Subscription> joined, Dictionary<Guid, Exception> failures,
+        CancellationToken cancellationToken)
+    {
+        Dictionary<Guid, IAsyncDisposable> subscriptions = [];
+        List<IDataflowEvent> cancelledEvents = [];
+        foreach (var subscription in joined)
+        {
+            try
+            {
+                await subscription.TopicRequest.WaitAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                failures[subscription.EventId] = ex;
+                if (!subscription.End())
+                    continue;
+
+                _mqttHandler.Forget([subscription.Event]);
+                if (ex is OperationCanceledException)
+                    cancelledEvents.Add(subscription.Event);
+
+                continue;
+            }
+
+            subscriptions[subscription.EventId] = subscription;
+            if (!subscription.IsFirst)
+                await SendLastValue(subscription);
+        }
+
+        await UnsubscribeCancelled(cancelledEvents);
+        return subscriptions;
+    }
+
+    // A cancelled request may have reached the event broker, which would then keep sending values nobody reads.
+    private async Task UnsubscribeCancelled(List<IDataflowEvent> cancelledEvents)
+    {
+        if (cancelledEvents.Count == 0)
+            return;
+
+        try
+        {
+            await _mqttHandler.Unsubscribe(cancelledEvents, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            LogUnsubscribeCancelledFailed(_logger, ex, cancelledEvents.Count);
+        }
+    }
+
+    // A handler that joins a subscribed event would otherwise wait for the next value, which may be long in coming.
+    private async Task SendLastValue(Subscription subscription)
+    {
+        try
+        {
+            await subscription.SendLastValue();
+        }
+        catch (Exception ex)
+        {
+            LogReceivedEvent(_logger, ex, subscription.EventId);
+        }
     }
 
     private async Task OnEventReceivedAsync(DataflowEventArgs arg)
@@ -235,22 +345,36 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
         }
     }
 
-    private async Task Unsubscribe((DataflowRuntimeEvent, Func<DateTime, string?, Task>) subscription)
+    public async Task Unsubscribe(IReadOnlyCollection<IAsyncDisposable> subscriptions, CancellationToken cancellationToken = default)
     {
-        var (runtimeEvent, handler) = subscription;
-        var wasLast = runtimeEvent.RemoveSubscription(handler);
+        var ownSubscriptions = subscriptions.OfType<Subscription>().Where(s => s.Broker == this).ToArray();
+        if (ownSubscriptions.Length != subscriptions.Count)
+            throw new ArgumentException("Only subscriptions of this broker can be ended together", nameof(subscriptions));
 
-        if (wasLast)
+        List<IDataflowEvent> unusedEvents = [];
+        foreach (var subscription in ownSubscriptions)
         {
-            if (_availableEvents?.TryGetValue(runtimeEvent.EventId, out var dataflowEvent) == true)
-            {
-                await _mqttHandler.Unsubscribe(dataflowEvent);
-
-                LogUnsubscribedEvent(_logger, dataflowEvent.EventId);
-            }
-
-            _dataflowRuntimeEvents.TryRemove(runtimeEvent.EventId, out _);
+            if (subscription.End())
+                unusedEvents.Add(subscription.Event);
         }
+
+        if (unusedEvents.Count == 0)
+            return;
+
+        await _mqttHandler.Unsubscribe(unusedEvents, cancellationToken);
+
+        foreach (var dataflowEvent in unusedEvents)
+            LogUnsubscribedEvent(_logger, dataflowEvent.EventId);
+    }
+
+    /// <returns><c>true</c> when <paramref name="handler"/> was the last one of its event, whose topic then is no longer needed.</returns>
+    private bool RemoveHandler(DataflowRuntimeEvent runtimeEvent, Func<DateTime, string?, Task> handler)
+    {
+        if (!runtimeEvent.RemoveSubscription(handler))
+            return false;
+
+        _dataflowRuntimeEvents.TryRemove(KeyValuePair.Create(runtimeEvent.EventId, runtimeEvent));
+        return true;
     }
 
     public async Task SetValue(Guid eventId, string? value, CancellationToken cancellationToken = default)
@@ -282,8 +406,29 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
         oldCts?.Dispose();
 
         _reconnectTask = ReconnectAfterClusterUpdateAsync(newCts.Token);
+        _ = NotifyEventsChanged();
 
         return Task.CompletedTask;
+    }
+
+    // The deployment event is handed to every consumer in turn, so a listener that reloads must not hold it up.
+    // Each listener is awaited on its own; a multicast delegate would hand back the task of the last one only.
+    private async Task NotifyEventsChanged()
+    {
+        if (EventsChanged is not { } eventsChanged)
+            return;
+
+        foreach (var listener in eventsChanged.GetInvocationList().Cast<Func<Task>>())
+        {
+            try
+            {
+                await listener();
+            }
+            catch (Exception ex)
+            {
+                LogEventsChangedFailed(_logger, ex);
+            }
+        }
     }
 
     private async Task ReconnectAfterClusterUpdateAsync(CancellationToken cancellationToken)
@@ -300,6 +445,48 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
         {
             LogReconnectAfterClusterUpdateFailed(_logger, ex);
         }
+    }
+
+    /// <summary>
+    /// One handler of one event. Ending it removes the handler once, however often it is ended. It keeps the event it was made
+    /// for, which a reload of the events may have dropped by the time it ends.
+    /// </summary>
+    private sealed class Subscription(DataflowEventBroker broker, IDataflowEvent dataflowEvent, DataflowRuntimeEvent runtimeEvent,
+        Func<DateTime, string?, Task> handler) : IAsyncDisposable
+    {
+        private int _isEnded;
+
+        public DataflowEventBroker Broker => broker;
+
+        public IDataflowEvent Event => dataflowEvent;
+
+        public Guid EventId => runtimeEvent.EventId;
+
+        /// <summary>
+        /// The request for the event's topic this handler waits for; <see cref="IsFirst"/> when this handler has to send it.
+        /// </summary>
+        public Task TopicRequest { get; private set; } = Task.CompletedTask;
+
+        public bool IsFirst { get; private set; }
+
+        public void Join()
+        {
+            TopicRequest = runtimeEvent.AddSubscription(handler, out var isFirst);
+            IsFirst = isFirst;
+        }
+
+        /// <returns><c>true</c> when this was the last handler of its event, whose topic then is no longer needed.</returns>
+        public bool End()
+            => Interlocked.Exchange(ref _isEnded, 1) == 0 && broker.RemoveHandler(runtimeEvent, handler);
+
+        public void EndTopicRequest(Exception? failure)
+            => runtimeEvent.EndTopicRequest(failure);
+
+        public Task SendLastValue()
+            => runtimeEvent.Timestamp is { } timestamp ? handler(timestamp, runtimeEvent.Value) : Task.CompletedTask;
+
+        public ValueTask DisposeAsync()
+            => new(broker.Unsubscribe([this]));
     }
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Debug, Message = "Set value='{value}' type='{valueType}' on event '{EventId}'")]
@@ -326,6 +513,12 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
     [LoggerMessage(EventId = 9, Level = LogLevel.Error, Message = "Failed to reconnect after cluster update")]
     internal static partial void LogReconnectAfterClusterUpdateFailed(ILogger logger, Exception exception);
 
-    [LoggerMessage(EventId = 10, Level = LogLevel.Warning, Message = "Failed to unsubscribe event '{EventId}' during dispose")]
-    internal static partial void LogUnsubscribeDuringDisposeFailed(ILogger logger, Exception exception, Guid eventId);
+    [LoggerMessage(EventId = 10, Level = LogLevel.Warning, Message = "Failed to unsubscribe {Count} events during dispose")]
+    internal static partial void LogUnsubscribeDuringDisposeFailed(ILogger logger, Exception exception, int count);
+
+    [LoggerMessage(EventId = 11, Level = LogLevel.Error, Message = "Failed to reload the events after a cluster update")]
+    private static partial void LogEventsChangedFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(EventId = 12, Level = LogLevel.Warning, Message = "Failed to unsubscribe {Count} events of a cancelled request")]
+    private static partial void LogUnsubscribeCancelledFailed(ILogger logger, Exception exception, int count);
 }

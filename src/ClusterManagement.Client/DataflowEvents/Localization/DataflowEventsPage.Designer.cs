@@ -305,15 +305,6 @@ namespace ClusterManagement.Client.DataflowEvents.Localization {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Subscribed.
-        /// </summary>
-        internal static string Subscribed {
-            get {
-                return ResourceManager.GetString("Subscribed", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Value, Enter writes.
         /// </summary>
         internal static string ValueEnterWrites {

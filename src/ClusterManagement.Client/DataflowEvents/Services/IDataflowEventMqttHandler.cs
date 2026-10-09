@@ -25,16 +25,23 @@ internal interface IDataflowEventMqttHandler
     Task PublishValue(Guid eventId, string? value, string valueType, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Ensures the MQTT client is connected and subscribes to the topic corresponding to <paramref name="dataflowEvent"/>.
-    /// The topic is tracked so it can be automatically resubscribed after a reconnect.
+    /// Ensures the MQTT client is connected and subscribes to the topics corresponding to <paramref name="dataflowEvents"/>
+    /// with one SUBSCRIBE packet. The topics are tracked so they can be automatically resubscribed after a reconnect,
+    /// also when the packet fails.
     /// </summary>
-    Task Subscribe(IDataflowEvent dataflowEvent, CancellationToken cancellationToken = default);
+    Task Subscribe(IReadOnlyCollection<IDataflowEvent> dataflowEvents, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Ensures the MQTT client is connected and unsubscribes from the topic corresponding to <paramref name="dataflowEvent"/>.
-    /// The topic is removed from the active-topics tracking list.
+    /// Ensures the MQTT client is connected and unsubscribes from the topics corresponding to <paramref name="dataflowEvents"/>
+    /// with one UNSUBSCRIBE packet. The topics are removed from the active-topics tracking list.
     /// </summary>
-    Task Unsubscribe(IDataflowEvent dataflowEvent, CancellationToken cancellationToken = default);
+    Task Unsubscribe(IReadOnlyCollection<IDataflowEvent> dataflowEvents, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Stops tracking the topics of <paramref name="dataflowEvents"/> without sending a packet, so a reconnect does not
+    /// subscribe them again. For topics whose SUBSCRIBE packet failed and that are no longer needed.
+    /// </summary>
+    void Forget(IReadOnlyCollection<IDataflowEvent> dataflowEvents);
 
     /// <summary>
     /// Disconnects and fully resets the MQTT client and connection options, then reconnects and

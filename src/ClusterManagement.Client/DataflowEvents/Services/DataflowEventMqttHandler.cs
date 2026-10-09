@@ -28,7 +28,9 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
     private readonly MqttQualityOfServiceLevel _subscriptionServiceLevel = MqttQualityOfServiceLevel.AtMostOnce;
     private readonly MqttQualityOfServiceLevel _writeServiceLevel = MqttQualityOfServiceLevel.AtMostOnce;
     private readonly ConcurrentDictionary<string, IDataflowEvent> _activeTopics = new();
-    private readonly SemaphoreSlim _resetSemaphore = new(1, 1);
+
+    // Requests and reconnects go out one at a time, so a request for a topic never overtakes an earlier one for it.
+    private readonly SemaphoreSlim _requestLock = new(1, 1);
 
     private IMqttClient? _client;
     private MqttClientOptions? _options;
@@ -54,7 +56,7 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
     public async ValueTask DisposeAsync()
     {
         await Disconnect();
-        _resetSemaphore.Dispose();
+        _requestLock.Dispose();
     }
 
     private async Task<bool> EnsureConnected(CancellationToken cancellationToken = default)
@@ -74,6 +76,8 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
             var result = await _client.ConnectAsync(_options, cancellationToken);
             if (result.ResultCode == MqttClientConnectResultCode.Success)
             {
+                // A connection that dropped comes back without the topics it had.
+                await ResubscribeActiveTopics(cancellationToken);
                 await StartReconnectLoop();
                 return true;
             }
@@ -116,45 +120,111 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
         }
     }
 
-    public async Task Subscribe(IDataflowEvent dataflowEvent, CancellationToken cancellationToken = default)
+    public async Task Subscribe(IReadOnlyCollection<IDataflowEvent> dataflowEvents, CancellationToken cancellationToken = default)
     {
-        if (!await EnsureConnected(cancellationToken))
-            throw new InvalidOperationException($"Failed to subscribe to topic {dataflowEvent.EventId} because connection to event broker failed");
+        if (dataflowEvents.Count == 0)
+            return;
 
-        var topic = dataflowEvent.EventId.ToString();
-        _activeTopics[topic] = dataflowEvent;
-
-        var result = await _client.SubscribeAsync(topic, _subscriptionServiceLevel, cancellationToken).ConfigureAwait(false);
-        if (result?.Items is not null)
+        await _requestLock.WaitAsync(cancellationToken);
+        try
         {
-            foreach (var item in result.Items)
-            {
-                if (item.ResultCode > MqttClientSubscribeResultCode.GrantedQoS2)
-                    LogSubscribeResultCodeFailed(_logger, topic, item.ResultCode);
-            }
+            await SubscribeConnected(dataflowEvents, cancellationToken);
+        }
+        finally
+        {
+            _requestLock.Release();
         }
     }
 
-    public async Task Unsubscribe(IDataflowEvent dataflowEvent, CancellationToken cancellationToken = default)
+    private async Task SubscribeConnected(IReadOnlyCollection<IDataflowEvent> dataflowEvents, CancellationToken cancellationToken)
     {
         if (!await EnsureConnected(cancellationToken))
-            throw new InvalidOperationException($"Failed to unsubscribe topic {dataflowEvent.EventId} because connection to event broker failed");
+            throw new InvalidOperationException($"Failed to subscribe to {dataflowEvents.Count} topics because connection to event broker failed");
 
-        var topic = dataflowEvent.EventId.ToString();
-        _activeTopics.TryRemove(topic, out _);
+        var options = new MqttClientSubscribeOptionsBuilder();
+        foreach (var dataflowEvent in dataflowEvents)
+        {
+            var topic = dataflowEvent.EventId.ToString();
+            _activeTopics[topic] = dataflowEvent;
+            options.WithTopicFilter(topic, _subscriptionServiceLevel);
+        }
 
-        var result = await _client.UnsubscribeAsync(topic, cancellationToken).ConfigureAwait(false);
+        var result = await _client!.SubscribeAsync(options.Build(), cancellationToken).ConfigureAwait(false);
+        LogRejectedTopics(result);
+    }
+
+    private void LogRejectedTopics(MqttClientSubscribeResult? result)
+    {
+        if (result?.Items is null)
+            return;
+
+        foreach (var item in result.Items)
+        {
+            if (item.ResultCode > MqttClientSubscribeResultCode.GrantedQoS2)
+                LogSubscribeResultCodeFailed(_logger, item.TopicFilter.Topic, item.ResultCode);
+        }
+    }
+
+    public async Task Unsubscribe(IReadOnlyCollection<IDataflowEvent> dataflowEvents, CancellationToken cancellationToken = default)
+    {
+        if (dataflowEvents.Count == 0)
+            return;
+
+        await _requestLock.WaitAsync(cancellationToken);
+        try
+        {
+            await UnsubscribeConnected(dataflowEvents, cancellationToken);
+        }
+        finally
+        {
+            _requestLock.Release();
+        }
+    }
+
+    private async Task UnsubscribeConnected(IReadOnlyCollection<IDataflowEvent> dataflowEvents, CancellationToken cancellationToken)
+    {
+        if (!await EnsureConnected(cancellationToken))
+            throw new InvalidOperationException($"Failed to unsubscribe {dataflowEvents.Count} topics because connection to event broker failed");
+
+        var options = new MqttClientUnsubscribeOptionsBuilder();
+        foreach (var dataflowEvent in dataflowEvents)
+        {
+            var topic = dataflowEvent.EventId.ToString();
+            _activeTopics.TryRemove(topic, out _);
+            options.WithTopicFilter(topic);
+        }
+
+        var result = await _client!.UnsubscribeAsync(options.Build(), cancellationToken).ConfigureAwait(false);
         if (result?.Items is not null)
         {
             foreach (var item in result.Items)
             {
                 if (item.ResultCode != MqttClientUnsubscribeResultCode.Success)
-                    LogUnsubscribeResultCodeFailed(_logger, topic, item.ResultCode);
+                    LogUnsubscribeResultCodeFailed(_logger, item.TopicFilter, item.ResultCode);
             }
         }
     }
 
+    public void Forget(IReadOnlyCollection<IDataflowEvent> dataflowEvents)
+    {
+        foreach (var dataflowEvent in dataflowEvents)
+            _activeTopics.TryRemove(dataflowEvent.EventId.ToString(), out _);
+    }
+
     public async Task PublishValue(Guid eventId, string? value, string valueType, CancellationToken cancellationToken = default)
+    {
+        await _requestLock.WaitAsync(cancellationToken);
+        try
+        {
+            await PublishConnected(eventId, value, valueType, cancellationToken);
+        }
+        finally
+        {
+            _requestLock.Release();
+        }
+    }
+
+    private async Task PublishConnected(Guid eventId, string? value, string valueType, CancellationToken cancellationToken)
     {
         if (!await EnsureConnected(cancellationToken))
             throw new InvalidOperationException($"Failed to set value on topic {eventId} because connection to event broker failed");
@@ -233,10 +303,7 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
                     try
                     {
                         if (!await _client.TryPingAsync(token))
-                        {
-                            await _client.ConnectAsync(_options, token);
-                            await ResubscribeActiveTopics(token);
-                        }
+                            await Reconnect(token);
                     }
                     catch (OperationCanceledException)
                     {
@@ -259,6 +326,25 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
                 LogReconnectLoopStopped(_logger);
             }
         }, token);
+    }
+
+    private async Task Reconnect(CancellationToken cancellationToken)
+    {
+        await _requestLock.WaitAsync(cancellationToken);
+        try
+        {
+            // A request may have reconnected while this one waited.
+            var client = _client!;
+            if (await client.TryPingAsync(cancellationToken))
+                return;
+
+            await client.ConnectAsync(_options!, cancellationToken);
+            await ResubscribeActiveTopics(cancellationToken);
+        }
+        finally
+        {
+            _requestLock.Release();
+        }
     }
 
     private async Task StopReconnectLoop()
@@ -295,19 +381,26 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
         _reconnectCancellation = null;
     }
 
+    // One packet for every tracked topic, so a reconnect holds up the requests behind it for one round trip only.
     private async Task ResubscribeActiveTopics(CancellationToken cancellationToken)
     {
-        foreach (var (topic, _) in _activeTopics)
+        var topics = _activeTopics.Keys.ToList();
+        if (topics.Count == 0)
+            return;
+
+        var options = new MqttClientSubscribeOptionsBuilder();
+        foreach (var topic in topics)
+            options.WithTopicFilter(topic, _subscriptionServiceLevel);
+
+        try
         {
-            try
-            {
-                _ = await _client.SubscribeAsync(topic, _subscriptionServiceLevel, cancellationToken).ConfigureAwait(false);
-                LogResubscribedTopic(_logger, topic);
-            }
-            catch (Exception ex)
-            {
-                LogResubscribeTopicFailed(_logger, ex, topic);
-            }
+            var result = await _client!.SubscribeAsync(options.Build(), cancellationToken).ConfigureAwait(false);
+            LogResubscribedTopics(_logger, topics.Count);
+            LogRejectedTopics(result);
+        }
+        catch (Exception ex)
+        {
+            LogResubscribeTopicsFailed(_logger, ex, topics.Count);
         }
     }
 
@@ -315,7 +408,7 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
     {
         try
         {
-            await _resetSemaphore.WaitAsync(cancellationToken);
+            await _requestLock.WaitAsync(cancellationToken);
             try
             {
                 await Disconnect();
@@ -323,14 +416,11 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
                 _options = null;
                 mqttProvider.ResetConnection();
 
-                if (!await EnsureConnected(cancellationToken))
-                    return;
-
-                await ResubscribeActiveTopics(cancellationToken);
+                await EnsureConnected(cancellationToken);
             }
             finally
             {
-                _resetSemaphore.Release();
+                _requestLock.Release();
             }
         }
         catch (OperationCanceledException)
@@ -384,11 +474,11 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
     [LoggerMessage(LogLevel.Error, "Received message on '{Topic}' without UserProperties.")]
     private static partial void UserPropertiesMissing(ILogger logger, string topic);
 
-    [LoggerMessage(LogLevel.Debug, "Resubscribed to topic '{Topic}' after reconnect.")]
-    private static partial void LogResubscribedTopic(ILogger logger, string topic);
+    [LoggerMessage(LogLevel.Debug, "Resubscribed to {Count} topics after reconnect.")]
+    private static partial void LogResubscribedTopics(ILogger logger, int count);
 
-    [LoggerMessage(LogLevel.Warning, "Failed to resubscribe to topic '{Topic}' after reconnect.")]
-    private static partial void LogResubscribeTopicFailed(ILogger logger, Exception exception, string topic);
+    [LoggerMessage(LogLevel.Warning, "Failed to resubscribe to {Count} topics after reconnect.")]
+    private static partial void LogResubscribeTopicsFailed(ILogger logger, Exception exception, int count);
 
     [LoggerMessage(LogLevel.Warning, "MQTT subscribe failed for topic '{Topic}' with result code {ResultCode}.")]
     private static partial void LogSubscribeResultCodeFailed(ILogger logger, string topic, MqttClientSubscribeResultCode resultCode);

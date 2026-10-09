@@ -22,7 +22,7 @@ internal enum DataflowEventDirection
 /// </summary>
 internal sealed record DataflowEventGroup(string Key, IReadOnlyList<DataflowEventModel> Events)
 {
-    public int InputCount => Events.Count(e => e.CanWrite);
+    public int InputCount { get; } = Events.Count(e => e.CanWrite);
 
     public int OutputCount => Events.Count - InputCount;
 }
@@ -64,7 +64,6 @@ internal static class DataflowEventGroups
     private static string KeyOf(DataflowEventModel dataflowEvent, DataflowEventGrouping grouping) => grouping switch
     {
         DataflowEventGrouping.Dataflow => dataflowEvent.DataflowName,
-        DataflowEventGrouping.Container => dataflowEvent.Location,
         DataflowEventGrouping.FunctionBlock => dataflowEvent.FunctionBlockId.ToString(),
         DataflowEventGrouping.Direction => dataflowEvent.CanWrite ? nameof(DataflowEventDirection.Inputs) : nameof(DataflowEventDirection.Outputs),
         DataflowEventGrouping.ValueType => dataflowEvent.ValueType,

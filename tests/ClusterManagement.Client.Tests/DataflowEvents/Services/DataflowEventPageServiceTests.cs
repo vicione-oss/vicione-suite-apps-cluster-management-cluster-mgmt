@@ -3,14 +3,16 @@ using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Public.DataflowEvents;
 using ClusterManagement.Public.Requests;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using Sdk.Client.Services;
 
 namespace ClusterManagement.Client.Tests.DataflowEvents.Services;
 
 public class DataflowEventPageServiceTests
 {
-    private readonly IDataflowEventBroker _eventBroker = Substitute.For<IDataflowEventBroker>();
+    private readonly IDataflowEventBroker _eventBroker = Substitute.For<IDataflowEventBroker>().SubscribesEveryEvent();
     private readonly IMessageBannerService _bannerService = Substitute.For<IMessageBannerService>();
+    private readonly FakeTimeProvider _clock = new();
 
     private readonly IDataflowEvent _inputEvent = DataflowEventTestUtils.CreateInputEvent();
     private readonly IDataflowEvent _outputEvent = DataflowEventTestUtils.CreateOutputEvent();
@@ -21,8 +23,20 @@ public class DataflowEventPageServiceTests
         _eventBroker.GetEvents().Returns(dataflowEvents);
         _eventBroker.GetCurrentClusterInfo().Returns(_clusterInfo);
 
-        return new(_eventBroker, _bannerService, Substitute.For<ILogger<DataflowEventPageService>>());
+        return new(_eventBroker, _bannerService, _clock, Substitute.For<ILogger<DataflowEventPageService>>());
     }
+
+    private async Task<DataflowEventPageService> ShowLoadedEvents(params IDataflowEvent[] dataflowEvents)
+    {
+        var service = CreateService(dataflowEvents);
+        await service.LoadDataflowEvents();
+        InlineSynchronizationContext.Run(() => service.ShowEvents(service.Events));
+        _clock.Advance(ShownEventSubscriptions.SettleTime);
+        return service;
+    }
+
+    private int UnsubscribeRequestCount()
+        => _eventBroker.ReceivedCalls().Count(c => c.GetMethodInfo().Name == nameof(IDataflowEventBroker.Unsubscribe));
 
     private static DataflowEventModel CreateModel(IDataflowEvent dataflowEvent)
         => new()
@@ -70,45 +84,18 @@ public class DataflowEventPageServiceTests
         }
 
         [Fact]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "xUnit1051:Calls to methods which accept CancellationToken should use TestContext.Current.CancellationToken", Justification = "Overload method")]
-        public async Task Should_keep_the_subscription_of_an_event_across_reloads_and_deliver_its_values_to_the_new_model()
+        public async Task Should_deliver_the_values_of_a_shown_output_to_its_model_after_a_reload()
         {
             // Arrange
-            var service = CreateService(_inputEvent, _outputEvent);
-            Func<DateTime, string?, Task>? handler = null;
-            var subscription = Substitute.For<IAsyncDisposable>();
-            _eventBroker.Subscribe(_outputEvent.EventId, Arg.Do<Func<DateTime, string?, Task>>(h => handler = h)).Returns(subscription);
-            await service.LoadDataflowEvents();
-            await service.SubscribeEvent(service.Events.Single(k => k.EventId == _outputEvent.EventId));
+            var service = await ShowLoadedEvents(_inputEvent, _outputEvent);
+            var handler = _eventBroker.SubscribeRequests().Single()[_outputEvent.EventId];
 
             // Act
             await service.LoadDataflowEvents();
-            await handler!(new DateTime(2026, 10, 6, 12, 0, 0, DateTimeKind.Utc), "7");
+            await handler(new DateTime(2026, 10, 6, 12, 0, 0, DateTimeKind.Utc), "7");
 
             // Assert
-            var reloaded = service.Events.Single(k => k.EventId == _outputEvent.EventId);
-            reloaded.Subscription.Should().BeSameAs(subscription);
-            reloaded.Value.Should().Be("7");
-            await subscription.DidNotReceive().DisposeAsync();
-        }
-
-        [Fact]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "xUnit1051:Calls to methods which accept CancellationToken should use TestContext.Current.CancellationToken", Justification = "Overload method")]
-        public async Task Should_end_the_subscription_of_an_event_that_is_gone_after_a_reload()
-        {
-            // Arrange
-            var service = CreateService(_inputEvent, _outputEvent);
-            var subscription = Substitute.For<IAsyncDisposable>();
-            _eventBroker.Subscribe(_outputEvent.EventId, Arg.Any<Func<DateTime, string?, Task>>()).Returns(subscription);
-            await service.LoadDataflowEvents();
-            await service.SubscribeEvent(service.Events.Single(k => k.EventId == _outputEvent.EventId));
-            _eventBroker.GetEvents().Returns([_inputEvent]);
-
-            // Act
-            await service.LoadDataflowEvents();
-
-            // Assert
-            await subscription.Received(1).DisposeAsync();
+            service.Events.Single(k => k.EventId == _outputEvent.EventId).Value.Should().Be("7");
         }
     }
 
@@ -130,42 +117,68 @@ public class DataflowEventPageServiceTests
         }
     }
 
-    public class SubscribeEvent : DataflowEventPageServiceTests
+    public class ShowEvents : DataflowEventPageServiceTests
     {
         [Fact]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "xUnit1051:Calls to methods which accept CancellationToken should use TestContext.Current.CancellationToken", Justification = "Overload method")]
-        public async Task Should_add_subscription_to_model()
+        public async Task Should_subscribe_only_the_shown_outputs()
         {
-            // Arrange
-            var service = CreateService(_inputEvent, _outputEvent);
-            var model = CreateModel(_outputEvent);
-
             // Act
-            await service.SubscribeEvent(model);
+            await ShowLoadedEvents(_inputEvent, _outputEvent);
 
             // Assert
-            await _eventBroker.Received(1).Subscribe(Arg.Is(_outputEvent.EventId), Arg.Any<Func<DateTime, string?, Task>>());
-            model.Subscription.Should().NotBeNull();
+            _eventBroker.SubscribeRequests().Should().ContainSingle().Which.Keys.Should().Equal(_outputEvent.EventId);
+        }
+
+        [Fact]
+        public async Task Should_request_a_render_when_a_value_arrives()
+        {
+            // Arrange
+            var service = await ShowLoadedEvents(_outputEvent);
+            var renders = 0;
+            service.RefreshRequested += () =>
+            {
+                renders++;
+                return Task.CompletedTask;
+            };
+
+            // Act
+            await _eventBroker.SubscribeRequests().Single()[_outputEvent.EventId](new DateTime(2026, 10, 6, 12, 0, 0, DateTimeKind.Utc), "7");
+
+            // Assert
+            renders.Should().Be(1);
+            service.Events.Single().Timestamp.Should().Be(new DateTime(2026, 10, 6, 12, 0, 0, DateTimeKind.Utc));
         }
     }
 
-    public class UnsubscribeEvent : DataflowEventPageServiceTests
+    public class DisposeAsync : DataflowEventPageServiceTests
     {
         [Fact]
-        public async Task Should_dispose_and_remove_subscription()
+        public async Task Should_end_the_subscriptions_once_when_the_page_and_then_its_scope_dispose_it()
         {
             // Arrange
-            var service = CreateService(_inputEvent, _outputEvent);
-            var model = CreateModel(_outputEvent);
-            model.Subscription = Substitute.For<IAsyncDisposable>();
-            var subscription = model.Subscription;
+            var service = await ShowLoadedEvents(_outputEvent);
 
             // Act
-            await service.UnsubscribeEvent(model);
+            await service.DisposeAsync();
+            await service.DisposeAsync();
 
             // Assert
-            model.Subscription.Should().BeNull();
-            await subscription!.Received(1).DisposeAsync();
+            UnsubscribeRequestCount().Should().Be(1);
+        }
+
+        [Fact]
+        public async Task Should_subscribe_again_for_a_page_opened_again()
+        {
+            // Arrange
+            var service = await ShowLoadedEvents(_outputEvent);
+            await service.DisposeAsync();
+
+            // Act
+            InlineSynchronizationContext.Run(() => service.ShowEvents(service.Events));
+            _clock.Advance(ShownEventSubscriptions.SettleTime);
+
+            // Assert
+            _eventBroker.SubscribeRequests().Should().HaveCount(2);
         }
     }
 }

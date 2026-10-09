@@ -17,7 +17,6 @@ internal class DataflowEventModel : IDataflowEvent
     public string ConnectorName { get; init; } = string.Empty;
     public string DataflowName { get; init; } = string.Empty;
     public IReadOnlyList<string> ContainerPath { get; init; } = [];
-    public IAsyncDisposable? Subscription { get; set; }
     public string? Value { get; set; }
 
     /// <summary>

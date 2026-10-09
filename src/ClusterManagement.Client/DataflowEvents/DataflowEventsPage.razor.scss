@@ -19,16 +19,6 @@
         padding: overview.$panel-padding;
     }
 
-    .back-link {
-        align-self: flex-start;
-        color: colors.$primary;
-        text-decoration: none;
-
-        &:hover {
-            color: colors.$accent-hover;
-        }
-    }
-
     .title-row {
         display: flex;
         flex-wrap: wrap;
@@ -121,10 +111,6 @@
         width: 150px;
     }
 
-    .subscribe-column {
-        width: 104px;
-    }
-
     // The function block and container groups already name the location; narrow screens keep the room for values.
     @media (max-width: 1000px) {
         .location-column,
@@ -178,16 +164,39 @@
         white-space: nowrap;
     }
 
-    .group td {
-        background-color: colors.$background-light;
+    // A click on the row toggles the group, so a quick second click must not select its text instead.
+    .group {
+        cursor: pointer;
+        user-select: none;
+
+        td {
+            background-color: colors.$background-light;
+        }
+
+        &:hover td {
+            background-color: colors.$background-light-hover;
+        }
     }
 
     .event:hover td {
         background-color: colors.$background-dark;
     }
 
+    // The arrow keys move the focus onto event rows, which have no button of their own to show it.
+    .event:focus-visible {
+        outline: 1px solid colors.$primary;
+        outline-offset: -1px;
+    }
+
+    // Each level of the tree indents by the width of a chevron, so the rows below a heading line up with its name.
+    .group td:first-child,
     .nested td:first-child {
-        padding-left: 32px;
+        padding-left: calc(10px + (var(--level) - 1) * 22px);
+    }
+
+    // Only stops the click of the button inside; without a box of its own, the button stays a flex item of the heading.
+    .own-click {
+        display: contents;
     }
 
     .group-row {
@@ -209,6 +218,22 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        // Without a frame of its own the chevron needs an outline, or keyboard users cannot see which heading has the focus.
+        &:focus-visible {
+            outline: 1px solid colors.$primary;
+            outline-offset: 2px;
+        }
+
+        // The whole row toggles the group, so the chevron lights up no box of its own on hover or press.
+        &:hover,
+        &:active {
+            background-color: transparent;
+        }
+
+        md-ripple {
+            display: none;
         }
     }
 
