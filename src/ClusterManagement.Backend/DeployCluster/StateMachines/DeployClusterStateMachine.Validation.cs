@@ -1,4 +1,7 @@
-﻿namespace ClusterManagement.Backend.DeployCluster.StateMachines;
+﻿using ClusterManagement.Public.Events;
+using Sdk.Messaging;
+
+namespace ClusterManagement.Backend.DeployCluster.StateMachines;
 
 public sealed partial class DeployClusterStateMachine
 {
@@ -76,20 +79,25 @@ public sealed partial class DeployClusterStateMachine
         return allNodesStarted;
     }
 
-    private bool AreAllClusterNodesCleaned(DeployClusterState saga)
+    private bool AreAllClusterNodesCleaned(DeployClusterState saga, IEnumerable<Guid> expected)
     {
-        var allNodesCleaned = CollectionsEqual(saga.ClusterNodesToClean, saga.ClusterNodesCleaned);
-        if (allNodesCleaned)
+        var outstanding = expected.Except(saga.ClusterNodesCleaned).ToArray();
+        if (outstanding.Length == 0)
         {
             LogAllNodesCleaned(_logger, saga.CorrelationId, string.Join(", ", saga.ClusterNodesCleaned));
-        }
-        else
-        {
-            LogNodesCleaned(_logger, saga.CorrelationId, string.Join(", ", saga.ClusterNodesToClean));
+            return true;
         }
 
-        return allNodesCleaned;
+        LogNodesCleaned(_logger, saga.CorrelationId, string.Join(", ", outstanding));
+        return false;
     }
+
+    private static bool IsPreviousVersionDeleted(DeployClusterState saga, ClusterChanged message)
+        => message.Action == CrudAction.Deleted && message.Version == saga.RemoveVersion;
+
+    private static bool IsPreviousVersionDeleteFailed(DeployClusterState saga, ClusterError message)
+        => message.Error?.ErrorCode == Public.Events.ClusterError.DeleteFailed && message.Version == saga.RemoveVersion;
+
     private static bool CollectionsEqual(IEnumerable<Guid>? requested, IEnumerable<Guid> returned)
         => !requested?.Except(returned).Any() ?? true;
 }

@@ -1,4 +1,4 @@
-﻿using ClusterManagement.Backend.DeployCluster.Contracts;
+using ClusterManagement.Backend.DeployCluster.Contracts;
 using ClusterManagement.Backend.DeployCluster.Extensions;
 using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Extensions;
@@ -12,6 +12,28 @@ namespace ClusterManagement.Backend.DeployCluster.StateMachines;
 // ReSharper disable MemberCanBePrivate.Global
 public sealed partial class DeployClusterStateMachine : MassTransitStateMachine<DeployClusterState>
 {
+    /// <summary>
+    /// Persisted <see cref="DeployClusterState.CurrentState"/> values are the index in this list.
+    /// Only append new states: reordering or removing breaks sagas that are already stored.
+    /// </summary>
+    private static readonly string[] s_persistedStateNames =
+    [
+        "None",
+        nameof(Initial),
+        nameof(Final),
+        nameof(CommittingCluster),
+        nameof(AddingClusterNodes),
+        nameof(UpdatingDeployments),
+        nameof(CleaningClusterNodes),
+        nameof(CleaningCluster),
+        nameof(RollingBackDeployments),
+        nameof(RollingBackCommit),
+        nameof(RollingBackClusterNodes),
+    ];
+
+    // None, Initial and Final are defined by MassTransit
+    private const int FirstCustomStateValue = 3;
+
     private readonly ILogger<DeployClusterStateMachine> _logger;
     private readonly IServiceProvider _services;
 
@@ -54,6 +76,13 @@ public sealed partial class DeployClusterStateMachine : MassTransitStateMachine<
 
     public State? RollingBackCommit { get; }
 
+    /// <summary>
+    /// After the deployments were rolled back, sends <see cref="CleanClusterNodesCommand"/> for the nodes this saga created
+    /// and waits for a <see cref="ClusterNodeCleanedEvent"/> per node.
+    /// Continue with <see cref="RollingBackCommit"/> or finalize and publish <see cref="ClusterUpdateFailed"/>.
+    /// </summary>
+    public State? RollingBackClusterNodes { get; }
+
     public Event<Public.Commands.DeployCluster>? UpdateRequested { get; }
 
     public Event<ClusterChanged>? ClusterChanged { get; }
@@ -84,252 +113,115 @@ public sealed partial class DeployClusterStateMachine : MassTransitStateMachine<
         Event(() => NodeDeploymentsUpdateFailed);
         Event(() => ClusterNodesCleaned);
 
-        // This results in the following values: 0 - None, 1 - Initial, 2 - Final,
-        // 3 - CommittingClusterChange,  4 - AddingClusterNodes, 5 - CleaningClusterNodes, 6 - UpdatingDeployments...
+        // The index in PersistedStateNames is the persisted CurrentState value
         InstanceState(x => x.CurrentState,
-            CommittingCluster,
-            AddingClusterNodes,
-            UpdatingDeployments,
-            CleaningClusterNodes,
-            CleaningCluster,
-            RollingBackDeployments,
-            RollingBackCommit);
+            [.. s_persistedStateNames[FirstCustomStateValue..].Select(name => GetState(name))]);
 
-        // We need to create cluster from options? -> CommittingCluster
-        // We need to create additional nodes? -> AddingClusterNodes
-        // No cluster node creation necessary? -> UpdateDeployments        
-
+        // Target cluster from options? -> CommittingCluster
+        // Nodes to create? -> AddingClusterNodes
+        // Otherwise -> UpdatingDeployments
         Initially(
             When(UpdateRequested)
                 .ThenAsync(StartDeploymentSaga)
-                .IfElse(ctx => ctx.Saga.InitializeFailed,
-                    binder => binder
-                        // Initalize active or target cluster failed
-                        .Then(BeforeFailedFinalize)
-                        .Finalize(),
-                    binder => binder
-                    .IfElse(ctx => ctx.Message.Options != null,
-                        innerBinder => innerBinder
-                            // Target cluster from options need to be stored
-                            .ThenAsync(SendCommitClusterCommand)
-                            .ThenAsync(ctx => PublishTransition(ctx, nameof(CommittingCluster)))
-                            .TransitionTo(CommittingCluster),
-                        innerBinder => innerBinder
-                            // Target cluster is already stored and available
-                            .IfElse(ctx => ctx.Saga.ClusterNodesToCreate.Count > 0,
-                                innerMostBinder => innerMostBinder
-                                    .ThenAsync(SendAddClusterNodesCommand)
-                                    .ThenAsync(ctx => PublishTransition(ctx, nameof(AddingClusterNodes)))
-                                    .TransitionTo(AddingClusterNodes),
-                                // at least one deployment failed
-                                innerMostBinder => innerMostBinder
-                                    // trigger update deployments to active version
-                                    .PublishAsync(CreateUpdateDeploymentsTargetVersion)
-                                    .ThenAsync(ctx => PublishTransition(ctx, nameof(UpdatingDeployments)))
-                                    .TransitionTo(UpdatingDeployments)))));
+                .IfElse(ctx => ctx.Message.Options != null,
+                    commit => TransitionWithNotification(commit.ThenAsync(SendCommitClusterCommand), CommittingCluster!),
+                    ContinueWithTargetCluster)
+                // Any failure while starting fails the deployment instead of faulting the command
+                .Catch<Exception>(ex => FailDeployment(ex, nameof(Initial))));
 
         During(CommittingCluster,
-            When(ClusterChanged)
-                .ThenAsync(ClusterChangeCommitted)
-                .IfElse(ctx => ctx.Saga.InitializeFailed,
-                    binder => binder
-                        // Target cluster was created but loading failed
-                        .Then(BeforeFailedFinalize)
-                        .Finalize(),
-                    binder => binder
-                        .IfElse(ctx => ctx.Saga.ClusterNodesToCreate.Count > 0,
-                            innerBinder => innerBinder
-                                .ThenAsync(SendAddClusterNodesCommand)
-                                .ThenAsync(ctx => PublishTransition(ctx, nameof(AddingClusterNodes)))
-                                .TransitionTo(AddingClusterNodes),
-                            // at least one deployment failed
-                            innerBinder => innerBinder
-                                // trigger update deployments to active version
-                                .PublishAsync(CreateUpdateDeploymentsTargetVersion)
-                                .ThenAsync(ctx => PublishTransition(ctx, nameof(UpdatingDeployments)))
-                                .TransitionTo(UpdatingDeployments))),
+            ContinueWithTargetCluster(When(ClusterChanged)
+                    .ThenAsync(ClusterChangeCommitted))
+                // Any failure while loading the committed cluster fails the deployment
+                .Catch<Exception>(ex => FailDeployment(ex, nameof(CommittingCluster))),
             When(CommitClusterFailed)
-                .ThenAsync(PublishClusterUpdateFailed)
+                .ThenAsync(PublishCommitClusterFailed)
                 .Then(BeforeFailedFinalize)
                 .Finalize());
 
-        // Saga will stay in this state till all nodes are created and apps are running
+        // Stay until all nodes are created and their apps are running
         During(AddingClusterNodes,
             When(ClusterNodeAdded)
                 .ThenAsync(AddingClusterNodesWhenClusterNodeAdded)
-                .If(ctx => AreAllNodesAddedAndAppsRunning(ctx.Saga),
-                    binder => binder
-                        .PublishAsync(CreateUpdateDeploymentsTargetVersion)
-                        .ThenAsync(ctx => PublishTransition(ctx, nameof(UpdatingDeployments)))
-                        .TransitionTo(UpdatingDeployments)),
+                .If(ctx => AreAllNodesAddedAndAppsRunning(ctx.Saga), StartUpdatingDeployments)
+                .Catch<Exception>(ex => FailDeployment(ex, nameof(AddingClusterNodes))),
             When(ClusterApplicationStarted)
                 .ThenAsync(AddingClusterNodesWhenClusterApplicationStarted)
-                .If(ctx => AreAllNodesAddedAndAppsRunning(ctx.Saga),
-                    binder => binder
-                        .PublishAsync(CreateUpdateDeploymentsTargetVersion)
-                        .ThenAsync(ctx => PublishTransition(ctx, nameof(UpdatingDeployments)))
-                        .TransitionTo(UpdatingDeployments)),
-            When(UpdateRequested)
-                .ThenAsync(PublishDeployClusterRejected));
+                .If(ctx => AreAllNodesAddedAndAppsRunning(ctx.Saga), StartUpdatingDeployments)
+                .Catch<Exception>(ex => FailDeployment(ex, nameof(AddingClusterNodes))));
 
-        // Update deployments on all nodes/apps
-        // -> finalize when all are updated
-        // -> rollback on fail
+        // Update deployments on all nodes/apps, then clean up or roll back
         During(UpdatingDeployments,
             When(NodeDeploymentsUpdated)
                 .ThenAsync(ProcessNodeDeploymentUpdated)
-                .If(ctx => AreAllDeploymentsUpdated(ctx.Saga),
-                    binder => binder
-                        // all deployments updated without errors?
-                        .IfElse(ctx => !ctx.Saga.AtLeastOneDeployReturnedError,
-                            innerBinder => innerBinder
-                                // are there nodes to be cleaned up?
-                                .IfElse(ctx => ctx.Saga.ClusterNodesToClean.Count > 0,
-                                        innermostBinder => innermostBinder
-                                            .ThenAsync(UpdateActiveCluster)
-                                            .ThenAsync(ctx => SendCleanClusterNodesCommand(ctx, ctx.Saga.ClusterNodesToClean))
-                                            .ThenAsync(ctx => PublishTransition(ctx, nameof(CleaningClusterNodes)))
-                                            .TransitionTo(CleaningClusterNodes),
-                                        innermostBinder => innermostBinder
-                                            // do we have to delete the previous cluster?
-                                            .IfElse(ctx => ctx.Saga.ShouldRemovePreviousVersion(),
-                                                cleanupBinder => cleanupBinder
-                                                    .ThenAsync(UpdateActiveCluster)
-                                                    .ThenAsync(SendRemovePreviousVersion)
-                                                    .ThenAsync(ctx => PublishTransition(ctx, nameof(CleaningCluster)))
-                                                    .TransitionTo(CleaningCluster),
-                                                cleanupBinder => cleanupBinder
-                                                    .ThenAsync(UpdateActiveCluster)
-                                                    .ThenAsync(CompleteClusterUpdate)
-                                                    .Finalize())
-                                    ),
-                            // at least one deployment failed
-                            innerBinder => innerBinder
-                                // trigger update deployments to active version
-                                .Then(ctx => ctx.Saga.ClusterApplicationsUpdateFinished.Clear())
-                                .PublishAsync(CreateUpdateDeploymentsActiveVersion)
-                                .ThenAsync(ctx => PublishTransition(ctx, nameof(RollingBackDeployments)))
-                                .TransitionTo(RollingBackDeployments))),
+                .If(ctx => AreAllDeploymentsUpdated(ctx.Saga), ContinueAfterDeploymentsUpdated)
+                .Catch<Exception>(ex => FailDeployment(ex, nameof(UpdatingDeployments))),
             When(NodeDeploymentsUpdateFailed)
                 .ThenAsync(ProcessNodeDeploymentFailed)
-                .If(ctx => AreAllDeploymentsUpdated(ctx.Saga),
-                    binder => binder
-                        // all deployments seem to be updated?
-                        .IfElse(ctx => !ctx.Saga.AtLeastOneDeployReturnedError,
-                            innerBinder => innerBinder
-                                // still nodes to be cleaned up?
-                                .IfElse(ctx => ctx.Saga.ClusterNodesToClean.Count > 0,
-                                    innermostBinder => innermostBinder
-                                        .ThenAsync(ctx => SendCleanClusterNodesCommand(ctx, [.. ctx.Saga.ClusterNodesCreated]))
-                                        .ThenAsync(ctx => PublishTransition(ctx, nameof(CleaningClusterNodes)))
-                                        .TransitionTo(CleaningClusterNodes),
-                                    innermostBinder => innermostBinder
-                                        .ThenAsync(CompleteClusterUpdate)
-                                        .Finalize()
-                                ),
-                            // at least one deployment failed
-                            innerBinder => innerBinder
-                                // Trigger update deployments to active version
-                                .Then(ctx => ctx.Saga.ClusterApplicationsUpdateFinished.Clear())
-                                .PublishAsync(CreateUpdateDeploymentsActiveVersion)
-                                .ThenAsync(ctx => PublishTransition(ctx, nameof(RollingBackDeployments)))
-                                .TransitionTo(RollingBackDeployments))),
-            When(UpdateRequested)
-                .ThenAsync(PublishDeployClusterRejected),
+                .If(ctx => AreAllDeploymentsUpdated(ctx.Saga), ContinueAfterDeploymentsUpdated)
+                .Catch<Exception>(ex => FailDeployment(ex, nameof(UpdatingDeployments))),
             Ignore(ClusterNodeAdded),
             Ignore(ClusterApplicationStarted));
 
-        // Only processed if UpdatingDeployments was succesfull and we have nodes to be cleaned up
+        // Only entered if all deployments succeeded and nodes have to be cleaned up
         During(CleaningClusterNodes,
             When(ClusterNodesCleaned)
                 .Then(ProcessClusterNodeCleaned)
-                .If(ctx => AreAllClusterNodesCleaned(ctx.Saga),
-                    binder => binder
-                        // do we have to delete the previous cluster?
-                        .IfElse(ctx => ctx.Saga.ShouldRemovePreviousVersion(),
-                            cleanupBinder => cleanupBinder
-                                .ThenAsync(SendRemovePreviousVersion)
-                                .ThenAsync(ctx => PublishTransition(ctx, nameof(CleaningCluster)))
-                                .TransitionTo(CleaningCluster),
-                            cleanupBinder => cleanupBinder
-                                .ThenAsync(CompleteClusterUpdate)
-                                .Finalize()
-                        )),
-           When(UpdateRequested)
-                .ThenAsync(PublishDeployClusterRejected));
+                .If(ctx => AreAllClusterNodesCleaned(ctx.Saga, ctx.Saga.ClusterNodesToClean), RemovePreviousVersionOrComplete));
 
-        // Only processed if saga.KeepPreviousCluster is false and active version != default
+        // Only entered if the previous version should be removed and is not the default version
         During(CleaningCluster,
             // Previous cluster version was deleted
             When(ClusterChanged)
-                .Then(PreviousClusterDeleted)
-                .ThenAsync(CompleteClusterUpdate)
-                .Finalize(),
-            // Previous cluster version delete failed
+                .If(ctx => IsPreviousVersionDeleted(ctx.Saga, ctx.Message), deleted => deleted
+                    .Then(PreviousClusterDeleted)
+                    .ThenAsync(CompleteClusterUpdate)
+                    .Finalize()),
+            // Previous cluster version delete failed: the deployment itself succeeded
             When(ClusterError)
-                .Then(PreviousClusterDeleteFailed)
-                .ThenAsync(CompleteClusterUpdate)
-                .Finalize(),
-            When(UpdateRequested)
-                .ThenAsync(PublishDeployClusterRejected));
+                .If(ctx => IsPreviousVersionDeleteFailed(ctx.Saga, ctx.Message), deleteFailed => deleteFailed
+                    .Then(PreviousClusterDeleteFailed)
+                    .ThenAsync(CompleteClusterUpdate)
+                    .Finalize()));
 
-        // Triggered by UpdatingDeployments if at least one deployment failed
+        // Entered from UpdatingDeployments if at least one deployment failed
         During(RollingBackDeployments,
             When(NodeDeploymentsUpdated)
-                .Then(ProcessRollbackNodeDeploymentUpdated)//TODO: Rollback cluster node deployments                
-                .If(ctx => AreAllDeploymentsUpdated(ctx.Saga),
-                    binder => binder
-                        .IfElse(ctx => ctx.Saga.IsCommitVersionEmpty(),
-                            // No cluster was committed so we are done
-                            innerBinder => innerBinder
-                                .ThenAsync(PublishClusterUpdateFailed)
-                                .Then(BeforeFailedFinalize)
-                                .Finalize(),
-                            // We have to cleanup our failed cluster
-                            innerBinder => innerBinder
-                                .ThenAsync(SendRemoveCommittedVersion)
-                                .ThenAsync(ctx => PublishTransition(ctx, nameof(RollingBackCommit)))
-                                .TransitionTo(RollingBackCommit))
-                        ),
+                .Then(ProcessRollbackNodeDeploymentUpdated)
+                .If(ctx => AreAllDeploymentsUpdated(ctx.Saga), ContinueAfterDeploymentsRolledBack),
             // This case should never happen but we have to handle it!
             When(NodeDeploymentsUpdateFailed)
                 .Then(ProcessRollbackNodeDeploymentFailed)
-                .If(ctx => AreAllDeploymentsUpdated(ctx.Saga),
-                    binder => binder
-                        .IfElse(ctx => ctx.Saga.IsCommitVersionEmpty(),
-                            // No cluster was committed so we are done
-                            innermostBinder => innermostBinder
-                                .ThenAsync(PublishClusterUpdateFailed)
-                                .Then(BeforeFailedFinalize)
-                                .Finalize(),
-                            // We have to cleanup our failed cluster
-                            innermostBinder => innermostBinder
-                                .ThenAsync(SendRemoveCommittedVersion)
-                                .ThenAsync(ctx => PublishTransition(ctx, nameof(RollingBackCommit)))
-                                .TransitionTo(RollingBackCommit))
-                        ),
+                .If(ctx => AreAllDeploymentsUpdated(ctx.Saga), ContinueAfterDeploymentsRolledBack));
+
+        // Entered from RollingBackDeployments if the saga created cluster nodes
+        During(RollingBackClusterNodes,
+            When(ClusterNodesCleaned)
+                .Then(ProcessClusterNodeCleaned)
+                .If(ctx => AreAllClusterNodesCleaned(ctx.Saga, ctx.Saga.ClusterNodesCreated), ContinueAfterClusterNodesRolledBack));
+
+        // Entered from RollingBackDeployments if the saga committed a cluster version
+        During(RollingBackCommit,
+            // Committed cluster version was deleted
+            When(ClusterChanged)
+                .Then(CommitClusterDeleted)
+                .If(ctx => ctx.Saga.IsCommitVersionEmpty(), PublishFailedAndFinalize),
+            // Committed cluster version delete failed
+            When(ClusterError)
+                .Then(CommitClusterDeleteFailed)
+                .If(ctx => ctx.Saga.IsCommitVersionEmpty(), PublishFailedAndFinalize));
+
+        // Only one deployment per saga: reject further requests while one is running
+        DuringAny(
             When(UpdateRequested)
                 .ThenAsync(PublishDeployClusterRejected));
 
-        // Triggered by RollingBackDeployments if we have commited a version within the saga
-        During(RollingBackCommit,
-            // Comitted cluster version was deleted
-            When(ClusterChanged)
-                .Then(CommitClusterDeleted)
-                .If(ctx => ctx.Saga.IsCommitVersionEmpty(),
-                    binder => binder
-                        .ThenAsync(PublishClusterUpdateFailed)
-                        .Then(BeforeFailedFinalize)
-                        .Finalize()),
-            // Comitted cluster version delete failed
-            When(ClusterError)
-                .Then(CommitClusterDeleteFailed)
-                .If(ctx => ctx.Saga.IsCommitVersionEmpty(),
-                    binder => binder
-                        .Then(BeforeFailedFinalize)
-                        .Finalize()),
-            When(UpdateRequested)
-                .ThenAsync(PublishDeployClusterRejected));
+        // Late or duplicate events must not fault the message
+        OnUnhandledEvent(ctx =>
+        {
+            LogUnhandledEvent(_logger, ctx.Saga.CorrelationId, ctx.Event.Name, GetState(ctx.Saga.CurrentState));
+            return ctx.Ignore();
+        });
 
         SetCompletedWhenFinalized();
     }
@@ -340,18 +232,9 @@ public sealed partial class DeployClusterStateMachine : MassTransitStateMachine<
             .ToDictionary(n => n,
                 n => n.Applications.FirstOrDefault(a => a.IsCoreOs()));
 
-    public static string GetState(int sagaState) => sagaState switch
-    {
-        0 => "None",
-        1 => nameof(Initial),
-        2 => nameof(Final),
-        3 => nameof(CommittingCluster),
-        4 => nameof(AddingClusterNodes),
-        5 => nameof(UpdatingDeployments),
-        6 => nameof(CleaningClusterNodes),
-        7 => nameof(CleaningCluster),
-        8 => nameof(RollingBackDeployments),
-        9 => nameof(RollingBackCommit),
-        _ => "Unknown",
-    };
+    /// <summary>
+    /// Gets the name of a persisted <see cref="DeployClusterState.CurrentState"/> value.
+    /// </summary>
+    public static string GetState(int sagaState)
+        => sagaState >= 0 && sagaState < s_persistedStateNames.Length ? s_persistedStateNames[sagaState] : "Unknown";
 }

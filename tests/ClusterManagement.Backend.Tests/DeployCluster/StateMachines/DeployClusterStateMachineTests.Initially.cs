@@ -1,4 +1,5 @@
-﻿using ClusterManagement.Backend.Tests.Extensions;
+﻿using ClusterManagement.Backend.DeployCluster.StateMachines;
+using ClusterManagement.Backend.Tests.Extensions;
 using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Requests;
 using ClusterManagement.Tests.Tools;
@@ -98,6 +99,45 @@ public partial class DeployClusterStateMachineTests
 
             // Assert
             await harness.AssertDeployClusterState(_correlationId, x => x.UpdatingDeployments);
+        }
+
+        [Fact]
+        public async Task Should_fail_if_target_cluster_json_cannot_be_loaded_for_update_deployments()
+        {
+            // Arrange
+            await using var provider = SetupServiceProvider();
+
+            var prepared = provider.PrepareDeployClusterSaga(_snapshotStore, (_) =>
+            {
+                var cluster = ClusterDbContextTools.CreateCluster(_clusterId, _activeVersion);
+                var group = AddNodeGroup(cluster, _nodeGroupId);
+
+                AddClusterApplication(group, _nodeIdToAdd, _applicationId, ClusterApplicationType.CoreOsStandalone);
+
+                return cluster;
+            },
+            (_) =>
+            {
+                var cluster = ClusterDbContextTools.CreateCluster(_clusterId, _targetVersion);
+                var group = AddNodeGroup(cluster, _nodeGroupId);
+
+                AddClusterApplication(group, _nodeIdToAdd, _applicationId, ClusterApplicationType.CoreOsStandalone);
+
+                return cluster;
+            });
+            _snapshotStore.LoadCompressedJson(_clusterId, _targetVersion, Arg.Any<CancellationToken>())
+                .Returns(Task.FromException<byte[]>(new InvalidOperationException("Snapshot not found")));
+            var harness = provider.GetTestHarness();
+
+            await harness.Start();
+
+            // Act
+            await harness.DeployCluster(_correlationId, _clusterId, prepared.Item2.Version);
+
+            // Assert
+            await harness.AssertClusterUpdateFailed(_correlationId, _targetVersion);
+            var sagaHarness = harness.GetSagaStateMachineHarness<DeployClusterStateMachine, DeployClusterState>();
+            Assert.Null(await sagaHarness.NotExists(_correlationId));
         }
 
         [Fact]

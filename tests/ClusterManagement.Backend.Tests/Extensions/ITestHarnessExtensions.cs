@@ -45,8 +45,8 @@ internal static class ITestHarnessExtensions
     public static async Task PublishClusterChangedDeleted(this ITestHarness harness, Guid correlationId, Guid clusterId, Version removedVersion)
         => await harness.Bus.Publish(new ClusterChanged(correlationId, clusterId, CrudAction.Deleted, removedVersion));
 
-    public static async Task PublishClusterErrorDeleteFailed(this ITestHarness harness, Guid correlationId, Guid clusterId)
-        => await harness.Bus.Publish(new ClusterError { ClusterId = clusterId, Error = new ErrorInfo(ClusterError.DeleteFailed, "Failure"), CorrelationId = correlationId });
+    public static async Task PublishClusterErrorDeleteFailed(this ITestHarness harness, Guid correlationId, Guid clusterId, Version? version = null)
+        => await harness.Bus.Publish(new ClusterError { ClusterId = clusterId, Error = new ErrorInfo(ClusterError.DeleteFailed, "Failure"), CorrelationId = correlationId, Version = version });
 
     public static async Task AssertDeployClusterRejected(this ITestHarness harness, Guid correlationId, Version rejectedVersion)
         => Assert.True(await harness.Published.Any<ClusterUpdateRejected>(k => k.Context.CorrelationId == correlationId

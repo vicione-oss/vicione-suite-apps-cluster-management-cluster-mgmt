@@ -11,12 +11,18 @@ public partial class DeployClusterStateMachine
     [LoggerMessage(LogLevel.Information, "Saga[{CorrelationId}][Start] deploying cluster={ClusterId} target version={TargetVersion}, delete previous version={DeletePrevious}, use options={HasOptions}")]
     internal static partial void LogInit(ILogger<DeployClusterStateMachine> logger, Guid? correlationId, Guid clusterId, Version? targetVersion, bool deletePrevious, bool hasOptions);
 
-    [LoggerMessage(LogLevel.Error, "Saga[{CorrelationId}] Init cluster={ClusterId} deployment failed")]
-    internal static partial void LogInitFailed(ILogger<DeployClusterStateMachine> logger, Exception ex, Guid? correlationId, Guid clusterId);
+    [LoggerMessage(LogLevel.Error, "Saga[{CorrelationId}] deployment of cluster={ClusterId} failed in state {State}")]
+    internal static partial void LogDeploymentStepFailed(ILogger<DeployClusterStateMachine> logger, Exception ex, Guid correlationId, Guid clusterId, string state);
 
 
     [LoggerMessage(LogLevel.Information, "Saga[{CorrelationId}] transition from {CurrentState} to {NextState}")]
     internal static partial void LogTransition(ILogger<DeployClusterStateMachine> logger, Guid? correlationId, string? currentState, string nextState);
+
+    [LoggerMessage(LogLevel.Information, "Saga[{CorrelationId}] ignored duplicate deployment reply of application {ApplicationId}")]
+    internal static partial void LogDuplicateDeploymentReply(ILogger<DeployClusterStateMachine> logger, Guid correlationId, Guid applicationId);
+
+    [LoggerMessage(LogLevel.Warning, "Saga[{CorrelationId}] ignored unexpected event {EventName} in state {State}")]
+    internal static partial void LogUnhandledEvent(ILogger<DeployClusterStateMachine> logger, Guid correlationId, string eventName, string state);
 
     [LoggerMessage(LogLevel.Debug, "Saga[{CorrelationId}][{EventName}] {Message}")]
     internal static partial void LogEventInfo(ILogger<DeployClusterStateMachine> logger, Guid? correlationId, string eventName, string? message);
@@ -53,8 +59,6 @@ public partial class DeployClusterStateMachine
     [LoggerMessage(LogLevel.Debug, "Saga[{CorrelationId}] Cluster {ClusterId} version '{CommittedVersion}' was created and will be used as deployment target version")]
     internal static partial void LogCreatedCommitVersion(ILogger<DeployClusterStateMachine> logger, Guid? correlationId, Guid clusterId, Version committedVersion);
 
-    [LoggerMessage(LogLevel.Error, "Saga[{CorrelationId}] Failed to process committed cluster {ClusterId} version '{CommittedVersion}'")]
-    internal static partial void LogCreatedCommitVersionFailed(ILogger<DeployClusterStateMachine> logger, Exception ex, Guid correlationId, Guid clusterId, Version committedVersion);
 
 
     [LoggerMessage(LogLevel.Information, "Saga[{CorrelationId}] Send remove previous version '{PreviousVersion}'")]

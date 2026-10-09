@@ -64,6 +64,34 @@ public sealed partial class DeployClusterStateMachine
         await ctx.Publish(failed, ctx.CancellationToken);
     }
 
+    /// <summary>
+    /// Publish <see cref="ClusterUpdateFailed"/> with the error from <see cref="CommitClusterChangeFailed"/>
+    /// </summary>
+    private Task PublishCommitClusterFailed(BehaviorContext<DeployClusterState, CommitClusterChangeFailed> ctx)
+    {
+        LogClusterUpdatedFailed(_logger, ctx.Saga.CorrelationId, ctx.Saga.CommitVersion);
+
+        return PublishClusterUpdateFailed(ctx, ctx.Saga.CommitVersion,
+            ctx.Message.Error?.Message ?? "Committing the target cluster failed",
+            nameof(CommittingCluster));
+    }
+
+    /// <summary>
+    /// Publish <see cref="ClusterUpdateFailed"/> without application errors, e.g. for an exception thrown while starting the deployment
+    /// </summary>
+    private static Task PublishClusterUpdateFailed<TMessage>(BehaviorContext<DeployClusterState, TMessage> ctx, Version version, string reason, string state)
+        where TMessage : class
+    {
+        var failed = new ClusterUpdateFailed(ctx.Saga.CorrelationId, ctx.Saga.ClusterId, version)
+        {
+            Duration = DateTime.UtcNow - ctx.Saga.Started,
+            Reason = reason,
+            State = state
+        };
+
+        return ctx.Publish(failed, ctx.CancellationToken);
+    }
+
     private async Task SendCommitClusterCommand(BehaviorContext<DeployClusterState, Public.Commands.DeployCluster> ctx)
     {
         if (!ctx.CorrelationId.HasValue)

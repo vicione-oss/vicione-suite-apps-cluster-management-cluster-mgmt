@@ -61,6 +61,26 @@ public partial class DeployClusterStateMachineTests
         }
 
         [Fact]
+        public async Task Should_stay_cleaning_cluster_on_events_of_another_version()
+        {
+            // Arrange
+            await using var provider = SetupServiceProvider();
+
+            var prepared = SetupSagaClusterWithTargetOnSameNode(provider);
+            var harness = provider.GetTestHarness();
+
+            await TransitionToCleaningCluster(harness, prepared.Item2.Version);
+
+            // Act
+            await harness.PublishClusterChangedDeleted(_correlationId, _clusterId, new Version(2, 2, 2));
+            await harness.PublishClusterErrorDeleteFailed(_correlationId, _clusterId, new Version(2, 2, 2));
+
+            // Assert
+            Assert.False(await harness.Published.Any<ClusterUpdateCompleted>(k => k.Context.CorrelationId == _correlationId, TestContext.Current.CancellationToken));
+            await harness.AssertDeployClusterState(_correlationId, x => x.CleaningCluster);
+        }
+
+        [Fact]
         public async Task Should_consume_error_event_if_previous_cluster_delete_failed_and_finalize()
         {
             // Arrange
@@ -72,7 +92,7 @@ public partial class DeployClusterStateMachineTests
             await TransitionToCleaningCluster(harness, prepared.Item2.Version);
 
             // Act
-            await harness.PublishClusterErrorDeleteFailed(_correlationId, _clusterId);
+            await harness.PublishClusterErrorDeleteFailed(_correlationId, _clusterId, prepared.Item1.Version);
 
             // Assert
             await harness.Consumed.Any<ClusterError>(k => k.Context.Message.ClusterId == _clusterId, TestContext.Current.CancellationToken);

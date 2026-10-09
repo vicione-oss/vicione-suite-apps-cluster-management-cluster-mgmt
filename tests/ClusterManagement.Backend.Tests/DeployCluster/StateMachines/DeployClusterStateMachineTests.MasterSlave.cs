@@ -1,6 +1,8 @@
-﻿using ClusterManagement.Backend.Snapshots;
+﻿using ClusterManagement.Backend.DeployCluster.Contracts;
+using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Backend.Tests.Extensions;
 using ClusterManagement.Tests.Tools;
+using MassTransit;
 using MassTransit.Testing;
 using ViciOne.Cluster.Model;
 
@@ -42,6 +44,33 @@ public partial class DeployClusterStateMachineTests
 
             // Assert
             await harness.AssertClusterUpdateCompleted(_correlationId, prepared.Item2.Version);
+        }
+
+        [Fact]
+        public async Task Should_keep_first_reply_and_ignore_duplicate_deployment_replies()
+        {
+            // Arrange
+            await using var provider = SetupServiceProvider();
+
+            var prepared = SetupSagaDbClusterLocal(provider, _snapshotStore);
+            var harness = provider.GetTestHarness();
+
+            await harness.Start();
+            await harness.DeployCluster(_correlationId, _clusterId, prepared.Item2.Version);
+            await harness.PublishClusterNodeAdded(_correlationId, _clusterId, _slave2NodeId);
+            await harness.PublishClusterApplicationStarted(_correlationId, _clusterId, _slave1ApplicationId);
+            await harness.PublishClusterApplicationStarted(_correlationId, _clusterId, _slave2ApplicationId);
+            await harness.AssertDeployClusterState(_correlationId, x => x.UpdatingDeployments);
+
+            // Act
+            await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _slave1ApplicationId);
+            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _slave1ApplicationId);
+            await harness.AssertDeployClusterState(_correlationId, x => x.UpdatingDeployments);
+            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _slave2ApplicationId);
+
+            // Assert: the first reply (failed) wins, so the deployment rolls back
+            await harness.AssertDeployClusterState(_correlationId, x => x.RollingBackDeployments);
+            Assert.False(await harness.Published.Any<Fault<ClusterNodeDeploymentsUpdatedEvent>>(TestContext.Current.CancellationToken));
         }
 
         private (Cluster, Cluster) SetupSagaDbClusterLocal(IServiceProvider services, IClusterSnapshotStore store)
