@@ -120,7 +120,6 @@ include:
     inputs:
       image: ${IMAGE_NAME}
       rules: *rules
-      no_build: false
       filter: "/[(Category!=System)]"
       coverage: false
       config_file: tests/testconfig.json
