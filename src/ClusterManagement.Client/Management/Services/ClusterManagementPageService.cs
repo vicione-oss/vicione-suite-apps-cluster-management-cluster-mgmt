@@ -18,6 +18,7 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
     IEventConsumer<ClusterUpdateCompleted>,
     IEventConsumer<ClusterUpdateFailed>,
     IEventConsumer<ClusterUpdateRejected>,
+    IEventConsumer<ClusterNodeDeploymentStepChanged>,
     IDisposable
 {
     private readonly IUiMediator _mediator;
@@ -32,6 +33,7 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
     public event EventHandler<ClusterUpdateFailed>? OnClusterUpdateFailed;
     public event EventHandler<ClusterUpdateRejected>? OnClusterUpdateRejected;
     public event EventHandler<ClusterUpdateStarted>? OnClusterUpdateStarted;
+    public event EventHandler<ClusterNodeDeploymentStepChanged>? OnClusterNodeDeploymentStepChanged;
 
     public ClusterManagementPageService(IUiMediator mediator, IClusterService clusterService, ILogger<ClusterManagementPageService> logger)
     {
@@ -44,6 +46,7 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
         _subscriptionHandle.Add(_mediator.Register<ClusterUpdateCompleted>(this));
         _subscriptionHandle.Add(_mediator.Register<ClusterUpdateFailed>(this));
         _subscriptionHandle.Add(_mediator.Register<ClusterUpdateRejected>(this));
+        _subscriptionHandle.Add(_mediator.Register<ClusterNodeDeploymentStepChanged>(this));
     }
 
     public void Dispose()
@@ -113,6 +116,13 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
         if (context.Message.CorrelationId == CorrelationId)
             OnClusterUpdateRejected?.Invoke(this, context.Message);
 
+        return Task.CompletedTask;
+    }
+
+    public Task Consume(ClientContext<ClusterNodeDeploymentStepChanged> context, CancellationToken cancellationToken)
+    {
+        LogReceivedEvent(nameof(ClusterNodeDeploymentStepChanged), context.CorrelationId);
+        OnClusterNodeDeploymentStepChanged?.Invoke(this, context.Message);
         return Task.CompletedTask;
     }
 

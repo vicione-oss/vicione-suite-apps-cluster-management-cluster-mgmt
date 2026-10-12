@@ -23,15 +23,25 @@ public sealed class DeploymentProgressModel
     public static IReadOnlyList<DeploymentStep> CompletedSteps { get; } =
         [.. s_forwardSteps.Select(phase => new DeploymentStep(phase, DeploymentStepState.Done))];
 
-    private DeploymentProgressModel(Guid clusterId, Version targetVersion, DateTimeOffset? startedAt, IReadOnlyList<InstanceProgressModel> instances)
+    private readonly Dictionary<Guid, string> _names = [];
+
+    private DeploymentProgressModel(Guid clusterId, Guid correlationId, Version targetVersion, DateTimeOffset? startedAt,
+        IReadOnlyList<InstanceProgressModel> instances)
     {
         ClusterId = clusterId;
+        CorrelationId = correlationId;
         TargetVersion = targetVersion;
         StartedAt = startedAt;
         Instances = instances;
     }
 
     public Guid ClusterId { get; }
+
+    /// <summary>
+    /// The deployment saga's, which the update and its rollback share.
+    /// </summary>
+    public Guid CorrelationId { get; }
+
     public Version TargetVersion { get; }
 
     /// <summary>
@@ -72,7 +82,7 @@ public sealed class DeploymentProgressModel
             .Select(k => new InstanceProgressModel(k.Value!.Value, started.Applications[k.Value.Value], started.Nodes[k.Key]))
             .ToList();
 
-        return new(started.ClusterId, started.TargetVersion, startedAt, instances);
+        return new(started.ClusterId, started.CorrelationId, started.TargetVersion, startedAt, instances);
     }
 
     /// <summary>
@@ -82,7 +92,7 @@ public sealed class DeploymentProgressModel
     public static DeploymentProgressModel Resume(DeploymentState state, Cluster? target)
     {
         var instances = target is null ? [] : InstancesOf(target);
-        var progress = new DeploymentProgressModel(state.ClusterId, state.TargetVersion, null, instances);
+        var progress = new DeploymentProgressModel(state.ClusterId, state.CorrelationId, state.TargetVersion, null, instances);
         progress.EnterPhase(DeploymentPhases.FromSagaState(state.CurrentState));
         return progress;
     }
@@ -93,7 +103,7 @@ public sealed class DeploymentProgressModel
     /// </summary>
     public static DeploymentProgressModel FailedBeforeStart(ClusterUpdateFailed failed)
     {
-        var progress = new DeploymentProgressModel(failed.ClusterId, failed.Version, null, []);
+        var progress = new DeploymentProgressModel(failed.ClusterId, failed.CorrelationId, failed.Version, null, []);
         progress.Fail(failed);
         return progress;
     }
@@ -106,8 +116,26 @@ public sealed class DeploymentProgressModel
             .Where(n => n.Instance is not null)
             .Select(n => new InstanceProgressModel(n.Instance!.Id, n.Instance.Name, n.Node.Name))];
 
+    /// <summary>
+    /// Names the engine hosts and engines of <paramref name="cluster"/> in the steps that carry only their ids. An
+    /// instance names what the version it deploys holds, so pass both versions: the update removes what only the version
+    /// that ran before holds, and the rollback what only the target version holds. A name known first is kept.
+    /// </summary>
+    public void KnowNamesOf(Cluster cluster)
+    {
+        foreach (var engineHost in cluster.NodeGroups.SelectMany(g => g.Nodes).SelectMany(n => n.Applications).SelectMany(a => a.EngineHosts))
+        {
+            _names.TryAdd(engineHost.Id, engineHost.Name);
+            foreach (var engine in engineHost.Engines)
+                _names.TryAdd(engine.Id, engine.Name);
+        }
+    }
+
     public bool Matches(Guid clusterId, Version version)
         => ClusterId == clusterId && TargetVersion == version;
+
+    public bool Matches(Guid clusterId, Guid correlationId)
+        => ClusterId == clusterId && CorrelationId == correlationId;
 
     public void Apply(ClusterUpdateChanged change)
     {
@@ -120,6 +148,24 @@ public sealed class DeploymentProgressModel
         var instance = Instances.FirstOrDefault(k => k.Id == change.ApplicationId);
         instance?.Record(change.Change, change.Error);
     }
+
+    /// <summary>
+    /// Records a step of one of the instances; <paramref name="receivedAt"/> is when the client received it.
+    /// </summary>
+    public void Apply(ClusterNodeDeploymentStepChanged step, DateTimeOffset receivedAt)
+    {
+        var instance = Instances.FirstOrDefault(k => k.Id == step.ClusterApplicationId);
+        instance?.Record(Named(step), receivedAt, Phase == DeploymentPhase.RollingBack);
+    }
+
+    private ClusterNodeDeploymentStepChanged Named(ClusterNodeDeploymentStepChanged step) => step with
+    {
+        EngineHostName = step.EngineHostName ?? NameOf(step.EngineHostId),
+        EngineName = step.EngineName ?? NameOf(step.EngineId),
+    };
+
+    private string? NameOf(Guid? id)
+        => id is { } key && _names.TryGetValue(key, out var name) ? name : null;
 
     public void Complete(ClusterUpdateCompleted completed)
     {
@@ -176,6 +222,13 @@ public sealed class DeploymentProgressModel
     {
         if (phase is null)
             return;
+
+        // The rollback runs the instances' steps again; a step the update left behind is not one of them.
+        if (phase == DeploymentPhase.RollingBack && Phase != DeploymentPhase.RollingBack)
+        {
+            foreach (var instance in Instances)
+                instance.InterruptRunningUpdateSteps();
+        }
 
         Phase = phase.Value;
         HasRolledBack |= phase == DeploymentPhase.RollingBack;

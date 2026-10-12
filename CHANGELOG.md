@@ -9,11 +9,16 @@
   - `ClusterInfo.Deployed`, when the active version was deployed
   - `OpcUaClientConnection` contract and `ConnectionType.OpcUaClient` / `Connection.SetOpcUaClientConnection` / `Connection.GetOpcUaClientConnection` extension members for configuring a client-side connection to an OPC UA server
   - `OpcUaServerConnection` contract and `ConnectionType.OpcUaServer` / `Connection.SetOpcUaServerConnection` / `Connection.GetOpcUaServerConnection` extension members for configuring a server-side OPC UA connection, bound to a single network interface by name
+  - `ClusterNodeDeploymentStepChanged` event, published by every instance when a step of its deployment starts, succeeds, fails or is refused by the engine host, with the engine host or engine it works on
+  - `DeploymentState.CorrelationId`, the correlation id of the running deployment's events
   - OPC UA client and server connections can be created and edited in the suite's connection settings dialog: the backend registers both types with `IConnectionTypeRegistry`, and the client contributes localized settings components and validators via `IConnectionTypeUiRegistry`
 - Cluster Manager collects the cycle reports of every engine host in the running version from module start, over one MQTT connection per broker, so its cycle time charts are filled when the page opens
 - Cluster Manager runtime panel: engine state per engine host, live cycle time chart per engine and per engine host chain read from the broker its instance deployed it with, and a journal link per engine host on the same instance for users allowed to view the log
 - Cluster Manager marks engine hosts whose chain takes longer than its cycle time
 - Cluster Manager warns when a deployment is rejected because another one is still running
+- Cluster Manager names the step and the engine host or engine a failed instance stopped at
+- Cluster Manager lists the steps of each instance of a deployment with their durations, and the step a working instance is on and for how long
+- Cluster Manager shows the steps of a standalone instance only once its update has ended
 - Cluster Manager deploys the default cluster from a quick action in the version list, after a confirmation
 - Deploy DataPort trees with envelope children (datapoints under a datapoint): the parent keeps its own connector and channel, and every child gets a connector that the parent transfers with the parent's transfer mode; serving them needs a DataPort provider built for envelope children (`dp-mqtt` from `2.0.0`)
 

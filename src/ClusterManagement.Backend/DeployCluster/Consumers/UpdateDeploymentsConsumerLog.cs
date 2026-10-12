@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using ClusterManagement.Public.Enums;
+using Microsoft.Extensions.Logging;
 using Sdk.Connections.Contracts;
 
 namespace ClusterManagement.Backend.DeployCluster.Consumers;
@@ -21,6 +22,9 @@ internal static partial class UpdateDeploymentsConsumerLog
 
     [LoggerMessage(LogLevel.Information, "Deploying {engineHosts} engine hosts, {engines} engines with {functionBlocks} FunctionBlocks, and {dataPorts} data ports...")]
     internal static partial void LogDeploymentVolume(this ILogger<UpdateDeploymentsConsumer> logger, int engineHosts, int engines, int functionBlocks, int dataPorts);
+
+    [LoggerMessage(LogLevel.Warning, "Could not publish step {Step} {Status} of the deployment on application {ClusterApplicationId}; its further steps are not published")]
+    internal static partial void LogStepNotPublished(this ILogger<UpdateDeploymentsConsumer> logger, Exception exception, ClusterNodeDeploymentStep step, ClusterNodeDeploymentStepStatus status, Guid clusterApplicationId);
 
     /* Engine Host */
 

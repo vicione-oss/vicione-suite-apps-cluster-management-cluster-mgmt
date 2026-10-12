@@ -5,9 +5,18 @@
 
 .deployment {
     @include overview.panel;
+    position: relative;
 
-    &.failed {
-        box-shadow: inset 3px 0 0 colors.$error;
+    // Its own layer above the content: an inset shadow is painted below the header line, which then cuts through it.
+    &.failed::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        z-index: 1;
+        width: 3px;
+        border-radius: overview.$radius 0 0 overview.$radius;
+        background-color: colors.$error;
+        pointer-events: none;
     }
 
     .panel-head {
@@ -163,15 +172,53 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
+
+        // The status text gives way to the toggle, which keeps its label on one line.
+        ::deep .button.instances-toggle {
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
     }
 
     .instance {
         background-color: colors.$background-darker;
         border: 1px solid colors.$border;
         border-radius: overview.$radius;
+        transition: border-color .3s ease-in-out;
 
         &.failed {
             border-color: color.change(colors.$error, $alpha: .5);
+        }
+
+        // The card says it can open by its border and chevron; a filled band across part of it would look like a selection.
+        &:not(.failed):has(> .steps-toggle:hover) {
+            border-color: colors.$background-light-hover;
+        }
+    }
+
+    .steps-toggle {
+        display: block;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        border-radius: overview.$radius;
+        background-color: transparent;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+
+        &:hover .chevron {
+            color: colors.$accent;
+        }
+
+        &[aria-expanded="true"] .chevron {
+            transform: rotate(90deg);
+        }
+
+        &:focus-visible {
+            outline: 1px solid colors.$accent;
+            outline-offset: -1px;
         }
     }
 
@@ -197,6 +244,159 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
+
+        .chevron {
+            display: flex;
+            color: colors-staged.$color-foreground;
+            transition: color .3s ease-in-out;
+        }
+    }
+
+    // One segment per step: how far the instance got and where it stopped, at a glance.
+    .trail {
+        display: flex;
+        gap: 3px;
+        padding: 0 12px 8px;
+
+        .segment {
+            flex: 1;
+            height: 4px;
+            border-radius: 1px;
+            background-color: colors.$border;
+
+            &.done {
+                background-color: colors-staged.$color-green;
+            }
+
+            &.current {
+                background-color: colors.$primary;
+            }
+
+            &.failed {
+                background-color: colors.$error;
+            }
+
+            &.refused {
+                background-color: colors-staged.$color-warning;
+            }
+        }
+    }
+
+    .summary {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 0 12px 10px;
+        font-size: 12px;
+
+        .text {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .time {
+            flex-shrink: 0;
+            font-family: monospace;
+            @include overview.muted;
+        }
+
+        &.current .text {
+            color: colors.$font-light;
+        }
+
+        &.done .text {
+            @include overview.muted;
+        }
+    }
+
+    .steps {
+        margin: 0 12px 12px;
+        padding: 8px 0 0;
+        list-style: none;
+        border-top: 1px solid colors.$border;
+
+        // Echoes the dashed rollback line of the phase flow, so the steps below read as the rollback, not as repeats.
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            padding: 8px 0 4px;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: .6px;
+            text-transform: uppercase;
+            color: color.adjust(colors.$error, $lightness: 8%);
+
+            &::after {
+                content: "";
+                flex: 1;
+                border-top: 2px dashed color.change(colors.$error, $alpha: .6);
+            }
+        }
+
+        .entry {
+            position: relative;
+            display: grid;
+            grid-template-columns: 20px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 8px;
+            min-height: 26px;
+            font-size: 12px;
+
+            .mark {
+                text-align: center;
+                @include overview.muted;
+            }
+
+            .text {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .time {
+                font-family: monospace;
+                @include overview.muted;
+            }
+
+            &.done .mark {
+                color: colors-staged.$color-green;
+            }
+
+            &.current {
+                color: colors.$font-light;
+
+                .mark,
+                .time {
+                    color: colors.$primary;
+                }
+            }
+
+            &.failed {
+                color: colors.$font-light;
+
+                .mark,
+                .time {
+                    color: colors.$error;
+                }
+            }
+
+            &.refused .mark {
+                color: colors-staged.$color-warning;
+            }
+        }
+    }
+
+    .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
     }
 
     .error {

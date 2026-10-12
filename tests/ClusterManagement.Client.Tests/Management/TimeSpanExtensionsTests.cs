@@ -17,4 +17,12 @@ public class TimeSpanExtensionsTests
     [Fact]
     public void Display_text_uses_the_decimal_separator_of_the_culture()
         => TimeSpan.FromMilliseconds(2_455).ToDisplayText(CultureInfo.GetCultureInfo("de-DE")).Should().Be("2,5 s");
+
+    [Theory]
+    [InlineData(-3, "0:00")]
+    [InlineData(37, "0:37")]
+    [InlineData(725, "12:05")]
+    [InlineData(3_729, "1:02:09")]
+    public void Stopwatch_text_shows_minutes_and_seconds_and_hours_from_the_first_hour(int seconds, string expected)
+        => TimeSpan.FromSeconds(seconds).ToStopwatchText().Should().Be(expected);
 }

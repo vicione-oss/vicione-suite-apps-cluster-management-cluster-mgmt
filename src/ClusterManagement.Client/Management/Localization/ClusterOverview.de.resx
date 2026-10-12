@@ -261,6 +261,12 @@
   <data name="InstanceFailed" xml:space="preserve">
     <value>Fehlgeschlagen</value>
   </data>
+  <data name="InstanceRolledBack" xml:space="preserve">
+    <value>Zurückgesetzt</value>
+  </data>
+  <data name="InstanceRollingBack" xml:space="preserve">
+    <value>Wird zurückgesetzt</value>
+  </data>
   <data name="InstanceStarted" xml:space="preserve">
     <value>Gestartet</value>
   </data>
@@ -407,6 +413,84 @@
   </data>
   <data name="StartedAt" xml:space="preserve">
     <value>Gestartet {0}</value>
+  </data>
+  <data name="StepCompareEngineHostSettings" xml:space="preserve">
+    <value>Vergleichen der Einstellungen von Engine-Host „{0}“</value>
+  </data>
+  <data name="StepDeleteRetainedMessages" xml:space="preserve">
+    <value>Löschen der Retained-Nachrichten am Broker</value>
+  </data>
+  <data name="StepDeployEngine" xml:space="preserve">
+    <value>Bereitstellen von Engine „{0}“</value>
+  </data>
+  <data name="StepDeployEngineHost" xml:space="preserve">
+    <value>Bereitstellen von Engine-Host „{0}“</value>
+  </data>
+  <data name="StepFailed" xml:space="preserve">
+    <value>{0} fehlgeschlagen: {1}</value>
+  </data>
+  <data name="StepPlan" xml:space="preserve">
+    <value>Planen der Engine-Hosts und Engines</value>
+  </data>
+  <data name="StepPrepare" xml:space="preserve">
+    <value>Vorbereiten der Bereitstellung</value>
+  </data>
+  <data name="StepQueryEngineStates" xml:space="preserve">
+    <value>Abfragen der Engines von Engine-Host „{0}“</value>
+  </data>
+  <data name="StepStartEngine" xml:space="preserve">
+    <value>Starten von Engine „{0}“</value>
+  </data>
+  <data name="StepStartEngineHost" xml:space="preserve">
+    <value>Starten von Engine-Host „{0}“</value>
+  </data>
+  <data name="StepStateFailed" xml:space="preserve">
+    <value>fehlgeschlagen</value>
+  </data>
+  <data name="StepStateInterrupted" xml:space="preserve">
+    <value>abgebrochen</value>
+  </data>
+  <data name="StepStateRefused" xml:space="preserve">
+    <value>vom Engine-Host abgelehnt</value>
+  </data>
+  <data name="StepStateRunning" xml:space="preserve">
+    <value>läuft</value>
+  </data>
+  <data name="StepStateSucceeded" xml:space="preserve">
+    <value>erledigt</value>
+  </data>
+  <data name="StepStopEngine" xml:space="preserve">
+    <value>Stoppen von Engine „{0}“</value>
+  </data>
+  <data name="StepStopEngineHost" xml:space="preserve">
+    <value>Stoppen von Engine-Host „{0}“</value>
+  </data>
+  <data name="StepTearDownEngine" xml:space="preserve">
+    <value>Entfernen von Engine „{0}“</value>
+  </data>
+  <data name="StepTearDownEngineHost" xml:space="preserve">
+    <value>Entfernen von Engine-Host „{0}“</value>
+  </data>
+  <data name="StepUnknownTarget" xml:space="preserve">
+    <value>unbekannt</value>
+  </data>
+  <data name="StepUpdateEngineHost" xml:space="preserve">
+    <value>Aktualisieren der Einstellungen von Engine-Host „{0}“</value>
+  </data>
+  <data name="StepsOf" xml:space="preserve">
+    <value>Schritte von {0}</value>
+  </data>
+  <data name="StepsRolledBack" xml:space="preserve">
+    <value>In {0} Schritten zurückgesetzt</value>
+  </data>
+  <data name="StepsRolledBackOne" xml:space="preserve">
+    <value>In 1 Schritt zurückgesetzt</value>
+  </data>
+  <data name="StepsUpdated" xml:space="preserve">
+    <value>In {0} Schritten aktualisiert</value>
+  </data>
+  <data name="StepsUpdatedOne" xml:space="preserve">
+    <value>In 1 Schritt aktualisiert</value>
   </data>
   <data name="VersionDeploying" xml:space="preserve">
     <value>Wird bereitgestellt</value>

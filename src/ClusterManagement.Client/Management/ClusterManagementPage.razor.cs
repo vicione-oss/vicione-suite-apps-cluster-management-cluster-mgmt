@@ -52,6 +52,7 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
         ManagementService.OnClusterUpdateCompleted -= OnClusterUpdateCompleted;
         ManagementService.OnClusterUpdateFailed -= OnClusterUpdateFailed;
         ManagementService.OnClusterUpdateRejected -= OnClusterUpdateRejected;
+        ManagementService.OnClusterNodeDeploymentStepChanged -= OnClusterNodeDeploymentStepChanged;
 
         try
         {
@@ -77,6 +78,7 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
         ManagementService.OnClusterUpdateCompleted += OnClusterUpdateCompleted;
         ManagementService.OnClusterUpdateFailed += OnClusterUpdateFailed;
         ManagementService.OnClusterUpdateRejected += OnClusterUpdateRejected;
+        ManagementService.OnClusterNodeDeploymentStepChanged += OnClusterNodeDeploymentStepChanged;
 
         await ReloadVersions();
         await ResumeRunningDeployment();
@@ -129,18 +131,23 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
             if (state is null)
                 continue;
 
-            var target = await QueryTargetCluster(state);
-            _deployment ??= DeploymentProgressModel.Resume(state, target);
+            var target = await QueryTargetCluster(state.ClusterId, state.TargetVersion);
+            var deployment = Named(DeploymentProgressModel.Resume(state, target));
+            if (target is not null)
+                deployment.KnowNamesOf(target);
+
+            _deployment ??= deployment;
             return;
         }
     }
 
-    // Without the target version the deployment is still shown, only without its instances.
-    private async Task<Cluster?> QueryTargetCluster(DeploymentState state)
+    // Without the target version the deployment is still shown, only without its instances and the names of what only
+    // the target version holds.
+    private async Task<Cluster?> QueryTargetCluster(Guid clusterId, Version targetVersion)
     {
         try
         {
-            return await ManagementService.QueryCluster(state.ClusterId, state.TargetVersion, _tokenSource.Token);
+            return await ManagementService.QueryCluster(clusterId, targetVersion, _tokenSource.Token);
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
@@ -150,7 +157,23 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
     }
 
     private async void OnClusterUpdateStarted(object? sender, ClusterUpdateStarted ev)
-        => await UpdateDeployment(() => _deployment = DeploymentProgressModel.Start(ev, TimeProvider.GetUtcNow()));
+        => await HandleEvent(async () =>
+        {
+            var deployment = _deployment = Named(DeploymentProgressModel.Start(ev, TimeProvider.GetUtcNow()));
+            StateHasChanged();
+
+            // Only the rollback needs the names of the target version, so the steps that arrive meanwhile do without them.
+            if (await QueryTargetCluster(ev.ClusterId, ev.TargetVersion) is { } target)
+                deployment.KnowNamesOf(target);
+        });
+
+    // The running version is the one the deployment replaces, so it names what the update removes.
+    private DeploymentProgressModel Named(DeploymentProgressModel deployment)
+    {
+        if (_activeCluster is { } running)
+            deployment.KnowNamesOf(running);
+        return deployment;
+    }
 
     private async void OnClusterUpdateChanged(object? sender, ClusterUpdateChanged ev)
         => await UpdateDeployment(() => DeploymentFor(ev.ClusterId, ev.TargetVersion)?.Apply(ev));
@@ -173,6 +196,9 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
             StateHasChanged();
         });
 
+    private async void OnClusterNodeDeploymentStepChanged(object? sender, ClusterNodeDeploymentStepChanged ev)
+        => await UpdateDeployment(() => DeploymentFor(ev.ClusterId, ev.CorrelationId)?.Apply(ev, TimeProvider.GetUtcNow()));
+
     private async void OnClusterUpdateRejected(object? sender, ClusterUpdateRejected ev)
         => await HandleEvent(() =>
         {
@@ -183,6 +209,9 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
 
     private DeploymentProgressModel? DeploymentFor(Guid clusterId, Version version)
         => _deployment?.Matches(clusterId, version) == true ? _deployment : null;
+
+    private DeploymentProgressModel? DeploymentFor(Guid clusterId, Guid correlationId)
+        => _deployment?.Matches(clusterId, correlationId) == true ? _deployment : null;
 
     private Task UpdateDeployment(Action update)
         => HandleEvent(() =>
