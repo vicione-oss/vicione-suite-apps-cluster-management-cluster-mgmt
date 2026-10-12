@@ -8,6 +8,7 @@ using ClusterManagement.Client.Management.Models;
 using ClusterManagement.Client.Management.Services;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Public.Designs;
+using ClusterManagement.Public.Enums;
 using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
 using Microsoft.Extensions.DependencyInjection;
@@ -111,6 +112,147 @@ public sealed class ClusterManagementPageTests
 
         // Assert
         sut.WaitForAssertion(() => sut.Find(".deployment .headline").TextContent.Should().Be(Format(ClusterOverview.DeployingVersion, s_draftVersion)));
+    }
+
+    [Fact]
+    public async Task Shows_the_step_an_instance_works_on()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx, RunningAndDraft());
+        var correlationId = Guid.NewGuid();
+        var nodeId = Guid.NewGuid();
+        var instanceId = Guid.NewGuid();
+        _managementService.OnClusterUpdateStarted += Raise.Event<EventHandler<ClusterUpdateStarted>>(_managementService,
+            new ClusterUpdateStarted(correlationId, s_clusterId, s_draftVersion)
+            {
+                NodeApplications = new() { [nodeId] = instanceId },
+                Nodes = new() { [nodeId] = "edge-1" },
+                Applications = new() { [instanceId] = "CoreOS" },
+            });
+
+        // Act
+        _managementService.OnClusterNodeDeploymentStepChanged += Raise.Event<EventHandler<ClusterNodeDeploymentStepChanged>>(_managementService,
+            new ClusterNodeDeploymentStepChanged(correlationId, s_clusterId, instanceId, ClusterNodeDeploymentStep.DeployEngine, ClusterNodeDeploymentStepStatus.Started)
+            {
+                EngineName = "Line 1",
+                OccurredAt = DateTimeOffset.UnixEpoch,
+            });
+
+        // Assert
+        sut.WaitForAssertion(() => sut.Find(".deployment .instance .summary .text").TextContent.Should().Be(Format(ClusterOverview.StepDeployEngine, "Line 1")));
+    }
+
+    [Fact]
+    public async Task Names_an_engine_host_the_new_version_removes_from_the_running_version()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var correlationId = Guid.NewGuid();
+        var nodeId = Guid.NewGuid();
+        var instanceId = Guid.NewGuid();
+        var removedHostId = Guid.NewGuid();
+        var running = new Cluster
+        {
+            NodeGroups = [new ClusterNodeGroup { Nodes = [new ClusterNode { Id = nodeId, Name = "edge-1", Applications = [new ClusterApplication
+            {
+                Id = instanceId,
+                Name = "CoreOS",
+                Type = ClusterApplicationType.CoreOsMaster,
+                EngineHosts = [new EngineHost { Id = removedHostId, Name = "Packaging" }],
+            }] }] }],
+        };
+        ctx.AddAuthorization();
+        var sut = RenderPage(ctx, RunningAndDraft(), runningCluster: running);
+        _managementService.OnClusterUpdateStarted += Raise.Event<EventHandler<ClusterUpdateStarted>>(_managementService,
+            new ClusterUpdateStarted(correlationId, s_clusterId, s_draftVersion)
+            {
+                NodeApplications = new() { [nodeId] = instanceId },
+                Nodes = new() { [nodeId] = "edge-1" },
+                Applications = new() { [instanceId] = "CoreOS" },
+            });
+
+        // Act
+        _managementService.OnClusterNodeDeploymentStepChanged += Raise.Event<EventHandler<ClusterNodeDeploymentStepChanged>>(_managementService,
+            new ClusterNodeDeploymentStepChanged(correlationId, s_clusterId, instanceId, ClusterNodeDeploymentStep.TearDownEngineHost, ClusterNodeDeploymentStepStatus.Started)
+            {
+                EngineHostId = removedHostId,
+                OccurredAt = DateTimeOffset.UnixEpoch,
+            });
+
+        // Assert
+        sut.WaitForAssertion(() => sut.Find(".deployment .instance .summary .text").TextContent.Should().Be(Format(ClusterOverview.StepTearDownEngineHost, "Packaging")));
+    }
+
+    [Fact]
+    public async Task Names_an_engine_host_the_rollback_removes_from_the_new_version()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var correlationId = Guid.NewGuid();
+        var nodeId = Guid.NewGuid();
+        var instanceId = Guid.NewGuid();
+        var addedHostId = Guid.NewGuid();
+        _managementService.QueryCluster(s_clusterId, s_draftVersion, Arg.Any<CancellationToken>()).Returns(new Cluster
+        {
+            NodeGroups = [new ClusterNodeGroup { Nodes = [new ClusterNode { Id = nodeId, Name = "edge-1", Applications = [new ClusterApplication
+            {
+                Id = instanceId,
+                Name = "CoreOS",
+                Type = ClusterApplicationType.CoreOsMaster,
+                EngineHosts = [new EngineHost { Id = addedHostId, Name = "Packaging" }],
+            }] }] }],
+        });
+        var sut = RenderPage(ctx, RunningAndDraft());
+        _managementService.OnClusterUpdateStarted += Raise.Event<EventHandler<ClusterUpdateStarted>>(_managementService,
+            new ClusterUpdateStarted(correlationId, s_clusterId, s_draftVersion)
+            {
+                NodeApplications = new() { [nodeId] = instanceId },
+                Nodes = new() { [nodeId] = "edge-1" },
+                Applications = new() { [instanceId] = "CoreOS" },
+            });
+
+        // Act
+        _managementService.OnClusterNodeDeploymentStepChanged += Raise.Event<EventHandler<ClusterNodeDeploymentStepChanged>>(_managementService,
+            new ClusterNodeDeploymentStepChanged(correlationId, s_clusterId, instanceId, ClusterNodeDeploymentStep.TearDownEngineHost, ClusterNodeDeploymentStepStatus.Started)
+            {
+                EngineHostId = addedHostId,
+                OccurredAt = DateTimeOffset.UnixEpoch,
+            });
+
+        // Assert
+        sut.WaitForAssertion(() => sut.Find(".deployment .instance .summary .text").TextContent.Should().Be(Format(ClusterOverview.StepTearDownEngineHost, "Packaging")));
+    }
+
+    [Fact]
+    public async Task Ignores_the_steps_of_another_deployment_of_a_resumed_cluster()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var instanceId = Guid.NewGuid();
+        _managementService.QueryClusterDeploymentState(s_clusterId, Arg.Any<CancellationToken>())
+            .Returns(new DeploymentState(s_clusterId, "UpdatingDeployments", s_runningVersion, s_draftVersion) { CorrelationId = Guid.NewGuid() });
+        _managementService.QueryCluster(s_clusterId, s_draftVersion, Arg.Any<CancellationToken>()).Returns(new Cluster
+        {
+            NodeGroups = [new ClusterNodeGroup { Nodes = [new ClusterNode { Name = "edge-1", Applications = [new ClusterApplication
+            {
+                Id = instanceId,
+                Name = "CoreOS",
+                Type = ClusterApplicationType.CoreOsMaster,
+            }] }] }],
+        });
+        var sut = RenderPage(ctx, RunningAndDraft());
+        await sut.Find(".deployment .status-line button").ClickAsync(new());
+
+        // Act
+        _managementService.OnClusterNodeDeploymentStepChanged += Raise.Event<EventHandler<ClusterNodeDeploymentStepChanged>>(_managementService,
+            new ClusterNodeDeploymentStepChanged(Guid.NewGuid(), s_clusterId, instanceId, ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Started)
+            {
+                OccurredAt = DateTimeOffset.UnixEpoch,
+            });
+
+        // Assert
+        sut.FindAll(".deployment .instance .steps-toggle").Should().BeEmpty();
     }
 
     [Fact]
@@ -396,7 +538,7 @@ public sealed class ClusterManagementPageTests
         ];
 
     private IRenderedComponent<ClusterManagementPage> RenderPage(BunitContext ctx, List<ClusterInfoModel> versions,
-        TimeZoneInfo? timeZone = null, DateTimeOffset? now = null, bool queryVersions = true)
+        TimeZoneInfo? timeZone = null, DateTimeOffset? now = null, bool queryVersions = true, Cluster? runningCluster = null)
     {
         ctx.SetupSuiteServices(setup => setup.Services.AddLocalization<ClusterManagementClientModule>());
         ctx.Services.AddDialog();
@@ -407,7 +549,7 @@ public sealed class ClusterManagementPageTests
         if (queryVersions)
             _managementService.QueryClusterVersions(null, Arg.Any<CancellationToken>()).Returns(versions);
 
-        _managementService.QueryCluster(s_clusterId, s_runningVersion, Arg.Any<CancellationToken>()).Returns(new Cluster());
+        _managementService.QueryCluster(s_clusterId, s_runningVersion, Arg.Any<CancellationToken>()).Returns(runningCluster ?? new Cluster());
 
         return ctx.Render<ClusterManagementPage>();
     }

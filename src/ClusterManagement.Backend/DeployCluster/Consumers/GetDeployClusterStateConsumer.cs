@@ -26,6 +26,9 @@ public sealed partial class GetDeployClusterStateConsumer(IClusterSagaDbContext 
                 DeployClusterStateMachine.GetState(deployState.CurrentState),
                 deployState.ActiveVersion,
                 deployState.TargetVersion)
+            {
+                CorrelationId = deployState.CorrelationId,
+            },
         };
     }
 

@@ -493,6 +493,24 @@ namespace ClusterManagement.Client.Management.Localization {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Rolled back.
+        /// </summary>
+        internal static string InstanceRolledBack {
+            get {
+                return ResourceManager.GetString("InstanceRolledBack", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Rolling back.
+        /// </summary>
+        internal static string InstanceRollingBack {
+            get {
+                return ResourceManager.GetString("InstanceRollingBack", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Started.
         /// </summary>
         internal static string InstanceStarted {
@@ -930,6 +948,240 @@ namespace ClusterManagement.Client.Management.Localization {
         internal static string StartedAt {
             get {
                 return ResourceManager.GetString("StartedAt", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Comparing the settings of engine host '{0}'.
+        /// </summary>
+        internal static string StepCompareEngineHostSettings {
+            get {
+                return ResourceManager.GetString("StepCompareEngineHostSettings", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Deleting retained broker messages.
+        /// </summary>
+        internal static string StepDeleteRetainedMessages {
+            get {
+                return ResourceManager.GetString("StepDeleteRetainedMessages", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Deploying engine '{0}'.
+        /// </summary>
+        internal static string StepDeployEngine {
+            get {
+                return ResourceManager.GetString("StepDeployEngine", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Deploying engine host '{0}'.
+        /// </summary>
+        internal static string StepDeployEngineHost {
+            get {
+                return ResourceManager.GetString("StepDeployEngineHost", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} failed: {1}.
+        /// </summary>
+        internal static string StepFailed {
+            get {
+                return ResourceManager.GetString("StepFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Planning the engine hosts and engines.
+        /// </summary>
+        internal static string StepPlan {
+            get {
+                return ResourceManager.GetString("StepPlan", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Preparing the deployment.
+        /// </summary>
+        internal static string StepPrepare {
+            get {
+                return ResourceManager.GetString("StepPrepare", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Querying the engines of engine host '{0}'.
+        /// </summary>
+        internal static string StepQueryEngineStates {
+            get {
+                return ResourceManager.GetString("StepQueryEngineStates", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Starting engine '{0}'.
+        /// </summary>
+        internal static string StepStartEngine {
+            get {
+                return ResourceManager.GetString("StepStartEngine", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Starting engine host '{0}'.
+        /// </summary>
+        internal static string StepStartEngineHost {
+            get {
+                return ResourceManager.GetString("StepStartEngineHost", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to failed.
+        /// </summary>
+        internal static string StepStateFailed {
+            get {
+                return ResourceManager.GetString("StepStateFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to interrupted.
+        /// </summary>
+        internal static string StepStateInterrupted {
+            get {
+                return ResourceManager.GetString("StepStateInterrupted", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to refused by the engine host.
+        /// </summary>
+        internal static string StepStateRefused {
+            get {
+                return ResourceManager.GetString("StepStateRefused", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to running.
+        /// </summary>
+        internal static string StepStateRunning {
+            get {
+                return ResourceManager.GetString("StepStateRunning", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to done.
+        /// </summary>
+        internal static string StepStateSucceeded {
+            get {
+                return ResourceManager.GetString("StepStateSucceeded", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Stopping engine '{0}'.
+        /// </summary>
+        internal static string StepStopEngine {
+            get {
+                return ResourceManager.GetString("StepStopEngine", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Stopping engine host '{0}'.
+        /// </summary>
+        internal static string StepStopEngineHost {
+            get {
+                return ResourceManager.GetString("StepStopEngineHost", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Tearing down engine '{0}'.
+        /// </summary>
+        internal static string StepTearDownEngine {
+            get {
+                return ResourceManager.GetString("StepTearDownEngine", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Tearing down engine host '{0}'.
+        /// </summary>
+        internal static string StepTearDownEngineHost {
+            get {
+                return ResourceManager.GetString("StepTearDownEngineHost", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to unknown.
+        /// </summary>
+        internal static string StepUnknownTarget {
+            get {
+                return ResourceManager.GetString("StepUnknownTarget", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Updating the settings of engine host '{0}'.
+        /// </summary>
+        internal static string StepUpdateEngineHost {
+            get {
+                return ResourceManager.GetString("StepUpdateEngineHost", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Steps of {0}.
+        /// </summary>
+        internal static string StepsOf {
+            get {
+                return ResourceManager.GetString("StepsOf", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Rolled back in {0} steps.
+        /// </summary>
+        internal static string StepsRolledBack {
+            get {
+                return ResourceManager.GetString("StepsRolledBack", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Rolled back in 1 step.
+        /// </summary>
+        internal static string StepsRolledBackOne {
+            get {
+                return ResourceManager.GetString("StepsRolledBackOne", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Updated in {0} steps.
+        /// </summary>
+        internal static string StepsUpdated {
+            get {
+                return ResourceManager.GetString("StepsUpdated", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Updated in 1 step.
+        /// </summary>
+        internal static string StepsUpdatedOne {
+            get {
+                return ResourceManager.GetString("StepsUpdatedOne", resourceCulture);
             }
         }
 

@@ -115,6 +115,7 @@ public class UpdateDeploymentsConsumerSystemFacts
             scope.ServiceProvider.GetRequiredService<IWorkspaceProvider<ClusterManagementBackendModule>>(),
             scope.ServiceProvider.GetRequiredService<ISuiteRulesetProvider>(),
             scope.ServiceProvider.GetRequiredService<IFileSystem>(),
+            Substitute.For<IBus>(),
             scope.ServiceProvider.GetRequiredService<ILogger<UpdateDeploymentsConsumer>>());
         await consumer.Consume(consumeContext);
 

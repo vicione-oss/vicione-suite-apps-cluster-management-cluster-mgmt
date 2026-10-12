@@ -144,4 +144,29 @@ public class ClusterManagementPageServiceTests
         // Assert
         monitor.Should().NotRaise(nameof(ClusterManagementPageService.OnClusterUpdateRejected));
     }
+
+    [Fact]
+    public async Task Consume_event_should_trigger_cluster_node_deployment_step_changed()
+    {
+        // Arrange
+        using var ctx = new BunitContext();
+        ctx.SetupSuiteServices();
+        ctx.Services.AddSingleton(_clusterService);
+        ctx.Services.AddSingleton<ClusterManagementPageService>();
+        var stepEvent = new ClusterNodeDeploymentStepChanged(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            ClusterNodeDeploymentStep.StartEngineHost, ClusterNodeDeploymentStepStatus.Started)
+        {
+            OccurredAt = DateTimeOffset.UnixEpoch,
+        };
+        var service = ctx.Services.GetRequiredService<ClusterManagementPageService>();
+        using var monitor = service.Monitor();
+
+        // Act
+        await service.Consume(new ClientContext<ClusterNodeDeploymentStepChanged>(stepEvent, stepEvent.CorrelationId), CancellationToken.None);
+
+        // Assert
+        monitor.Should()
+            .Raise(nameof(ClusterManagementPageService.OnClusterNodeDeploymentStepChanged))
+            .WithArgs<ClusterNodeDeploymentStepChanged>(ev => ev == stepEvent);
+    }
 }

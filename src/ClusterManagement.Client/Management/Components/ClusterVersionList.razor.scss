@@ -122,8 +122,12 @@
         padding: 4px overview.$panel-padding 8px;
     }
 
+    // Grows with a long chip, such as a translated "Deployment failed", instead of running into the actions; the
+    // chips align at the actions, so they stay in one column when a row's chip is wider than the others.
     .status {
-        width: 160px;
+        display: flex;
+        justify-content: flex-end;
+        min-width: 160px;
         flex: none;
     }
 

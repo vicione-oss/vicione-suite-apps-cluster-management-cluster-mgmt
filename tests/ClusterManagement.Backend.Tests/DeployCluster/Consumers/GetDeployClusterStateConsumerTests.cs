@@ -30,7 +30,8 @@ public class GetDeployClusterStateConsumerTests : TestWithDbContextSqlite<Cluste
 
         var request = new GetDeployClusterStateRequest(clusterId);
 
-        var state = new DeployClusterState() { ClusterId = clusterId, CurrentState = currentState, ActiveVersion = activeVersion, TargetVersion = targetVersion };
+        var correlationId = Guid.NewGuid();
+        var state = new DeployClusterState() { CorrelationId = correlationId, ClusterId = clusterId, CurrentState = currentState, ActiveVersion = activeVersion, TargetVersion = targetVersion };
         var test = TestDbContext.DeployClusterState.Add(state);
         await TestDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -44,6 +45,7 @@ public class GetDeployClusterStateConsumerTests : TestWithDbContextSqlite<Cluste
         response.State.CurrentState.Should().Be(DeployClusterStateMachine.GetState(currentState));
         response.State.ActiveVersion.Should().Be(activeVersion);
         response.State.TargetVersion.Should().Be(targetVersion);
+        response.State.CorrelationId.Should().Be(correlationId);
     }
 
     [Fact]

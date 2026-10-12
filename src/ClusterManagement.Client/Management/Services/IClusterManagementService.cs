@@ -15,6 +15,7 @@ public interface IClusterManagementService
     /// Raised when a deployment sent by this service is rejected because another one is still running.
     /// </summary>
     event EventHandler<ClusterUpdateRejected>? OnClusterUpdateRejected;
+    event EventHandler<ClusterNodeDeploymentStepChanged>? OnClusterNodeDeploymentStepChanged;
 
     Task DeployCluster(Guid clusterId, Version version, CancellationToken cancellationToken = default);
 

@@ -2,5 +2,8 @@
 
 public record DeploymentState(Guid ClusterId, string CurrentState, Version ActiveVersion, Version TargetVersion)
 {
-    // more details?    
+    /// <summary>
+    /// The correlation id of the deployment's events.
+    /// </summary>
+    public Guid CorrelationId { get; init; }
 }

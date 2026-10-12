@@ -3,6 +3,8 @@
 @using ClusterManagement.Client.Management.Models
 @using ViciOne.Ui.Blazor.Components.Button
 @using ViciOne.Ui.Blazor.Components.Button.Enums
+@using ViciOne.Ui.MonochromeIcons.Components
+@using ViciOne.Ui.MonochromeIcons.Core.Enums
 
 <section class="deployment @(Deployment?.Phase == DeploymentPhase.Failed ? "failed" : null)" aria-label="@ClusterOverview.Deployment">
     <div class="panel-head">
@@ -25,28 +27,80 @@
 
         <div class="status-line">
             <span class="muted" title="@StatusLine">@StatusLine</span>
-            @if (Deployment?.Instances.Count > 0)
+            @if (HasInstancesListedOnRequest)
             {
                 <Button Text="@ShowInstancesText"
                         Size="@ButtonSize.Small"
+                        CssClass="instances-toggle"
                         OnClick="@(() => _showAll = !_showAll)" />
             }
         </div>
 
         @foreach (var instance in VisibleInstances)
         {
+            var expanded = _expanded.Contains(instance.Id);
             <div class="instance @(instance.HasFailed ? "failed" : null)" @key="instance.Id">
-                <div class="instance-head">
-                    <span class="dot status-@InstanceStatusName(instance)"></span>
-                    <span class="name" title="@instance.Name">@instance.Name</span>
-                    <span class="muted node" title="@instance.NodeName">@string.Format(ClusterOverview.OnNode, instance.NodeName)</span>
-                    <span class="chip status-@InstanceStatusName(instance)">@InstanceStatusText(instance)</span>
-                </div>
+                @if (instance.Steps.Count > 0)
+                {
+                    <button type="button" class="steps-toggle" aria-expanded="@(expanded ? "true" : "false")" @onclick="() => ToggleSteps(instance.Id)">
+                        <span class="instance-head">
+                            @InstanceHead(instance)
+                            <span class="chevron" aria-hidden="true">
+                                <MonochromeIcon Name="MonochromeIconName.Chevron" Size="MonochromeIconSize.Small" />
+                            </span>
+                        </span>
+                        <span class="trail" aria-hidden="true">
+                            @foreach (var step in instance.Steps)
+                            {
+                                <span class="segment @StateClass(step)"></span>
+                            }
+                        </span>
+                        @if (instance.Error is null && Summary(instance) is { } summary)
+                        {
+                            <span class="summary @summary.CssClass">
+                                <span class="text" title="@summary.Text">@summary.Text</span>
+                                <span class="time">@summary.Time</span>
+                            </span>
+                        }
+                    </button>
+                }
+                else
+                {
+                    <div class="instance-head">@InstanceHead(instance)</div>
+                }
                 @if (instance.Error is not null)
                 {
-                    <pre class="error">@instance.Error.Message</pre>
+                    <pre class="error">@ErrorText(instance, instance.Error)</pre>
+                }
+                @if (expanded && instance.Steps.Count > 0)
+                {
+                    <ol class="steps" aria-label="@Format(ClusterOverview.StepsOf, instance.Name)">
+                        @for (var i = 0; i < instance.Steps.Count; i++)
+                        {
+                            var step = instance.Steps[i];
+                            if (step.IsRollback && (i == 0 || !instance.Steps[i - 1].IsRollback))
+                            {
+                                <li class="divider">@ClusterOverview.PhaseRollingBack</li>
+                            }
+                            <li class="entry @StateClass(step)">
+                                <span class="mark" aria-hidden="true">@StateMark(step)</span>
+                                <span class="visually-hidden">@StateText(step)</span>
+                                <span class="text" title="@step.ToText()">@step.ToText()</span>
+                                <span class="time">@StepTime(step)</span>
+                            </li>
+                        }
+                    </ol>
                 }
             </div>
         }
     </div>
 </section>
+
+@code {
+    private RenderFragment InstanceHead(InstanceProgressModel instance) => @<text>
+        <span class="dot status-@InstanceStatusName(instance)"></span>
+        <span class="name" title="@instance.Name">@instance.Name</span>
+        <span class="muted node" title="@instance.NodeName">@string.Format(ClusterOverview.OnNode, instance.NodeName)</span>
+        <span class="chip status-@InstanceStatusName(instance)">@InstanceStatusText(instance)</span>
+    </text>;
+}

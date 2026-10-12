@@ -11,11 +11,13 @@ using ClusterManagement.Backend.Tests.TestUtils;
 using ClusterManagement.Internal.Designs;
 using ClusterManagement.Public;
 using ClusterManagement.Public.Designs;
+using ClusterManagement.Public.Events;
 using ClusterManagement.Tests.Tools;
 using ClusterManagement.Tests.Tools.Factories;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using MQTTnet;
 using Sdk.Backend.Modules;
 using Sdk.Instance;
@@ -39,12 +41,17 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
     private readonly IInstanceInformationProvider _instanceInformationProvider;
     private readonly InMemoryLogger<UpdateDeploymentsConsumer> _logger;
     private readonly IMqttClient _mqttClient;
+    private readonly IBus _bus;
+    private readonly FakeTimeProvider _clock = new();
+    private readonly IClusterDbContext _clusterDbContext = Substitute.For<IClusterDbContext>();
     private readonly IWorkspaceProvider<ClusterManagementBackendModule> _workspaceProvider;
     private readonly MockFileSystem _fileSystemMock = new();
     private readonly IInstanceInformation _instanceInformation;
     private readonly ClusterBuilder _clusterBuilder;
     private readonly Guid _correlationId = Guid.NewGuid();
+    private readonly CancellationTokenSource _deploymentCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
     private readonly List<object> _events = [];
+    private readonly List<ClusterNodeDeploymentStepChanged> _steps = [];
     private CorrelatedBy<Guid>? _result;
 
     public UpdateDeploymentsConsumerFacts()
@@ -86,6 +93,9 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
 
         _logger = new InMemoryLogger<UpdateDeploymentsConsumer>();
         _mqttClient = Substitute.For<IMqttClient>();
+        _bus = Substitute.For<IBus>();
+        _bus.When(x => x.Publish(Arg.Any<ClusterNodeDeploymentStepChanged>(), Arg.Any<CancellationToken>()))
+            .Do(x => _steps.Add(x.Arg<ClusterNodeDeploymentStepChanged>()));
         _workspaceProvider = Substitute.For<IWorkspaceProvider<ClusterManagementBackendModule>>();
     }
 
@@ -101,6 +111,8 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
     protected override void Dispose(bool disposing)
     {
         _mqttClient.Dispose();
+        _deploymentCancellation.Dispose();
+        _clusterDbContext.Dispose();
         _engineDbContext.Dispose();
         _clusterBuilder.Dispose();
 
@@ -129,12 +141,13 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
     internal async Task When_updating_deployments(string? version = default)
     {
         _events.Clear();
+        _steps.Clear();
 
         var clusterVersion = version is not null ? new Version(version) : _clusterBuilder.Cluster.Version;
         var clusterCompressed = await ClusterSerializer.CompressAsync(_clusterBuilder.Cluster, cancellationToken: TestContext.Current.CancellationToken);
         var clusterInfo = new ClusterSnapshotInfo(_clusterBuilder.Cluster.Id, clusterVersion, _clusterBuilder.Cluster.Name);
 
-        var cancellationToken = TestContext.Current.CancellationToken;
+        var cancellationToken = _deploymentCancellation.Token;
         var consumeContext = Substitute.For<ConsumeContext<UpdateDeployments>>();
         consumeContext.Message.Returns(new UpdateDeployments(clusterCompressed, _correlationId, _clusterBuilder.Cluster.Id));
         consumeContext.CorrelationId.Returns(_correlationId);
@@ -142,8 +155,8 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
         consumeContext.When(x => x.Publish(Arg.Any<Arg.AnyType>(), Arg.Is(cancellationToken))).Do(x => _events.Add(x[0]));
 
         UpdateDeploymentsConsumer consumer = new(_instanceInformationProvider, _engineDbContext, _poolCommunication,
-            _hostCommunication, _brokerConnectionCache, _designProvider, Substitute.For<IClusterDbContext>(), _workspaceProvider,
-            _rulesetProvider, _fileSystemMock, _logger, _mqttClient);
+            _hostCommunication, _brokerConnectionCache, _designProvider, _clusterDbContext, _workspaceProvider,
+            _rulesetProvider, _fileSystemMock, _bus, _logger, _mqttClient, _clock);
         await consumer.Consume(consumeContext);
 
         _result = _events.OfType<CorrelatedBy<Guid>>().SingleOrDefault();
