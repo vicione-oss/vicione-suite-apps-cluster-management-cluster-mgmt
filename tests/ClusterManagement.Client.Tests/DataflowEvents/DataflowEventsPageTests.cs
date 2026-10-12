@@ -760,8 +760,8 @@ public sealed class DataflowEventsPageTests
     private void SetupTreeKeys(BunitContext ctx)
     {
         _treeKeys = ctx.JSInterop.SetupModule(TreeKeysModule);
-        _treeKeys.SetupVoid("attach", _ => true);
-        _treeKeys.SetupVoid("detach", _ => true);
+        _treeKeys.SetupVoid("attach", _ => true).SetVoidResult();
+        _treeKeys.SetupVoid("detach", _ => true).SetVoidResult();
     }
 
     // The page's clock stands still at _now; the subscriptions run on one the test moves on.
