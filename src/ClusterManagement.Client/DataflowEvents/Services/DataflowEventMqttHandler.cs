@@ -78,7 +78,7 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
             {
                 // A connection that dropped comes back without the topics it had.
                 await ResubscribeActiveTopics(cancellationToken);
-                await StartReconnectLoop();
+                StartReconnectLoop();
                 return true;
             }
 
@@ -281,29 +281,31 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
         return false;
     }
 
-    private async Task StartReconnectLoop()
+    private void StartReconnectLoop()
     {
-        if (_reconnectLoopTask is not null || _client is null || _options is null)
+        if (_reconnectLoopTask is not null || _client is not { } client || _options is not { } options)
             return;
 
         _reconnectCancellation = new CancellationTokenSource();
         var token = _reconnectCancellation.Token;
-        _reconnectTimer = new PeriodicTimer(s_reconnectInterval);
+        var timer = _reconnectTimer = new PeriodicTimer(s_reconnectInterval);
 
+        // The loop keeps its own references: a reset stops it while it may still be starting, and the fields belong to
+        // the next connection by then.
         _reconnectLoopTask = Task.Run(async () =>
         {
             LogReconnectLoopStarted(_logger, ReconnectIntervalSeconds);
             try
             {
-                while (await _reconnectTimer.WaitForNextTickAsync(token))
+                while (await timer.WaitForNextTickAsync(token))
                 {
                     if (token.IsCancellationRequested)
                         break;
 
                     try
                     {
-                        if (!await _client.TryPingAsync(token))
-                            await Reconnect(token);
+                        if (!await client.TryPingAsync(token))
+                            await Reconnect(client, options, token);
                     }
                     catch (OperationCanceledException)
                     {
@@ -328,17 +330,16 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
         }, token);
     }
 
-    private async Task Reconnect(CancellationToken cancellationToken)
+    private async Task Reconnect(IMqttClient client, MqttClientOptions options, CancellationToken cancellationToken)
     {
         await _requestLock.WaitAsync(cancellationToken);
         try
         {
             // A request may have reconnected while this one waited.
-            var client = _client!;
             if (await client.TryPingAsync(cancellationToken))
                 return;
 
-            await client.ConnectAsync(_options!, cancellationToken);
+            await client.ConnectAsync(options, cancellationToken);
             await ResubscribeActiveTopics(cancellationToken);
         }
         finally
@@ -347,6 +348,8 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
         }
     }
 
+    // The loop is awaited before its timer is disposed, and the loop is cleared whatever it ended with, so a failed loop
+    // can neither break the disconnect nor keep the next connection from starting its own.
     private async Task StopReconnectLoop()
     {
         if (_reconnectCancellation is null)
@@ -361,24 +364,29 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
             // ignore
         }
 
-        _reconnectTimer?.Dispose();
-        _reconnectTimer = null;
-
-        if (_reconnectLoopTask is not null)
+        try
         {
-            try
-            {
+            if (_reconnectLoopTask is not null)
                 await _reconnectLoopTask;
-            }
-            catch (OperationCanceledException)
-            {
-                // ignore
-            }
-            _reconnectLoopTask = null;
         }
+        catch (OperationCanceledException)
+        {
+            // ignore
+        }
+        catch (Exception ex)
+        {
+            LogReconnectLoopFailed(_logger, ex);
+        }
+        finally
+        {
+            _reconnectLoopTask = null;
 
-        _reconnectCancellation.Dispose();
-        _reconnectCancellation = null;
+            _reconnectTimer?.Dispose();
+            _reconnectTimer = null;
+
+            _reconnectCancellation.Dispose();
+            _reconnectCancellation = null;
+        }
     }
 
     // One packet for every tracked topic, so a reconnect holds up the requests behind it for one round trip only.
@@ -470,6 +478,9 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
 
     [LoggerMessage(LogLevel.Information, "Reconnect loop stopped.")]
     private static partial void LogReconnectLoopStopped(ILogger logger);
+
+    [LoggerMessage(LogLevel.Warning, "Reconnect loop failed.")]
+    private static partial void LogReconnectLoopFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(LogLevel.Error, "Received message on '{Topic}' without UserProperties.")]
     private static partial void UserPropertiesMissing(ILogger logger, string topic);

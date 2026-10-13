@@ -79,6 +79,35 @@ public sealed class EngineLifetimeFacts
             }
 
             [Fact]
+            public async Task Removes_every_saga_state_of_the_cluster_left_by_earlier_versions()
+            {
+                // Arrange
+                var clusterId = Guid.NewGuid();
+                var otherClusterId = Guid.NewGuid();
+                var version = new Version(1, 0, 0);
+
+                _ctx.SagaDbContext.DeployClusterState.AddRange(
+                    new DeployClusterState { CorrelationId = Guid.NewGuid(), ClusterId = clusterId, CurrentState = 5 },
+                    new DeployClusterState { CorrelationId = Guid.NewGuid(), ClusterId = clusterId, CurrentState = 7 },
+                    new DeployClusterState { CorrelationId = Guid.NewGuid(), ClusterId = otherClusterId, CurrentState = 5 });
+                await _ctx.SagaDbContext.SaveChangesAsync(CancellationToken.None);
+
+                _ctx.Mediator.Request<GetClusterInfosRequest, GetClusterInfosResponse>(
+                    Arg.Any<GetClusterInfosRequest>(), Arg.Any<CancellationToken>())
+                    .Returns(new GetClusterInfosResponse
+                    {
+                        Results = [new ClusterInfo(clusterId, version, "TestCluster", IsActive: true)]
+                    });
+
+                // Act
+                await _ctx.EngineLifetime.Start(CancellationToken.None);
+
+                // Assert
+                var remainingStates = await _ctx.SagaDbContext.DeployClusterState.ToListAsync(CancellationToken.None);
+                remainingStates.Should().ContainSingle().Which.ClusterId.Should().Be(otherClusterId);
+            }
+
+            [Fact]
             public async Task Does_nothing_with_saga_state_when_none_exists_for_the_cluster()
             {
                 // Arrange

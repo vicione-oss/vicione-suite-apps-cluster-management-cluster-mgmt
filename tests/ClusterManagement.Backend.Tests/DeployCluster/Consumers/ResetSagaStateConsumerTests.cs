@@ -41,6 +41,27 @@ public class ResetSagaStateConsumerTests : TestWithDbContextSqlite<ClusterSagaDb
     }
 
     [Fact]
+    public async Task Should_remove_every_deploy_state_of_the_cluster_left_by_earlier_versions()
+    {
+        // Arrange
+        await using var tester = new MassTransitTester(cfg => SetupConsumer(cfg));
+        var clusterId = Guid.NewGuid();
+        var otherClusterId = Guid.NewGuid();
+        TestDbContext.DeployClusterState.AddRange(
+            new DeployClusterState { CorrelationId = Guid.NewGuid(), ClusterId = clusterId, CurrentState = 5 },
+            new DeployClusterState { CorrelationId = Guid.NewGuid(), ClusterId = clusterId, CurrentState = 7 },
+            new DeployClusterState { CorrelationId = Guid.NewGuid(), ClusterId = otherClusterId, CurrentState = 5 });
+        await TestDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await tester.TestCommand<ResetSagaState, ResetSagaStateConsumer>(new ResetSagaState(clusterId));
+
+        // Assert
+        var remainingStates = await TestDbContext.DeployClusterState.ToListAsync(TestContext.Current.CancellationToken);
+        remainingStates.Should().ContainSingle().Which.ClusterId.Should().Be(otherClusterId);
+    }
+
+    [Fact]
     public async Task Should_ignore_unknown_cluster_id()
     {
         // Arrange

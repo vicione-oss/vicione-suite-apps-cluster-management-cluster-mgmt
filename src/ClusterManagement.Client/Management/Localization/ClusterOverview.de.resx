@@ -199,7 +199,7 @@
     <value>Bereitstellung von v{0} fehlgeschlagen</value>
   </data>
   <data name="DeploymentRejected" xml:space="preserve">
-    <value>Bereitstellung von v{0} abgelehnt, weil v{1} noch bereitgestellt wird.</value>
+    <value>Bereitstellung von v{0} abgelehnt, weil v{1} noch bereitgestellt wird. Läuft keine Bereitstellung, „Bereitstellungszustand zurücksetzen“ verwenden und erneut bereitstellen.</value>
   </data>
   <data name="DownloadJson" xml:space="preserve">
     <value>JSON herunterladen</value>

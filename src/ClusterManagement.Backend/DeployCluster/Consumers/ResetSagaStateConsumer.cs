@@ -14,18 +14,21 @@ public sealed partial class ResetSagaStateConsumer(IClusterSagaDbContext sagaDbC
 {
     public async Task Consume(ConsumeContext<ResetSagaState> context)
     {
-        var deployState = await sagaDbContext.DeployClusterState
-                .FirstOrDefaultAsync(k => k.ClusterId == context.Message.ClusterId, context.CancellationToken);
+        // Earlier versions could leave several deployments of one cluster behind; all of them are reset.
+        var deployStates = await sagaDbContext.DeployClusterState
+                .Where(k => k.ClusterId == context.Message.ClusterId)
+                .ToListAsync(context.CancellationToken);
 
-        if (deployState is null)
+        if (deployStates.Count == 0)
         {
             LogDeployState(logger, context.Message.ClusterId);
             return;
         }
 
-        TryLogClusterState(deployState);
+        foreach (var deployState in deployStates)
+            TryLogClusterState(deployState);
 
-        sagaDbContext.DeployClusterState.Remove(deployState);
+        sagaDbContext.DeployClusterState.RemoveRange(deployStates);
         await sagaDbContext.SaveChangesAsync(context.CancellationToken);
     }
 

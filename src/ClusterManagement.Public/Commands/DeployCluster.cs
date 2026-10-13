@@ -11,7 +11,7 @@ namespace ClusterManagement.Public.Commands;
 public sealed record DeployCluster(Guid ClusterId, Version? TargetVersion) : ICommand
 {
     /// <summary>
-    /// Gets the correlation ID for this command, which is the same as the cluster ID.
+    /// Gets the correlation ID of this deployment; the replies to this command carry it.
     /// </summary>
     public Guid CorrelationId { get; init; } = Guid.NewGuid();
 

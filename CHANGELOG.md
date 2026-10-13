@@ -53,6 +53,7 @@
   - **Breaking:** `IDataflowEvent`, added `FunctionBlockId`, `FunctionBlockName`, `ConnectorName`, `DataflowName` and `ContainerPath`
 - **Breaking:** Fail a deployment with a message naming the node and the declaring node type when a tree node is linked against the transfer direction its node type declares or inherits from an ancestor or the DataPort; directions a node type declares are narrowed to those its ancestors transfer
 - **Breaking:** Fail a deployment when an envelope child is linked in a direction the ruleset's `LinkDirections` does not allow; a predefined child such as a validity derived from the parent value is sent with its parent's message but must never be linked
+- **Breaking:** `DeployCluster` is rejected with `ClusterUpdateRejected` while another deployment of the same cluster is running
 
 - Updated .NET to version `10.0.12`
 - `AspNetCore.SassCompiler` package, update version to `1.105.1`
@@ -69,6 +70,8 @@
 
 ### Fixed
 
+- Parallel deployments of one cluster no longer leave a deployment in `CleaningCluster` or fail the deployment state request
+- Two deployments completing close together no longer break the reconnect of the dataflow event connection
 - `ClusterSerializer` reads several clusters at the same time; concurrent reads corrupted its type cache and failed the load
 - Downloading IODDs no longer produces redundant archives with identical content for devices with multiple product variants
 - Load function blocks dialog, checking a function block no longer affects an equally named one in another namespace (e.g. `ACX.ViciOne.FunctionBlocks.Test` and `ACX.ViciOne.StandardFunction.Test`)
