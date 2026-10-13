@@ -199,7 +199,7 @@
     <value>Deployment of v{0} failed</value>
   </data>
   <data name="DeploymentRejected" xml:space="preserve">
-    <value>Deployment of v{0} was rejected because v{1} is still being deployed.</value>
+    <value>Deployment of v{0} was rejected because v{1} is still being deployed. If no deployment is running, use "Reset deployment state" and deploy again.</value>
   </data>
   <data name="DownloadJson" xml:space="preserve">
     <value>Download JSON</value>

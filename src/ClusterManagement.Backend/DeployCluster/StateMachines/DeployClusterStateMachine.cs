@@ -103,7 +103,12 @@ public sealed partial class DeployClusterStateMachine : MassTransitStateMachine<
         _logger = logger;
 
         // Register the state events
-        Event(() => UpdateRequested);
+        // Every deploy command carries its own correlation id; it joins a deployment of the same cluster that is still
+        // running, which rejects it. Only one deployment per cluster can exist because the saga endpoint processes one
+        // message at a time (ConcurrentMessageLimit = 1 in ClusterManagementBackendModule).
+        Event(() => UpdateRequested, e => e
+            .CorrelateBy((saga, ctx) => saga.ClusterId == ctx.Message.ClusterId)
+            .SelectId(ctx => ctx.Message.CorrelationId));
         Event(() => ClusterChanged);
         Event(() => CommitClusterFailed);
         Event(() => ClusterError);

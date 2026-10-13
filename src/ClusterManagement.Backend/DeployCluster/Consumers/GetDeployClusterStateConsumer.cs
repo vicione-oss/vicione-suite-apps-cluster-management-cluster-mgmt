@@ -14,8 +14,11 @@ public sealed partial class GetDeployClusterStateConsumer(IClusterSagaDbContext 
 {
     public override async Task<GetDeployClusterStateResponse> Respond(GetDeployClusterStateRequest message, CancellationToken cancellationToken)
     {
+        // Earlier versions could leave several deployments of one cluster behind; the newest one is reported.
         var deployState = await sagaDbContext.DeployClusterState
-            .SingleOrDefaultAsync(k => k.ClusterId == message.ClusterId, cancellationToken);
+            .Where(k => k.ClusterId == message.ClusterId)
+            .OrderByDescending(k => k.Started)
+            .FirstOrDefaultAsync(cancellationToken);
         if (deployState is null)
             return new();
 

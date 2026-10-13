@@ -119,17 +119,19 @@ internal sealed class EngineLifetime(IEngineHostPoolCommunication engineHostPool
         }
     }
 
+    // Earlier versions could leave several deployments of one cluster behind; each of them would reject the next one.
     private async Task RemoveExistingSagaState(Guid clusterId, CancellationToken cancellationToken)
     {
-        var deployState = await sagaDbContext.DeployClusterState
-                .FirstOrDefaultAsync(k => k.ClusterId == clusterId, cancellationToken);
+        var deployStates = await sagaDbContext.DeployClusterState
+                .Where(k => k.ClusterId == clusterId)
+                .ToListAsync(cancellationToken);
 
-        if (deployState is null)
+        if (deployStates.Count == 0)
             return;
 
         logger.LogRemoveDeploySagaState(clusterId);
 
-        sagaDbContext.DeployClusterState.Remove(deployState);
+        sagaDbContext.DeployClusterState.RemoveRange(deployStates);
         await sagaDbContext.SaveChangesAsync(cancellationToken);
     }
 }

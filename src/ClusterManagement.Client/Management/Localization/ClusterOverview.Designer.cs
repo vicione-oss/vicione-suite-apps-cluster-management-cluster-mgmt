@@ -304,7 +304,7 @@ namespace ClusterManagement.Client.Management.Localization {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Deployment of v{0} was rejected because v{1} is still being deployed..
+        ///   Looks up a localized string similar to Deployment of v{0} was rejected because v{1} is still being deployed. If no deployment is running, use &quot;Reset deployment state&quot; and deploy again..
         /// </summary>
         internal static string DeploymentRejected {
             get {

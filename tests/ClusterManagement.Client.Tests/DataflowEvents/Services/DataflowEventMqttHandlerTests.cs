@@ -295,6 +295,29 @@ public class DataflowEventMqttHandlerTests
         }
     }
 
+    public class ResetAndReconnect : DataflowEventMqttHandlerTests
+    {
+        // Every completed deployment resets the connection; two deployments completing together stop the reconnect
+        // loop right after it started.
+        [Fact]
+        public async Task Should_survive_resets_in_quick_succession()
+        {
+            // Arrange
+            await using var handler = CreateHandler();
+            _mqttClientProvider.CreateSystemMqttClientOptions().Returns(new MqttClientOptions());
+            await handler.Subscribe([_outputEvent], TestContext.Current.CancellationToken);
+
+            // Act
+            for (var i = 0; i < 2000; i++)
+                await handler.ResetAndReconnect(TestContext.Current.CancellationToken);
+
+            await handler.Disconnect();
+
+            // Assert
+            await _mqttClient.Received(2001).ConnectAsync(Arg.Any<MqttClientOptions>(), Arg.Any<CancellationToken>());
+        }
+    }
+
     public class HandleApplicationMessageReceived : DataflowEventMqttHandlerTests
     {
         [Fact]

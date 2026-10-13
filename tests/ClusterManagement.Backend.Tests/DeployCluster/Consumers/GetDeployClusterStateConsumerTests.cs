@@ -49,6 +49,28 @@ public class GetDeployClusterStateConsumerTests : TestWithDbContextSqlite<Cluste
     }
 
     [Fact]
+    public async Task Should_return_the_newest_deployment_state_when_earlier_versions_left_several()
+    {
+        // Arrange
+        await using var tester = new MassTransitTester(cfg => SetupConsumer(cfg));
+        var clusterId = Guid.NewGuid();
+        var newerTarget = new Version(1, 4, 0);
+
+        TestDbContext.DeployClusterState.AddRange(
+            new DeployClusterState { CorrelationId = Guid.NewGuid(), ClusterId = clusterId, CurrentState = 7, TargetVersion = new(1, 3, 0), Started = new DateTime(2026, 10, 1, 8, 0, 0, DateTimeKind.Utc) },
+            new DeployClusterState { CorrelationId = Guid.NewGuid(), ClusterId = clusterId, CurrentState = 5, TargetVersion = newerTarget, Started = new DateTime(2026, 10, 1, 8, 1, 0, DateTimeKind.Utc) });
+        await TestDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var response = await tester.TestRequest<GetDeployClusterStateResponse, GetDeployClusterStateRequest>(new GetDeployClusterStateRequest(clusterId));
+
+        // Assert
+        response.RequestError.Should().BeNull();
+        response.State.Should().NotBeNull();
+        response.State.TargetVersion.Should().Be(newerTarget);
+    }
+
+    [Fact]
     public async Task Request_with_unknown_cluster_id_should_return_empty_response()
     {
         // Arrange
