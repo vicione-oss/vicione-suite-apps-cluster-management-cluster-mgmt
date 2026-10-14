@@ -259,60 +259,6 @@ namespace ClusterManagement.Client.Connections.Localization {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Trusted client certificates path.
-        /// </summary>
-        internal static string TrustedClientCertificatesPath {
-            get {
-                return ResourceManager.GetString("TrustedClientCertificatesPath", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Place the certificates of the clients allowed to connect in this directory..
-        /// </summary>
-        internal static string TrustedClientCertificatesPathSubline {
-            get {
-                return ResourceManager.GetString("TrustedClientCertificatesPathSubline", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Trusted issuer certificates path.
-        /// </summary>
-        internal static string TrustedIssuerCertificatesPath {
-            get {
-                return ResourceManager.GetString("TrustedIssuerCertificatesPath", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Place the CA certificates that issued the trusted certificates in this directory..
-        /// </summary>
-        internal static string TrustedIssuerCertificatesPathSubline {
-            get {
-                return ResourceManager.GetString("TrustedIssuerCertificatesPathSubline", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Trusted server certificates path.
-        /// </summary>
-        internal static string TrustedServerCertificatesPath {
-            get {
-                return ResourceManager.GetString("TrustedServerCertificatesPath", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Place the certificates of the servers to connect to in this directory..
-        /// </summary>
-        internal static string TrustedServerCertificatesPathSubline {
-            get {
-                return ResourceManager.GetString("TrustedServerCertificatesPathSubline", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Use custom transport quotas.
         /// </summary>
         internal static string UseCustomTransportQuotas {
@@ -435,6 +381,294 @@ namespace ClusterManagement.Client.Connections.Localization {
         internal static string ValidationUsernameRequired {
             get {
                 return ResourceManager.GetString("ValidationUsernameRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Application certificate.
+        /// </summary>
+        internal static string ApplicationCertificates {
+            get {
+                return ResourceManager.GetString("ApplicationCertificates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Created when the DataPort starts without one. Delete it to have a new one created, or to upload your own..
+        /// </summary>
+        internal static string ApplicationCertificatesSubline {
+            get {
+                return ResourceManager.GetString("ApplicationCertificatesSubline", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Trusted client certificates.
+        /// </summary>
+        internal static string TrustedClientCertificates {
+            get {
+                return ResourceManager.GetString("TrustedClientCertificates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Certificates of the clients allowed to connect..
+        /// </summary>
+        internal static string TrustedClientCertificatesSubline {
+            get {
+                return ResourceManager.GetString("TrustedClientCertificatesSubline", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Trusted server certificates.
+        /// </summary>
+        internal static string TrustedServerCertificates {
+            get {
+                return ResourceManager.GetString("TrustedServerCertificates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Certificates of the servers to connect to..
+        /// </summary>
+        internal static string TrustedServerCertificatesSubline {
+            get {
+                return ResourceManager.GetString("TrustedServerCertificatesSubline", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Trusted issuer certificates.
+        /// </summary>
+        internal static string TrustedIssuerCertificates {
+            get {
+                return ResourceManager.GetString("TrustedIssuerCertificates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to CA certificates that issued the trusted certificates..
+        /// </summary>
+        internal static string TrustedIssuerCertificatesSubline {
+            get {
+                return ResourceManager.GetString("TrustedIssuerCertificatesSubline", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Uploaded and deleted certificates take effect immediately for new connections, also if the dialog is cancelled. A new application certificate is used from the DataPort's next start..
+        /// </summary>
+        internal static string CertificatesApplyImmediately {
+            get {
+                return ResourceManager.GetString("CertificatesApplyImmediately", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No certificates.
+        /// </summary>
+        internal static string NoCertificates {
+            get {
+                return ResourceManager.GetString("NoCertificates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Valid until {0}.
+        /// </summary>
+        internal static string CertificateValidUntil {
+            get {
+                return ResourceManager.GetString("CertificateValidUntil", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Expired on {0}.
+        /// </summary>
+        internal static string CertificateExpired {
+            get {
+                return ResourceManager.GetString("CertificateExpired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Upload certificate.
+        /// </summary>
+        internal static string UploadCertificate {
+            get {
+                return ResourceManager.GetString("UploadCertificate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete certificate.
+        /// </summary>
+        internal static string DeleteCertificate {
+            get {
+                return ResourceManager.GetString("DeleteCertificate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete {0}?.
+        /// </summary>
+        internal static string DeleteCertificateConfirmation {
+            get {
+                return ResourceManager.GetString("DeleteCertificateConfirmation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The file is no valid X.509 certificate..
+        /// </summary>
+        internal static string InvalidCertificate {
+            get {
+                return ResourceManager.GetString("InvalidCertificate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The certificates could not be loaded..
+        /// </summary>
+        internal static string CertificatesLoadFailed {
+            get {
+                return ResourceManager.GetString("CertificatesLoadFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The certificate could not be deleted..
+        /// </summary>
+        internal static string CertificateDeleteFailed {
+            get {
+                return ResourceManager.GetString("CertificateDeleteFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Password of the file, if protected.
+        /// </summary>
+        internal static string CertificateFilePassword {
+            get {
+                return ResourceManager.GetString("CertificateFilePassword", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Subject: {0}.
+        /// </summary>
+        internal static string CertificateSubject {
+            get {
+                return ResourceManager.GetString("CertificateSubject", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to URI: {0}.
+        /// </summary>
+        internal static string CertificateApplicationUri {
+            get {
+                return ResourceManager.GetString("CertificateApplicationUri", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The file contains no private key, which the application certificate needs..
+        /// </summary>
+        internal static string NoPrivateKey {
+            get {
+                return ResourceManager.GetString("NoPrivateKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The file is no certificate with a private key, or the password is wrong..
+        /// </summary>
+        internal static string InvalidApplicationCertificate {
+            get {
+                return ResourceManager.GetString("InvalidApplicationCertificate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The certificate's subject does not match the application certificate subject. The DataPort may create its own certificate instead..
+        /// </summary>
+        internal static string ApplicationCertificateSubjectMismatch {
+            get {
+                return ResourceManager.GetString("ApplicationCertificateSubjectMismatch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The certificate's URI does not match the application URI. The DataPort may reject the certificate..
+        /// </summary>
+        internal static string ApplicationCertificateUriMismatch {
+            get {
+                return ResourceManager.GetString("ApplicationCertificateUriMismatch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The file's CA certificates were not added, so only the certificates they issued in the file are trusted. Upload the file to Trusted issuer certificates as well, so the chain can be verified..
+        /// </summary>
+        internal static string IssuerCertificatesLeftOut {
+            get {
+                return ResourceManager.GetString("IssuerCertificatesLeftOut", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Network interface changed.
+        /// </summary>
+        internal static string NetworkInterfaceChanged {
+            get {
+                return ResourceManager.GetString("NetworkInterfaceChanged", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The application certificate may not be valid for the new network interface..
+        /// </summary>
+        internal static string NetworkInterfaceChangedQuestion {
+            get {
+                return ResourceManager.GetString("NetworkInterfaceChangedQuestion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete it to have a new one created when the DataPort starts, keep it, or undo the change..
+        /// </summary>
+        internal static string NetworkInterfaceChangedConsequence {
+            get {
+                return ResourceManager.GetString("NetworkInterfaceChangedConsequence", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Keep certificate.
+        /// </summary>
+        internal static string KeepCertificate {
+            get {
+                return ResourceManager.GetString("KeepCertificate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Undo change.
+        /// </summary>
+        internal static string UndoChange {
+            get {
+                return ResourceManager.GetString("UndoChange", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete the current application certificate to upload another one..
+        /// </summary>
+        internal static string UploadReplacesApplicationCertificate {
+            get {
+                return ResourceManager.GetString("UploadReplacesApplicationCertificate", resourceCulture);
             }
         }
     }

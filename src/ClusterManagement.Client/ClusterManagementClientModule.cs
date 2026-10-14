@@ -1,4 +1,5 @@
 using ClusterManagement.Client.Connections;
+using ClusterManagement.Client.Connections.Extensions;
 using ClusterManagement.Client.Connections.Localization;
 using ClusterManagement.Client.DataflowEvents.Extensions;
 using ClusterManagement.Client.Editor.ControlPanels.Packages;
@@ -42,7 +43,8 @@ public sealed class ClusterManagementClientModule : ClientModule
             .AddClusterManagement()
             .AddDataflowEvents()
             .AddEditor(ModuleId)
-            .AddIoddManagement(ModuleId);
+            .AddIoddManagement(ModuleId)
+            .AddOpcUaConnections(ModuleId);
     };
 
     public override Func<IServiceProvider, Task>? InitializeServices => services =>

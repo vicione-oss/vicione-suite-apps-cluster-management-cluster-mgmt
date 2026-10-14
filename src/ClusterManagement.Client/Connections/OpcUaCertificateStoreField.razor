@@ -1,0 +1,117 @@
+@using System.Globalization
+@using ClusterManagement.Client.Connections.Localization
+@using ClusterManagement.Internal.Contracts
+@using Sdk.Client.Components.Settings
+@using ViciOne.Ui.Blazor.Components.Button
+@using ViciOne.Ui.Blazor.Components.Button.Enums
+@using ViciOne.Ui.Localization.Resources
+@using ViciOne.Ui.MonochromeIcons.Components
+@using ViciOne.Ui.MonochromeIcons.Core.Enums
+
+<SettingsField Label="@Label" IsLoading="@_isLoading">
+    <div class="certificate-store">
+        @if (_certificates.Count == 0)
+        {
+            <div class="certificate certificate--empty">@OpcUaConnectionSettings.NoCertificates</div>
+        }
+        else
+        {
+            <ul class="certificates">
+                @foreach (var certificate in _certificates)
+                {
+                    <li class="certificate @(IsExpired(certificate) ? "certificate--expired" : null)" title="@certificate.Subject">
+                        <div class="certificate-text">
+                            <span class="certificate-name">@certificate.Name</span>
+                            @if (IsApplicationStore)
+                            {
+                                <span class="certificate-detail">@string.Format(CultureInfo.CurrentCulture, OpcUaConnectionSettings.CertificateSubject, certificate.Subject)</span>
+                                @if (certificate.ApplicationUri is { } uri)
+                                {
+                                    <span class="certificate-detail">@string.Format(CultureInfo.CurrentCulture, OpcUaConnectionSettings.CertificateApplicationUri, uri)</span>
+                                }
+                            }
+                            <span class="certificate-validity">@GetValidityText(certificate)</span>
+                        </div>
+
+                        @if (_pendingDelete == certificate)
+                        {
+                            <div class="certificate-delete-confirmation" role="alert">
+                                <span>@string.Format(CultureInfo.CurrentCulture, OpcUaConnectionSettings.DeleteCertificateConfirmation, certificate.Name)</span>
+                                <Button Text="@CommonVocabulary.Delete"
+                                        Size="@ButtonSize.Small"
+                                        Enabled="@(!_isBusy)"
+                                        OnClick="@DeleteConfirmedAsync" />
+                                <Button Text="@CommonVocabulary.Cancel"
+                                        CssClass="borderless"
+                                        Size="@ButtonSize.Small"
+                                        OnClick="@CancelDelete" />
+                            </div>
+                        }
+                        else
+                        {
+                            <Button IconCssClass="@_deleteIconCssClass"
+                                    CssClass="borderless"
+                                    Title="@OpcUaConnectionSettings.DeleteCertificate"
+                                    Size="@ButtonSize.Small"
+                                    Enabled="@(!_isBusy)"
+                                    OnClick="@(() => _pendingDelete = certificate)" />
+                        }
+                    </li>
+                }
+            </ul>
+        }
+
+        @if (_error is not null)
+        {
+            <span class="certificate-message certificate-message--error" role="alert">@_error</span>
+        }
+
+        @foreach (var warning in _warnings)
+        {
+            <span class="certificate-message certificate-message--warning" role="alert">
+                <MonochromeIcon Name="MonochromeIconName.WarningLight" Size="MonochromeIconSize.Small" />
+                <span>@warning</span>
+            </span>
+        }
+
+        @if (AllowUpload && IsUploadLocked)
+        {
+            @* the SDK's upload field cannot be disabled, so a disabled button of the same look stands in for it *@
+            <div class="upload-locked" title="@OpcUaConnectionSettings.UploadReplacesApplicationCertificate">
+                <Button Text="@OpcUaConnectionSettings.UploadCertificate"
+                        IconCssClass="@_uploadIconCssClasses"
+                        Size="@ButtonSize.Small"
+                        Enabled="false" />
+            </div>
+        }
+        else if (AllowUpload)
+        {
+            @if (IsApplicationStore)
+            {
+                <SettingsFieldTextBox @bind-Value="@_password"
+                                      Password="true"
+                                      Placeholder="@OpcUaConnectionSettings.CertificateFilePassword" />
+            }
+
+            <SettingsFieldFileUpload @ref="_fileUpload"
+                                     @bind-Filename="_uploadFilename"
+                                     Accept="@AcceptedFileExtensions"
+                                     ChooseButtonText="@OpcUaConnectionSettings.UploadCertificate"
+                                     ChooseButtonIconCssClasses="@_uploadIconCssClasses"
+                                     HideFilename="true"
+                                     OnUploadStart="@OnUploadStart"
+                                     OnUploadSuccess="@OnUploadSuccessAsync"
+                                     OnUploadError="@OnUploadErrorAsync"
+                                     OnUploadCancel="@OnUploadCancel"
+                                     Placeholder="@OpcUaConnectionSettings.UploadCertificate"
+                                     UploadTicketFactory="@UploadTicketFactory"
+                                     UploadTicket="@_uploadTicket"
+                                     UploadHandler="@StreamUploadHandler" />
+        }
+
+        @if (Subline is not null)
+        {
+            <span class="subline">@Subline</span>
+        }
+    </div>
+</SettingsField>

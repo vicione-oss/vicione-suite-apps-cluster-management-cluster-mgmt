@@ -60,7 +60,7 @@ public class DataPortTransformerBenchmarks
     {
         using var builder = new ClusterBuilder(_dependencyResolver);
         var dataPort = CreateDataPort(builder);
-        DataPortTransformer.TransformToFunctionBlock(dataPort, builder, _rulesetProvider);
+        DataPortTransformer.TransformToFunctionBlock(dataPort, builder, _rulesetProvider, "home");
     }
 
     [Benchmark]
@@ -68,7 +68,7 @@ public class DataPortTransformerBenchmarks
     {
         using var builder = new ClusterBuilder(_dependencyResolver);
         var dataPort = CreateDataPort(builder);
-        DataPortTransformer.TransformToFunctionBlock(dataPort, builder, _rulesetProvider);
+        DataPortTransformer.TransformToFunctionBlock(dataPort, builder, _rulesetProvider, "home");
     }
 
     private DataPort CreateDataPort(ClusterBuilder builder)

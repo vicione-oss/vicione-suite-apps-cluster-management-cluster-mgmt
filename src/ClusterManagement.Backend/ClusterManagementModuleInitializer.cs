@@ -1,3 +1,4 @@
+using ClusterManagement.Backend.Connections;
 using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.DeployCluster.Contracts;
 using ClusterManagement.Backend.DeployCluster.Persistence;
@@ -31,6 +32,7 @@ public sealed class ClusterManagementModuleInitializer : IModuleInitializer
 
         scopedServices.GetRequiredService<IPackageStore>().CleanupLeftovers(s_uploadedFileMaxAge);
         scopedServices.GetRequiredService<IoddUploadCleanup>().CleanupLeftovers(s_uploadedFileMaxAge);
+        scopedServices.GetRequiredService<IOpcUaCertificateStore>().CleanupUploadLeftovers(s_uploadedFileMaxAge);
     }
 
     public async Task Migrate(IServiceProvider scopedServices, CancellationToken stoppingToken = default)

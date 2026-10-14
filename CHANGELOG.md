@@ -12,6 +12,10 @@
   - `ClusterNodeDeploymentStepChanged` event, published by every instance when a step of its deployment starts, succeeds, fails or is refused by the engine host, with the engine host or engine it works on
   - `DeploymentState.CorrelationId`, the correlation id of the running deployment's events
   - OPC UA client and server connections can be created and edited in the suite's connection settings dialog: the backend registers both types with `IConnectionTypeRegistry`, and the client contributes localized settings components and validators via `IConnectionTypeUiRegistry`
+  - `OpcUaClientConnection.GetCertificateStoreProperties` / `OpcUaServerConnection.GetCertificateStoreProperties` extension members, the store type and store path properties of the OPC UA DataPorts keyed by property id, for generating a DataPort from a connection
+- OPC UA connection settings list, upload and delete the certificates of their certificate stores
+- OPC UA certificate stores stay valid when a backup is restored on an instance with another home directory
+- Deleting an OPC UA connection deletes its certificates
 - Cluster Manager collects the cycle reports of every engine host in the running version from module start, over one MQTT connection per broker, so its cycle time charts are filled when the page opens
 - Cluster Manager runtime panel: engine state per engine host, live cycle time chart per engine and per engine host chain read from the broker its instance deployed it with, and a journal link per engine host on the same instance for users allowed to view the log
 - Cluster Manager marks engine hosts whose chain takes longer than its cycle time
@@ -29,6 +33,7 @@
 
 ### Changed
 
+- New OPC UA server connections default to the security policy Basic256Sha256 - Sign & Encrypt
 - Cluster Manager shows the running cluster with its deployment time, topology counts and packages next to a version timeline
 - Cluster Manager opens the dataflow events from a card on the page instead of a toolbar button, and its deployment state tools (Get Saga, Reset Saga) sit in the cluster header
 - Dataflow events page matches the Cluster Manager, opens with a tree of dataflows and their containers that expands one level at a time, opens or closes a group with a click anywhere on its row, groups events by dataflow, function block, input or output, or value type, subscribes the outputs in view instead of offering subscribe buttons, writes Boolean inputs with a checkbox and other inputs with Enter or the send button, and copies a value with a click

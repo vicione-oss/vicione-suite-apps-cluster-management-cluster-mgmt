@@ -2,6 +2,7 @@
 @using ClusterManagement.Public.Connections.Contracts
 @using Sdk.Client.Components.Settings
 @using Sdk.Client.Connections
+@using ViciOne.Ui.Blazor.Components.Dialog.Components
 @using ViciOne.Ui.Blazor.Components.SpinEdit
 @using ViciOne.Ui.Localization.Resources
 @using ViciOne.Ui.MonochromeIcons.Components
@@ -31,7 +32,7 @@
 
 <SettingsField Label="@OpcUaConnectionSettings.NetworkInterface">
     <SettingsFieldComboBox @bind-Value="@Connection.NetworkInterface"
-                           @bind-Value:after="NotifyChanged"
+                           @bind-Value:after="OnNetworkInterfaceChangedAsync"
                            Items="@_networkInterfaces"
                            TextSelector="@(item => item.Text)"
                            ValueSelector="@(item => item.Value)" />
@@ -42,36 +43,6 @@
                           @bind-Value:after="NotifyChanged"
                           Placeholder="@TechnicalTerms.Endpoint" />
 </SettingsField>
-
-<SettingsField Label="@OpcUaConnectionSettings.SecurityPolicy">
-    <SettingsFieldComboBox @bind-Value="@Connection.SecurityPolicy"
-                           @bind-Value:after="NotifyChanged"
-                           Items="@_securityPolicies"
-                           TextSelector="@(item => item.Text)"
-                           ValueSelector="@(item => item.Value)" />
-</SettingsField>
-
-@if (!RequiresTrustedClientCertificates)
-{
-    <div class="security-policy-warning" role="alert">
-        <MonochromeIcon Name="MonochromeIconName.WarningLight" Size="MonochromeIconSize.SmallMedium" />
-        <span>@OpcUaConnectionSettings.SecurityPolicyNoneWarning</span>
-    </div>
-}
-else
-{
-    <SettingsField Label="@OpcUaConnectionSettings.TrustedClientCertificatesPath">
-        <SettingsFieldTextBox Value="@Connection.TrustedCertificatesPath"
-                              ReadOnly="true"
-                              Subline="@OpcUaConnectionSettings.TrustedClientCertificatesPathSubline" />
-    </SettingsField>
-
-    <SettingsField Label="@OpcUaConnectionSettings.TrustedIssuerCertificatesPath">
-        <SettingsFieldTextBox Value="@Connection.TrustedIssuerCertificatesPath"
-                              ReadOnly="true"
-                              Subline="@OpcUaConnectionSettings.TrustedIssuerCertificatesPathSubline" />
-    </SettingsField>
-}
 
 <SettingsField Label="@OpcUaConnectionSettings.UseCustomTransportQuotas">
     <SettingsFieldSwitch @bind-Value="@Connection.UseCustomTransportQuotas"
@@ -123,8 +94,27 @@ else
     </SettingsField>
 }
 
-@* ---- Certificate ---- *@
+@* ---- Security ---- *@
 <SettingsFieldSeparator />
+
+@* The combo box has no subline of its own, so the warning sits below it like the subline of a text box. *@
+<SettingsField Label="@OpcUaConnectionSettings.SecurityPolicy">
+    <div class="security-policy">
+        <SettingsFieldComboBox @bind-Value="@Connection.SecurityPolicy"
+                               @bind-Value:after="NotifyChanged"
+                               Items="@_securityPolicies"
+                               TextSelector="@(item => item.Text)"
+                               ValueSelector="@(item => item.Value)" />
+
+        @if (!RequiresTrustedClientCertificates)
+        {
+            <span class="security-policy-warning" role="alert">
+                <MonochromeIcon Name="MonochromeIconName.WarningLight" Size="MonochromeIconSize.Small" />
+                <span>@OpcUaConnectionSettings.SecurityPolicyNoneWarning</span>
+            </span>
+        }
+    </div>
+</SettingsField>
 
 <SettingsField Label="@OpcUaConnectionSettings.ApplicationCertificateSubject">
     <SettingsFieldTextBox @bind-Value="@Connection.ApplicationCertificateSubject"
@@ -136,3 +126,46 @@ else
     <SettingsFieldSwitch @bind-Value="@Connection.AutoAcceptUntrustedCertificates"
                          @bind-Value:after="NotifyChanged" />
 </SettingsField>
+
+<SettingsInformation>@OpcUaConnectionSettings.CertificatesApplyImmediately</SettingsInformation>
+
+<OpcUaCertificateStoreField @ref="_applicationCertificateStore"
+                            Label="@OpcUaConnectionSettings.ApplicationCertificates"
+                            Subline="@OpcUaConnectionSettings.ApplicationCertificatesSubline"
+                            StorePath="@Connection.ApplicationCertificatesPath"
+                            AllowUpload="true"
+                            IsApplicationStore="true"
+                            ApplicationCertificateSubject="@Connection.ApplicationCertificateSubject"
+                            ApplicationUri="@Connection.ApplicationUri" />
+
+@* A secured server checks client certificates against its trusted stores, without a security policy they are unused. *@
+@if (RequiresTrustedClientCertificates)
+{
+    <OpcUaCertificateStoreField Label="@OpcUaConnectionSettings.TrustedClientCertificates"
+                                Subline="@OpcUaConnectionSettings.TrustedClientCertificatesSubline"
+                                StorePath="@Connection.TrustedCertificatesPath"
+                                AllowUpload="true" />
+
+    <OpcUaCertificateStoreField Label="@OpcUaConnectionSettings.TrustedIssuerCertificates"
+                                Subline="@OpcUaConnectionSettings.TrustedIssuerCertificatesSubline"
+                                StorePath="@Connection.TrustedIssuerCertificatesPath"
+                                AllowUpload="true" />
+}
+
+@* An application certificate the OPC UA stack created names the host's addresses, so it may not fit another interface. *@
+<Dialog @ref="@_networkInterfaceChangedDialog"
+        HeaderText="@OpcUaConnectionSettings.NetworkInterfaceChanged"
+        Width="480"
+        Height="220">
+    <Body>
+        <DialogBodyTextLayout>
+            <p class="dialog-question">@OpcUaConnectionSettings.NetworkInterfaceChangedQuestion</p>
+            <p class="dialog-consequence">@OpcUaConnectionSettings.NetworkInterfaceChangedConsequence</p>
+        </DialogBodyTextLayout>
+    </Body>
+    <Footer>
+        <DialogFooterButton Text="@OpcUaConnectionSettings.DeleteCertificate" OnClick="@DeleteApplicationCertificateAsync" />
+        <DialogFooterButton Text="@OpcUaConnectionSettings.KeepCertificate" OnClick="@KeepApplicationCertificateAsync" />
+        <DialogFooterButton Text="@OpcUaConnectionSettings.UndoChange" OnClick="@UndoNetworkInterfaceChangeAsync" />
+    </Footer>
+</Dialog>

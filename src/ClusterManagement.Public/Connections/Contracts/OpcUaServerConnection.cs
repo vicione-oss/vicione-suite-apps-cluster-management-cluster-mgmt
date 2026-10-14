@@ -91,9 +91,9 @@ public sealed record OpcUaServerConnection : IConnection
 
     /// <summary>
     /// Gets or sets the security policy applied to connections accepted by the server.
-    /// Defaults to <see cref="OpcUaSecurityPolicy.None"/>.
+    /// Defaults to <see cref="OpcUaSecurityPolicy.Basic256Sha256SignAndEncrypt"/>, which practically every OPC UA client supports.
     /// </summary>
-    public OpcUaSecurityPolicy SecurityPolicy { get; set; } = OpcUaSecurityPolicy.None;
+    public OpcUaSecurityPolicy SecurityPolicy { get; set; } = OpcUaSecurityPolicy.Basic256Sha256SignAndEncrypt;
 
     /// <summary>
     /// Gets or sets the minimum publishing interval, in milliseconds, the server accepts from a client
@@ -146,6 +146,7 @@ public sealed record OpcUaServerConnection : IConnection
     /// </summary>
     /// <remarks>
     /// Not editable in the connection settings dialog, a new connection gets a directory of its own below the workspace home.
+    /// The path is relative to the workspace home, e.g. <c>ua-certs/&lt;id&gt;/trusted</c>, and made absolute when the cluster is deployed.
     /// Maps to the DataPort's <c>ApplicationCertificatesStorePath</c>, with <c>ApplicationCertificatesStoreType</c> set to <c>Directory</c>.
     /// </remarks>
     public string ApplicationCertificatesPath { get; set; } = string.Empty;
@@ -155,6 +156,7 @@ public sealed record OpcUaServerConnection : IConnection
     /// </summary>
     /// <remarks>
     /// Not editable in the connection settings dialog, a new connection gets a directory of its own below the workspace home.
+    /// The path is relative to the workspace home, e.g. <c>ua-certs/&lt;id&gt;/trusted</c>, and made absolute when the cluster is deployed.
     /// Maps to the DataPort's <c>TrustedCertificatesStorePath</c>. When set, <c>TrustedCertificatesStoreType</c> is
     /// <c>Directory</c>; when <see langword="null"/> or empty, it is <c>None</c>.
     /// </remarks>
@@ -165,6 +167,7 @@ public sealed record OpcUaServerConnection : IConnection
     /// </summary>
     /// <remarks>
     /// Not editable in the connection settings dialog, a new connection gets a directory of its own below the workspace home.
+    /// The path is relative to the workspace home, e.g. <c>ua-certs/&lt;id&gt;/trusted</c>, and made absolute when the cluster is deployed.
     /// Maps to the DataPort's <c>TrustedIssuerCertificatesStorePath</c>. When set, <c>TrustedIssuerCertificatesStoreType</c>
     /// is <c>Directory</c>; when <see langword="null"/> or empty, it is <c>None</c>.
     /// </remarks>

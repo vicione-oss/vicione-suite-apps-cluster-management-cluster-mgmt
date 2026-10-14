@@ -27,6 +27,8 @@ namespace ClusterManagement.Backend.Tests.DeployCluster;
 
 public class DataPortTransformerFacts
 {
+    private const string HomeDirectory = "home";
+
     public sealed class TransformToFunctionBlocks : IDisposable
     {
         private readonly ClusterBuilder _builder;
@@ -60,7 +62,7 @@ public class DataPortTransformerFacts
         {
             _builder.Editors.DataPort.UnassignEngine(_dataPort);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlocks(_builder, _engineHosts, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlocks(_builder, _engineHosts, _rulesetProvider, HomeDirectory);
 
             transformation.Should().BeEmpty();
         }
@@ -68,7 +70,7 @@ public class DataPortTransformerFacts
         [Fact]
         public void Assigns_engine_of_DataPort_to_generated_FunctionBlock()
         {
-            var transformation = DataPortTransformer.TransformToFunctionBlocks(_builder, _engineHosts, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlocks(_builder, _engineHosts, _rulesetProvider, HomeDirectory);
 
             transformation.Should().ContainKey(_engine).WhoseValue.Should().ContainSingle().Which.FunctionBlock.Engine.Should().BeSameAs(_engine);
         }
@@ -127,8 +129,8 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPort.AssignEngine(engine1, dataPort1);
             _builder.Editors.DataPort.AssignEngine(engine2, dataPort2);
 
-            var transformation1 = DataPortTransformer.TransformToFunctionBlock(dataPort1, _builder, _rulesetProvider);
-            var transformation2 = DataPortTransformer.TransformToFunctionBlock(dataPort2, _builder, _rulesetProvider);
+            var transformation1 = DataPortTransformer.TransformToFunctionBlock(dataPort1, _builder, _rulesetProvider, HomeDirectory);
+            var transformation2 = DataPortTransformer.TransformToFunctionBlock(dataPort2, _builder, _rulesetProvider, HomeDirectory);
 
             transformation1.FunctionBlock.Container.Should().BeSameAs(dataPort1.Dataflow.Root);
             transformation2.FunctionBlock.Container.Should().BeSameAs(dataPort2.Dataflow.Root);
@@ -140,7 +142,7 @@ public class DataPortTransformerFacts
             var dataPort = CreateDataPort();
             _builder.Editors.DataPort.SetDescription(dataPort, "exchange data with external system");
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.Description.Should().Be(dataPort.Description);
         }
@@ -154,7 +156,7 @@ public class DataPortTransformerFacts
             dataPort.Properties.Add(new() { DesignId = "UInt16", Value = (ushort)1884, });
             dataPort.Properties.Add(new() { DesignId = "Enum", Value = MqttConnectionType.TCP, });
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.CommunicationId.Should().Be("MqttDataPort");
             transformation.CommunicationProperties.Should().BeEquivalentTo(new CommunicationProperty[]
@@ -166,6 +168,23 @@ public class DataPortTransformerFacts
                 new("Name") { Value = TypedObject.CreateMandatory("dataPort"), },
                 new("DesignId") { Value = TypedObject.CreateMandatory("MqttClientInstance"), },
             });
+        }
+
+        [Fact]
+        public void Resolves_the_certificate_store_paths_of_an_OPC_UA_DataPort_against_the_home_directory()
+        {
+            // the test dependencies only know the MQTT DataPort, the transformation does not depend on the DataPort's design
+            var dataPort = CreateDataPort();
+            dataPort.DesignId = "OpcUaClientInstance";
+            dataPort.Properties.Add(new() { DesignId = "TrustedCertificatesStorePath", Value = "ua-certs/0123/trusted", });
+
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
+
+            transformation.CommunicationProperties.Should().ContainEquivalentOf(
+                new CommunicationProperty("TrustedCertificatesStorePath")
+                {
+                    Value = TypedObject.CreateMandatory(Path.GetFullPath(Path.Combine(HomeDirectory, "ua-certs", "0123", "trusted"))),
+                });
         }
 
         [Fact]
@@ -181,7 +200,7 @@ public class DataPortTransformerFacts
                 """));
             var dataPort = CreateDataPort();
 
-            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, rulesetProvider));
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, rulesetProvider, HomeDirectory));
 
             act.Should().Throw<RulesetValidationFailedException>()
                 .Which.Messages.Should().Contain(m => m.Contains("Folder", StringComparison.Ordinal));
@@ -192,7 +211,7 @@ public class DataPortTransformerFacts
         {
             var dataPort = CreateDataPort();
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             ShouldBeEmpty(transformation);
         }
@@ -206,7 +225,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _sourceConnector);
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _destinationConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             ShouldBeEmpty(transformation);
         }
@@ -218,7 +237,7 @@ public class DataPortTransformerFacts
             var leaf = AddDataPortTreeNode(dataPort, "Leaf", transferMode: (DataPortTransferMode)(-28), valueType: _valueType);
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _sourceConnector);
 
-            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory));
 
             act.Should().Throw<NotSupportedException>().WithMessage($"*{leaf.Id}*{leaf.Name}*unsupported*transfer mode*-28*");
         }
@@ -233,7 +252,7 @@ public class DataPortTransformerFacts
             // deployment in this state through an import or an older editor.
             leaf.ValueType = null;
 
-            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory));
 
             act.Should().Throw<InvalidOperationException>().WithMessage($"*{leaf.Id}*{leaf.Name}*no value data type*");
         }
@@ -245,7 +264,7 @@ public class DataPortTransformerFacts
             var group = AddDataPortTreeNode(dataPort, "Group");
             AddDataPortTreeNode(dataPort, "Leaf", transferMode: DataPortTransferMode.OnChange, parent: group);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             ShouldBeEmpty(transformation);
         }
@@ -260,7 +279,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.Invoking(x => x.AssignConnector(leaf, _sourceConnector))
                 .Should().Throw<ArgumentException>().WithParameterName("connector").WithMessage("*can't*assign*connector*DataPort*direction*in*");
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             ShouldBeEmpty(transformation);
         }
@@ -274,7 +293,7 @@ public class DataPortTransformerFacts
                 transferPooling: new AveragePooling(), parent: group, valueType: _valueType);
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _sourceConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             var input = transformation.FunctionBlock.ProcessDataInputs.Should().ContainSingle().Subject;
             ShouldRepresentNode(input, leaf, DataPortDirection.Out);
@@ -315,7 +334,7 @@ public class DataPortTransformerFacts
                 transferPooling: new AveragePooling(), parent: group, valueType: _valueType);
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _sourceConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             var input = transformation.FunctionBlock.ProcessDataInputs.Should().ContainSingle().Subject;
             ShouldRepresentNode(input, leaf, DataPortDirection.Out);
@@ -356,7 +375,7 @@ public class DataPortTransformerFacts
                 new AveragePooling(), group, valueType: _valueType);
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _destinationConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             var input = transformation.FunctionBlock.ProcessDataInputs.Should().ContainSingle().Subject;
             ShouldRepresentNode(input, leaf, DataPortDirection.In);
@@ -397,7 +416,7 @@ public class DataPortTransformerFacts
                 new AveragePooling(), group, valueType: _valueType);
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _destinationConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             var input = transformation.FunctionBlock.ProcessDataInputs.Should().ContainSingle().Subject;
             ShouldRepresentNode(input, leaf, DataPortDirection.In);
@@ -439,7 +458,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.Invoking(x => x.AssignConnector(leaf, _destinationConnector))
                 .Should().Throw<ArgumentException>().WithParameterName("connector").WithMessage("*can't*assign*connector*DataPort*direction*out*");
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             ShouldBeEmpty(transformation);
         }
@@ -454,7 +473,7 @@ public class DataPortTransformerFacts
                 .Should().Throw<ArgumentException>().WithParameterName("connector").WithMessage("*can't*assign*connector*DataPort*direction*in*");
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _destinationConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             var input = transformation.FunctionBlock.ProcessDataInputs.Should().ContainSingle().Subject;
             ShouldRepresentNode(input, leaf, DataPortDirection.In);
@@ -495,7 +514,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _sourceConnector);
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _destinationConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
             var inputOut = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
@@ -553,7 +572,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.Invoking(x => x.AssignConnector(leaf, _destinationConnector))
                 .Should().Throw<ArgumentException>().WithParameterName("connector").WithMessage("*can't*assign*connector*DataPort*direction*out*");
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             var input = transformation.FunctionBlock.ProcessDataInputs.Should().ContainSingle().Subject;
             ShouldRepresentNode(input, leaf, DataPortDirection.Out);
@@ -594,7 +613,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf1, _sourceConnector);
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf2, _destinationConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
             var input1 = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
@@ -654,7 +673,7 @@ public class DataPortTransformerFacts
             var valueColumn = AddDataPortTreeNode(dataPort, "Value", parent: table, valueType: _valueType);
             _builder.Editors.DataPortTreeNode.AssignConnector(valueColumn, _sourceConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             var valueInput = transformation.FunctionBlock.ProcessDataInputs.Should().ContainSingle().Subject;
             ShouldRepresentNode(valueInput, valueColumn, DataPortDirection.Out);
@@ -703,7 +722,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.Invoking(x => x.AssignConnector(subLeaf, _sourceConnector))
                 .Should().Throw<ArgumentException>().WithParameterName("connector").WithMessage("*can't*assign*connector*DataPort*direction*in*");
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             ShouldBeEmpty(transformation);
         }
@@ -720,7 +739,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _sourceConnector);
             _builder.Editors.DataPortTreeNode.AssignConnector(subLeaf, _sourceConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
             var leafInput = transformation.FunctionBlock.ProcessDataInputs.First();
@@ -780,7 +799,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _sourceConnector);
             _builder.Editors.DataPortTreeNode.AssignConnector(subLeaf, _sourceConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
             var leafInput = transformation.FunctionBlock.ProcessDataInputs.First();
@@ -839,7 +858,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _destinationConnector);
             _builder.Editors.DataPortTreeNode.AssignConnector(subLeaf, _destinationConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
             var leafInput = transformation.FunctionBlock.ProcessDataInputs.First();
@@ -898,7 +917,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _destinationConnector);
             _builder.Editors.DataPortTreeNode.AssignConnector(subLeaf, _destinationConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
             var leafInput = transformation.FunctionBlock.ProcessDataInputs.First();
@@ -959,7 +978,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.Invoking(x => x.AssignConnector(subLeaf, _destinationConnector))
                 .Should().Throw<ArgumentException>().WithParameterName("connector").WithMessage("*can't*assign*connector*DataPort*direction*out*");
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             ShouldBeEmpty(transformation);
         }
@@ -979,7 +998,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _destinationConnector);
             _builder.Editors.DataPortTreeNode.AssignConnector(subLeaf, _destinationConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
             var leafInput = transformation.FunctionBlock.ProcessDataInputs.First();
@@ -1040,7 +1059,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _destinationConnector);
             _builder.Editors.DataPortTreeNode.AssignConnector(subLeaf, _destinationConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(4);
             var leafInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
@@ -1131,7 +1150,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.Invoking(x => x.AssignConnector(subLeaf, _destinationConnector))
                 .Should().Throw<ArgumentException>().WithParameterName("connector").WithMessage("*can't*assign*connector*DataPort*direction*out*");
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
             var leafInput = transformation.FunctionBlock.ProcessDataInputs.First();
@@ -1191,7 +1210,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.Invoking(x => x.AssignConnector(leaf, _sourceConnector))
                 .Should().Throw<ArgumentException>().WithParameterName("connector").WithMessage("*can't*assign*connector*DataPort*direction*in*");
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             ShouldBeEmpty(transformation);
         }
@@ -1206,7 +1225,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.AssignConnector(group, _sourceConnector);
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _sourceConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
             var groupInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
@@ -1270,7 +1289,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.AssignConnector(group, _sourceConnector);
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _sourceConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
             var groupInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
@@ -1335,7 +1354,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.AssignConnector(group, _destinationConnector);
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _destinationConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(3);
             var groupInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
@@ -1404,7 +1423,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.AssignConnector(group, _destinationConnector);
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _destinationConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(3);
             var groupInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
@@ -1475,7 +1494,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.Invoking(x => x.AssignConnector(leaf, _destinationConnector))
                 .Should().Throw<ArgumentException>().WithParameterName("connector").WithMessage("*can't*assign*connector*DataPort*direction*out*");
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             ShouldBeEmpty(transformation);
         }
@@ -1494,7 +1513,7 @@ public class DataPortTransformerFacts
                 .Should().Throw<ArgumentException>().WithParameterName("connector").WithMessage("*can't*assign*connector*DataPort*direction*in*");
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _destinationConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(3);
             var groupInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
@@ -1564,7 +1583,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _sourceConnector);
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _destinationConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(5);
             var groupInputOut = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
@@ -1670,7 +1689,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.Invoking(x => x.AssignConnector(leaf, _destinationConnector))
                 .Should().Throw<ArgumentException>().WithParameterName("connector").WithMessage("*can't*assign*connector*DataPort*direction*out*");
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
             var groupInput = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
@@ -1757,7 +1776,7 @@ public class DataPortTransformerFacts
             builder.Editors.DataPortTreeNode.AssignConnector(leaf, destinationConnector1);
             builder.Editors.DataPortTreeNode.AssignConnector(leaf, destinationConnector2);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, builder, _rulesetProvider, HomeDirectory);
 
             transformation.AdditionalConnectorDesigns.Should().AllSatisfy(x => x.ValueType.Should().Be<double>());
         }
@@ -1771,7 +1790,7 @@ public class DataPortTransformerFacts
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _sourceConnector);
             _builder.Editors.DataPortTreeNode.AssignConnector(leaf, _destinationConnector);
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(2);
             var input1 = transformation.FunctionBlock.ProcessDataInputs.ElementAt(0);
@@ -2037,7 +2056,7 @@ public class DataPortTransformerFacts
             WriteFromDataflow(timestamp, "timestamp");
             WriteFromDataflow(batchId, "batchId");
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.FunctionBlock.ProcessDataInputs.Should().HaveCount(3);
             transformation.FunctionBlock.ProcessDataOutputs.Should().HaveCount(3);
@@ -2062,7 +2081,7 @@ public class DataPortTransformerFacts
             WriteFromDataflow(timestamp, "timestamp");
             WriteFromDataflow(batchId, "batchId");
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             var pressureNode = transformation.OutgoingNodes.Single(n => n.Id == pressure.Id);
             var transferModes = GetTransferModes(transformation);
@@ -2078,7 +2097,7 @@ public class DataPortTransformerFacts
             ReadIntoDataflow(pressure, "pressure");
             ReadIntoDataflow(batchId, "batchId");
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             var pressureNode = transformation.IncomingNodes.Single(n => n.Id == pressure.Id);
             var batchIdNode = transformation.IncomingNodes.Single(n => n.Id == batchId.Id);
@@ -2097,7 +2116,7 @@ public class DataPortTransformerFacts
             WriteFromDataflow(image, "image");
             ReadIntoDataflow(batchId, "batchId");
 
-            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory));
 
             act.Should().Throw<InvalidOperationException>().WithMessage("*batchId*read*DataPointBinary*image*Outbound*");
         }
@@ -2109,7 +2128,7 @@ public class DataPortTransformerFacts
             var image = AddChild(AddRootFolder(dataPort), DataPointBinaryDesignId, "image", typeof(byte[]), DataPortTransferMode.OnChange);
             ReadIntoDataflow(image, "image");
 
-            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory));
 
             act.Should().Throw<InvalidOperationException>().WithMessage("*image*read*DataPointBinary*Outbound*");
         }
@@ -2122,7 +2141,7 @@ public class DataPortTransformerFacts
             var batchId = AddChild(outboundFolder, DataPointStringDesignId, "batchId", typeof(string), DataPortTransferMode.OnChange);
             ReadIntoDataflow(batchId, "batchId");
 
-            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory));
 
             act.Should().Throw<InvalidOperationException>().WithMessage("*batchId*read*DataPointString*Outbound*");
         }
@@ -2135,7 +2154,7 @@ public class DataPortTransformerFacts
             var batchId = AddChild(outboundFolder, DataPointStringDesignId, "batchId", typeof(string), DataPortTransferMode.OnChange);
             WriteFromDataflow(batchId, "batchId");
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.OutgoingLinks.Should().ContainSingle();
         }
@@ -2149,7 +2168,7 @@ public class DataPortTransformerFacts
             ReadIntoDataflow(pressure, "pressure");
             ReadIntoDataflow(engineCycle, "cycle");
 
-            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory));
 
             act.Should().Throw<InvalidOperationException>().WithMessage("*cycle*read*EngineCycle*Outbound*");
         }
@@ -2163,7 +2182,7 @@ public class DataPortTransformerFacts
             WriteFromDataflow(pressure, "pressure");
             WriteFromDataflow(engineCycle, "cycle");
 
-            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory));
 
             act.Should().Throw<InvalidOperationException>().WithMessage("*cycle*written*EngineCycle*may not be linked outbound*DataPointFloat*");
         }
@@ -2176,7 +2195,7 @@ public class DataPortTransformerFacts
             var pressure = AddChild(AddRootFolder(dataPort), DataPointFloatDesignId, "pressure", typeof(double), DataPortTransferMode.OnChange);
             WriteFromDataflow(pressure, "pressure");
 
-            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory));
 
             act.Should().Throw<InvalidOperationException>().WithMessage("*pressure*written*MqttClientInstance*DataPort*Inbound*");
         }
@@ -2190,7 +2209,7 @@ public class DataPortTransformerFacts
             WriteFromDataflow(image, "image");
             WriteFromDataflow(batchId, "batchId");
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.OutgoingLinks.Should().HaveCount(2);
         }
@@ -2209,7 +2228,7 @@ public class DataPortTransformerFacts
             WriteFromDataflow(pressure, "pressure");
             WriteFromDataflow(validity, "valid");
 
-            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory));
 
             act.Should().Throw<InvalidOperationException>().WithMessage("*valid*written*Validity*may not be linked outbound*DataPointFloat*");
         }
@@ -2228,7 +2247,7 @@ public class DataPortTransformerFacts
             ReadIntoDataflow(pressure, "pressure");
             ReadIntoDataflow(timestamp, "timestamp");
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.IncomingLinks.Should().HaveCount(2);
         }
@@ -2242,7 +2261,7 @@ public class DataPortTransformerFacts
             WriteFromDataflow(pressure, "pressure");
             WriteFromDataflow(timestamp, "timestamp");
 
-            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider));
+            var act = FluentActions.Invoking(() => DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory));
 
             act.Should().Throw<InvalidOperationException>().WithMessage("*Timestamp*written*may not be linked outbound*DataPointFloat*");
         }
@@ -2256,7 +2275,7 @@ public class DataPortTransformerFacts
             WriteFromDataflow(pressure, "pressure");
             WriteFromDataflow(batchId, "batchId");
 
-            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider);
+            var transformation = DataPortTransformer.TransformToFunctionBlock(dataPort, _builder, _rulesetProvider, HomeDirectory);
 
             transformation.OutgoingLinks.Should().HaveCount(2);
         }

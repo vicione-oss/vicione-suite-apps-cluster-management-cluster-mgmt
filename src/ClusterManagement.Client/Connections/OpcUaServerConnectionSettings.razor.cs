@@ -6,6 +6,7 @@ using Sdk.Client.Connections;
 using Sdk.Client.Infrastructure;
 using Sdk.SystemConfiguration.Requests;
 using ViciOne.Ui.Blazor.Components.ComboBox;
+using ViciOne.Ui.Blazor.Components.Dialog.Components;
 
 namespace ClusterManagement.Client.Connections;
 
@@ -20,6 +21,11 @@ public sealed partial class OpcUaServerConnectionSettings : ConnectionSettingsCo
 
     private List<ComboBoxItem<string, string>> _networkInterfaces = [];
 
+    private OpcUaCertificateStoreField? _applicationCertificateStore;
+    private Dialog? _networkInterfaceChangedDialog;
+    // the interface the application certificate was last accepted for, which an undo goes back to
+    private string _acceptedNetworkInterface = string.Empty;
+
     [Inject] private IUiMediator Mediator { get; set; } = default!;
 
     [Inject] private ILogger<OpcUaServerConnectionSettings> Logger { get; set; } = default!;
@@ -30,6 +36,8 @@ public sealed partial class OpcUaServerConnectionSettings : ConnectionSettingsCo
     /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
+        _acceptedNetworkInterface = Connection.NetworkInterface;
+
         var names = await GetEnabledNetworkInterfaceNames();
 
         // Keep a previously configured interface selectable even if the host no longer reports it,
@@ -44,6 +52,43 @@ public sealed partial class OpcUaServerConnectionSettings : ConnectionSettingsCo
             new() { Value = OpcUaServerConnection.LocalNetworkInterface, Text = OpcUaConnectionSettings.NetworkInterfaceLocal },
             .. OpcUaConnectionComboBoxItems.NetworkInterfaces(names),
         ];
+    }
+
+    private async Task OnNetworkInterfaceChangedAsync()
+    {
+        await NotifyChanged();
+
+        if (Connection.NetworkInterface == _acceptedNetworkInterface)
+            return;
+
+        // without an application certificate the DataPort creates one for the new interface anyway
+        if (_applicationCertificateStore?.HasCertificates != true)
+        {
+            _acceptedNetworkInterface = Connection.NetworkInterface;
+            return;
+        }
+
+        await _networkInterfaceChangedDialog!.ShowAsync();
+    }
+
+    private async Task DeleteApplicationCertificateAsync()
+    {
+        await _networkInterfaceChangedDialog!.CloseAsync();
+        await _applicationCertificateStore!.DeleteAllAsync();
+        _acceptedNetworkInterface = Connection.NetworkInterface;
+    }
+
+    private async Task KeepApplicationCertificateAsync()
+    {
+        await _networkInterfaceChangedDialog!.CloseAsync();
+        _acceptedNetworkInterface = Connection.NetworkInterface;
+    }
+
+    private async Task UndoNetworkInterfaceChangeAsync()
+    {
+        await _networkInterfaceChangedDialog!.CloseAsync();
+        Connection.NetworkInterface = _acceptedNetworkInterface;
+        await NotifyChanged();
     }
 
     private async Task<List<string>> GetEnabledNetworkInterfaceNames()

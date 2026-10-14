@@ -1,3 +1,4 @@
+using ClusterManagement.Backend.Connections;
 using ClusterManagement.Backend.Engines;
 using ClusterManagement.Internal.Designs;
 using ClusterManagement.Public.Extensions;
@@ -22,6 +23,7 @@ internal sealed class DataPortTransformer
     private readonly ClusterBuilder _builder;
     private readonly TreeBuilder _treeBuilder;
     private readonly GuidFactory _guidFactory;
+    private readonly string _homeDirectory;
     private readonly Dictionary<GeneratedConnectorKey, ConnectorInput> _generatedInputs = [];
     private readonly Dictionary<GeneratedConnectorKey, ConnectorOutput> _generatedOutputs = [];
     private readonly List<NodeLink> _nodeLinks = [];
@@ -38,16 +40,18 @@ internal sealed class DataPortTransformer
     internal static Guid OutputConfigurationsSettingId => new("a6b043fb-f21e-48b1-be5a-595adc18dc08");
     internal static Guid TransferModesSettingId => new("f73cc185-43ab-4b77-817a-eda924625b5b");
 
-    private DataPortTransformer(DataPort dataPort, ClusterBuilder builder, ISuiteRulesetProvider rulesetProvider)
+    private DataPortTransformer(DataPort dataPort, ClusterBuilder builder, ISuiteRulesetProvider rulesetProvider, string homeDirectory)
     {
         _dataPort = dataPort;
         _builder = builder;
         _treeBuilder = new TreeBuilder(rulesetProvider.GetRuleset(dataPort.RulesetId));
         _guidFactory = new(dataPort.Id);
+        _homeDirectory = homeDirectory;
     }
 
+    // homeDirectory is the absolute workspace home, which relative paths cluster management owns are resolved against
     internal static IDictionary<Engine, List<DataPortTransformation>> TransformToFunctionBlocks(
-        ClusterBuilder builder, IReadOnlyCollection<EngineHost> engineHosts, ISuiteRulesetProvider rulesetProvider)
+        ClusterBuilder builder, IReadOnlyCollection<EngineHost> engineHosts, ISuiteRulesetProvider rulesetProvider, string homeDirectory)
     {
         Dictionary<Engine, List<DataPortTransformation>> enginesDataPorts = [];
         foreach (var engineHost in engineHosts)
@@ -59,7 +63,7 @@ internal sealed class DataPortTransformer
 
                 foreach (var dataPort in dataPorts)
                 {
-                    var transformation = TransformToFunctionBlock(dataPort, builder, rulesetProvider);
+                    var transformation = TransformToFunctionBlock(dataPort, builder, rulesetProvider, homeDirectory);
                     builder.Editors.FunctionBlock.AssignEngine(engine, transformation.FunctionBlock);
                     if (!enginesDataPorts.TryGetValue(engine, out var engineDataPorts))
                         enginesDataPorts.Add(engine, engineDataPorts = []);
@@ -70,8 +74,8 @@ internal sealed class DataPortTransformer
         return enginesDataPorts;
     }
 
-    internal static DataPortTransformation TransformToFunctionBlock(DataPort dataPort, ClusterBuilder builder, ISuiteRulesetProvider rulesetProvider)
-        => new DataPortTransformer(dataPort, builder, rulesetProvider).Transform();
+    internal static DataPortTransformation TransformToFunctionBlock(DataPort dataPort, ClusterBuilder builder, ISuiteRulesetProvider rulesetProvider, string homeDirectory)
+        => new DataPortTransformer(dataPort, builder, rulesetProvider, homeDirectory).Transform();
 
     private DataPortTransformation Transform()
     {
@@ -143,7 +147,7 @@ internal sealed class DataPortTransformer
         {
             FunctionBlock = dataPortFb,
             CommunicationId = _dataPort.RulesetId,
-            CommunicationProperties = TransformProperties(_dataPort),
+            CommunicationProperties = TransformProperties(),
             ConnectionName = _dataPort.Name,
             IncomingLinks = _externalIncomingLinks,
             IncomingNodes = _externalIncomingLinks.Count == 0 ? [] : _externalIncomingNodes.Values,
@@ -523,8 +527,13 @@ internal sealed class DataPortTransformer
         setting.ValueChangedTime = time;
     }
 
-    private static IReadOnlyCollection<CommunicationProperty> TransformProperties(DataPort dataPort)
-        => [.. dataPort.Properties.Select(p => new CommunicationProperty(p.DesignId) { Value = TypedObject.CreateOptional(p.Value), }),
-            new CommunicationProperty(nameof(IDataPortCommunication.Name)) { Value = TypedObject.CreateMandatory(dataPort.Name), },
-            new CommunicationProperty(nameof(IDataPortCommunication.DesignId)) { Value = TypedObject.CreateMandatory(dataPort.DesignId) }];
+    private IReadOnlyCollection<CommunicationProperty> TransformProperties()
+        => [.. _dataPort.Properties.Select(p => new CommunicationProperty(p.DesignId) { Value = TypedObject.CreateOptional(ResolvePropertyValue(p)), }),
+            new CommunicationProperty(nameof(IDataPortCommunication.Name)) { Value = TypedObject.CreateMandatory(_dataPort.Name), },
+            new CommunicationProperty(nameof(IDataPortCommunication.DesignId)) { Value = TypedObject.CreateMandatory(_dataPort.DesignId) }];
+
+    // the engine host resolves a relative path against its own working directory, so paths below the workspace home are
+    // made absolute here, at deploy time, which keeps them portable in connections and cluster versions
+    private object? ResolvePropertyValue(DataPortProperty property)
+        => OpcUaStorePaths.ResolveDataPortProperty(_dataPort.DesignId, property.DesignId, property.Value, _homeDirectory);
 }

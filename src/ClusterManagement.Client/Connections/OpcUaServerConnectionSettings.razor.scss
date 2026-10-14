@@ -1,13 +1,20 @@
 @use "./../../../shared/styles/colors-staged";
 
-// Spans both columns of the settings grid, like the SDK's settings information block.
+// Takes the whole column like a text box, so the warning below the combo box starts where the combo box does.
+.security-policy {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+// Like the subline of the SDK's settings text box, in the warning color.
 .security-policy-warning {
-    grid-column: 1 / -1;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 0;
-    font-size: 12px;
+    gap: 6px;
+    padding-top: 6px;
+    font-size: 10px;
     letter-spacing: .4px;
+    text-align: left;
     color: colors-staged.$color-warning;
 }

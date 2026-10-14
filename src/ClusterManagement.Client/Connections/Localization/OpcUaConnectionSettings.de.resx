@@ -106,24 +106,6 @@
   <data name="AutoAcceptUntrustedCertificates" xml:space="preserve">
     <value>Nicht vertrauenswürdige Zertifikate automatisch akzeptieren</value>
   </data>
-  <data name="TrustedClientCertificatesPath" xml:space="preserve">
-    <value>Pfad der vertrauenswürdigen Client-Zertifikate</value>
-  </data>
-  <data name="TrustedClientCertificatesPathSubline" xml:space="preserve">
-    <value>Legen Sie die Zertifikate der Clients, die sich verbinden dürfen, in diesem Verzeichnis ab.</value>
-  </data>
-  <data name="TrustedServerCertificatesPath" xml:space="preserve">
-    <value>Pfad der vertrauenswürdigen Server-Zertifikate</value>
-  </data>
-  <data name="TrustedServerCertificatesPathSubline" xml:space="preserve">
-    <value>Legen Sie die Zertifikate der Server, mit denen verbunden wird, in diesem Verzeichnis ab.</value>
-  </data>
-  <data name="TrustedIssuerCertificatesPath" xml:space="preserve">
-    <value>Pfad der vertrauenswürdigen Aussteller-Zertifikate</value>
-  </data>
-  <data name="TrustedIssuerCertificatesPathSubline" xml:space="preserve">
-    <value>Legen Sie die CA-Zertifikate, die die vertrauenswürdigen Zertifikate ausgestellt haben, in diesem Verzeichnis ab.</value>
-  </data>
   <data name="AuthModeAnonymous" xml:space="preserve">
     <value>Anonym</value>
   </data>
@@ -183,5 +165,101 @@
   </data>
   <data name="ValidationPublishingIntervalOrder" xml:space="preserve">
     <value>Das minimale Veröffentlichungsintervall darf nicht größer als das maximale sein.</value>
+  </data>
+  <data name="ApplicationCertificates" xml:space="preserve">
+    <value>Anwendungszertifikat</value>
+  </data>
+  <data name="ApplicationCertificatesSubline" xml:space="preserve">
+    <value>Wird erstellt, wenn der DataPort ohne Anwendungszertifikat startet. Löschen Sie es, damit ein neues erstellt wird, oder um ein eigenes hochzuladen.</value>
+  </data>
+  <data name="TrustedClientCertificates" xml:space="preserve">
+    <value>Vertrauenswürdige Client-Zertifikate</value>
+  </data>
+  <data name="TrustedClientCertificatesSubline" xml:space="preserve">
+    <value>Zertifikate der Clients, die sich verbinden dürfen.</value>
+  </data>
+  <data name="TrustedServerCertificates" xml:space="preserve">
+    <value>Vertrauenswürdige Server-Zertifikate</value>
+  </data>
+  <data name="TrustedServerCertificatesSubline" xml:space="preserve">
+    <value>Zertifikate der Server, mit denen verbunden wird.</value>
+  </data>
+  <data name="TrustedIssuerCertificates" xml:space="preserve">
+    <value>Vertrauenswürdige Aussteller-Zertifikate</value>
+  </data>
+  <data name="TrustedIssuerCertificatesSubline" xml:space="preserve">
+    <value>CA-Zertifikate, die die vertrauenswürdigen Zertifikate ausgestellt haben.</value>
+  </data>
+  <data name="CertificatesApplyImmediately" xml:space="preserve">
+    <value>Hochgeladene und gelöschte Zertifikate gelten sofort für neue Verbindungen, auch wenn der Dialog abgebrochen wird. Ein neues Anwendungszertifikat wird ab dem nächsten Start des DataPorts verwendet.</value>
+  </data>
+  <data name="NoCertificates" xml:space="preserve">
+    <value>Keine Zertifikate</value>
+  </data>
+  <data name="CertificateValidUntil" xml:space="preserve">
+    <value>Gültig bis {0}</value>
+  </data>
+  <data name="CertificateExpired" xml:space="preserve">
+    <value>Abgelaufen am {0}</value>
+  </data>
+  <data name="UploadCertificate" xml:space="preserve">
+    <value>Zertifikat hochladen</value>
+  </data>
+  <data name="DeleteCertificate" xml:space="preserve">
+    <value>Zertifikat löschen</value>
+  </data>
+  <data name="DeleteCertificateConfirmation" xml:space="preserve">
+    <value>{0} löschen?</value>
+  </data>
+  <data name="InvalidCertificate" xml:space="preserve">
+    <value>Die Datei ist kein gültiges X.509-Zertifikat.</value>
+  </data>
+  <data name="CertificatesLoadFailed" xml:space="preserve">
+    <value>Die Zertifikate konnten nicht geladen werden.</value>
+  </data>
+  <data name="CertificateDeleteFailed" xml:space="preserve">
+    <value>Das Zertifikat konnte nicht gelöscht werden.</value>
+  </data>
+  <data name="CertificateFilePassword" xml:space="preserve">
+    <value>Passwort der Datei, falls geschützt</value>
+  </data>
+  <data name="CertificateSubject" xml:space="preserve">
+    <value>Antragsteller: {0}</value>
+  </data>
+  <data name="CertificateApplicationUri" xml:space="preserve">
+    <value>URI: {0}</value>
+  </data>
+  <data name="NoPrivateKey" xml:space="preserve">
+    <value>Die Datei enthält keinen privaten Schlüssel, den das Anwendungszertifikat benötigt.</value>
+  </data>
+  <data name="InvalidApplicationCertificate" xml:space="preserve">
+    <value>Die Datei ist kein Zertifikat mit privatem Schlüssel, oder das Passwort ist falsch.</value>
+  </data>
+  <data name="ApplicationCertificateSubjectMismatch" xml:space="preserve">
+    <value>Der Antragsteller des Zertifikats stimmt nicht mit dem Antragsteller des Anwendungszertifikats überein. Der DataPort erstellt dann möglicherweise ein eigenes Zertifikat.</value>
+  </data>
+  <data name="ApplicationCertificateUriMismatch" xml:space="preserve">
+    <value>Die URI des Zertifikats stimmt nicht mit der Anwendungs-URI überein. Der DataPort lehnt das Zertifikat möglicherweise ab.</value>
+  </data>
+  <data name="IssuerCertificatesLeftOut" xml:space="preserve">
+    <value>Die CA-Zertifikate der Datei wurden nicht hinzugefügt, damit nur die von ihnen ausgestellten Zertifikate der Datei vertrauenswürdig sind. Laden Sie die Datei auch unter „Vertrauenswürdige Aussteller-Zertifikate“ hoch, damit die Kette geprüft werden kann.</value>
+  </data>
+  <data name="NetworkInterfaceChanged" xml:space="preserve">
+    <value>Netzwerkschnittstelle geändert</value>
+  </data>
+  <data name="NetworkInterfaceChangedQuestion" xml:space="preserve">
+    <value>Das Anwendungszertifikat ist für die neue Netzwerkschnittstelle möglicherweise nicht gültig.</value>
+  </data>
+  <data name="NetworkInterfaceChangedConsequence" xml:space="preserve">
+    <value>Löschen Sie es, damit beim Start des DataPorts ein neues erstellt wird, behalten Sie es, oder machen Sie die Änderung rückgängig.</value>
+  </data>
+  <data name="KeepCertificate" xml:space="preserve">
+    <value>Zertifikat behalten</value>
+  </data>
+  <data name="UndoChange" xml:space="preserve">
+    <value>Änderung rückgängig machen</value>
+  </data>
+  <data name="UploadReplacesApplicationCertificate" xml:space="preserve">
+    <value>Löschen Sie das aktuelle Anwendungszertifikat, um ein anderes hochzuladen.</value>
   </data>
 </root>
