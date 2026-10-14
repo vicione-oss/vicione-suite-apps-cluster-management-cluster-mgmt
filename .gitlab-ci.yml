@@ -59,7 +59,6 @@ variables:
   MODULE_FULLNAME: ViciOne.Suite.ClusterManagement
 
 stages:
-  - metadata
   - build
   - test
   - pack
@@ -102,7 +101,7 @@ include:
       module_version: "${Version}"
       name: "Module Metadata"
       rules: *rules
-      stage: metadata
+      stage: build
       tags:
         - saas-linux-small-amd64
   ### Build
