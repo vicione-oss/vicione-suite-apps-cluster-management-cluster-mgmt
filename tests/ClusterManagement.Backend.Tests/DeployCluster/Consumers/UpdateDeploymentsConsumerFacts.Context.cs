@@ -97,6 +97,7 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
         _bus.When(x => x.Publish(Arg.Any<ClusterNodeDeploymentStepChanged>(), Arg.Any<CancellationToken>()))
             .Do(x => _steps.Add(x.Arg<ClusterNodeDeploymentStepChanged>()));
         _workspaceProvider = Substitute.For<IWorkspaceProvider<ClusterManagementBackendModule>>();
+        _workspaceProvider.Home.Returns("home");
     }
 
     private static ViciOne.Core.Dataflow.DataModel.FunctionBlockDesign CreateFunctionBlockDesign()

@@ -1,5 +1,5 @@
 ﻿using System.IO.Abstractions;
-using System.IO.Abstractions.TestingHelpers;
+using ClusterManagement.Backend.Connections;
 using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Backend.Engines;
@@ -13,8 +13,6 @@ using Microsoft.Extensions.Hosting;
 using Sdk.Backend.Artifacts;
 using Sdk.Backend.IO;
 using Sdk.Backend.Messaging;
-using Sdk.Backend.Modules;
-using Sdk.Connections;
 using Sdk.Connections.Contracts;
 using Sdk.Instance;
 using Sdk.Modules;
@@ -58,6 +56,7 @@ public class ClusterManagementBackendModuleFacts
                     serviceCollection.AddSingleton(_ => Substitute.For<ISuiteMediator>());
                     serviceCollection.AddSingleton(_ => Substitute.For<IControlServiceManagement>());
                     serviceCollection.AddSingleton(_ => Substitute.For<IConnectionTypeRegistry>());
+                    serviceCollection.AddSingleton(_ => Substitute.For<IHostApplicationLifetime>());
                 });
 
             IsInstantiable<IEngineHostPoolCommunication>(serviceCollection, serviceProvider);
@@ -93,39 +92,33 @@ public class ClusterManagementBackendModuleFacts
         [Fact]
         public void Registers_the_opc_ua_client_and_server_connection_types()
         {
-            var fileSystem = new MockFileSystem();
-            var workspaceProvider = Substitute.For<IWorkspaceProvider<ClusterManagementBackendModule>>();
-            workspaceProvider.Home.Returns("home");
             var registry = Substitute.For<IConnectionTypeRegistry>();
             var app = Substitute.For<IApplicationBuilder>();
             var serviceProvider = Substitute.For<IServiceProvider>();
             serviceProvider.GetService(typeof(IConnectionTypeRegistry)).Returns(registry);
-            serviceProvider.GetService(typeof(IFileSystem)).Returns(fileSystem);
-            serviceProvider.GetService(typeof(IWorkspaceProvider<ClusterManagementBackendModule>)).Returns(workspaceProvider);
             app.ApplicationServices.Returns(serviceProvider);
 
             Func<IConnection>? createClientConnection = null;
             Func<IConnection>? createServerConnection = null;
-            registry.Register<OpcUaClientConnection, DefaultJsonConnectionSerializer<OpcUaClientConnection>>(
+            registry.Register<OpcUaClientConnection, OpcUaConnectionSerializer<OpcUaClientConnection>>(
                 ConnectionType.OpcUaClient.Name,
                 Arg.Do<Func<IConnection>>(factory => createClientConnection = factory),
-                Arg.Any<DefaultJsonConnectionSerializer<OpcUaClientConnection>>(),
+                Arg.Any<OpcUaConnectionSerializer<OpcUaClientConnection>>(),
                 null);
-            registry.Register<OpcUaServerConnection, DefaultJsonConnectionSerializer<OpcUaServerConnection>>(
+            registry.Register<OpcUaServerConnection, OpcUaConnectionSerializer<OpcUaServerConnection>>(
                 ConnectionType.OpcUaServer.Name,
                 Arg.Do<Func<IConnection>>(factory => createServerConnection = factory),
-                Arg.Any<DefaultJsonConnectionSerializer<OpcUaServerConnection>>(),
+                Arg.Any<OpcUaConnectionSerializer<OpcUaServerConnection>>(),
                 null);
 
             new ClusterManagementBackendModule().UseServices(app);
 
-            var certificatesPath = fileSystem.Path.Combine("home", "ua-certs");
             createClientConnection.Should().NotBeNull();
             createClientConnection().Should().BeOfType<OpcUaClientConnection>()
-                .Which.ApplicationCertificatesPath.Should().StartWith(certificatesPath);
+                .Which.ApplicationCertificatesPath.Should().StartWith("ua-certs/");
             createServerConnection.Should().NotBeNull();
             createServerConnection().Should().BeOfType<OpcUaServerConnection>()
-                .Which.ApplicationCertificatesPath.Should().StartWith(certificatesPath);
+                .Which.ApplicationCertificatesPath.Should().StartWith("ua-certs/");
         }
     }
 }

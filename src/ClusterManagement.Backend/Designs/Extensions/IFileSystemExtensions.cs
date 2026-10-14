@@ -11,7 +11,6 @@ internal static class IFileSystemExtensions
     internal const string DependenciesDirectory = "Dependencies";
     internal const string ReplacedDependenciesDirectory = "ReplacedDependencies";
     internal const string PackageStagingDirectory = "PackageStaging";
-    internal const string OpcUaCertificatesDirectory = "ua-certs";
 
     public static string GetDependenciesPath(this IFileSystem fileSystem, IWorkspaceProvider<ClusterManagementBackendModule> ws)
         => fileSystem.Path.Combine(ws.Cache, DependenciesDirectory);
@@ -35,13 +34,6 @@ internal static class IFileSystemExtensions
     /// </summary>
     public static string GetUploadedPackagesPath(this IFileSystem fileSystem, IWorkspaceProvider<ClusterManagementBackendModule> ws)
         => fileSystem.Path.Combine(ws.Cache, ClusterPackageUpload.DirectoryName);
-
-    /// <summary>
-    /// Gets the directory the certificate stores of OPC UA connections are placed in, each connection in a directory of its own.
-    /// It is below the workspace home rather than the cache, so the certificates survive clearing the cache.
-    /// </summary>
-    public static string GetOpcUaCertificatesPath(this IFileSystem fileSystem, IWorkspaceProvider<ClusterManagementBackendModule> ws)
-        => fileSystem.Path.Combine(ws.Home, OpcUaCertificatesDirectory);
 
     /// <summary>
     /// Returns whether <paramref name="filePath"/> names a file directly inside the upload directory of package archives.

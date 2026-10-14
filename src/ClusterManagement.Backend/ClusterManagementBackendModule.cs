@@ -1,4 +1,5 @@
 ﻿using ClusterManagement.Backend.Connections;
+using ClusterManagement.Backend.Connections.Extensions;
 using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.DeployCluster.Persistence;
 using ClusterManagement.Backend.DeployCluster.StateMachines;
@@ -16,7 +17,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Backend.Extensions;
 using Sdk.Backend.Modules;
-using Sdk.Connections;
 using Sdk.Connections.Contracts;
 using Sdk.Instance;
 
@@ -49,7 +49,8 @@ public sealed class ClusterManagementBackendModule : BackendModule
             .AddSnapshotStore()
             .AddMqttSupport(options)
             .AddEngineHostSupport(options)
-            .AddIoddSupport();
+            .AddIoddSupport()
+            .AddOpcUaConnectionSupport();
 
         services.AddHostedService<ResourceDownloadCompletedService>();
     }
@@ -57,11 +58,11 @@ public sealed class ClusterManagementBackendModule : BackendModule
     public override void UseServices(IApplicationBuilder app)
     {
         var registry = app.ApplicationServices.GetRequiredService<IConnectionTypeRegistry>();
-        var opcUaConnectionFactory = ActivatorUtilities.CreateInstance<OpcUaConnectionFactory>(app.ApplicationServices);
+        var opcUaConnectionFactory = new OpcUaConnectionFactory();
 
-        registry.Register<OpcUaClientConnection, DefaultJsonConnectionSerializer<OpcUaClientConnection>>(
+        registry.Register<OpcUaClientConnection, OpcUaConnectionSerializer<OpcUaClientConnection>>(
             ConnectionType.OpcUaClient, opcUaConnectionFactory.CreateClientConnection, new(), null);
-        registry.Register<OpcUaServerConnection, DefaultJsonConnectionSerializer<OpcUaServerConnection>>(
+        registry.Register<OpcUaServerConnection, OpcUaConnectionSerializer<OpcUaServerConnection>>(
             ConnectionType.OpcUaServer, opcUaConnectionFactory.CreateServerConnection, new(), null);
 
         base.UseServices(app);

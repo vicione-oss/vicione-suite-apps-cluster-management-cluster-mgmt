@@ -9,4 +9,8 @@
     <PackageReference Include="ViciOne.Suite.Sdk" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="ViciOne.Suite.ClusterManagement.Backend" />
+  </ItemGroup>
+
 </Project>

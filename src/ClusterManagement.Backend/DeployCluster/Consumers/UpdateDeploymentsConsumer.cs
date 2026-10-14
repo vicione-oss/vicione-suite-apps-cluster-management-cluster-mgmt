@@ -47,6 +47,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
 {
     private readonly string _packagesDirectory = fileSystem.Path.GetFullPath(fileSystem.GetDependenciesPath(workspaceProvider));
     private readonly string _engineLogDirectory = fileSystem.Path.GetFullPath(fileSystem.GetEnginesDirectory(workspaceProvider));
+    private readonly string _homeDirectory = fileSystem.Path.GetFullPath(workspaceProvider.Home);
 
     /// <summary>
     /// if something bad happens 3 retry attempts get executed. we have to ensure to clean up on exceptions to have a fresh attempt and also
@@ -170,7 +171,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
     {
         try
         {
-            return DataPortTransformer.TransformToFunctionBlocks(builder, engineHosts, rulesetProvider);
+            return DataPortTransformer.TransformToFunctionBlocks(builder, engineHosts, rulesetProvider, _homeDirectory);
         }
         catch (Exception e)
         {

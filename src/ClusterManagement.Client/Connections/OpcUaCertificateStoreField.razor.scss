@@ -1,0 +1,108 @@
+@use "./../../../shared/styles/colors-staged";
+
+// The settings field right-aligns its content and sizes it to fit, like a text box the store takes the whole column,
+// so every store, and with it every upload button, gets the same width.
+.certificate-store {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    text-align: left;
+}
+
+.certificates {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.certificate {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+    min-height: 32px;
+    padding: 6px 4px 6px 10px;
+    border-left: 2px solid colors-staged.$color-green;
+    border-radius: 2px;
+    background-color: rgba(255, 255, 255, .04);
+}
+
+.certificate--expired {
+    border-left-color: colors-staged.$color-red;
+}
+
+.certificate--empty {
+    border-left-color: rgba(255, 255, 255, .2);
+    font-size: 10px;
+    letter-spacing: .4px;
+    color: rgba(255, 255, 255, .6);
+}
+
+.certificate-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.certificate-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: colors-staged.$color-foreground;
+}
+
+.certificate-detail,
+.certificate-validity {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 10px;
+    letter-spacing: .4px;
+    color: rgba(255, 255, 255, .6);
+}
+
+.certificate--expired .certificate-validity {
+    color: colors-staged.$color-red;
+}
+
+.certificate-delete-confirmation {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.certificate-message {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    letter-spacing: .4px;
+}
+
+.certificate-message--error {
+    color: colors-staged.$color-red;
+}
+
+.certificate-message--warning {
+    color: colors-staged.$color-warning;
+}
+
+// like the subline of the SDK's settings text box
+.subline {
+    font-size: 10px;
+    letter-spacing: .4px;
+    color: rgba(255, 255, 255, .8);
+}
+
+// as wide as the button of the upload field it stands in for
+.upload-locked ::deep .button {
+    width: 100%;
+}

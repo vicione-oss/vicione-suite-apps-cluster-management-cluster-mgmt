@@ -98,16 +98,24 @@
                          @bind-Value:after="NotifyChanged" />
 </SettingsField>
 
+<SettingsInformation>@OpcUaConnectionSettings.CertificatesApplyImmediately</SettingsInformation>
+
+<OpcUaCertificateStoreField Label="@OpcUaConnectionSettings.ApplicationCertificates"
+                            Subline="@OpcUaConnectionSettings.ApplicationCertificatesSubline"
+                            StorePath="@Connection.ApplicationCertificatesPath"
+                            AllowUpload="true"
+                            IsApplicationStore="true"
+                            ApplicationCertificateSubject="@Connection.ApplicationCertificateSubject"
+                            ApplicationUri="@Connection.ApplicationUri" />
+
 @* Unlike the server, the client has no security policy of its own, it uses whatever the server's endpoint offers,
    so the trusted stores are always shown. *@
-<SettingsField Label="@OpcUaConnectionSettings.TrustedServerCertificatesPath">
-    <SettingsFieldTextBox Value="@Connection.TrustedCertificatesPath"
-                          ReadOnly="true"
-                          Subline="@OpcUaConnectionSettings.TrustedServerCertificatesPathSubline" />
-</SettingsField>
+<OpcUaCertificateStoreField Label="@OpcUaConnectionSettings.TrustedServerCertificates"
+                            Subline="@OpcUaConnectionSettings.TrustedServerCertificatesSubline"
+                            StorePath="@Connection.TrustedCertificatesPath"
+                            AllowUpload="true" />
 
-<SettingsField Label="@OpcUaConnectionSettings.TrustedIssuerCertificatesPath">
-    <SettingsFieldTextBox Value="@Connection.TrustedIssuerCertificatesPath"
-                          ReadOnly="true"
-                          Subline="@OpcUaConnectionSettings.TrustedIssuerCertificatesPathSubline" />
-</SettingsField>
+<OpcUaCertificateStoreField Label="@OpcUaConnectionSettings.TrustedIssuerCertificates"
+                            Subline="@OpcUaConnectionSettings.TrustedIssuerCertificatesSubline"
+                            StorePath="@Connection.TrustedIssuerCertificatesPath"
+                            AllowUpload="true" />

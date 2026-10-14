@@ -86,6 +86,7 @@ public sealed record OpcUaClientConnection : IConnection
     /// </summary>
     /// <remarks>
     /// Not editable in the connection settings dialog, a new connection gets a directory of its own below the workspace home.
+    /// The path is relative to the workspace home, e.g. <c>ua-certs/&lt;id&gt;/trusted</c>, and made absolute when the cluster is deployed.
     /// Maps to the DataPort's <c>ApplicationCertificatesStorePath</c>. When set, <c>ApplicationCertificatesStoreType</c> is
     /// <c>Directory</c>; when <see langword="null"/> or empty, it is <c>None</c>.
     /// </remarks>
@@ -96,6 +97,7 @@ public sealed record OpcUaClientConnection : IConnection
     /// </summary>
     /// <remarks>
     /// Not editable in the connection settings dialog, a new connection gets a directory of its own below the workspace home.
+    /// The path is relative to the workspace home, e.g. <c>ua-certs/&lt;id&gt;/trusted</c>, and made absolute when the cluster is deployed.
     /// Maps to the DataPort's <c>TrustedCertificatesStorePath</c>. When set, <c>TrustedCertificatesStoreType</c> is
     /// <c>Directory</c>; when <see langword="null"/> or empty, it is <c>None</c>.
     /// </remarks>
@@ -106,6 +108,7 @@ public sealed record OpcUaClientConnection : IConnection
     /// </summary>
     /// <remarks>
     /// Not editable in the connection settings dialog, a new connection gets a directory of its own below the workspace home.
+    /// The path is relative to the workspace home, e.g. <c>ua-certs/&lt;id&gt;/trusted</c>, and made absolute when the cluster is deployed.
     /// Maps to the DataPort's <c>TrustedIssuerCertificatesStorePath</c>. When set, <c>TrustedIssuerCertificatesStoreType</c>
     /// is <c>Directory</c>; when <see langword="null"/> or empty, it is <c>None</c>.
     /// </remarks>
