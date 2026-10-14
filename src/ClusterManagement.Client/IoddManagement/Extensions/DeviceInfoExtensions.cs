@@ -1,4 +1,5 @@
-﻿using ClusterManagement.Client.IoddManagement.Models;
+﻿using System.Globalization;
+using ClusterManagement.Client.IoddManagement.Models;
 using ClusterManagement.Public.Iodds;
 
 namespace ClusterManagement.Client.IoddManagement.Extensions;
@@ -7,6 +8,29 @@ internal static class DeviceInfoExtensions
 {
     internal static IEnumerable<DeviceView> CreateDeviceVariants(this DeviceInfo deviceInfo)
         => deviceInfo.DeviceDescription.DeviceIdentity.Variants.Select(deviceInfo.Create);
+
+    /// <summary>
+    /// Names the device by its vendor and its first variant as listed in the IODD tree, followed by "…" if it has more,
+    /// e.g. <c>ifm electronic O5D100…</c>. An IODD can list dozens of variants, which would make a message too long.
+    /// </summary>
+    internal static string GetDisplayName(this DeviceInfo deviceInfo)
+    {
+        var deviceIdentity = deviceInfo.DeviceDescription.DeviceIdentity;
+        var variantNames = deviceIdentity.Variants.Select(v => v.Name).Where(n => !string.IsNullOrWhiteSpace(n)).Distinct().Take(2).ToList();
+        var deviceName = variantNames.Count switch
+        {
+            0 => null,
+            1 => variantNames[0],
+            _ => $"{variantNames[0]}…",
+        };
+
+        if (string.IsNullOrWhiteSpace(deviceName))
+            deviceName = deviceIdentity.DeviceName;
+        if (string.IsNullOrWhiteSpace(deviceName))
+            deviceName = deviceIdentity.DeviceId.ToString(CultureInfo.InvariantCulture);
+
+        return $"{GetVendorName(deviceIdentity)} {deviceName}";
+    }
 
     internal static DeviceView Create(this DeviceInfo deviceInfo, DeviceVariant deviceVariant)
         => new()

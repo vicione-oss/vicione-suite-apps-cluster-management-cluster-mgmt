@@ -1,6 +1,7 @@
 ﻿using System.IO.Abstractions.TestingHelpers;
 using System.IO.Compression;
 using ClusterManagement.Backend.Iodds;
+using ClusterManagement.Public.Iodds;
 using Microsoft.Extensions.Logging.Abstractions;
 using Sdk.Backend.Modules;
 
@@ -16,7 +17,7 @@ public class IoddStoreTests
         _fileSystem,
         Substitute.For<IServiceProvider>());
 
-    public sealed class TryAddDevice : IoddStoreTests
+    public sealed class AddDevice : IoddStoreTests
     {
         [Fact]
         public void Should_add_device_from_single_device_archive()
@@ -32,15 +33,15 @@ public class IoddStoreTests
             }
 
             // Act
-            var result = store.TryAddDevice(archive, out _);
+            var result = store.AddDevice(archive, out _);
 
             // Assert
-            result.Should().BeTrue();
+            result.Should().Be(AddDeviceResult.Added);
             store.Devices.Should().ContainSingle();
         }
 
         [Fact]
-        public void Should_return_false_when_archive_has_no_iodd_entry()
+        public void Should_return_no_iodd_file_when_archive_has_no_iodd_entry()
         {
             // Arrange
             var store = CreateStore();
@@ -48,10 +49,10 @@ public class IoddStoreTests
             archive.CreateEntry("readme.txt");
 
             // Act
-            var result = store.TryAddDevice(archive, out var ioddId);
+            var result = store.AddDevice(archive, out var ioddId);
 
             // Assert
-            result.Should().BeFalse();
+            result.Should().Be(AddDeviceResult.NoIoddFile);
             ioddId.Should().BeNull();
         }
 
@@ -69,7 +70,7 @@ public class IoddStoreTests
             }
 
             // Act
-            store.TryAddDevice(archive, out var ioddId);
+            store.AddDevice(archive, out var ioddId);
 
             // Assert
             ioddId.Should().NotBeNull();
@@ -78,7 +79,7 @@ public class IoddStoreTests
         }
 
         [Fact]
-        public void Should_return_false_when_device_already_exists()
+        public void Should_return_already_exists_with_iodd_id_when_device_already_exists()
         {
             // Arrange
             var store = CreateStore();
@@ -89,16 +90,20 @@ public class IoddStoreTests
                 using StreamWriter writer = new(stream);
                 writer.Write(IoddConstants.IoddDeviceTwo);
             }
-            store.TryAddDevice(archive, out _);
+            store.AddDevice(archive, out _);
 
             // Act
-            var result = store.TryAddDevice(archive, out _);
+            var result = store.AddDevice(archive, out var ioddId);
 
             // Assert
-            result.Should().BeFalse();
+            result.Should().Be(AddDeviceResult.AlreadyExists);
+            ioddId.Should().Be(new IoddId(310, 2));
             store.Devices.Should().ContainSingle();
         }
+    }
 
+    public sealed class TryAddDevice : IoddStoreTests
+    {
         [Fact]
         public void Should_add_device_from_disk()
         {

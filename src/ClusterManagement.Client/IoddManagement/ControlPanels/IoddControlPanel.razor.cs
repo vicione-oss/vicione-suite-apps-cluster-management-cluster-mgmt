@@ -335,7 +335,10 @@ public sealed partial class IoddControlPanel
     private static string GetUploadErrorMessage(IoddServiceErrorResult error)
         => error.ErrorCode switch
         {
+            IoddChanged.IoddAlreadyExists when error.ExistingDevice is not null
+                => string.Format(CultureInfo.CurrentCulture, Localization.IoddControlPanel.IoddAlreadyExists, error.ExistingDevice.GetDisplayName()),
             IoddChanged.ExtractZipError
+                or IoddChanged.IoddAlreadyExists
                 or IoddChanged.IoddFileNotFound
                 or IoddChanged.IoddFileOutsideUploadDirectory => Common.UploadFailed,
             _ => error.ErrorMessage,

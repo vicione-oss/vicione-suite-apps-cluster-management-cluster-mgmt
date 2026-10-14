@@ -45,12 +45,14 @@
 - Package uploads in the cluster editor now stream to disk instead of loading the whole archive into memory, increasing the maximum package upload size from 2 MB to 10 MB
 - IODD downloads are grouped by vendor, one archive per vendor instead of one per selected device variant
 - Failed IODD uploads show an error banner, and the IODD action buttons match the package panel
+- Uploading an IODD that already exists names the device instead of showing "Upload failed"
 - IODD upload times are shown as short date and 24-hour time in the user's time zone
 - The IODD tree selects the repository root by default, so all devices are listed
 - Package updates only suggest a prerelease, such as `2.0.0-beta.1` or a `-ci` build, when the installed version is a prerelease itself; prereleases can still be installed from the version list
 - Engine hosts write log event properties such as `SOURCE_CONTEXT`, `ENGINE_ID` and `EVENT_ID` as separate journal fields, not only inside `SYSLOG_STRUCTURED_DATA`
 - `Public`
-  - `IoddChanged`, added the error codes `IoddFileNotFound` and `IoddFileOutsideUploadDirectory`
+  - `IoddChanged`, added the error codes `IoddFileNotFound`, `IoddFileOutsideUploadDirectory` and `IoddAlreadyExists`; for `IoddAlreadyExists` the event carries the id and `DeviceInfo` of the existing device
+  - **Breaking:** `IIoddStore`, replaced `TryAddDevice(ZipArchive, out IoddId?)` with `AddDevice(ZipArchive, out IoddId?)`, which returns an `AddDeviceResult` telling whether the device was added, the archive has no IODD file, the device already exists or extracting it failed
   - `ClusterErrors`, added the error codes `EngineNotDeployed` and `EngineHostDidNotAnswer`
   - `IIoddStore`, replaced `FillDeviceArchive` with `FillVendorArchive` which archives several devices of a vendor as `<vendor-id>/<device-id>/<IODD files>`
   - `DownloadIoddRequest`, replaced `Id` with `VendorId` and `DeviceIds`

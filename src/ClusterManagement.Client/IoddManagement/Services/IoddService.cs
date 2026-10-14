@@ -1,7 +1,9 @@
-﻿using ClusterManagement.Client.IoddManagement.Extensions;
+﻿using System.Collections.Concurrent;
+using ClusterManagement.Client.IoddManagement.Extensions;
 using ClusterManagement.Client.IoddManagement.Models;
 using ClusterManagement.Internal.Commands;
 using ClusterManagement.Internal.Requests;
+using ClusterManagement.Public.Iodds;
 using ClusterManagement.Public.Iodds.Commands;
 using ClusterManagement.Public.Iodds.Events;
 using ClusterManagement.Public.Iodds.Requests;
@@ -19,6 +21,12 @@ public sealed class IoddService : CompletionSourceHandlerBase<IIoddServiceResult
 
     public event Func<AutoIoddDownloadChanged, CancellationToken, Task>? AutoIoddDownloadChanged;
 
+    private readonly ConcurrentDictionary<Guid, DeviceInfo> _existingDevices = [];
+
+    /// <summary>
+    /// The number of existing devices kept for <see cref="AddIodd"/> calls that have not picked them up yet.
+    /// </summary>
+    internal int ExistingDeviceCount => _existingDevices.Count;
 
     public IoddService(IUiMediator mediator) : base(mediator)
     {
@@ -29,7 +37,18 @@ public sealed class IoddService : CompletionSourceHandlerBase<IIoddServiceResult
     public async Task<IIoddServiceResult> AddIodd(string filename, CancellationToken cancellationToken = default)
     {
         var command = new AddIodd(filename);
-        return await SendAndWaitForCompletion(command, cancellationToken);
+        try
+        {
+            var result = await SendAndWaitForCompletion(command, cancellationToken);
+
+            return result is IoddServiceErrorResult error && _existingDevices.TryGetValue(command.CorrelationId, out var existingDevice)
+                ? error with { ExistingDevice = existingDevice }
+                : result;
+        }
+        finally
+        {
+            _existingDevices.TryRemove(command.CorrelationId, out _);
+        }
     }
 
     public async Task<IIoddServiceResult> DeleteIodd(int vendorId, int deviceId, CancellationToken cancellationToken = default)
@@ -88,7 +107,14 @@ public sealed class IoddService : CompletionSourceHandlerBase<IIoddServiceResult
     {
         if (context.Message.Error is not null)
         {
-            CompleteWithError(context.Message.CorrelationId, context.Message.Error);
+            // The error result only carries message and code, so AddIodd picks the existing device up from here.
+            if (context.Message.Error.ErrorCode == Public.Iodds.Events.IoddChanged.IoddAlreadyExists && context.Message.DeviceInfo is not null)
+                _existingDevices[context.Message.CorrelationId] = context.Message.DeviceInfo;
+
+            // Errors of other clients' uploads, or ones arriving after AddIodd timed out, have no waiting call to remove the device.
+            if (!CompleteWithError(context.Message.CorrelationId, context.Message.Error))
+                _existingDevices.TryRemove(context.Message.CorrelationId, out _);
+
             return;
         }
 
