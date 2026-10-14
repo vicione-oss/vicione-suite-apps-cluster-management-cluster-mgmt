@@ -135,6 +135,9 @@
   <data name="DeleteIoddsHeader" xml:space="preserve">
     <value>Delete IODDs</value>
   </data>
+  <data name="IoddAlreadyExists" xml:space="preserve">
+    <value>The IODD for {0} already exists. Delete it first to upload it again.</value>
+  </data>
   <data name="Manual" xml:space="preserve">
     <value>Manual</value>
   </data>

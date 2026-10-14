@@ -115,6 +115,15 @@ namespace ClusterManagement.Client.IoddManagement.Localization {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The IODD for {0} already exists. Delete it first to upload it again..
+        /// </summary>
+        internal static string IoddAlreadyExists {
+            get {
+                return ResourceManager.GetString("IoddAlreadyExists", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Manual.
         /// </summary>
         internal static string Manual {

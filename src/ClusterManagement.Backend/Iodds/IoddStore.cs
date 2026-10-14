@@ -67,14 +67,16 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
         return _devices.TryAdd(id, device);  // sole authority — false means a concurrent add won
     }
 
-    public bool TryAddDevice(ZipArchive archive, [NotNullWhen(true)] out IoddId? ioddId)
+    public AddDeviceResult AddDevice(ZipArchive archive, out IoddId? ioddId)
     {
         ioddId = null;
         var ioddEntry = archive.Entries.FirstOrDefault(e => IoddFileNameRegex().IsMatch(e.FullName));
         if (ioddEntry is null)
-            return false;
+            return AddDeviceResult.NoIoddFile;
 
-        return TryAddDevice(archive.Entries, ioddEntry, out ioddId);
+        var result = AddDevice(archive.Entries, ioddEntry, out var id);
+        ioddId = id;
+        return result;
     }
 
     public bool TryAddDevices(ZipArchive archive)
@@ -87,7 +89,7 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
         {
             var ioddEntry = group.FirstOrDefault(e => IoddFileNameRegex().IsMatch(e.Name));
             if (ioddEntry is null) continue;
-            if (!TryAddDevice(group, ioddEntry, out _))
+            if (AddDevice(group, ioddEntry, out _) != AddDeviceResult.Added)
                 success = false;
         }
         return success;
@@ -170,7 +172,7 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
         return archivedDeviceIds;
     }
 
-    private bool TryAddDevice(IEnumerable<ZipArchiveEntry> entries, ZipArchiveEntry ioddEntry, out IoddId id)
+    private AddDeviceResult AddDevice(IEnumerable<ZipArchiveEntry> entries, ZipArchiveEntry ioddEntry, out IoddId id)
     {
         IODevice device;
         using (var stream = ioddEntry.Open())
@@ -179,10 +181,10 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
         id = new(device.DeviceIdentity.VendorId, device.DeviceIdentity.DeviceId);
 
         if (_devices.ContainsKey(id))
-            return false;
+            return AddDeviceResult.AlreadyExists;
 
         try { ExtractDevice(entries, id); }
-        catch (Exception ex) { logger.DeviceExtractionError(id.VendorId, id.DeviceId, ex); return false; }
+        catch (Exception ex) { logger.DeviceExtractionError(id.VendorId, id.DeviceId, ex); return AddDeviceResult.ExtractionFailed; }
 
         // Build DeviceInfo from what we already have — no second disk parse needed
         var fileInfo = fileSystem.FileInfo.New(fileSystem.Path.Combine(GetDeviceDirectory(id), ioddEntry.Name));
@@ -193,7 +195,8 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
             LastWriteTime = fileInfo.LastWriteTime.ToUniversalTime(),
         };
 
-        return _devices.TryAdd(id, info);
+        // false means a concurrent add of the same device won
+        return _devices.TryAdd(id, info) ? AddDeviceResult.Added : AddDeviceResult.AlreadyExists;
     }
 
     private void ExtractDevice(IEnumerable<ZipArchiveEntry> entries, IoddId id)

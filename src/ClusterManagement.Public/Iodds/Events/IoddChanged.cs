@@ -14,4 +14,8 @@ public sealed record IoddChanged(IoddId Iodd, DeviceInfo? DeviceInfo, CrudAction
     public const int ExtractZipError = 103;
     public const int IoddFileNotFound = 104;
     public const int IoddFileOutsideUploadDirectory = 105;
+    /// <summary>
+    /// A device with the same vendor and device id already exists; <see cref="Iodd"/> and <see cref="DeviceInfo"/> describe it.
+    /// </summary>
+    public const int IoddAlreadyExists = 106;
 }

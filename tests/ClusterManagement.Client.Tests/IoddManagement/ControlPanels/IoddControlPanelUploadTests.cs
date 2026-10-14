@@ -1,3 +1,4 @@
+using System.Globalization;
 using Bunit;
 using ClusterManagement.Client.IoddManagement.ControlPanels;
 using ClusterManagement.Client.IoddManagement.ControlPanels.Services;
@@ -101,6 +102,8 @@ public class IoddControlPanelUploadTests
         IoddChanged.ExtractZipError,
         IoddChanged.IoddFileNotFound,
         IoddChanged.IoddFileOutsideUploadDirectory,
+        // Without the existing device there is nothing to name.
+        IoddChanged.IoddAlreadyExists,
     ];
 
     [Theory]
@@ -118,6 +121,27 @@ public class IoddControlPanelUploadTests
 
         // Assert
         _bannerService.Received(1).ShowMessageBanner(MessageType.Error, Localization.Common.UploadFailed);
+
+        await SettleTreeAsync();
+    }
+
+    [Fact]
+    public async Task Should_show_localized_message_naming_the_device_when_iodd_already_exists()
+    {
+        // Arrange
+        var existingDevice = DeviceInfoFactory.CreateDeviceInfo();
+        _ioddService.AddIodd(DestinationFile, Arg.Any<CancellationToken>())
+            .Returns(new IoddServiceErrorResult("technical details", IoddChanged.IoddAlreadyExists, existingDevice));
+
+        await using var ctx = SetupContext();
+        var component = Render(ctx);
+
+        // Act
+        await CompleteUpload(component);
+
+        // Assert
+        var expected = string.Format(CultureInfo.CurrentCulture, Client.IoddManagement.Localization.IoddControlPanel.IoddAlreadyExists, "Acme Sensor A…");
+        _bannerService.Received(1).ShowMessageBanner(MessageType.Error, expected);
 
         await SettleTreeAsync();
     }

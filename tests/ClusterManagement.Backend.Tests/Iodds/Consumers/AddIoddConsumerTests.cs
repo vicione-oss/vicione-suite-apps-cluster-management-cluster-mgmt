@@ -58,11 +58,11 @@ public class AddIoddConsumerTests
         var command = new AddIodd(s_emptyZipDataFilename);
         var deviceInfo = DeviceInfoFactory.CreateDeviceInfo();
 
-        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
+        _ioddStore.AddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(x =>
             {
                 x[1] = new IoddId(310, 2);
-                return true;
+                return AddDeviceResult.Added;
             });
         _ioddStore.Devices.Returns([deviceInfo]);
 
@@ -80,11 +80,11 @@ public class AddIoddConsumerTests
         var deviceInfo = DeviceInfoFactory.CreateDeviceInfo();
         var expectedId = new IoddId(310, 2);
 
-        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
+        _ioddStore.AddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(x =>
             {
                 x[1] = expectedId;
-                return true;
+                return AddDeviceResult.Added;
             });
         _ioddStore.Devices.Returns([deviceInfo]);
 
@@ -92,7 +92,7 @@ public class AddIoddConsumerTests
         await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
 
         // Assert
-        _ioddStore.Received(1).TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>());
+        _ioddStore.Received(1).AddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>());
     }
 
     [Fact]
@@ -105,11 +105,11 @@ public class AddIoddConsumerTests
         var deviceInfo = DeviceInfoFactory.CreateDeviceInfo();
         var expectedId = new IoddId(310, 2);
 
-        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
+        _ioddStore.AddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(x =>
             {
                 x[1] = expectedId;
-                return true;
+                return AddDeviceResult.Added;
             });
         _ioddStore.Devices.Returns([deviceInfo]);
 
@@ -127,39 +127,53 @@ public class AddIoddConsumerTests
     }
 
     [Fact]
-    public async Task Should_publish_change_with_error_when_device_already_exists()
+    public async Task Should_publish_already_exists_error_with_existing_device_when_device_already_exists()
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
-        var zipData = CreateValidZipArchive();
         var command = new AddIodd(s_emptyZipDataFilename);
+        var existingDevice = DeviceInfoFactory.CreateDeviceInfo(310, 2);
+        var existingId = new IoddId(310, 2);
 
-        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
-            .Returns(false);
+        _ioddStore.AddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
+            .Returns(x =>
+            {
+                x[1] = existingId;
+                return AddDeviceResult.AlreadyExists;
+            });
+        _ioddStore.Devices.Returns([DeviceInfoFactory.CreateDeviceInfo(311, 3), existingDevice]);
 
         // Act
         await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
 
         // Assert
         (await tester.Harness.Published.Any<IoddChanged>(k
-            => k.Context.Message.Error is not null
+            => k.Context.Message.Error?.ErrorCode == IoddChanged.IoddAlreadyExists
+            && k.Context.Message.Iodd == existingId
+            && k.Context.Message.DeviceInfo == existingDevice
             && k.Context.Message.CorrelationId == command.CorrelationId,
             TestContext.Current.CancellationToken)).Should().BeTrue();
+        _filesystem.File.Exists(s_emptyZipDataFilename).Should().BeFalse();
     }
 
-    [Fact]
-    public async Task Should_publish_change_with_error_when_TryAddDevice_fails()
+    public static TheoryData<AddDeviceResult> FailedAddDeviceResults => [
+        AddDeviceResult.NoIoddFile,
+        AddDeviceResult.ExtractionFailed,
+    ];
+
+    [Theory]
+    [MemberData(nameof(FailedAddDeviceResults))]
+    public async Task Should_publish_extract_zip_error_when_AddDevice_fails(AddDeviceResult result)
     {
         // Arrange
         await using var tester = new MassTransitTester(_configureServices);
-        var zipData = CreateValidZipArchive();
         var command = new AddIodd(s_emptyZipDataFilename);
 
-        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
+        _ioddStore.AddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(x =>
             {
-                x[1] = new IoddId(310, 2);
-                return false;
+                x[1] = result == AddDeviceResult.NoIoddFile ? null : new IoddId(310, 2);
+                return result;
             });
 
         // Act
@@ -167,7 +181,7 @@ public class AddIoddConsumerTests
 
         // Assert
         (await tester.Harness.Published.Any<IoddChanged>(k
-            => k.Context.Message.Error is not null
+            => k.Context.Message.Error?.ErrorCode == IoddChanged.ExtractZipError
             && k.Context.Message.CorrelationId == command.CorrelationId,
             TestContext.Current.CancellationToken)).Should().BeTrue();
     }
@@ -198,8 +212,8 @@ public class AddIoddConsumerTests
         var emptyZipData = CreateEmptyZipArchive();
         var command = new AddIodd(s_emptyZipDataFilename);
 
-        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
-            .Returns(false);
+        _ioddStore.AddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
+            .Returns(AddDeviceResult.NoIoddFile);
 
         // Act
         await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
@@ -220,11 +234,11 @@ public class AddIoddConsumerTests
         var deviceInfo2 = DeviceInfoFactory.CreateDeviceInfo(311, 3);
         var expectedId = new IoddId(310, 2);
 
-        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
+        _ioddStore.AddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(x =>
             {
                 x[1] = expectedId;
-                return true;
+                return AddDeviceResult.Added;
             });
         _ioddStore.Devices.Returns([deviceInfo1, deviceInfo2]);
 
@@ -244,11 +258,11 @@ public class AddIoddConsumerTests
         var command = new AddIodd(s_emptyZipDataFilename);
         var deviceInfo = DeviceInfoFactory.CreateDeviceInfo();
 
-        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
+        _ioddStore.AddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(x =>
             {
                 x[1] = new IoddId(310, 2);
-                return true;
+                return AddDeviceResult.Added;
             });
         _ioddStore.Devices.Returns([deviceInfo]);
 
@@ -256,7 +270,7 @@ public class AddIoddConsumerTests
         await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
 
         // Assert - Should complete without resource leaks
-        _ioddStore.Received(1).TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>());
+        _ioddStore.Received(1).AddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>());
     }
 
     [Fact]
@@ -274,7 +288,7 @@ public class AddIoddConsumerTests
             => k.Context.Message.Error?.ErrorCode == IoddChanged.IoddFileNotFound
             && k.Context.Message.CorrelationId == command.CorrelationId,
             TestContext.Current.CancellationToken)).Should().BeTrue();
-        _ioddStore.DidNotReceive().TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>());
+        _ioddStore.DidNotReceive().AddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>());
     }
 
     public static TheoryData<string> OutsideFilenames => [
@@ -300,7 +314,7 @@ public class AddIoddConsumerTests
             && k.Context.Message.CorrelationId == command.CorrelationId,
             TestContext.Current.CancellationToken)).Should().BeTrue();
         _filesystem.File.Exists(s_outsideFilename).Should().BeTrue();
-        _ioddStore.DidNotReceive().TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>());
+        _ioddStore.DidNotReceive().AddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>());
     }
 
     [Fact]
@@ -310,11 +324,11 @@ public class AddIoddConsumerTests
         await using var tester = new MassTransitTester(_configureServices);
         var command = new AddIodd(s_emptyZipDataFilename);
 
-        _ioddStore.TryAddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
+        _ioddStore.AddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
             .Returns(x =>
             {
                 x[1] = new IoddId(310, 2);
-                return true;
+                return AddDeviceResult.Added;
             });
         _ioddStore.Devices.Returns([DeviceInfoFactory.CreateDeviceInfo()]);
 
