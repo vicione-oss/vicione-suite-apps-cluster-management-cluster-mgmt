@@ -26,4 +26,9 @@ public enum EngineState
     Running,
     Starting,
     Stopping,
+
+    /// <summary>
+    /// The engine host could not start the engine; appended, so the values before keep their numbers.
+    /// </summary>
+    StartFailed,
 }

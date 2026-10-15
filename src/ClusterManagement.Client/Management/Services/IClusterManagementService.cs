@@ -1,4 +1,5 @@
 ﻿using ClusterManagement.Client.Management.Models;
+using ClusterManagement.Internal.Events;
 using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
 using ViciOne.Cluster.Model;
@@ -17,6 +18,11 @@ public interface IClusterManagementService
     event EventHandler<ClusterUpdateRejected>? OnClusterUpdateRejected;
     event EventHandler<ClusterNodeDeploymentStepChanged>? OnClusterNodeDeploymentStepChanged;
 
+    /// <summary>
+    /// Raised with the outcome of the last reset this service sent.
+    /// </summary>
+    event EventHandler<DeploymentStateReset>? OnDeploymentStateReset;
+
     Task DeployCluster(Guid clusterId, Version version, CancellationToken cancellationToken = default);
 
     Task<List<ClusterInfoModel>> QueryClusterVersions(Guid? clusterId = null, CancellationToken cancellationToken = default);
@@ -25,7 +31,10 @@ public interface IClusterManagementService
 
     Task<Cluster> QueryCluster(Guid clusterId, Version version, CancellationToken cancellationToken = default);
 
-    Task ResetSagaState(Guid clusterId, CancellationToken token);
+    /// <summary>
+    /// Removes every deployment state of the cluster; <see cref="OnDeploymentStateReset"/> tells what it removed.
+    /// </summary>
+    Task ResetSagaState(Guid clusterId, string requestedBy, CancellationToken token);
 
     Task<DeploymentState?> QueryClusterDeploymentState(Guid clusterId, CancellationToken cancellationToken = default);
 }

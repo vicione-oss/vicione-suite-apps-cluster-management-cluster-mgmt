@@ -269,6 +269,39 @@ public class DeploymentProgressModelTests
     }
 
     [Fact]
+    public void A_rollback_that_ends_without_errors_restored_the_previous_version()
+    {
+        // Arrange
+        var progress = Start();
+        progress.Apply(Transition("UpdatingDeployments"));
+        progress.Apply(Transition("RollingBackDeployments"));
+
+        // Act
+        progress.Fail(Failed("RollingBackDeployments") with { ErrorsByApplication = [] });
+
+        // Assert
+        progress.RollbackFailed.Should().BeFalse();
+        progress.FailurePhase.Should().Be(DeploymentPhase.UpdatingDeployments);
+        progress.GetSteps()[^1].Should().Be(new DeploymentStep(DeploymentPhase.RollingBack, DeploymentStepState.Done));
+    }
+
+    [Fact]
+    public void A_rollback_that_could_not_delete_the_failed_version_failed()
+    {
+        // Arrange
+        var progress = Start();
+        progress.Apply(Transition("UpdatingDeployments"));
+        progress.Apply(Transition("RollingBackCommit"));
+
+        // Act
+        progress.Fail(Failed("RollingBackCommit") with { ErrorsByApplication = [], FailedVersionKept = true });
+
+        // Assert
+        progress.RollbackFailed.Should().BeTrue();
+        progress.GetSteps()[^1].Should().Be(new DeploymentStep(DeploymentPhase.RollingBack, DeploymentStepState.Failed));
+    }
+
+    [Fact]
     public void Steps_of_a_failed_rollback_show_the_failed_phase_and_the_failed_rollback()
     {
         // Arrange
@@ -284,6 +317,27 @@ public class DeploymentProgressModelTests
         steps.Should().HaveCount(6);
         steps[2].Should().Be(new DeploymentStep(DeploymentPhase.UpdatingDeployments, DeploymentStepState.Failed));
         steps[^1].Should().Be(new DeploymentStep(DeploymentPhase.RollingBack, DeploymentStepState.Failed));
+    }
+
+    [Fact]
+    public void A_reset_marks_the_phase_the_deployment_hung_in()
+    {
+        // Arrange
+        var progress = DeploymentProgressModel.Resume(new DeploymentState(s_clusterId, "RollingBackCommit", new Version(0, 1, 1), s_targetVersion), null);
+
+        // Act
+        progress.Fail(new ClusterUpdateFailed(s_correlationId, s_clusterId, s_targetVersion)
+        {
+            State = "RollingBackCommit",
+            Reason = "The deployment state was reset",
+            WasReset = true,
+        });
+
+        // Assert
+        progress.WasReset.Should().BeTrue();
+        progress.RollbackFailed.Should().BeFalse();
+        progress.FailedPhase.Should().Be(DeploymentPhase.RollingBack);
+        progress.GetSteps()[^1].Should().Be(new DeploymentStep(DeploymentPhase.RollingBack, DeploymentStepState.Failed));
     }
 
     [Fact]

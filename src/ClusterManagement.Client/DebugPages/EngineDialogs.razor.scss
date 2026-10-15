@@ -1,0 +1,34 @@
+@use "./../Styles/design/colors";
+@use "./../Styles/overview";
+
+// The dialogs render outside the page's element, so their content is styled here, where it is written.
+.packages {
+    border-collapse: collapse;
+
+    th,
+    td {
+        padding: 3px 24px 3px 0;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    th {
+        font-weight: 500;
+        font-size: 12px;
+        @include overview.muted;
+    }
+
+    .mono {
+        @include overview.mono;
+    }
+}
+
+.dialog-question {
+    margin: 0 0 8px;
+    color: colors.$font-light;
+}
+
+.dialog-hint {
+    @include overview.muted;
+    margin: 0;
+}

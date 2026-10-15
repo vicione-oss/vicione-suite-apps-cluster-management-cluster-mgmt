@@ -1,4 +1,3 @@
-@use "./../../Styles/design/colors";
 @use "./../../Styles/overview";
 
 .dataflow-events {
@@ -14,15 +13,6 @@
 
     .content {
         padding: overview.$panel-padding;
-    }
-
-    .open-link {
-        color: colors.$primary;
-        text-decoration: none;
-
-        &:hover {
-            color: colors.$accent-hover;
-        }
     }
 
     .muted {

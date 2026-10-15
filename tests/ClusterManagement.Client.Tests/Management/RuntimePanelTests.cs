@@ -15,8 +15,10 @@ using Sdk.Client.Infrastructure;
 using Sdk.Connections.Contracts;
 using Sdk.Instance;
 using Sdk.Messaging;
+using Microsoft.Extensions.Time.Testing;
 using Sdk.Testing.Client;
 using ViciOne.Cluster.Model;
+using ViciOne.Ui.Blazor.Components.Button;
 
 namespace ClusterManagement.Client.Tests.Management;
 
@@ -25,13 +27,14 @@ public class RuntimePanelTests
     private readonly Guid _instanceId = Guid.NewGuid();
     private readonly Guid _otherInstanceId = Guid.NewGuid();
     private readonly Engine _engine = new() { Id = Guid.NewGuid(), Name = "DCW-Device-Scanner", MinCycleTime = 500 };
+    private Cluster? _reportingClusterValue;
     private readonly Engine _otherEngine = new() { Id = Guid.NewGuid(), Name = "Line-Monitor", MinCycleTime = 500 };
     private readonly MQTTnet.IMqttClient _client = Substitute.For<MQTTnet.IMqttClient>();
     private IUiMediator _mediator = default!;
     private BunitAuthorizationContext _authorization = default!;
 
     [Fact]
-    public async Task Shows_the_state_of_every_engine()
+    public async Task Shows_the_engines_with_their_charts_but_without_cycle_times_in_the_standard_view()
     {
         // Arrange
         await using var ctx = new BunitContext();
@@ -42,10 +45,114 @@ public class RuntimePanelTests
         var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_instanceId, _engine))));
 
         // Assert
+        sut.WaitForAssertion(() => sut.Find(".engine .state").TextContent.Should().Be(ClusterOverview.EngineRunning));
+        sut.FindAll(".host-head .name").Should().ContainSingle();
+        sut.FindAll(".host .cycle-chart").Should().HaveCount(2);
+        sut.FindAll(".cycle-value, .cycle-time").Should().BeEmpty();
+        sut.FindComponents<Button>().Should().NotContain(b => b.Instance.Text == ClusterOverview.OpenEngines);
+    }
+
+    [Fact]
+    public async Task Switches_to_the_expert_view_while_it_shows_the_engines()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        Setup(ctx);
+        StateOf(_instanceId).Returns(new GetEngineStateOnInstanceResponse { EngineState = EngineState.Running, DeploymentId = Guid.NewGuid() });
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_instanceId, _engine))));
+        sut.WaitForAssertion(() => sut.Find(".engine .state").TextContent.Should().Be(ClusterOverview.EngineRunning));
+
+        // Act
+        sut.Render(p => p.Add(c => c.Expert, true));
+
+        // Assert
+        sut.WaitForAssertion(() => sut.FindAll(".engine .cycle-value").Should().NotBeEmpty());
+    }
+
+    [Fact]
+    public async Task Offers_the_engines_page_in_the_expert_view()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        Setup(ctx);
+
+        // Act
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, Cluster((_instanceId, _engine))));
+
+        // Assert
+        sut.FindComponents<Button>().Should().ContainSingle(b => b.Instance.Text == ClusterOverview.OpenEngines);
+    }
+
+    [Fact]
+    public async Task Shows_the_state_of_every_engine()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        Setup(ctx);
+        StateOf(_instanceId).Returns(new GetEngineStateOnInstanceResponse { EngineState = EngineState.Running, DeploymentId = Guid.NewGuid() });
+
+        // Act
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, Cluster((_instanceId, _engine))));
+
+        // Assert
         sut.WaitForAssertion(() =>
         {
             sut.Find(".engine .state").TextContent.Should().Be(ClusterOverview.EngineRunning);
             sut.Find(".head-info .chip").TextContent.Should().Be(string.Format(CultureInfo.CurrentCulture, ClusterOverview.EnginesRunning, 1, 1));
+        });
+    }
+
+    [Fact]
+    public async Task Shows_the_engines_as_deploying_and_asks_them_once_the_deployment_ended()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        Setup(ctx);
+        StateOf(_instanceId).Returns(new GetEngineStateOnInstanceResponse { EngineState = EngineState.Running });
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Deployment, Guid.NewGuid()).Add(c => c.Cluster, Cluster((_instanceId, _engine))));
+        sut.WaitForAssertion(() => sut.Find(".engine .state").TextContent.Should().Be(ClusterOverview.EngineDeploying));
+        sut.Find(".head-info .chip").ClassList.Should().Contain("status-deploying");
+        await _mediator.DidNotReceiveWithAnyArgs().Request<GetEngineStateOnInstanceRequest, GetEngineStateOnInstanceResponse>(default!, default, Xunit.TestContext.Current.CancellationToken);
+
+        // Act
+        sut.Render(p => p.Add(c => c.Deployment, null));
+
+        // Assert
+        sut.WaitForAssertion(() => sut.Find(".engine .state").TextContent.Should().Be(ClusterOverview.EngineRunning));
+    }
+
+    [Fact]
+    public async Task Asks_the_engines_of_the_version_a_deployment_brought_once_it_ended()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        Setup(ctx);
+        StateOf(_instanceId).Returns(new GetEngineStateOnInstanceResponse { EngineState = EngineState.Running });
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Deployment, Guid.NewGuid()).Add(c => c.Cluster, Cluster((_instanceId, _engine))));
+
+        // Act
+        sut.Render(p => p.Add(c => c.Deployment, null).Add(c => c.Cluster, Cluster((_instanceId, _engine))));
+
+        // Assert
+        sut.WaitForAssertion(() => sut.Find(".engine .state").TextContent.Should().Be(ClusterOverview.EngineRunning));
+    }
+
+    [Fact]
+    public async Task Marks_an_engine_its_host_could_not_start()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        Setup(ctx);
+        StateOf(_instanceId).Returns(new GetEngineStateOnInstanceResponse { EngineState = EngineState.StartFailed });
+
+        // Act
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, Cluster((_instanceId, _engine))));
+
+        // Assert
+        sut.WaitForAssertion(() =>
+        {
+            sut.Find(".engine .state").TextContent.Should().Be(ClusterOverview.EngineStartFailed);
+            sut.Find(".engine .dot").ClassList.Should().Contain("status-failed");
         });
     }
 
@@ -58,7 +165,7 @@ public class RuntimePanelTests
         StateOf(_instanceId).Returns<GetEngineStateOnInstanceResponse>(_ => throw new TimeoutException());
 
         // Act
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_instanceId, _engine))));
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, Cluster((_instanceId, _engine))));
 
         // Assert
         sut.WaitForAssertion(() => sut.Find(".engine .state").TextContent.Should().Be(ClusterOverview.EngineNotReachable));
@@ -70,7 +177,8 @@ public class RuntimePanelTests
         // Arrange
         await using var ctx = new BunitContext();
         Setup(ctx);
-        ctx.Services.AddKeyedSingleton<TimeProvider>(Sdk.Constants.ClientTimeProviderServiceKey, new ImmediateTimeProvider());
+        var timers = new ManualTimersTimeProvider();
+        ctx.Services.AddKeyedSingleton<TimeProvider>(Sdk.Constants.ClientTimeProviderServiceKey, timers);
         var attempts = 0;
         StateOf(_instanceId).Returns(_ =>
         {
@@ -79,12 +187,12 @@ public class RuntimePanelTests
         });
 
         // Act
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_instanceId, _engine))));
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, Cluster((_instanceId, _engine))));
 
         // Assert
         sut.WaitForAssertion(() => sut.Find(".engine .state").TextContent.Should().Be(ClusterOverview.EngineNotDeployed));
-        await Task.Delay(200, Xunit.TestContext.Current.CancellationToken);
         attempts.Should().Be(1);
+        timers.Count(TimeSpan.FromSeconds(10)).Should().Be(0, "an engine host that is not asked again needs no retry");
     }
 
     [Fact]
@@ -96,7 +204,7 @@ public class RuntimePanelTests
         var timers = new ManualTimersTimeProvider();
         ctx.Services.AddKeyedSingleton<TimeProvider>(Sdk.Constants.ClientTimeProviderServiceKey, timers);
         StateOf(_instanceId).Returns<GetEngineStateOnInstanceResponse>(_ => throw new TimeoutException());
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_instanceId, _engine))));
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, Cluster((_instanceId, _engine))));
 
         // Act
         for (var i = 0; i < 3; i++)
@@ -104,29 +212,6 @@ public class RuntimePanelTests
 
         // Assert
         timers.Count(TimeSpan.FromSeconds(10)).Should().Be(1);
-    }
-
-    [Fact]
-    public async Task Keeps_the_newer_state_when_an_older_answer_arrives_later()
-    {
-        // Arrange
-        await using var ctx = new BunitContext();
-        Setup(ctx);
-        var firstAnswer = new TaskCompletionSource<GetEngineStateOnInstanceResponse>();
-        var queries = 0;
-        StateOf(_instanceId).Returns(_ => ++queries == 1
-            ? firstAnswer.Task
-            : Task.FromResult(new GetEngineStateOnInstanceResponse { EngineState = EngineState.Running }));
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_instanceId, _engine))));
-        await sut.InvokeAsync(() => sut.Instance.Consume(new ClientContext<EngineStarted>(new EngineStarted(_engine.Id), Guid.NewGuid()), CancellationToken.None));
-        sut.WaitForAssertion(() => sut.Find(".engine .state").TextContent.Should().Be(ClusterOverview.EngineRunning));
-
-        // Act
-        firstAnswer.SetException(new TimeoutException());
-        await Task.Delay(300, Xunit.TestContext.Current.CancellationToken);
-
-        // Assert
-        sut.Find(".engine .state").TextContent.Should().Be(ClusterOverview.EngineRunning);
     }
 
     [Fact]
@@ -139,13 +224,13 @@ public class RuntimePanelTests
         StateOf(_instanceId).Returns(new TaskCompletionSource<GetEngineStateOnInstanceResponse>().Task);
 
         // Act
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_instanceId, _engine))));
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, Cluster((_instanceId, _engine))));
 
         // Assert
         sut.WaitForAssertion(() =>
         {
             sut.Find(".engine .state").TextContent.Should().Be(ClusterOverview.EngineNotReachable);
-            sut.Find(".head-info .checked").TextContent.Should().NotBe("…");
+            sut.Find(".head-info .chip").ClassList.Should().Contain("status-warning");
         });
     }
 
@@ -162,7 +247,7 @@ public class RuntimePanelTests
             : Task.FromResult(new GetEngineStateOnInstanceResponse { EngineState = EngineState.Running }));
 
         // Act
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_instanceId, _engine))));
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, Cluster((_instanceId, _engine))));
 
         // Assert
         sut.WaitForAssertion(() => sut.Find(".engine .state").TextContent.Should().Be(ClusterOverview.EngineRunning));
@@ -183,7 +268,7 @@ public class RuntimePanelTests
             : Task.FromResult(new GetEngineStateOnInstanceResponse { EngineState = EngineState.Running }));
 
         // Act
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_instanceId, _engine))));
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, Cluster((_instanceId, _engine))));
 
         // Assert
         sut.WaitForAssertion(() => sut.Find(".engine .state").TextContent.Should().Be(ClusterOverview.EngineRunning));
@@ -201,7 +286,7 @@ public class RuntimePanelTests
         StateOf(_instanceId).Returns(_ => ++attempts == 1
             ? Task.FromResult(new GetEngineStateOnInstanceResponse(new ErrorInfo(ClusterErrors.EngineNotDeployed, "Cannot find engine")))
             : Task.FromException<GetEngineStateOnInstanceResponse>(new TimeoutException()));
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_instanceId, _engine))));
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, Cluster((_instanceId, _engine))));
         sut.WaitForAssertion(() => sut.Find(".engine .state").TextContent.Should().Be(ClusterOverview.EngineNotDeployed));
 
         // Act
@@ -221,7 +306,7 @@ public class RuntimePanelTests
         StateOf(_otherInstanceId).Returns(new TaskCompletionSource<GetEngineStateOnInstanceResponse>().Task);
 
         // Act
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_instanceId, _engine), (_otherInstanceId, _otherEngine))));
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, Cluster((_instanceId, _engine), (_otherInstanceId, _otherEngine))));
 
         // Assert
         sut.WaitForAssertion(() => sut.FindAll(".engine .state").Select(s => s.TextContent).Should().Equal(ClusterOverview.EngineRunning, "…"));
@@ -234,7 +319,7 @@ public class RuntimePanelTests
         await using var ctx = new BunitContext();
         Setup(ctx);
         StateOf(_instanceId).Returns(new GetEngineStateOnInstanceResponse { EngineState = EngineState.Running });
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_instanceId, _engine), (_instanceId, _otherEngine))));
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, Cluster((_instanceId, _engine), (_instanceId, _otherEngine))));
         sut.WaitForAssertion(() => sut.FindAll(".engine .state").Select(s => s.TextContent).Should().AllBe(ClusterOverview.EngineRunning));
         _mediator.ClearReceivedCalls();
 
@@ -261,7 +346,7 @@ public class RuntimePanelTests
             queries++;
             return new TaskCompletionSource<GetEngineStateOnInstanceResponse>().Task;
         });
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_instanceId, _engine))));
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, Cluster((_instanceId, _engine))));
 
         // Act
         await sut.InvokeAsync(() => sut.Instance.Consume(new ClientContext<EngineStopped>(new EngineStopped(_engine.Id), Guid.NewGuid()), CancellationToken.None))
@@ -280,7 +365,7 @@ public class RuntimePanelTests
         StateOf(_instanceId).Returns(new GetEngineStateOnInstanceResponse { EngineState = EngineState.Running });
         ctx.Services.AddKeyedSingleton<TimeProvider>(Sdk.Constants.ClientTimeProviderServiceKey, new StoppedTimersTimeProvider());
         var cluster = Cluster((_instanceId, _engine));
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, cluster));
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, cluster));
         sut.WaitForAssertion(() => sut.Find(".engine .state").TextContent.Should().Be(ClusterOverview.EngineRunning));
         var renders = sut.RenderCount;
 
@@ -289,6 +374,55 @@ public class RuntimePanelTests
 
         // Assert
         sut.RenderCount.Should().Be(renders);
+    }
+
+    [Fact]
+    public async Task Asks_the_engines_of_a_host_again_once_it_stops_reporting()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var (sut, clock, queries) = RenderReporting(ctx, reportsAtStart: true);
+        Tick(sut, clock);
+
+        // Act
+        clock.Advance(TimeSpan.FromSeconds(6));
+
+        // Assert
+        sut.WaitForAssertion(() => queries().Should().Be(2));
+    }
+
+    [Fact]
+    public async Task Asks_the_engines_of_a_host_again_once_it_reports_again()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var (sut, clock, queries) = RenderReporting(ctx, reportsAtStart: false);
+        Tick(sut, clock);
+
+        // Act
+        Report(ctx, clock.GetUtcNow());
+        clock.Advance(TimeSpan.FromSeconds(1));
+
+        // Assert
+        sut.WaitForAssertion(() => queries().Should().Be(2));
+    }
+
+    [Fact]
+    public async Task Does_not_ask_again_while_a_host_keeps_reporting()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var (sut, clock, queries) = RenderReporting(ctx, reportsAtStart: true);
+
+        // Act
+        for (var second = 0; second < 8; second++)
+        {
+            Report(ctx, clock.GetUtcNow());
+            Tick(sut, clock);
+        }
+
+        // Assert
+        queries().Should().Be(1);
     }
 
     [Fact]
@@ -303,7 +437,7 @@ public class RuntimePanelTests
         ctx.Services.GetRequiredService<EngineCycleHub>().Series.Add(hostId, new EngineCycleReport(650, []), DateTimeOffset.UtcNow);
 
         // Act
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, cluster));
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, cluster));
 
         // Assert
         sut.WaitForAssertion(() =>
@@ -326,7 +460,7 @@ public class RuntimePanelTests
         ctx.Services.GetRequiredService<EngineCycleHub>().Series.Add(cluster.NodeGroups[0].Nodes[0].Applications[0].EngineHosts[0].Id, new EngineCycleReport(120, []), DateTimeOffset.UtcNow);
 
         // Act
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, cluster));
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, cluster));
 
         // Assert
         sut.FindAll(".chip.status-warning").Should().BeEmpty();
@@ -351,7 +485,7 @@ public class RuntimePanelTests
         AllowLogViewer();
 
         // Act
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, cluster));
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, cluster));
 
         // Assert
         sut.Find(".host-head a.log-link").GetAttribute("href").Should().Be(
@@ -368,7 +502,7 @@ public class RuntimePanelTests
         AllowLogViewer();
 
         // Act
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_otherInstanceId, _otherEngine))));
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, Cluster((_otherInstanceId, _otherEngine))));
 
         // Assert
         var logLink = sut.Find(".host-head .log-link");
@@ -384,7 +518,7 @@ public class RuntimePanelTests
         Setup(ctx);
 
         // Act
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_instanceId, _engine), (_otherInstanceId, _otherEngine))));
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, Cluster((_instanceId, _engine), (_otherInstanceId, _otherEngine))));
 
         // Assert
         sut.FindAll(".log-link").Should().BeEmpty();
@@ -397,7 +531,7 @@ public class RuntimePanelTests
         // Arrange
         await using var ctx = new BunitContext();
         Setup(ctx);
-        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, Cluster((_instanceId, _engine))));
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, Cluster((_instanceId, _engine))));
         _client.IsConnected.Returns(true);
 
         // Act
@@ -472,6 +606,40 @@ public class RuntimePanelTests
         ctx.Services.AddSingleton(services => new EngineCycleMonitor(brokerProvider, services.GetRequiredService<EngineCycleHub>(),
             Substitute.For<ILogger<EngineCycleMonitor>>()));
     }
+
+    // The panel on a clock of its own, with the number of state queries it sent so far.
+    private (IRenderedComponent<RuntimePanel> Panel, FakeTimeProvider Clock, Func<int> Queries) RenderReporting(BunitContext ctx, bool reportsAtStart)
+    {
+        Setup(ctx);
+        FakeTimeProvider clock = new(new DateTimeOffset(2026, 10, 11, 12, 0, 0, TimeSpan.Zero));
+        ctx.Services.AddKeyedSingleton<TimeProvider>(Sdk.Constants.ClientTimeProviderServiceKey, clock);
+        var queries = 0;
+        StateOf(_instanceId).Returns(_ =>
+        {
+            Interlocked.Increment(ref queries);
+            return Task.FromResult(new GetEngineStateOnInstanceResponse { EngineState = EngineState.Running });
+        });
+        if (reportsAtStart)
+            Report(ctx, clock.GetUtcNow());
+
+        var panel = ctx.Render<RuntimePanel>(p => p.Add(c => c.Cluster, ReportingCluster));
+        panel.WaitForAssertion(() => Volatile.Read(ref queries).Should().Be(1));
+        return (panel, clock, () => Volatile.Read(ref queries));
+    }
+
+    private Cluster ReportingCluster => _reportingClusterValue ??= Cluster((_instanceId, _engine));
+
+    // Each second the panel checks whether its hosts report, and renders.
+    private static void Tick(IRenderedComponent<RuntimePanel> sut, FakeTimeProvider clock)
+    {
+        var renders = sut.RenderCount;
+        clock.Advance(TimeSpan.FromSeconds(1));
+        sut.WaitForState(() => sut.RenderCount > renders);
+    }
+
+    private void Report(BunitContext ctx, DateTimeOffset at)
+        => ctx.Services.GetRequiredService<EngineCycleHub>().Series.Add(
+            ReportingCluster.NodeGroups[0].Nodes[0].Applications[0].EngineHosts[0].Id, new EngineCycleReport(1, []), at);
 
     private void AllowLogViewer()
         => _authorization.SetPolicies(RuntimePanel.LogViewerPolicy!);

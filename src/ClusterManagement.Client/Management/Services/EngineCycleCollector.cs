@@ -75,9 +75,9 @@ internal sealed partial class EngineCycleCollector(IServiceScopeFactory scopeFac
             var engineHosts = await RunningEngineHosts(services.GetRequiredService<IClusterService>(), cancellationToken);
             var monitor = services.GetRequiredService<EngineCycleMonitor>();
             if (engineHosts.Count > 0)
-                return await monitor.Watch(engineHosts, cancellationToken);
+                return await monitor.Watch(this, engineHosts, cancellationToken);
 
-            await monitor.Stop();
+            await monitor.Stop(this);
             return true;
         }
         catch (Exception e) when (e is not OperationCanceledException)

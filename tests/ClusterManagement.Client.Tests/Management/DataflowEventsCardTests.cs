@@ -22,10 +22,24 @@ public class DataflowEventsCardTests
         Setup(ctx, DataflowEventTestUtils.CreateInputEvent(), DataflowEventTestUtils.CreateOutputEvent(), DataflowEventTestUtils.CreateOutputEvent());
 
         // Act
-        var sut = ctx.Render<DataflowEventsCard>(p => p.Add(c => c.ActiveVersion, new Version(0, 1, 1)));
+        var sut = ctx.Render<DataflowEventsCard>(p => p.Add(c => c.Expert, true).Add(c => c.ActiveVersion, new Version(0, 1, 1)));
 
         // Assert
         sut.WaitForAssertion(() => sut.Find(".content").TextContent.Should().Be(string.Format(CultureInfo.CurrentCulture, ClusterOverview.DataflowEventCount, 3, 1)));
+    }
+
+    [Fact]
+    public async Task Counts_only_the_event_datapoints_in_the_standard_view()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        Setup(ctx, DataflowEventTestUtils.CreateInputEvent(), DataflowEventTestUtils.CreateOutputEvent());
+
+        // Act
+        var sut = ctx.Render<DataflowEventsCard>(p => p.Add(c => c.ActiveVersion, new Version(0, 1, 1)));
+
+        // Assert
+        sut.WaitForAssertion(() => sut.Find(".content").TextContent.Should().Be(string.Format(CultureInfo.CurrentCulture, ClusterOverview.DataflowEventTotal, 2)));
     }
 
     [Fact]
@@ -36,7 +50,7 @@ public class DataflowEventsCardTests
         Setup(ctx);
 
         // Act
-        var sut = ctx.Render<DataflowEventsCard>(p => p.Add(c => c.ActiveVersion, new Version(0, 1, 1)));
+        var sut = ctx.Render<DataflowEventsCard>(p => p.Add(c => c.Expert, true).Add(c => c.ActiveVersion, new Version(0, 1, 1)));
 
         // Assert
         sut.WaitForAssertion(() => sut.Find(".content").TextContent.Should().Be(ClusterOverview.NoDataflowEvents));
@@ -48,7 +62,7 @@ public class DataflowEventsCardTests
         // Arrange
         await using var ctx = new BunitContext();
         Setup(ctx);
-        var sut = ctx.Render<DataflowEventsCard>(p => p.Add(c => c.ActiveVersion, new Version(0, 1, 1)));
+        var sut = ctx.Render<DataflowEventsCard>(p => p.Add(c => c.Expert, true).Add(c => c.ActiveVersion, new Version(0, 1, 1)));
 #pragma warning disable xUnit1051 // The card calls the overload without a token, so that is the one to set up.
         _eventBroker.GetEvents().Returns([DataflowEventTestUtils.CreateInputEvent()]);
 #pragma warning restore xUnit1051
@@ -71,7 +85,7 @@ public class DataflowEventsCardTests
 #pragma warning restore xUnit1051
 
         // Act
-        var sut = ctx.Render<DataflowEventsCard>(p => p.Add(c => c.ActiveVersion, new Version(0, 1, 1)));
+        var sut = ctx.Render<DataflowEventsCard>(p => p.Add(c => c.Expert, true).Add(c => c.ActiveVersion, new Version(0, 1, 1)));
 
         // Assert
         sut.WaitForAssertion(() => sut.Find(".content").TextContent.Should().Be("–"));

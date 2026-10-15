@@ -2,13 +2,13 @@ using System.Globalization;
 using ClusterManagement.Client.DataflowEvents.Models;
 using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Client.Extensions;
+using ClusterManagement.Client.Management.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web.Virtualization;
 using Microsoft.JSInterop;
 using ViciOne.Ui.Blazor.Components.Button.Enums;
 using ViciOne.Ui.Blazor.Components.Button.Extensions;
 using ViciOne.Ui.ColorableIcons;
-using ViciOne.Ui.Localization.Resources;
 using ViciOne.Ui.MonochromeIcons.Core.Enums;
 using ViciOne.Ui.MonochromeIcons.Core.Extensions;
 
@@ -20,13 +20,10 @@ public sealed partial class DataflowEventsPage
     // The container tree always starts with its dataflows only.
     private const int ExpandedEventLimit = 60;
     private const int ConnectorIconSize = 24;
-    private const string LegendColor = "rgb(140, 140, 140)";
     private const string TreeKeysModule = "./_content/ViciOne.Suite.ClusterManagement.Client/DataflowEvents/DataflowEventsPage.razor.js";
 
     private static readonly TimeSpan s_copiedDuration = TimeSpan.FromSeconds(1.5);
     private static readonly TimeSpan s_renderDelay = TimeSpan.FromMilliseconds(250);
-    private static readonly MarkupString s_legendInputIcon = new(ColoredIconFactory.GetConnectorIcon(LegendColor, true, ConnectorIconSize));
-    private static readonly MarkupString s_legendOutputIcon = new(ColoredIconFactory.GetConnectorIcon(LegendColor, false, ConnectorIconSize));
 
     private readonly string _sendIconCssClass = MonochromeIconName.SendLight.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
     private readonly string _copyIconCssClass = MonochromeIconName.Duplicate.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
@@ -63,29 +60,17 @@ public sealed partial class DataflowEventsPage
     [Inject(Key = Sdk.Constants.ClientTimeProviderServiceKey)]
     private TimeProvider TimeProvider { get; set; } = default!;
 
-    protected override string PageTitle => Localization.DataflowEventsPage.PageTitle;
+    [Inject]
+    private ExpertViewState ExpertView { get; set; } = default!;
 
-    private static IEnumerable<(DataflowEventGrouping Grouping, string Label)> Groupings => [
-        (DataflowEventGrouping.None, Localization.DataflowEventsPage.GroupByNone),
-        (DataflowEventGrouping.Dataflow, Localization.DataflowEventsPage.GroupByDataflow),
-        (DataflowEventGrouping.Container, Localization.DataflowEventsPage.GroupByContainer),
-        (DataflowEventGrouping.FunctionBlock, Localization.DataflowEventsPage.GroupByFunctionBlock),
-        (DataflowEventGrouping.Direction, Localization.DataflowEventsPage.GroupByDirection),
-        (DataflowEventGrouping.ValueType, Localization.DataflowEventsPage.GroupByValueType),
-    ];
+    private bool Expert => ExpertView.IsExpert;
 
-    private static IEnumerable<(DataflowEventDirection Direction, string Label)> Directions => [
-        (DataflowEventDirection.All, CommonVocabulary.All),
-        (DataflowEventDirection.Inputs, Localization.DataflowEventsPage.Inputs),
-        (DataflowEventDirection.Outputs, Localization.DataflowEventsPage.Outputs),
-    ];
+    private int ColumnCount => Expert ? 6 : 5;
+
+    // The top bar keeps the app's name; the page bar says which page of it this is.
+    protected override string PageTitle => Management.Localization.Common.ModuleTitle;
 
     private int ShownCount => _nodes.Sum(n => n.Group.Events.Count);
-
-    private bool IsAnyGroupExpanded => _nodes.Any(IsExpanded);
-
-    private string ToggleExpansionText
-        => string.Format(CultureInfo.CurrentCulture, IsAnyGroupExpanded ? UserActions.CollapseSomething : UserActions.ExpandSomething, CommonVocabulary.All);
 
     protected override async Task OnInitializedAsync()
     {
@@ -97,6 +82,7 @@ public sealed partial class DataflowEventsPage
         UpdateGroups();
         PageService.RefreshRequested += OnRefreshRequested;
         PageService.EventsChanged += OnEventsChanged;
+        ExpertView.Changed += OnExpertViewChanged;
     }
 
     protected override async Task OnAfterRenderedAsync(bool firstRender)
@@ -105,7 +91,16 @@ public sealed partial class DataflowEventsPage
         if (!firstRender)
             return;
 
-        _treeKeys = await JSRuntime.InvokeAsync<IJSObjectReference>("import", _tokenSource.Token, TreeKeysModule);
+        var treeKeys = await JSRuntime.InvokeAsync<IJSObjectReference>("import", _tokenSource.Token, TreeKeysModule);
+
+        // A page left while the module loaded is already disposed, so nothing would dispose the module later.
+        if (_tokenSource.IsCancellationRequested)
+        {
+            await treeKeys.DisposeAsync();
+            return;
+        }
+
+        _treeKeys = treeKeys;
         await _treeKeys.InvokeVoidAsync("attach", _tokenSource.Token, _table);
     }
 
@@ -224,9 +219,8 @@ public sealed partial class DataflowEventsPage
         UpdateRows();
     }
 
-    private void ToggleExpansion()
+    private void SetExpansion(bool expand)
     {
-        var expand = !IsAnyGroupExpanded;
         if (IsFiltered)
             _expandFilteredByDefault = expand;
         else
@@ -240,7 +234,7 @@ public sealed partial class DataflowEventsPage
     {
         try
         {
-            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", _tokenSource.Token, dataflowEvent.Value);
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", _tokenSource.Token, dataflowEvent.ReadableValue);
         }
         catch (JSException)
         {
@@ -270,9 +264,6 @@ public sealed partial class DataflowEventsPage
             // The page was closed.
         }
     }
-
-    private static string ChipCssClass(bool isActive)
-        => isActive ? "chip-toggle active" : "chip-toggle";
 
     private static string? IndentStyle(int? level)
         => level is { } value ? string.Create(CultureInfo.InvariantCulture, $"--level: {value}") : null;
@@ -318,8 +309,12 @@ public sealed partial class DataflowEventsPage
             dataflowEvent.CanWrite ? Localization.DataflowEventsPage.InputTitle : Localization.DataflowEventsPage.OutputTitle,
             ValueTypeNames.Short(dataflowEvent.ValueType));
 
+    private void OnExpertViewChanged()
+        => _ = InvokeAsync(StateHasChanged);
+
     // A value without a timestamp arrives with DateTime.MinValue; it shows no time instead of midnight.
-    // The date shows only for a value from an earlier day, so today's values stay short.
+    // The date shows only for a value from an earlier day, so today's values stay short; the Expert view adds the
+    // milliseconds.
     private string TimeText(DateTime? timestamp)
     {
         if (timestamp is not { } value || value == default)
@@ -328,7 +323,8 @@ public sealed partial class DataflowEventsPage
         var zone = TimeProvider.LocalTimeZone;
         var received = AsUtc(value);
         var isToday = TimeZoneInfo.ConvertTime(received, zone).Date == TimeZoneInfo.ConvertTime(TimeProvider.GetUtcNow(), zone).Date;
-        return isToday ? received.To24HourTime(zone) : received.ToShortDateAnd24HourTime(zone);
+        var time = isToday ? received.To24HourTime(zone) : received.ToShortDateAnd24HourTime(zone);
+        return Expert ? $"{time}.{received.Millisecond:000}" : time;
     }
 
     private string? TimeTitle(DateTime? timestamp)
@@ -398,18 +394,20 @@ public sealed partial class DataflowEventsPage
             await PageService.DisposeAsync();
         }
 
-        await DetachTreeKeys();
+        ExpertView?.Changed -= OnExpertViewChanged;
+
+        await DisposeTreeKeys();
         await base.DisposeInternal();
     }
 
-    private async Task DetachTreeKeys()
+    // Leaving the page removes the table, and its key handling with it, before the page is disposed.
+    private async Task DisposeTreeKeys()
     {
         if (_treeKeys is null)
             return;
 
         try
         {
-            await _treeKeys.InvokeVoidAsync("detach", _table);
             await _treeKeys.DisposeAsync();
         }
         catch (JSDisconnectedException)

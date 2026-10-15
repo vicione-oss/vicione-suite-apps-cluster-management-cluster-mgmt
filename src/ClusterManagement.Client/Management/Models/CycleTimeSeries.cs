@@ -1,9 +1,9 @@
 namespace ClusterManagement.Client.Management.Models;
 
 /// <summary>
-/// Keeps the slowest cycle duration of every second per source, for the last <see cref="Seconds"/> seconds. A source
-/// without a report in that time is dropped, such as the deployment id of a replaced version, so the series holds only
-/// what currently reports.
+/// Keeps the slowest cycle duration of every second per source, for the last <see cref="Seconds"/> seconds, and the
+/// fastest and slowest cycle since the source began to report. A source without a report in that time is dropped, such
+/// as the deployment id of a replaced version, so the series holds only what currently reports.
 /// </summary>
 /// <remarks>Written from the MQTT receive loop and read while rendering, so every member locks.</remarks>
 public sealed class CycleTimeSeries(int seconds = 60)
@@ -11,6 +11,7 @@ public sealed class CycleTimeSeries(int seconds = 60)
     private readonly Lock _lock = new();
     private readonly Dictionary<Guid, List<(long Second, double Milliseconds)>> _buckets = [];
     private readonly Dictionary<Guid, double> _latest = [];
+    private readonly Dictionary<Guid, CycleRange> _ranges = [];
     private long _lastSweep;
 
     public int Seconds { get; } = seconds;
@@ -38,6 +39,7 @@ public sealed class CycleTimeSeries(int seconds = 60)
         {
             _buckets.Clear();
             _latest.Clear();
+            _ranges.Clear();
         }
     }
 
@@ -52,6 +54,27 @@ public sealed class CycleTimeSeries(int seconds = 60)
             DropSilentSourcesLocked(now.ToUnixTimeSeconds());
             return _latest.TryGetValue(source, out var value) ? value : null;
         }
+    }
+
+    /// <summary>
+    /// The fastest and slowest cycle <paramref name="source"/> reported since it began to report; <c>null</c> before
+    /// its first report, and once a later report or read of another source finds it silent for <see cref="Seconds"/>
+    /// seconds.
+    /// </summary>
+    public CycleRange? Range(Guid source)
+    {
+        lock (_lock)
+            return _ranges.TryGetValue(source, out var range) ? range : null;
+    }
+
+    /// <summary>
+    /// The second <paramref name="source"/> reported last; <c>null</c> before its first report, and once a later report or
+    /// read of another source finds it silent for <see cref="Seconds"/> seconds.
+    /// </summary>
+    public DateTimeOffset? LastReport(Guid source)
+    {
+        lock (_lock)
+            return _buckets.TryGetValue(source, out var buckets) ? DateTimeOffset.FromUnixTimeSeconds(buckets[^1].Second) : null;
     }
 
     /// <summary>
@@ -82,6 +105,9 @@ public sealed class CycleTimeSeries(int seconds = 60)
     {
         DropSilentSourcesLocked(second);
         _latest[source] = milliseconds;
+        _ranges[source] = _ranges.TryGetValue(source, out var range)
+            ? range.With(milliseconds)
+            : new CycleRange(milliseconds, milliseconds, DateTimeOffset.FromUnixTimeSeconds(second));
 
         if (!_buckets.TryGetValue(source, out var buckets))
             _buckets[source] = buckets = [];
@@ -111,7 +137,17 @@ public sealed class CycleTimeSeries(int seconds = 60)
             {
                 _buckets.Remove(source);
                 _latest.Remove(source);
+                _ranges.Remove(source);
             }
         }
     }
+}
+
+/// <summary>
+/// The fastest and slowest cycle of a source in milliseconds, recorded since <paramref name="Since"/>.
+/// </summary>
+public readonly record struct CycleRange(double Fastest, double Slowest, DateTimeOffset Since)
+{
+    public CycleRange With(double milliseconds)
+        => this with { Fastest = Math.Min(Fastest, milliseconds), Slowest = Math.Max(Slowest, milliseconds) };
 }

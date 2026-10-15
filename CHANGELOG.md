@@ -11,19 +11,24 @@
   - `OpcUaServerConnection` contract and `ConnectionType.OpcUaServer` / `Connection.SetOpcUaServerConnection` / `Connection.GetOpcUaServerConnection` extension members for configuring a server-side OPC UA connection, bound to a single network interface by name
   - `ClusterNodeDeploymentStepChanged` event, published by every instance when a step of its deployment starts, succeeds, fails or is refused by the engine host, with the engine host or engine it works on
   - `DeploymentState.CorrelationId`, the correlation id of the running deployment's events
+  - `ClusterUpdateFailed.WasReset`, set when a deployment did not fail on its own but its state was reset
+  - `ClusterUpdateFailed.FailedVersionKept`, set when the rollback could not delete the failed version
+  - `Constants.EngineControlFeature`, the module feature a role needs to start, stop and tear down engines
   - OPC UA client and server connections can be created and edited in the suite's connection settings dialog: the backend registers both types with `IConnectionTypeRegistry`, and the client contributes localized settings components and validators via `IConnectionTypeUiRegistry`
   - `OpcUaClientConnection.GetCertificateStoreProperties` / `OpcUaServerConnection.GetCertificateStoreProperties` extension members, the store type and store path properties of the OPC UA DataPorts keyed by property id, for generating a DataPort from a connection
 - OPC UA connection settings list, upload and delete the certificates of their certificate stores
 - OPC UA certificate stores stay valid when a backup is restored on an instance with another home directory
 - Deleting an OPC UA connection deletes its certificates
 - Cluster Manager collects the cycle reports of every engine host in the running version from module start, over one MQTT connection per broker, so its cycle time charts are filled when the page opens
-- Cluster Manager runtime panel: engine state per engine host, live cycle time chart per engine and per engine host chain read from the broker its instance deployed it with, and a journal link per engine host on the same instance for users allowed to view the log
+- Cluster Manager runtime panel: engine state per engine host, live cycle time chart per engine and per engine host chain read from the broker its instance deployed it with, and a journal link per engine host on the same instance for users allowed to view the log; the engine states stay current without a refresh button, also when an engine host stops or comes back
 - Cluster Manager marks engine hosts whose chain takes longer than its cycle time
 - Cluster Manager warns when a deployment is rejected because another one is still running
 - Cluster Manager names the step and the engine host or engine a failed instance stopped at
 - Cluster Manager lists the steps of each instance of a deployment with their durations, and the step a working instance is on and for how long
 - Cluster Manager shows the steps of a standalone instance only once its update has ended
 - Cluster Manager deploys the default cluster from a quick action in the version list, after a confirmation
+- Cluster Manager Expert view, switched on in the page bar for the session: adds the topology counts, the cycle times and journal links of the engine hosts, the steps of each instance, the deployment state, the packages, downloading and deleting versions and the Engines page; the Standard view keeps every state and error
+- Event Viewer marks values the engine sent as invalid; its Expert view adds the engine cycle that sent each value and the milliseconds of its time
 - Deploy DataPort trees with envelope children (datapoints under a datapoint): the parent keeps its own connector and channel, and every child gets a connector that the parent transfers with the parent's transfer mode; serving them needs a DataPort provider built for envelope children (`dp-mqtt` from `2.0.0`)
 
 ### Removed
@@ -35,13 +40,18 @@
 
 - New OPC UA server connections default to the security policy Basic256Sha256 - Sign & Encrypt
 - Cluster Manager shows the running cluster with its deployment time, topology counts and packages next to a version timeline
-- Cluster Manager opens the dataflow events from a card on the page instead of a toolbar button, and its deployment state tools (Get Saga, Reset Saga) sit in the cluster header
+- Cluster Manager opens the Event Viewer from a card on the page instead of a toolbar button, and its deployment state tools (Get Saga, Reset Saga) sit in the header of the deployment panel
+- Cluster Manager pages share a page bar with a trail from the cluster to its pages, what the running cluster is doing and the page's actions; the top bar names the Cluster Manager on every page
+- Cluster Manager tile describes the module as "Deploy & monitor versions"
 - Dataflow events page matches the Cluster Manager, opens with a tree of dataflows and their containers that expands one level at a time, opens or closes a group with a click anywhere on its row, groups events by dataflow, function block, input or output, or value type, subscribes the outputs in view instead of offering subscribe buttons, writes Boolean inputs with a checkbox and other inputs with Enter or the send button, and copies a value with a click
 - Dataflow events page reloads its events after a deployment, so its refresh button is gone
-- Dataflow events page links back to the Cluster Manager with the running version, or the deployment in progress and its phase
+- Event Viewer searches, groups, filters and opens or closes all groups from one toolbar at the head of its table, with the expand and collapse icons of the cluster editor
 - Cluster Manager deployments show their phases, the error of each instance and whether the rollback succeeded, instead of a status and duration column
 - Deleting a cluster version asks for confirmation
-- Replaced DevExpress `DxGrid` with `SimpleTable` on the debug engines page
+- Engines page shows its actions only in the Expert view
+- **Breaking:** Starting, stopping and tearing down engines and resetting the deployment state need the new `Engine control` feature, which the Administrator role gets at the next start; grant it to other roles that need it, and their users log in again. The feature only hides these actions in the pages; the backend does not check it
+- Engines page lists the engines under their engine host in the order they run, with their state and latest cycle and the host's cycle against its cycle time; the Expert view adds their order, ids, the fastest and slowest cycle since the Cluster Manager receives the cycles of the engine host, function blocks and log level, and tearing down an engine asks first
+- Resetting the deployment state asks for confirmation, ends every deployment of the cluster as failed so nothing waits for it, logs who reset it and says what it reset; it also works while a hung deployment blocks other commands
 - Package uploads in the cluster editor now stream to disk instead of loading the whole archive into memory, increasing the maximum package upload size from 2 MB to 10 MB
 - IODD downloads are grouped by vendor, one archive per vendor instead of one per selected device variant
 - Failed IODD uploads show an error banner, and the IODD action buttons match the package panel
@@ -74,11 +84,22 @@
 - `ViciOne.Ui.Localization` package, update version to `3.6.0`
 - `ViciOne.Tree.Builder` package, update version to `3.1.0`
 - Rename the company to `ViciOne open automation gmbh` in the license and the package metadata
+- Cluster Manager and Event Viewer call FunctionBlocks by their name, in English and German
+- Cluster Manager version list, Engines page and Event Viewer show the actions of a row only while the pointer or the keyboard focus is on it, unless the screen has no pointer that hovers
 
 ### Fixed
 
 - Parallel deployments of one cluster no longer leave a deployment in `CleaningCluster` or fail the deployment state request
 - Two deployments completing close together no longer break the reconnect of the dataflow event connection
+- Asking for the state of an engine answers with an error when it fails unexpectedly, instead of failing the request
+- Cluster Manager shows an engine its host could not start as "Start failed" instead of stopped
+- Engines page lists every engine once and shows each state as it arrives, instead of after asking every engine one after the other
+- Engines page and Runtime panel show the engines as deploying while a deployment runs and ask them once it ends, instead of waiting for engine hosts the deployment restarts and warning that they did not answer
+- Cluster Manager buttons light up on hover and keep no accent border after a click
+- Event Viewer keeps the room of its connector column on screens narrower than 1000px instead of an empty column beside the others
+- Cluster Manager shows the hidden versions when the version list is expanded, instead of a scroll area as high as the collapsed list
+- Cluster Manager names a count of one in the singular, such as "1 Node" and "1 more version"
+- Event Viewer shows and copies characters such as °, ä or µ in values as themselves instead of escaped like `\u00B0`
 - `ClusterSerializer` reads several clusters at the same time; concurrent reads corrupted its type cache and failed the load
 - Downloading IODDs no longer produces redundant archives with identical content for devices with multiple product variants
 - Load function blocks dialog, checking a function block no longer affects an equally named one in another namespace (e.g. `ACX.ViciOne.FunctionBlocks.Test` and `ACX.ViciOne.StandardFunction.Test`)

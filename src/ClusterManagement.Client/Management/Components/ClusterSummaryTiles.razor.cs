@@ -11,15 +11,22 @@ public sealed partial class ClusterSummaryTiles
 {
     [Parameter, EditorRequired] public ClusterTopologySummary Summary { get; set; } = default!;
 
-    private Tile[] Tiles => [
-        new(Summary.Nodes, null, ClusterOverview.Nodes, null),
-        new(Summary.Instances, null, TechnicalTerms.InstancePlural, null),
-        new(Summary.EngineHosts, null, ClusterOverview.EngineHosts, null),
-        new(Summary.Engines, null, ClusterOverview.Engines, null),
-        new(Summary.Dataflows, null, ClusterOverview.Dataflows, null),
-        new(Summary.FunctionBlocks, null, ClusterOverview.FunctionBlocks, null),
-        new(Summary.DataPorts, null, ClusterOverview.DataPorts, null),
-        new(Summary.LinkedDatapoints, Summary.Datapoints, ClusterOverview.Datapoints, ClusterOverview.LinkedDatapointsHint),
+    /// <summary>
+    /// Adds the topology behind the engines: nodes, instances, engine hosts and function blocks.
+    /// </summary>
+    [Parameter] public bool Expert { get; set; }
+
+    private Tile[] Tiles => Expert ? AllTiles : [.. AllTiles.Where(t => t.InStandardView)];
+
+    private Tile[] AllTiles => [
+        new(Summary.Nodes, null, ClusterOverview.Nodes, ClusterOverview.Node, null, InStandardView: false),
+        new(Summary.Instances, null, TechnicalTerms.InstancePlural, ClusterOverview.Instance, null, InStandardView: false),
+        new(Summary.EngineHosts, null, ClusterOverview.EngineHosts, ClusterOverview.EngineHost, null, InStandardView: false),
+        new(Summary.Engines, null, ClusterOverview.Engines, ClusterOverview.Engine, null, InStandardView: true),
+        new(Summary.Dataflows, null, ClusterOverview.Dataflows, ClusterOverview.Dataflow, null, InStandardView: true),
+        new(Summary.FunctionBlocks, null, ClusterOverview.FunctionBlocks, ClusterOverview.FunctionBlock, null, InStandardView: false),
+        new(Summary.DataPorts, null, ClusterOverview.DataPorts, ClusterOverview.DataPort, null, InStandardView: true),
+        new(Summary.LinkedDatapoints, Summary.Datapoints, ClusterOverview.Datapoints, ClusterOverview.Datapoints, ClusterOverview.LinkedDatapointsHint, InStandardView: true),
     ];
 
     private static string Format(int count)
@@ -54,5 +61,9 @@ public sealed partial class ClusterSummaryTiles
     /// <summary>
     /// <c>Of</c> is the total the value is part of, shown as "value / of".
     /// </summary>
-    private sealed record Tile(int Value, int? Of, string Label, string? Hint);
+    private sealed record Tile(int Value, int? Of, string Label, string OneLabel, string? Hint, bool InStandardView)
+    {
+        // A count of one is named in the singular; a tile with a total, such as "1 / 3", keeps the plural.
+        public string Text => Value == 1 && Of is null ? OneLabel : Label;
+    }
 }

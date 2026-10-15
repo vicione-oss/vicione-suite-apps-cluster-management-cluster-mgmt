@@ -68,7 +68,13 @@ public sealed class DeploymentProgressModel
 
     public bool IsRunning => Phase is not (DeploymentPhase.Completed or DeploymentPhase.Failed);
     public bool HasRolledBack { get; private set; }
-    public bool RollbackFailed => FailedPhase == DeploymentPhase.RollingBack;
+    public bool RollbackFailed => FailedPhase == DeploymentPhase.RollingBack && !WasReset;
+
+    /// <summary>
+    /// The deployment state was reset: the deployment was abandoned in <see cref="FailedPhase"/>, where its steps stop,
+    /// and did not fail there.
+    /// </summary>
+    public bool WasReset { get; private set; }
 
     /// <summary>
     /// The forward phase that failed; a failed rollback points back to the phase it tried to undo.
@@ -173,9 +179,16 @@ public sealed class DeploymentProgressModel
         Duration = completed.Duration;
     }
 
+    // A deployment that rolled back ends in a rollback state whether the rollback worked or not. The saga clears the
+    // errors of the forward run before it rolls back, so only errors the instances reported on the way back, or a failed
+    // version it could not delete, mean it failed.
     public void Fail(ClusterUpdateFailed failed)
     {
-        FailedPhase = DeploymentPhases.FromSagaState(failed.State) ?? (HasRolledBack ? DeploymentPhase.RollingBack : Phase);
+        var failedPhase = DeploymentPhases.FromSagaState(failed.State) ?? (HasRolledBack ? DeploymentPhase.RollingBack : Phase);
+        WasReset = failed.WasReset;
+        FailedPhase = failedPhase == DeploymentPhase.RollingBack && failed.ErrorsByApplication.Count == 0 && !failed.FailedVersionKept && !WasReset
+            ? ForwardPhase
+            : failedPhase;
         Phase = DeploymentPhase.Failed;
         FailureReason = failed.Reason;
         Duration = failed.Duration;
@@ -215,7 +228,7 @@ public sealed class DeploymentProgressModel
         if (Phase == DeploymentPhase.RollingBack)
             return DeploymentStepState.Current;
 
-        return RollbackFailed ? DeploymentStepState.Failed : DeploymentStepState.Done;
+        return RollbackFailed || WasReset ? DeploymentStepState.Failed : DeploymentStepState.Done;
     }
 
     private void EnterPhase(DeploymentPhase? phase)

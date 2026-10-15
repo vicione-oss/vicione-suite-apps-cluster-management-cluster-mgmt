@@ -41,7 +41,7 @@ public sealed partial class DeployClusterStateMachine
     /// <summary>
     /// Publish <see cref="ClusterUpdateFailed"/> containing the errors occurred on update deployments step
     /// </summary>
-    private async Task PublishClusterUpdateFailed<TMessage>(BehaviorContext<DeployClusterState, TMessage> ctx)
+    private async Task PublishClusterUpdateFailed<TMessage>(BehaviorContext<DeployClusterState, TMessage> ctx, bool failedVersionKept)
         where TMessage : class
     {
         // If we fail before the cluster was commited and set as target version
@@ -54,7 +54,8 @@ public sealed partial class DeployClusterStateMachine
                 .Where(v => v.Value is not null)
                 .ToDictionary(k => k.Key, v => v.Value!),
             State = GetState(ctx.Saga.CurrentState),
-            Reason = "At least one application update failed"
+            Reason = "At least one application update failed",
+            FailedVersionKept = failedVersionKept,
         };
 
         LogClusterUpdatedFailed(_logger,

@@ -22,6 +22,12 @@ public static class Constants
 
     public const string EngineHostProcessName = "ViciOne.ManagedEngine.Host";
 
+    /// <summary>
+    /// The feature of the module a role needs, beside full access, before the Engines page offers starting, stopping and
+    /// tearing down engines and the Cluster Manager offers resetting the deployment state; the Administrator role holds it.
+    /// </summary>
+    public const string EngineControlFeature = "Engine control";
+
     public const string EngineHostJournalFilterKey = "engine-host";
     public const string EngineHostJournalFilter = "SYSLOG_IDENTIFIER=ViciOne.ManagedEngine.Host+_SYSTEMD_UNIT=enginehost-privileged@*.service+_SYSTEMD_UNIT=enginehost@*.service";
 

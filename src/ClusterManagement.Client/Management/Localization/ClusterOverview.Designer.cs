@@ -60,24 +60,7 @@ namespace ClusterManagement.Client.Management.Localization {
             }
         }
         
-        /// <summary>
-        ///   Looks up a localized string similar to Back to the Cluster Manager.
-        /// </summary>
-        internal static string BackToClusterManager {
-            get {
-                return ResourceManager.GetString("BackToClusterManager", resourceCulture);
-            }
-        }
         
-        /// <summary>
-        ///   Looks up a localized string similar to checked {0}.
-        /// </summary>
-        internal static string CheckedAt {
-            get {
-                return ResourceManager.GetString("CheckedAt", resourceCulture);
-            }
-        }
-
         /// <summary>
         ///   Looks up a localized string similar to {0:0.#} B.
         /// </summary>
@@ -124,11 +107,65 @@ namespace ClusterManagement.Client.Management.Localization {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Min / Max.
+        /// </summary>
+        internal static string CycleRangeColumn {
+            get {
+                return ResourceManager.GetString("CycleRangeColumn", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Fastest and slowest cycle since the Cluster Manager receives the cycles of the engine host; each value says since when.
+        /// </summary>
+        internal static string CycleRangeColumnHint {
+            get {
+                return ResourceManager.GetString("CycleRangeColumnHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Fastest and slowest cycle since {0}.
+        /// </summary>
+        internal static string CycleRangeHint {
+            get {
+                return ResourceManager.GetString("CycleRangeHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Cycle time exceeded in the last minute.
         /// </summary>
         internal static string CycleTimeExceeded {
             get {
                 return ResourceManager.GetString("CycleTimeExceeded", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dataflow.
+        /// </summary>
+        internal static string Dataflow {
+            get {
+                return ResourceManager.GetString("Dataflow", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} event datapoints.
+        /// </summary>
+        internal static string DataflowEventTotal {
+            get {
+                return ResourceManager.GetString("DataflowEventTotal", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DataPort.
+        /// </summary>
+        internal static string DataPort {
+            get {
+                return ResourceManager.GetString("DataPort", resourceCulture);
             }
         }
 
@@ -147,15 +184,6 @@ namespace ClusterManagement.Client.Management.Localization {
         internal static string DataflowEventCount {
             get {
                 return ResourceManager.GetString("DataflowEventCount", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Dataflow events.
-        /// </summary>
-        internal static string DataflowEvents {
-            get {
-                return ResourceManager.GetString("DataflowEvents", resourceCulture);
             }
         }
 
@@ -259,15 +287,6 @@ namespace ClusterManagement.Client.Management.Localization {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Deployed.
-        /// </summary>
-        internal static string Deployed {
-            get {
-                return ResourceManager.GetString("Deployed", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Deploying v{0}.
         /// </summary>
         internal static string DeployingVersion {
@@ -340,6 +359,51 @@ namespace ClusterManagement.Client.Management.Localization {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Engine.
+        /// </summary>
+        internal static string Engine {
+            get {
+                return ResourceManager.GetString("Engine", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Engine.
+        /// </summary>
+        internal static string EngineColumn {
+            get {
+                return ResourceManager.GetString("EngineColumn", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Deploying.
+        /// </summary>
+        internal static string EngineDeploying {
+            get {
+                return ResourceManager.GetString("EngineDeploying", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to disabled.
+        /// </summary>
+        internal static string EngineDisabled {
+            get {
+                return ResourceManager.GetString("EngineDisabled", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Engine host.
+        /// </summary>
+        internal static string EngineHost {
+            get {
+                return ResourceManager.GetString("EngineHost", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Engine hosts.
         /// </summary>
         internal static string EngineHosts {
@@ -372,6 +436,15 @@ namespace ClusterManagement.Client.Management.Localization {
         internal static string EngineRunning {
             get {
                 return ResourceManager.GetString("EngineRunning", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Start failed.
+        /// </summary>
+        internal static string EngineStartFailed {
+            get {
+                return ResourceManager.GetString("EngineStartFailed", resourceCulture);
             }
         }
 
@@ -412,11 +485,47 @@ namespace ClusterManagement.Client.Management.Localization {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to {0} of {1} engines deploying.
+        /// </summary>
+        internal static string EnginesDeploying {
+            get {
+                return ResourceManager.GetString("EnginesDeploying", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to {0} of {1} engines running.
         /// </summary>
         internal static string EnginesRunning {
             get {
                 return ResourceManager.GetString("EnginesRunning", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Event Viewer.
+        /// </summary>
+        internal static string EventViewer {
+            get {
+                return ResourceManager.GetString("EventViewer", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Expert view.
+        /// </summary>
+        internal static string ExpertView {
+            get {
+                return ResourceManager.GetString("ExpertView", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Also shows engine hosts, cycle times, ids, packages and the deployment state. Your rights stay the same..
+        /// </summary>
+        internal static string ExpertViewHint {
+            get {
+                return ResourceManager.GetString("ExpertViewHint", resourceCulture);
             }
         }
 
@@ -430,11 +539,29 @@ namespace ClusterManagement.Client.Management.Localization {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Function blocks.
+        ///   Looks up a localized string similar to FunctionBlock.
+        /// </summary>
+        internal static string FunctionBlock {
+            get {
+                return ResourceManager.GetString("FunctionBlock", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to FunctionBlocks.
         /// </summary>
         internal static string FunctionBlocks {
             get {
                 return ResourceManager.GetString("FunctionBlocks", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ⋯ 1 more version.
+        /// </summary>
+        internal static string HiddenVersion {
+            get {
+                return ResourceManager.GetString("HiddenVersion", resourceCulture);
             }
         }
 
@@ -475,11 +602,38 @@ namespace ClusterManagement.Client.Management.Localization {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Reports no cycles.
+        /// </summary>
+        internal static string HostNotReporting {
+            get {
+                return ResourceManager.GetString("HostNotReporting", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Reports its cycles.
+        /// </summary>
+        internal static string HostReporting {
+            get {
+                return ResourceManager.GetString("HostReporting", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to {0} over cycle time in the last minute.
         /// </summary>
         internal static string HostsOverCycleTime {
             get {
                 return ResourceManager.GetString("HostsOverCycleTime", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Instance.
+        /// </summary>
+        internal static string Instance {
+            get {
+                return ResourceManager.GetString("Instance", resourceCulture);
             }
         }
 
@@ -565,11 +719,29 @@ namespace ClusterManagement.Client.Management.Localization {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Linked datapoints / all datapoints of all DataPorts. Linked ones are read or written by a function block..
+        ///   Looks up a localized string similar to Linked datapoints / all datapoints of all DataPorts. Linked ones are read or written by a FunctionBlock..
         /// </summary>
         internal static string LinkedDatapointsHint {
             get {
                 return ResourceManager.GetString("LinkedDatapointsHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Location.
+        /// </summary>
+        internal static string Location {
+            get {
+                return ResourceManager.GetString("Location", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Log level.
+        /// </summary>
+        internal static string LogLevelColumn {
+            get {
+                return ResourceManager.GetString("LogLevelColumn", resourceCulture);
             }
         }
 
@@ -601,11 +773,29 @@ namespace ClusterManagement.Client.Management.Localization {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Node.
+        /// </summary>
+        internal static string Node {
+            get {
+                return ResourceManager.GetString("Node", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Running since {0}.
         /// </summary>
         internal static string NoDeploymentObserved {
             get {
                 return ResourceManager.GetString("NoDeploymentObserved", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The engine host reports no packages for this engine..
+        /// </summary>
+        internal static string NoEnginePackages {
+            get {
+                return ResourceManager.GetString("NoEnginePackages", resourceCulture);
             }
         }
 
@@ -642,6 +832,15 @@ namespace ClusterManagement.Client.Management.Localization {
         internal static string NoSagaRunningHint {
             get {
                 return ResourceManager.GetString("NoSagaRunningHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to There was no deployment state to reset..
+        /// </summary>
+        internal static string NothingToReset {
+            get {
+                return ResourceManager.GetString("NothingToReset", resourceCulture);
             }
         }
 
@@ -691,11 +890,20 @@ namespace ClusterManagement.Client.Management.Localization {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Open dataflow events.
+        ///   Looks up a localized string similar to Open Engines.
         /// </summary>
-        internal static string OpenDataflowEvents {
+        internal static string OpenEngines {
             get {
-                return ResourceManager.GetString("OpenDataflowEvents", resourceCulture);
+                return ResourceManager.GetString("OpenEngines", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Open Event Viewer.
+        /// </summary>
+        internal static string OpenEventViewer {
+            get {
+                return ResourceManager.GetString("OpenEventViewer", resourceCulture);
             }
         }
 
@@ -705,6 +913,33 @@ namespace ClusterManagement.Client.Management.Localization {
         internal static string OpenInEditor {
             get {
                 return ResourceManager.GetString("OpenInEditor", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Package.
+        /// </summary>
+        internal static string PackageColumn {
+            get {
+                return ResourceManager.GetString("PackageColumn", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The packages of {0} could not be read: {1}.
+        /// </summary>
+        internal static string PackagesNotRead {
+            get {
+                return ResourceManager.GetString("PackagesNotRead", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Packages of {0}.
+        /// </summary>
+        internal static string PackagesOfEngine {
+            get {
+                return ResourceManager.GetString("PackagesOfEngine", resourceCulture);
             }
         }
 
@@ -799,11 +1034,38 @@ namespace ClusterManagement.Client.Management.Localization {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Reset in phase {0} after {1}. Check the runtime before deploying again..
+        /// </summary>
+        internal static string ResetInPhase {
+            get {
+                return ResourceManager.GetString("ResetInPhase", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Reset deployment state.
         /// </summary>
         internal static string ResetSagaState {
             get {
                 return ResourceManager.GetString("ResetSagaState", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to A running or hanging deployment is abandoned and ends as failed. What the instances already started still runs, so check the runtime afterwards..
+        /// </summary>
+        internal static string ResetSagaStateConsequence {
+            get {
+                return ResourceManager.GetString("ResetSagaStateConsequence", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Reset the deployment state of {0}?.
+        /// </summary>
+        internal static string ResetSagaStateQuestion {
+            get {
+                return ResourceManager.GetString("ResetSagaStateQuestion", resourceCulture);
             }
         }
 
@@ -822,6 +1084,24 @@ namespace ClusterManagement.Client.Management.Localization {
         internal static string RolledBack {
             get {
                 return ResourceManager.GetString("RolledBack", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Order.
+        /// </summary>
+        internal static string RunIndexColumn {
+            get {
+                return ResourceManager.GetString("RunIndexColumn", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Position in the cycle of its engine host.
+        /// </summary>
+        internal static string RunIndexHint {
+            get {
+                return ResourceManager.GetString("RunIndexHint", resourceCulture);
             }
         }
 
@@ -880,6 +1160,24 @@ namespace ClusterManagement.Client.Management.Localization {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to The deployment state could not be reset: {0}.
+        /// </summary>
+        internal static string SagaStateNotReset {
+            get {
+                return ResourceManager.GetString("SagaStateNotReset", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Reset the deployment state of {0}..
+        /// </summary>
+        internal static string SagaStateReset {
+            get {
+                return ResourceManager.GetString("SagaStateReset", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Target version.
         /// </summary>
         internal static string SagaTargetVersion {
@@ -930,6 +1228,15 @@ namespace ClusterManagement.Client.Management.Localization {
         internal static string ShowLogs {
             get {
                 return ResourceManager.GetString("ShowLogs", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show packages.
+        /// </summary>
+        internal static string ShowPackages {
+            get {
+                return ResourceManager.GetString("ShowPackages", resourceCulture);
             }
         }
 
@@ -1182,6 +1489,42 @@ namespace ClusterManagement.Client.Management.Localization {
         internal static string StepsUpdatedOne {
             get {
                 return ResourceManager.GetString("StepsUpdatedOne", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Stop.
+        /// </summary>
+        internal static string StopEngine {
+            get {
+                return ResourceManager.GetString("StopEngine", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The engine host removes the engine. It runs again only after the next deployment..
+        /// </summary>
+        internal static string TearDownConsequence {
+            get {
+                return ResourceManager.GetString("TearDownConsequence", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Tear down.
+        /// </summary>
+        internal static string TearDownEngine {
+            get {
+                return ResourceManager.GetString("TearDownEngine", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Tear down engine {0}?.
+        /// </summary>
+        internal static string TearDownQuestion {
+            get {
+                return ResourceManager.GetString("TearDownQuestion", resourceCulture);
             }
         }
 

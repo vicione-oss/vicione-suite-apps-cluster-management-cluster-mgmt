@@ -57,4 +57,14 @@ public class DataflowEventArgs(Guid eventId, MqttApplicationMessage message, Dat
     public MqttApplicationMessage Message { get; private set; } = message;
 
     public DateTime Timestamp { get; private set; } = timestamp;
+
+    /// <summary>
+    /// <c>false</c> when the message marks the value invalid.
+    /// </summary>
+    public bool IsValid { get; init; } = true;
+
+    /// <summary>
+    /// The cycle of the engine that sent the value, when the message names it.
+    /// </summary>
+    public ulong? EngineCycle { get; init; }
 }

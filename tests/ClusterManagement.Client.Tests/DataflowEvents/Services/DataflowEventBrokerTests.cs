@@ -1,4 +1,5 @@
-﻿using ClusterManagement.Client.DataflowEvents.Services;
+﻿using ClusterManagement.Client.DataflowEvents.Models;
+using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Public.DataflowEvents;
 using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
@@ -509,6 +510,46 @@ public class DataflowEventBrokerTests
             // Assert
             await unsubscribe.Should().ThrowAsync<ArgumentException>();
             await _mqttHandler.DidNotReceiveWithAnyArgs().Unsubscribe(default!, Arg.Any<CancellationToken>());
+        }
+    }
+
+    public class DetailsOf : DataflowEventBrokerTests
+    {
+        [Fact]
+        public async Task A_handler_reads_what_came_along_with_the_value_it_is_called_with()
+        {
+            // Arrange
+            var broker = CreateEventBroker(_inputEvent, _outputEvent);
+            DataflowValueDetails? read = null;
+            await using var subscription = await broker.Subscribe(_outputEvent.EventId, (_, _) =>
+            {
+                read = broker.DetailsOf(_outputEvent.EventId);
+                return Task.CompletedTask;
+            }, TestContext.Current.CancellationToken);
+
+            // Act
+            _mqttHandler.EventReceivedAsync += Raise.Event<Func<DataflowEventArgs, Task>>(
+                new DataflowEventArgs(_outputEvent.EventId, new MqttApplicationMessageBuilder().WithTopic(_outputEvent.EventId.ToString()).WithPayload("4.2").Build(), DateTime.UtcNow)
+                {
+                    IsValid = false,
+                    EngineCycle = 42,
+                });
+
+            // Assert
+            read.Should().Be(new DataflowValueDetails(false, 42));
+        }
+
+        [Fact]
+        public async Task Is_null_before_the_first_value()
+        {
+            // Arrange
+            var broker = CreateEventBroker(_inputEvent, _outputEvent);
+
+            // Act
+            await using var subscription = await broker.Subscribe(_outputEvent.EventId, _handler, TestContext.Current.CancellationToken);
+
+            // Assert
+            broker.DetailsOf(_outputEvent.EventId).Should().BeNull();
         }
     }
 

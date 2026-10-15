@@ -117,12 +117,6 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="BackToClusterManager" xml:space="preserve">
-    <value>Zurück zum Cluster Manager</value>
-  </data>
-  <data name="CheckedAt" xml:space="preserve">
-    <value>geprüft {0}</value>
-  </data>
   <data name="CompactBillions" xml:space="preserve">
     <value>{0:0.#} Mrd.</value>
   </data>
@@ -141,14 +135,17 @@
   <data name="CycleTimeExceeded" xml:space="preserve">
     <value>Zykluszeit in der letzten Minute überschritten</value>
   </data>
+  <data name="Dataflow" xml:space="preserve">
+    <value>Datenfluss</value>
+  </data>
+  <data name="DataPort" xml:space="preserve">
+    <value>DataPort</value>
+  </data>
   <data name="DataPorts" xml:space="preserve">
     <value>DataPorts</value>
   </data>
   <data name="DataflowEventCount" xml:space="preserve">
     <value>{0} Event-Datenpunkte, {1} beschreibbar</value>
-  </data>
-  <data name="DataflowEvents" xml:space="preserve">
-    <value>Datenfluss-Events</value>
   </data>
   <data name="Dataflows" xml:space="preserve">
     <value>Datenflüsse</value>
@@ -183,9 +180,6 @@
   <data name="DeployVersion" xml:space="preserve">
     <value>v{0} bereitstellen</value>
   </data>
-  <data name="Deployed" xml:space="preserve">
-    <value>Bereitgestellt</value>
-  </data>
   <data name="DeployingVersion" xml:space="preserve">
     <value>v{0} wird bereitgestellt</value>
   </data>
@@ -209,6 +203,12 @@
   </data>
   <data name="EditVersion" xml:space="preserve">
     <value>Im Cluster Editor bearbeiten</value>
+  </data>
+  <data name="Engine" xml:space="preserve">
+    <value>Engine</value>
+  </data>
+  <data name="EngineHost" xml:space="preserve">
+    <value>Engine-Host</value>
   </data>
   <data name="EngineHosts" xml:space="preserve">
     <value>Engine-Hosts</value>
@@ -234,14 +234,23 @@
   <data name="Engines" xml:space="preserve">
     <value>Engines</value>
   </data>
+  <data name="EnginesDeploying" xml:space="preserve">
+    <value>{0} von {1} Engines werden bereitgestellt</value>
+  </data>
   <data name="EnginesRunning" xml:space="preserve">
     <value>{0} von {1} Engines laufen</value>
   </data>
   <data name="FailedInPhase" xml:space="preserve">
     <value>Fehlgeschlagen in Phase {0} nach {1}</value>
   </data>
+  <data name="FunctionBlock" xml:space="preserve">
+    <value>FunctionBlock</value>
+  </data>
   <data name="FunctionBlocks" xml:space="preserve">
-    <value>Funktionsblöcke</value>
+    <value>FunctionBlocks</value>
+  </data>
+  <data name="HiddenVersion" xml:space="preserve">
+    <value>⋯ 1 weitere Version</value>
   </data>
   <data name="HiddenVersions" xml:space="preserve">
     <value>⋯ {0} weitere Versionen</value>
@@ -257,6 +266,9 @@
   </data>
   <data name="HostsOverCycleTime" xml:space="preserve">
     <value>{0} in der letzten Minute über Zykluszeit</value>
+  </data>
+  <data name="Instance" xml:space="preserve">
+    <value>Instanz</value>
   </data>
   <data name="InstanceFailed" xml:space="preserve">
     <value>Fehlgeschlagen</value>
@@ -286,7 +298,7 @@
     <value>Letzter Zyklus</value>
   </data>
   <data name="LinkedDatapointsHint" xml:space="preserve">
-    <value>Verknüpfte / alle Datenpunkte aller DataPorts. Verknüpfte werden von einem Funktionsblock gelesen oder geschrieben.</value>
+    <value>Verknüpfte / alle Datenpunkte aller DataPorts. Verknüpfte werden von einem FunctionBlock gelesen oder geschrieben.</value>
   </data>
   <data name="LogsOnOtherInstance" xml:space="preserve">
     <value>Das Log dieses Engine-Hosts steht im Journal der Instanz, auf der er läuft</value>
@@ -296,6 +308,9 @@
   </data>
   <data name="NoDataflowEvents" xml:space="preserve">
     <value>Die aktive Version hat keine Event-Datenpunkte.</value>
+  </data>
+  <data name="Node" xml:space="preserve">
+    <value>Knoten</value>
   </data>
   <data name="NoDeploymentObserved" xml:space="preserve">
     <value>Läuft seit {0}</value>
@@ -326,9 +341,6 @@
   </data>
   <data name="OnNode" xml:space="preserve">
     <value>auf {0}</value>
-  </data>
-  <data name="OpenDataflowEvents" xml:space="preserve">
-    <value>Datenfluss-Events öffnen</value>
   </data>
   <data name="OpenInEditor" xml:space="preserve">
     <value>Im Cluster Editor öffnen</value>
@@ -503,5 +515,107 @@
   </data>
   <data name="VersionPrevious" xml:space="preserve">
     <value>Vorherige</value>
+  </data>
+  <data name="Location" xml:space="preserve">
+    <value>Position</value>
+  </data>
+  <data name="EventViewer" xml:space="preserve">
+    <value>Ereignis Anzeige</value>
+  </data>
+  <data name="OpenEventViewer" xml:space="preserve">
+    <value>Ereignis Anzeige öffnen</value>
+  </data>
+  <data name="OpenEngines" xml:space="preserve">
+    <value>Engines öffnen</value>
+  </data>
+  <data name="ExpertView" xml:space="preserve">
+    <value>Expertenansicht</value>
+  </data>
+  <data name="ExpertViewHint" xml:space="preserve">
+    <value>Zeigt zusätzlich Engine-Hosts, Zykluszeiten, IDs, Pakete und den Bereitstellungszustand. Ihre Rechte bleiben gleich.</value>
+  </data>
+  <data name="DataflowEventTotal" xml:space="preserve">
+    <value>{0} Event-Datenpunkte</value>
+  </data>
+  <data name="ResetSagaStateQuestion" xml:space="preserve">
+    <value>Den Bereitstellungszustand von {0} zurücksetzen?</value>
+  </data>
+  <data name="ResetSagaStateConsequence" xml:space="preserve">
+    <value>Eine laufende oder hängende Bereitstellung wird abgebrochen und endet als fehlgeschlagen. Was die Instanzen schon begonnen haben, läuft weiter, daher danach die Laufzeit prüfen.</value>
+  </data>
+  <data name="SagaStateNotReset" xml:space="preserve">
+    <value>Der Bereitstellungszustand konnte nicht zurückgesetzt werden: {0}</value>
+  </data>
+  <data name="SagaStateReset" xml:space="preserve">
+    <value>Bereitstellungszustand von {0} zurückgesetzt.</value>
+  </data>
+  <data name="NothingToReset" xml:space="preserve">
+    <value>Es gab keinen Bereitstellungszustand zum Zurücksetzen.</value>
+  </data>
+  <data name="ResetInPhase" xml:space="preserve">
+    <value>Zurückgesetzt in Phase {0} nach {1}. Vor einer erneuten Bereitstellung die Laufzeit prüfen.</value>
+  </data>
+  <data name="EngineStartFailed" xml:space="preserve">
+    <value>Start fehlgeschlagen</value>
+  </data>
+  <data name="EngineColumn" xml:space="preserve">
+    <value>Engine</value>
+  </data>
+  <data name="RunIndexColumn" xml:space="preserve">
+    <value>Reihenfolge</value>
+  </data>
+  <data name="RunIndexHint" xml:space="preserve">
+    <value>Position im Zyklus des Engine-Hosts</value>
+  </data>
+  <data name="LogLevelColumn" xml:space="preserve">
+    <value>Log-Level</value>
+  </data>
+  <data name="HostReporting" xml:space="preserve">
+    <value>Meldet seine Zyklen</value>
+  </data>
+  <data name="HostNotReporting" xml:space="preserve">
+    <value>Meldet keine Zyklen</value>
+  </data>
+  <data name="StopEngine" xml:space="preserve">
+    <value>Stoppen</value>
+  </data>
+  <data name="TearDownEngine" xml:space="preserve">
+    <value>Entfernen</value>
+  </data>
+  <data name="ShowPackages" xml:space="preserve">
+    <value>Pakete anzeigen</value>
+  </data>
+  <data name="PackagesOfEngine" xml:space="preserve">
+    <value>Pakete von {0}</value>
+  </data>
+  <data name="PackageColumn" xml:space="preserve">
+    <value>Paket</value>
+  </data>
+  <data name="NoEnginePackages" xml:space="preserve">
+    <value>Der Engine-Host meldet keine Pakete für diese Engine.</value>
+  </data>
+  <data name="PackagesNotRead" xml:space="preserve">
+    <value>Die Pakete von {0} konnten nicht gelesen werden: {1}</value>
+  </data>
+  <data name="TearDownQuestion" xml:space="preserve">
+    <value>Engine „{0}“ entfernen?</value>
+  </data>
+  <data name="TearDownConsequence" xml:space="preserve">
+    <value>Der Engine-Host entfernt die Engine. Sie läuft erst nach der nächsten Bereitstellung wieder.</value>
+  </data>
+  <data name="EngineDisabled" xml:space="preserve">
+    <value>deaktiviert</value>
+  </data>
+  <data name="CycleRangeColumn" xml:space="preserve">
+    <value>Min. / Max.</value>
+  </data>
+  <data name="CycleRangeColumnHint" xml:space="preserve">
+    <value>Schnellster und langsamster Zyklus, seit der Cluster Manager die Zyklen des Engine-Hosts empfängt; jeder Wert nennt, seit wann</value>
+  </data>
+  <data name="CycleRangeHint" xml:space="preserve">
+    <value>Schnellster und langsamster Zyklus seit {0}</value>
+  </data>
+  <data name="EngineDeploying" xml:space="preserve">
+    <value>Wird bereitgestellt</value>
   </data>
 </root>

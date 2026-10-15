@@ -1,119 +1,163 @@
+@using ClusterManagement.Client.Management.Components
+@using ClusterManagement.Client.Management.Extensions
+@using ClusterManagement.Client.Management.Localization
 @using Sdk.Authorization
-@using ViciOne.Ui.Blazor.Components.Button
-@using ViciOne.Ui.Blazor.Components.Button.Enums
-@using ViciOne.Ui.Blazor.Components.Tables.SimpleTable.Components
-@using ViciOne.Ui.Blazor.Components.Tables.SimpleTable.Components.Columns
-@using ViciOne.Ui.Blazor.Components.Toolbar.Components
-@using ViciOne.Ui.Blazor.Components.Popup.Components
 @using ViciOne.Ui.Localization.Resources
-@using ViciOne.Ui.MonochromeIcons.Core.Enums
 
 @inherits ModulePageBase<ClusterManagementClientModule>
 @attribute [Route(DebugConstants.DebugEnginesRoute)]
 @attribute [ModuleAuthorize<ClusterManagementClientModule>(AccessLevel.Full)]
 
 <div class="debug-engines">
-    <div class="debug-engines-toolbar">
-        <Toolbar>
-            <ToolbarGroup>
-                <ToolbarContent Enabled="false">
-                    @_clusterInfoText
-                </ToolbarContent>
-            </ToolbarGroup>
-            <ToolbarGroup AlignRight="true">
-                <ToolbarButton Text="@CommonVocabulary.Management"
-                               OnClick="@NavigateToManagement"
-                               IconName="@MonochromeIconName.DataflowLight" />
+    <ClusterPageBar Page="@ClusterPage.Engines"
+                    ClusterName="@_cluster?.Name"
+                    ClusterId="@_cluster?.Id"
+                    RunningVersion="@_cluster?.Version"
+                    IsLoading="@(!_hasLoaded)" />
 
-                <ToolbarButton Text="@TechnicalTerms.EventPlural"
-                               OnClick="@NavigateToEvents"
-                               IconName="@MonochromeIconName.Properties" />
-            </ToolbarGroup>
-        </Toolbar>
-    </div>
-
+    @{ var hosts = SortedHosts(); }
     @if (!_hasLoaded)
     {
         <LoadingSpinner Visible="true" />
     }
+    else if (_cluster is null)
+    {
+        <p class="empty muted">@ClusterOverview.NoVersionRunning</p>
+    }
+    else if (hosts.Count == 0)
+    {
+        <p class="empty muted">@ClusterOverview.NoEngines</p>
+    }
     else
     {
-        <div class="debug-engines-grid">
-            <SimpleTable TItem="EngineInfoModel"
-                         Items="@Engines"
-                         SortingState="@_sortingState">
-                <Columns>
-                    <SimpleTableTemplateColumn Id="@EngineHostNameColumnId" Title="Engine-Host Name" Resizeable="false"
-                                               SortExpression="@(m => m.EngineHostName)">
-                        <CellContent>@context.EngineHostName</CellContent>
-                    </SimpleTableTemplateColumn>
-                    <SimpleTableTemplateColumn Id="EngineHostId" Title="Engine-Host ID" Resizeable="false">
-                        <CellContent>@context.EngineHostId</CellContent>
-                    </SimpleTableTemplateColumn>
-                    <SimpleTableTemplateColumn Id="EngineId" Title="Engine ID" Resizeable="false">
-                        <CellContent>@context.EngineId</CellContent>
-                    </SimpleTableTemplateColumn>
-                    <SimpleTableTemplateColumn Id="@EngineNameColumnId" Title="Engine Name" Resizeable="false"
-                                               SortExpression="@(m => m.EngineName)">
-                        <CellContent>@context.EngineName</CellContent>
-                    </SimpleTableTemplateColumn>
-                    <SimpleTableTemplateColumn Id="EngineState" Title="Engine State" Resizeable="false">
-                        <CellContent>@context.EngineState</CellContent>
-                    </SimpleTableTemplateColumn>
-                    <SimpleTableTemplateColumn Id="Actions" Title="@CommonVocabulary.ActionPlural" Resizeable="false" Width="150">
-                        <CellContent><div class="action-column">
-                            <Button IconCssClass="@_startIconCssClass"
-                                    OnClick="@(async () => await StartEngine(context))"
-                                    Enabled="@(context.EngineState is Internal.Requests.EngineState.Stopped)"
-                                    Title="@CommonVocabulary.StartVerb"
-                                    Size="@ButtonSize.Small" />
-
-                            <Button IconCssClass="@_stopIconCssClass"
-                                    OnClick="@(async () => await StopEngine(context))"
-                                    Enabled="@(context.EngineState is Internal.Requests.EngineState.Running)"
-                                    Title="Stop"
-                                    Size="@ButtonSize.Small" />
-
-                            <Button IconCssClass="@_trashIconCssClass"
-                                    OnClick="@(async () => await TearDownEngine(context))"
-                                    Enabled="@(context.EngineState is Internal.Requests.EngineState.Stopped)"
-                                    Title="TearDown"
-                                    Size="@ButtonSize.Small" />
-
-                            <Button IconCssClass="@_infoIconCssClass"
-                                    OnClick="@(async () => await GetPackages(context))"
-                                    Title="Get Packages"
-                                    Size="@ButtonSize.Small" />
-                        </div></CellContent>
-                    </SimpleTableTemplateColumn>
-                </Columns>
-            </SimpleTable>
-            <Popup @bind-Visible="_showPackages"
-                   Width="300px">
-                <PopupHeaderBodyLayout HeaderText="Installed Packages">
-                    <Body>
-                        <div style="max-height:250px; overflow-y:auto;">
-                            <table class="table table-striped table-sm">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Package</th>
-                                        <th>Version</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var kv in Packages.OrderBy(p => p.Key))
+        @* One group per engine host, its engines below it in the order they run in its cycle. *@
+        <section class="engines">
+            <table class="@(Expert ? "expert" : null)">
+                <colgroup>
+                    <col class="name-column" />
+                    @if (Expert)
+                    {
+                        <col class="order-column" />
+                        <col class="id-column" />
+                    }
+                    <col class="state-column" />
+                    <col class="cycle-column" />
+                    @if (Expert)
+                    {
+                        <col class="range-column" />
+                        <col class="count-column" />
+                        <col class="level-column" />
+                        <col class="actions-column" />
+                    }
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>@ClusterOverview.EngineColumn</th>
+                        @if (Expert)
+                        {
+                            <th title="@ClusterOverview.RunIndexHint">@ClusterOverview.RunIndexColumn</th>
+                            <th>@TechnicalTerms.Id</th>
+                        }
+                        <th>@CommonVocabulary.State</th>
+                        <th>@ClusterOverview.LatestCycle</th>
+                        @if (Expert)
+                        {
+                            <th title="@ClusterOverview.CycleRangeColumnHint">@ClusterOverview.CycleRangeColumn</th>
+                            <th>@ClusterOverview.FunctionBlocks</th>
+                            <th>@ClusterOverview.LogLevelColumn</th>
+                            <th>@CommonVocabulary.ActionPlural</th>
+                        }
+                    </tr>
+                </thead>
+                @foreach (var host in hosts)
+                {
+                    var latestChainCycle = _tracker.Series.Latest(host.Id, _now);
+                    var reporting = _tracker.IsReporting(host, _now);
+                    var isOverCycleTime = IsOverCycleTime(host);
+                    <tbody @key="host.Id">
+                        <tr class="host">
+                            @* In the Expert view the id of the host stands in the column of the engine ids, whatever labels its name has.
+                               The Standard view has no column for the summary; it ends the line, and a long name gives way to it. *@
+                            <td colspan="@(Expert ? 2 : ColumnCount)">
+                                <div class="host-row">
+                                    <span class="dot status-@(reporting ? "running" : "previous")"
+                                          title="@(reporting ? ClusterOverview.HostReporting : ClusterOverview.HostNotReporting)"></span>
+                                    <span class="host-name">@host.Name</span>
+                                    <span class="instance muted">@string.Format(ClusterOverview.OnNode, InstanceName(host))</span>
+                                    @if (!Expert)
                                     {
-                                        <tr>
-                                            <td>@kv.Key</td>
-                                            <td>@kv.Value</td>
-                                        </tr>
+                                        <span class="host-summary">
+                                            <span class="muted">@host.Engines.RunningText(_tracker.IsDeploying)</span>
+                                            <span class="cycle @(isOverCycleTime ? "over" : null)" title="@HostCycleTitle(isOverCycleTime)">@HostCycleText(host, latestChainCycle)</span>
+                                        </span>
                                     }
-                                </tbody>
-                            </table>
-                        </div>
-                    </Body>
-                </PopupHeaderBodyLayout>
-            </Popup>
-        </div>
+                                </div>
+                            </td>
+                            @if (Expert)
+                            {
+                                <td class="mono muted" title="@host.Id">@host.Id</td>
+                                <td colspan="@(ColumnCount - 3)">
+                                    <div class="host-row host-summary">
+                                        @if (host.ElevatedPrivileges)
+                                        {
+                                            <span class="chip status-default">@ClusterOverview.Privileged</span>
+                                        }
+                                        <span class="muted">@host.Engines.RunningText(_tracker.IsDeploying)</span>
+                                        @if (RangeOf(host.Id) is { } chainRange)
+                                        {
+                                            <span class="cycle-range mono muted" title="@RangeHint(chainRange)">@CycleTimeTexts.Range(chainRange)</span>
+                                        }
+                                        <span class="cycle @(isOverCycleTime ? "over" : null)" title="@HostCycleTitle(isOverCycleTime)">@HostCycleText(host, latestChainCycle)</span>
+                                    </div>
+                                </td>
+                            }
+                        </tr>
+                        @foreach (var engine in EnginesInOrder(host))
+                        {
+                            var details = DetailsOf(engine);
+                            <tr class="engine" @key="engine.EngineId">
+                                <td>
+                                    <span class="engine-name" title="@engine.EngineName">@engine.EngineName</span>
+                                    @if (!details.Enabled)
+                                    {
+                                        <span class="chip status-default">@ClusterOverview.EngineDisabled</span>
+                                    }
+                                </td>
+                                @if (Expert)
+                                {
+                                    <td class="mono">@details.RunIndex</td>
+                                    <td class="mono muted" title="@engine.EngineId">@engine.EngineId</td>
+                                }
+                                <td>
+                                    <span class="state">
+                                        <span class="dot status-@engine.StatusName(_tracker.IsDeploying)"></span>
+                                        @engine.StateText(_tracker.IsDeploying)
+                                    </span>
+                                </td>
+                                <td class="mono">@CycleTimeTexts.Milliseconds(LatestCycle(engine))</td>
+                                @if (Expert)
+                                {
+                                    var range = engine.DeploymentId is { } deploymentId ? RangeOf(deploymentId) : null;
+                                    <td class="cycle-range mono" title="@(range is { } known ? RangeHint(known) : null)">@(range is { } shown ? CycleTimeTexts.Range(shown) : "–")</td>
+                                    <td class="mono">@details.FunctionBlocks</td>
+                                    <td>@details.LogLevel</td>
+                                    <td>
+                                        <EngineActions Engine="@engine"
+                                                       MayControl="@_mayControlEngines"
+                                                       Deploying="@_tracker.IsDeploying"
+                                                       OnStart="@StartEngine"
+                                                       OnStop="@StopEngine"
+                                                       OnTearDown="@AskToTearDown"
+                                                       OnShowPackages="@ShowPackages" />
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                }
+            </table>
+        </section>
     }
+
+    <EngineDialogs @ref="@_dialogs" OnTearDownConfirmed="@TearDownEngine" />
 </div>

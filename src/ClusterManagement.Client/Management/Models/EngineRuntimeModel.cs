@@ -31,4 +31,9 @@ public sealed record EngineRuntimeModel(Guid InstanceId, Guid EngineId, string E
     public Guid? DeploymentId { get; init; }
 
     public bool IsRunning => State == EngineState.Running;
+
+    /// <summary>
+    /// Reachable and not running: stopped, or its host could not start it. Only then may it be started or torn down.
+    /// </summary>
+    public bool IsStopped => IsReachable && State is EngineState.Stopped or EngineState.StartFailed;
 }

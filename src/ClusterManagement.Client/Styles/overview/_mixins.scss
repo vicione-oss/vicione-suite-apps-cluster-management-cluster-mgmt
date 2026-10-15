@@ -3,6 +3,36 @@
 @use "./../../../../shared/styles/colors-staged";
 @use "variables";
 
+// The library's Button hardly changes on hover and keeps the accent border after a mouse click. Like its grid action
+// buttons, a Cluster Manager button turns white on a light background on hover, and shows the accent border only when the
+// keyboard moves the focus to it. Depends on the internal `.button` class of ViciOne.Ui.Blazor.Components 6.5.0.
+@mixin button-states {
+    &:not(:disabled):not(.button--busy):hover {
+        color: colors.$font-light;
+        background-color: rgba(255, 255, 255, .05);
+    }
+
+    &:focus:not(:focus-visible) {
+        border-color: #b1b1b1;
+    }
+}
+
+// The actions of a row show while the pointer is on the row or the keyboard focus is in it. A screen without a pointer
+// that hovers, such as a touch screen, always shows them.
+@mixin actions-on-hover($actions) {
+    @media (hover: hover) {
+        #{$actions} {
+            opacity: 0;
+            transition: opacity .15s;
+        }
+
+        &:hover #{$actions},
+        &:focus-within #{$actions} {
+            opacity: 1;
+        }
+    }
+}
+
 @mixin panel {
     background-color: color.change(colors-staged.$color-content-dark, $alpha: .3);
     border-radius: variables.$radius;
@@ -33,6 +63,21 @@
     font-weight: 300;
     letter-spacing: .5px;
     color: colors.$font-light;
+}
+
+@mixin mono {
+    font-family: var(--bs-font-monospace);
+    font-size: 12px;
+}
+
+// Hidden on the screen, still read by screen readers.
+@mixin visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 @mixin muted {

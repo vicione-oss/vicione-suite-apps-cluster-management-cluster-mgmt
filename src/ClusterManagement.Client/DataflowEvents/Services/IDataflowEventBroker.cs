@@ -1,4 +1,5 @@
-﻿using ClusterManagement.Public.DataflowEvents;
+﻿using ClusterManagement.Client.DataflowEvents.Models;
+using ClusterManagement.Public.DataflowEvents;
 using ClusterManagement.Public.Requests;
 
 namespace ClusterManagement.Client.DataflowEvents.Services;
@@ -28,4 +29,10 @@ public interface IDataflowEventBroker : IEventBroker
     /// that are left without a subscription. The subscriptions end even when that request fails.
     /// </summary>
     Task Unsubscribe(IReadOnlyCollection<IAsyncDisposable> subscriptions, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// What came along with the last value of the event, or <c>null</c> before its first value. A handler reads it for the
+    /// value it is called with. A broker that does not keep them has none.
+    /// </summary>
+    DataflowValueDetails? DetailsOf(Guid eventId) => null;
 }

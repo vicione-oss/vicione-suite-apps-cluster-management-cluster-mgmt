@@ -16,6 +16,7 @@ internal static class IServiceCollectionExtensions
             .AddScoped<IClusterManagementService, ClusterManagementPageService>()
             .AddScoped<IEngineHostBrokerProvider, EngineHostBrokerProvider>()
             .AddScoped<EngineCycleMonitor>()
+            .AddScoped<ExpertViewState>()
             .AddSingleton(provider => new EngineCycleHub(
                 () => new MqttClientFactory().CreateMqttClient(),
                 TimeProvider.System,

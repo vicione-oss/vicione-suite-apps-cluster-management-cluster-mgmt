@@ -1,6 +1,7 @@
 using System.Globalization;
 using Bunit;
 using ClusterManagement.Client.Management.Components;
+using ClusterManagement.Client.Management.Extensions;
 using ClusterManagement.Client.Management.Localization;
 using ClusterManagement.Client.Management.Models;
 using ClusterManagement.Public.Enums;
@@ -9,6 +10,7 @@ using ClusterManagement.Public.Requests;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using Sdk.Messaging;
+using ViciOne.Ui.Blazor.Components.Button;
 
 namespace ClusterManagement.Client.Tests.Management;
 
@@ -18,6 +20,84 @@ public class DeploymentPanelTests
     private static readonly Guid s_engineHostId = Guid.NewGuid();
     private static readonly Version s_targetVersion = new(0, 1, 2);
     private static readonly ClusterInfoModel s_running = new(new ClusterInfo(s_clusterId, new Version(0, 1, 1), "Cluster", IsActive: true));
+
+    [Fact]
+    public async Task Lists_a_failed_instance_with_its_error_but_not_its_steps_in_the_standard_view()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        ctx.Services.AddClientTimeProvider();
+        var (deployment, instanceIds) = Deployment(instanceCount: 2);
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Failed) with { Error = Failure(instanceIds[0]).Error }, DateTimeOffset.UnixEpoch);
+        deployment.Apply(Failure(instanceIds[0]));
+
+        // Act
+        var sut = ctx.Render<DeploymentPanel>(p => p.Add(c => c.Deployment, deployment).Add(c => c.Running, s_running));
+
+        // Assert
+        sut.FindAll(".instance").Should().ContainSingle();
+        sut.FindAll(".instance .trail .segment").Should().ContainSingle();
+        sut.Find(".instance .error").TextContent.Should().EndWith("Engine start failed");
+        sut.FindAll(".steps-toggle").Should().BeEmpty();
+        sut.FindAll(".status-line button").Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Offers_the_deployment_state_only_in_the_expert_view(bool expert)
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        ctx.Services.AddClientTimeProvider();
+
+        // Act
+        var sut = ctx.Render<DeploymentPanel>(p => p.Add(c => c.Expert, expert).Add(c => c.MayReset, true).Add(c => c.Running, s_running));
+
+        // Assert
+        var titles = sut.FindComponents<Button>().Select(b => b.Instance.Title);
+        if (expert)
+            titles.Should().Equal(ClusterOverview.ShowSagaState, ClusterOverview.ResetSagaState);
+        else
+            titles.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Offers_the_reset_only_with_the_right_for_it()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        ctx.Services.AddClientTimeProvider();
+
+        // Act
+        var sut = ctx.Render<DeploymentPanel>(p => p.Add(c => c.Expert, true).Add(c => c.MayReset, false).Add(c => c.Running, s_running));
+
+        // Assert
+        sut.FindComponents<Button>().Select(b => b.Instance.Title).Should().Equal(ClusterOverview.ShowSagaState);
+    }
+
+    [Fact]
+    public async Task Leaves_out_a_node_named_after_its_instance()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        ctx.Services.AddClientTimeProvider();
+        var instanceId = Guid.NewGuid();
+        var nodeId = Guid.NewGuid();
+        var deployment = DeploymentProgressModel.Start(new ClusterUpdateStarted(Guid.NewGuid(), s_clusterId, s_targetVersion)
+        {
+            NodeApplications = new Dictionary<Guid, Guid?> { [nodeId] = instanceId },
+            Nodes = new Dictionary<Guid, string> { [nodeId] = "IFM10N34571 (Physical)" },
+            Applications = new Dictionary<Guid, string> { [instanceId] = "IFM10N34571" },
+        }, DateTimeOffset.UnixEpoch);
+        deployment.Apply(Failure(instanceId));
+
+        // Act
+        var sut = ctx.Render<DeploymentPanel>(p => p.Add(c => c.Deployment, deployment).Add(c => c.Running, s_running));
+
+        // Assert
+        sut.Find(".instance .node").TextContent.Should().BeEmpty();
+    }
 
     [Fact]
     public async Task Lists_only_the_failed_instances_of_a_deployment()
@@ -105,7 +185,7 @@ public class DeploymentPanelTests
         var (deployment, _) = Deployment(instanceCount: 1);
 
         // Act
-        var sut = ctx.Render<DeploymentPanel>(p => p
+        var sut = ctx.Render<DeploymentPanel>(p => p.Add(c => c.Expert, true)
             .Add(c => c.Deployment, deployment)
             .Add(c => c.Running, s_running));
 
@@ -262,10 +342,9 @@ public class DeploymentPanelTests
         Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.StopEngineHost), DateTimeOffset.UnixEpoch.AddSeconds(11));
         Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded, ClusterNodeDeploymentStep.StopEngineHost), DateTimeOffset.UnixEpoch.AddSeconds(14.5));
         deployment.Fail(new ClusterUpdateFailed(deployment.CorrelationId, s_clusterId, s_targetVersion) { State = "RollingBackDeployments" });
-        var sut = Render(ctx, deployment);
 
         // Act
-        await sut.Find(".status-line button").ClickAsync(new());
+        var sut = Render(ctx, deployment);
 
         // Assert
         sut.Find(".instance .chip").TextContent.Should().Be(ClusterOverview.InstanceRolledBack);
@@ -293,6 +372,54 @@ public class DeploymentPanelTests
     }
 
     [Fact]
+    public async Task Lists_the_only_instance_from_the_start()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var (deployment, _) = Deployment(instanceCount: 1);
+
+        // Act
+        var sut = Render(ctx, deployment);
+
+        // Assert
+        sut.Find(".instance .chip").TextContent.Should().Be(ClusterOverview.InstanceWaiting);
+        sut.FindAll(".status-line button").Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Keeps_listing_an_instance_after_the_deployment_ended()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var (deployment, instanceIds) = Deployment(instanceCount: 2);
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started), DateTimeOffset.UnixEpoch);
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded), DateTimeOffset.UnixEpoch.AddSeconds(1));
+        var sut = Render(ctx, deployment);
+
+        // Act
+        deployment.Complete(new ClusterUpdateCompleted(deployment.CorrelationId, s_clusterId, s_targetVersion, TimeSpan.FromSeconds(2)));
+        sut.Render();
+
+        // Assert
+        sut.Instance.VisibleInstances.Select(i => i.Id).Should().Equal(instanceIds[0]);
+    }
+
+    [Fact]
+    public async Task An_instance_that_reported_a_step_has_started()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var (deployment, instanceIds) = Deployment(instanceCount: 1);
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started), DateTimeOffset.UnixEpoch);
+
+        // Act
+        var sut = Render(ctx, deployment);
+
+        // Assert
+        sut.Find(".instance .chip").TextContent.Should().Be(ClusterOverview.InstanceStarted);
+    }
+
+    [Fact]
     public async Task Stops_the_step_clock_once_the_deployment_ended()
     {
         // Arrange
@@ -310,7 +437,8 @@ public class DeploymentPanelTests
 
         // Assert
         sut.RenderCount.Should().Be(renders);
-        sut.FindAll(".instance .summary").Should().BeEmpty();
+        sut.FindAll(".instance .summary .text").Should().BeEmpty();
+        sut.FindAll(".instance .summary .time").Should().BeEmpty();
     }
 
     [Fact]
@@ -345,6 +473,28 @@ public class DeploymentPanelTests
         sut.Find(".error").TextContent.Should().Be("Engine start failed");
     }
 
+    [Fact]
+    public async Task Says_where_a_reset_deployment_hung()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var deployment = DeploymentProgressModel.Resume(new DeploymentState(s_clusterId, "RollingBackCommit", s_running.Version, s_targetVersion), null);
+        deployment.Fail(new ClusterUpdateFailed(Guid.NewGuid(), s_clusterId, s_targetVersion)
+        {
+            State = "RollingBackCommit",
+            Reason = "The deployment state was reset",
+            WasReset = true,
+            Duration = TimeSpan.FromSeconds(42),
+        });
+
+        // Act
+        var sut = Render(ctx, deployment);
+
+        // Assert
+        sut.Find(".status-line .muted").TextContent.Should().Be(string.Format(CultureInfo.CurrentCulture, ClusterOverview.ResetInPhase,
+            DeploymentPhase.RollingBack.ToText(), TimeSpan.FromSeconds(42).ToDisplayText(CultureInfo.CurrentCulture)));
+    }
+
     private static FakeTimeProvider ClientClock(BunitContext ctx)
     {
         FakeTimeProvider clock = new(DateTimeOffset.UnixEpoch);
@@ -353,7 +503,7 @@ public class DeploymentPanelTests
     }
 
     private static IRenderedComponent<DeploymentPanel> RenderWith(BunitContext ctx, DeploymentProgressModel deployment)
-        => ctx.Render<DeploymentPanel>(p => p
+        => ctx.Render<DeploymentPanel>(p => p.Add(c => c.Expert, true)
             .Add(c => c.Deployment, deployment)
             .Add(c => c.Running, s_running));
 
@@ -374,7 +524,7 @@ public class DeploymentPanelTests
     {
         ctx.Services.AddClientTimeProvider();
 
-        return ctx.Render<DeploymentPanel>(p => p
+        return ctx.Render<DeploymentPanel>(p => p.Add(c => c.Expert, true)
             .Add(c => c.Deployment, deployment)
             .Add(c => c.Running, s_running));
     }

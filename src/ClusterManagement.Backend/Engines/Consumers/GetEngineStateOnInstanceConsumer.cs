@@ -2,6 +2,7 @@
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Internal.Requests;
 using ClusterManagement.Public.ErrorHandling;
+using ClusterManagement.Public.Events;
 using Microsoft.EntityFrameworkCore;
 using Sdk.Backend.Messaging;
 using Sdk.Messaging;
@@ -15,7 +16,7 @@ public sealed class GetEngineStateOnInstanceConsumer(IEngineHostCommunication en
     private readonly IEngineDbContext _engineDbContext = engineDbContext;
 
     public override Task<GetEngineStateOnInstanceResponse> HandleException(GetEngineStateOnInstanceRequest message, Exception e, CancellationToken cancellationToken)
-        => Task.FromResult(new GetEngineStateOnInstanceResponse(new ErrorInfo(((ErrorInfoException)e).ErrorCode, e.Message)));
+        => Task.FromResult(new GetEngineStateOnInstanceResponse(new ErrorInfo(e is ErrorInfoException known ? known.ErrorCode : ClusterError.UnknownError, e.Message)));
 
     public override async Task<GetEngineStateOnInstanceResponse> Respond(GetEngineStateOnInstanceRequest message, CancellationToken cancellationToken)
     {
@@ -36,6 +37,7 @@ public sealed class GetEngineStateOnInstanceConsumer(IEngineHostCommunication en
                         EngineState.Stopped => Internal.Requests.EngineState.Stopped,
                         EngineState.Starting => Internal.Requests.EngineState.Starting,
                         EngineState.Stopping => Internal.Requests.EngineState.Stopping,
+                        EngineState.StartFailed => Internal.Requests.EngineState.StartFailed,
                         _ => null
                     }
                 };

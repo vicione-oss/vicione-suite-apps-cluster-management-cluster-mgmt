@@ -171,6 +171,9 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
         return new(subscriptions, failures);
     }
 
+    public DataflowValueDetails? DetailsOf(Guid eventId)
+        => _dataflowRuntimeEvents.TryGetValue(eventId, out var runtimeEvent) ? runtimeEvent.Details : null;
+
     private async Task<Dictionary<Guid, IDataflowEvent>> LoadAvailableEvents(CancellationToken cancellationToken)
     {
         _ = await UpdateEventCache(cancellationToken);
@@ -320,6 +323,7 @@ internal sealed partial class DataflowEventBroker : IDataflowEventBroker,
             }
 
             runtimeEvent.Timestamp = arg.Timestamp;
+            runtimeEvent.Details = new(arg.IsValid, arg.EngineCycle);
 
             var subs = runtimeEvent.Subscriptions;
             if (subs.IsEmpty) return;

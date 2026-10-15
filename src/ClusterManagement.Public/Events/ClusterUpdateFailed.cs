@@ -22,4 +22,16 @@ public sealed record ClusterUpdateFailed(Guid CorrelationId, Guid ClusterId, Ver
     /// Duration of failed cluster deployment
     /// </summary>
     public TimeSpan Duration { get; init; }
+
+    /// <summary>
+    /// The deployment did not fail on its own: its state was reset, and this event only tells whoever waits for it to
+    /// stop waiting.
+    /// </summary>
+    public bool WasReset { get; init; }
+
+    /// <summary>
+    /// The rollback could not delete the failed version from the cluster store: the instances run the previous version
+    /// again, but the failed version is still stored.
+    /// </summary>
+    public bool FailedVersionKept { get; init; }
 }

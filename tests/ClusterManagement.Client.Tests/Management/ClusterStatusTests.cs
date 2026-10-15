@@ -3,7 +3,6 @@ using Bunit;
 using ClusterManagement.Client.Management.Components;
 using ClusterManagement.Client.Management.Localization;
 using ClusterManagement.Client.Management.Services;
-using ClusterManagement.Public;
 using ClusterManagement.Public.Enums;
 using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
@@ -12,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ClusterManagement.Client.Tests.Management;
 
-public class ClusterStatusLinkTests
+public class ClusterStatusTests
 {
     private static readonly Guid s_clusterId = Guid.NewGuid();
     private static readonly Version s_running = new(0, 1, 32);
@@ -21,7 +20,7 @@ public class ClusterStatusLinkTests
     private readonly IClusterManagementService _managementService = Substitute.For<IClusterManagementService>();
 
     [Fact]
-    public async Task Links_back_to_the_Cluster_Manager_with_the_running_version()
+    public async Task Shows_the_running_version()
     {
         // Arrange
         await using var ctx = new BunitContext();
@@ -30,10 +29,8 @@ public class ClusterStatusLinkTests
         var sut = Render(ctx);
 
         // Assert
-        var link = sut.Find("a.cluster-status-link");
-        link.GetAttribute("href").Should().Be(Constants.ManagementModuleRoute);
-        link.GetAttribute("title").Should().NotBeNullOrEmpty().And.Be(ClusterOverview.BackToClusterManager);
-        sut.Find(".status").TextContent.Should().Be(Format(ClusterOverview.RunningVersionDeployed, s_running));
+        sut.Find(".cluster-status").GetAttribute("role").Should().Be("status");
+        sut.Find(".text").TextContent.Should().Be(Format(ClusterOverview.RunningVersion, s_running));
         sut.Find(".dot").ClassList.Should().Contain("status-running");
     }
 
@@ -47,7 +44,7 @@ public class ClusterStatusLinkTests
         var sut = Render(ctx, isRunning: false);
 
         // Assert
-        sut.Find(".status").TextContent.Should().Be(ClusterOverview.NoVersionRunning);
+        sut.Find(".text").TextContent.Should().Be(ClusterOverview.NoVersionRunning);
     }
 
     [Fact]
@@ -60,7 +57,7 @@ public class ClusterStatusLinkTests
         var sut = Render(ctx, isRunning: false, isLoading: true);
 
         // Assert
-        sut.Find(".status").TextContent.Should().Be("…");
+        sut.Find(".text").TextContent.Should().Be("…");
     }
 
     [Fact]
@@ -78,7 +75,7 @@ public class ClusterStatusLinkTests
         // Assert
         sut.WaitForAssertion(() =>
         {
-            sut.Find(".status").TextContent.Should().Be($"{Format(ClusterOverview.DeployingVersion, s_target)} · {ClusterOverview.PhaseUpdatingDeployments}");
+            sut.Find(".text").TextContent.Should().Be($"{Format(ClusterOverview.DeployingVersion, s_target)} · {ClusterOverview.PhaseUpdatingDeployments}");
             sut.Find(".dot").ClassList.Should().Contain("status-deploying");
         });
     }
@@ -98,10 +95,45 @@ public class ClusterStatusLinkTests
         // Assert
         sut.WaitForAssertion(() =>
         {
-            sut.Find(".status").TextContent.Should().Be(
-                $"{Format(ClusterOverview.RunningVersionDeployed, s_running)} · {Format(ClusterOverview.DeploymentFailed, s_target)}");
-            sut.Find(".dot").ClassList.Should().Contain("status-running");
+            sut.FindAll(".chip .text").Select(t => t.TextContent).Should().Equal(
+                Format(ClusterOverview.RunningVersion, s_running), ClusterOverview.LastDeploymentFailed);
+            sut.FindAll(".chip")[0].ClassList.Should().Contain("status-running");
+            sut.FindAll(".chip")[1].ClassList.Should().Contain("status-failed");
         });
+    }
+
+    [Fact]
+    public async Task Shows_the_running_version_alone_after_a_reset()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = Render(ctx);
+        var correlationId = Guid.NewGuid();
+        Start(new ClusterUpdateStarted(correlationId, s_clusterId, s_target));
+
+        // Act
+        _managementService.OnClusterUpdateFailed += Raise.Event<EventHandler<ClusterUpdateFailed>>(_managementService,
+            new ClusterUpdateFailed(correlationId, s_clusterId, s_target) { State = "RollingBackCommit", WasReset = true });
+
+        // Assert
+        sut.WaitForAssertion(() => sut.FindAll(".chip .text").Select(t => t.TextContent).Should().Equal(Format(ClusterOverview.RunningVersion, s_running)));
+    }
+
+    [Fact]
+    public async Task Keeps_showing_a_deployment_when_another_deployment_of_the_cluster_is_reset()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = Render(ctx);
+        Start(new ClusterUpdateStarted(Guid.NewGuid(), s_clusterId, s_target));
+
+        // Act
+        _managementService.OnClusterUpdateFailed += Raise.Event<EventHandler<ClusterUpdateFailed>>(_managementService,
+            new ClusterUpdateFailed(Guid.NewGuid(), s_clusterId, new Version(0, 1, 34)) { State = "RollingBackCommit", WasReset = true });
+        await sut.InvokeAsync(() => { });
+
+        // Assert
+        sut.Find(".dot").ClassList.Should().Contain("status-deploying");
     }
 
     [Fact]
@@ -119,7 +151,7 @@ public class ClusterStatusLinkTests
         // Assert
         sut.WaitForAssertion(() =>
         {
-            sut.Find(".status").TextContent.Should().Be(Format(ClusterOverview.DeploymentFailed, s_target));
+            sut.Find(".text").TextContent.Should().Be(Format(ClusterOverview.DeploymentFailed, s_target));
             sut.Find(".dot").ClassList.Should().Contain("status-failed");
         });
     }
@@ -153,7 +185,7 @@ public class ClusterStatusLinkTests
         var sut = Render(ctx);
 
         // Assert
-        sut.WaitForAssertion(() => sut.Find(".status").TextContent.Should().Be(
+        sut.WaitForAssertion(() => sut.Find(".text").TextContent.Should().Be(
             $"{Format(ClusterOverview.DeployingVersion, s_target)} · {ClusterOverview.PhaseUpdatingDeployments}"));
     }
 
@@ -175,6 +207,25 @@ public class ClusterStatusLinkTests
     }
 
     [Fact]
+    public async Task Drops_the_failed_deployment_of_a_cluster_once_another_one_is_shown()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var otherClusterId = Guid.NewGuid();
+        var sut = Render(ctx);
+        Start(new ClusterUpdateStarted(Guid.NewGuid(), s_clusterId, s_target));
+        _managementService.OnClusterUpdateFailed += Raise.Event<EventHandler<ClusterUpdateFailed>>(_managementService,
+            new ClusterUpdateFailed(Guid.NewGuid(), s_clusterId, s_target) { State = "RollingBackDeployments" });
+        sut.WaitForAssertion(() => sut.FindAll(".chip").Should().HaveCount(2));
+
+        // Act
+        sut.Render(p => p.Add(c => c.ClusterId, otherClusterId));
+
+        // Assert
+        sut.WaitForAssertion(() => sut.FindAll(".chip .text").Select(t => t.TextContent).Should().Equal(Format(ClusterOverview.RunningVersion, s_running)));
+    }
+
+    [Fact]
     public async Task Leaves_out_deployments_of_another_cluster()
     {
         // Arrange
@@ -183,6 +234,7 @@ public class ClusterStatusLinkTests
 
         // Act
         Start(new ClusterUpdateStarted(Guid.NewGuid(), Guid.NewGuid(), s_target));
+        await sut.InvokeAsync(() => { });
 
         // Assert
         sut.Find(".dot").ClassList.Should().Contain("status-running");
@@ -191,13 +243,13 @@ public class ClusterStatusLinkTests
     private void Start(ClusterUpdateStarted started)
         => _managementService.OnClusterUpdateStarted += Raise.Event<EventHandler<ClusterUpdateStarted>>(_managementService, started);
 
-    private IRenderedComponent<ClusterStatusLink> Render(BunitContext ctx, bool isRunning = true, bool isLoading = false)
+    private IRenderedComponent<ClusterStatus> Render(BunitContext ctx, bool isRunning = true, bool isLoading = false)
     {
         ctx.Services.AddClientTimeProvider(TimeZoneInfo.Utc);
         ctx.Services.AddSingleton(_managementService);
-        ctx.Services.AddSingleton(Substitute.For<ILogger<ClusterStatusLink>>());
+        ctx.Services.AddSingleton(Substitute.For<ILogger<ClusterStatus>>());
 
-        return ctx.Render<ClusterStatusLink>(p => p
+        return ctx.Render<ClusterStatus>(p => p
             .Add(c => c.ClusterId, isRunning ? s_clusterId : null)
             .Add(c => c.RunningVersion, isRunning ? s_running : null)
             .Add(c => c.IsLoading, isLoading));

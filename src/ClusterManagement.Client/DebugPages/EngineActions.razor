@@ -1,0 +1,25 @@
+@using ClusterManagement.Client.Management.Localization
+@using ViciOne.Ui.Blazor.Components.Grid.Components.ActionButtons
+@using ViciOne.Ui.Localization.Resources
+
+<div class="action-column">
+    @if (MayControl)
+    {
+        <GridActionButton IconCssClass="@s_startIconCssClass"
+                OnClick="@(() => OnStart.InvokeAsync(Engine))"
+                Enabled="@CanStart"
+                Title="@CommonVocabulary.StartVerb" />
+        <GridActionButton IconCssClass="@s_stopIconCssClass"
+                OnClick="@(() => OnStop.InvokeAsync(Engine))"
+                Enabled="@CanStop"
+                Title="@ClusterOverview.StopEngine" />
+        <GridActionButton IconCssClass="@s_tearDownIconCssClass"
+                OnClick="@(() => OnTearDown.InvokeAsync(Engine))"
+                Enabled="@CanTearDown"
+                Title="@ClusterOverview.TearDownEngine" />
+    }
+    <GridActionButton IconCssClass="@s_packagesIconCssClass"
+            OnClick="@(() => OnShowPackages.InvokeAsync(Engine))"
+            Enabled="@Engine.IsDeployed"
+            Title="@ClusterOverview.ShowPackages" />
+</div>

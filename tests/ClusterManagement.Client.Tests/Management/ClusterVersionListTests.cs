@@ -16,6 +16,22 @@ namespace ClusterManagement.Client.Tests.Management;
 
 public class ClusterVersionListTests
 {
+    [Fact]
+    public async Task Offers_only_deploying_and_editing_in_the_standard_view()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        ctx.Services.AddDialog();
+        List<ClusterInfoModel> versions = [ClusterInfoModels.Version("0.1.1", isLatest: true), ClusterInfoModels.Version("0.1.0", isActive: true)];
+
+        // Act
+        var sut = ctx.Render<ClusterVersionList>(p => p.Add(c => c.Versions, versions));
+
+        // Assert
+        sut.FindComponents<Button>().Select(b => b.Instance.Title ?? b.Instance.Text).Distinct().Should().BeEquivalentTo(
+            ClusterOverview.DeployThisVersion, ClusterOverview.EditVersion);
+    }
+
     private readonly List<ClusterInfoModel> _deleted = [];
     private readonly List<ClusterInfoModel> _deployed = [];
 
@@ -78,7 +94,7 @@ public class ClusterVersionListTests
         var versions = Enumerable.Range(0, 20).Select(i => ClusterInfoModels.Version($"0.1.{20 - i}", isLatest: i == 0, isActive: i == 15)).ToList();
 
         // Act
-        var sut = ctx.Render<ClusterVersionList>(p => p.Add(c => c.Versions, versions));
+        var sut = ctx.Render<ClusterVersionList>(p => p.Add(c => c.Expert, true).Add(c => c.Versions, versions));
 
         // Assert
         sut.Instance.VisibleVersions.Should().HaveCount(9)
@@ -88,6 +104,21 @@ public class ClusterVersionListTests
             string.Format(CultureInfo.CurrentCulture, ClusterOverview.HiddenVersions, 7),
             string.Format(CultureInfo.CurrentCulture, ClusterOverview.HiddenVersions, 4));
         sut.FindAll(".list-footer").Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task A_single_hidden_version_is_named_as_one()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        ctx.Services.AddDialog();
+        var versions = Enumerable.Range(0, 9).Select(i => ClusterInfoModels.Version($"0.1.{9 - i}", isLatest: i == 0, isActive: i == 1)).ToList();
+
+        // Act
+        var sut = ctx.Render<ClusterVersionList>(p => p.Add(c => c.Expert, true).Add(c => c.Versions, versions));
+
+        // Assert
+        sut.Find(".gap-row").TextContent.Trim().Should().Be(ClusterOverview.HiddenVersion);
     }
 
     [Fact]
@@ -101,7 +132,7 @@ public class ClusterVersionListTests
             new ClusterManagement.Public.Events.ClusterUpdateStarted(Guid.NewGuid(), ClusterInfoModels.ClusterId, versions[^1].Version), DateTimeOffset.UnixEpoch);
 
         // Act
-        var sut = ctx.Render<ClusterVersionList>(p => p
+        var sut = ctx.Render<ClusterVersionList>(p => p.Add(c => c.Expert, true)
             .Add(c => c.Versions, versions)
             .Add(c => c.Deployment, deployment));
 
@@ -118,7 +149,7 @@ public class ClusterVersionListTests
         await using var ctx = new BunitContext();
         ctx.Services.AddDialog();
         var versions = Enumerable.Range(0, 20).Select(i => ClusterInfoModels.Version($"0.1.{20 - i}")).ToList();
-        var sut = ctx.Render<ClusterVersionList>(p => p.Add(c => c.Versions, versions));
+        var sut = ctx.Render<ClusterVersionList>(p => p.Add(c => c.Expert, true).Add(c => c.Versions, versions));
 
         // Act
         await sut.Find(".gap-row button").ClickAsync(new());
@@ -170,7 +201,7 @@ public class ClusterVersionListTests
         await using var ctx = new BunitContext();
         ctx.Services.AddDialog();
         var otherCluster = new ClusterInfoModel(new ClusterInfo(Guid.NewGuid(), new Version(0, 1, 0), "Other"));
-        var sut = ctx.Render<ClusterVersionList>(p => p
+        var sut = ctx.Render<ClusterVersionList>(p => p.Add(c => c.Expert, true)
             .Add(c => c.Versions, [otherCluster, ClusterInfoModels.Version("0.1.1", isActive: true, isLatest: true), ClusterInfoModels.Version("0.1.0")])
             .Add(c => c.OnDeploy, EventCallback.Factory.Create<ClusterInfoModel>(this, _deployed.Add)));
         await DeployDefaultButton(sut).FindInnerButton().ClickAsync(new());
@@ -209,7 +240,7 @@ public class ClusterVersionListTests
         ctx.Services.AddDialog();
 
         // Act
-        var sut = ctx.Render<ClusterVersionList>(p => p.Add(c => c.Versions, [ClusterInfoModels.Version("0.1.1", isLatest: true), ClusterInfoModels.Version("0.1.0", isActive: true)]));
+        var sut = ctx.Render<ClusterVersionList>(p => p.Add(c => c.Expert, true).Add(c => c.Versions, [ClusterInfoModels.Version("0.1.1", isLatest: true), ClusterInfoModels.Version("0.1.0", isActive: true)]));
 
         // Assert
         DeployDefaultButton(sut).Instance.Enabled.Should().BeFalse();
@@ -263,7 +294,7 @@ public class ClusterVersionListTests
         => sut.FindComponents<Button>().Single(b => b.Instance.Text == ClusterOverview.DeployDefault);
 
     private IRenderedComponent<ClusterVersionList> RenderList(BunitContext ctx)
-        => ctx.Render<ClusterVersionList>(p => p
+        => ctx.Render<ClusterVersionList>(p => p.Add(c => c.Expert, true)
             .Add(c => c.Versions, [ClusterInfoModels.Version("0.1.2", isLatest: true), ClusterInfoModels.Version("0.1.1", isActive: true), ClusterInfoModels.Version("0.1.0")])
             .Add(c => c.OnDelete, EventCallback.Factory.Create<ClusterInfoModel>(this, _deleted.Add))
             .Add(c => c.OnDeploy, EventCallback.Factory.Create<ClusterInfoModel>(this, _deployed.Add)));

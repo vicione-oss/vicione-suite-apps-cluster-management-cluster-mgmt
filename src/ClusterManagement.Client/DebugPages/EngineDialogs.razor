@@ -1,0 +1,56 @@
+@using ClusterManagement.Client.Management.Localization
+@using ViciOne.Ui.Blazor.Components.Dialog.Components
+@using ViciOne.Ui.Localization.Resources
+
+<Dialog @ref="@_packagesDialog"
+        HeaderText="@string.Format(ClusterOverview.PackagesOfEngine, _packagesOf?.EngineName)"
+        Width="460"
+        Height="320">
+    <Body>
+        <DialogBodyTextLayout>
+            @if (_packages.Count == 0)
+            {
+                <p class="dialog-hint">@ClusterOverview.NoEnginePackages</p>
+            }
+            else
+            {
+                <table class="packages">
+                    <thead>
+                        <tr>
+                            <th>@ClusterOverview.PackageColumn</th>
+                            <th>@TechnicalTerms.Version</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var (package, version) in _packages)
+                        {
+                            <tr>
+                                <td>@package</td>
+                                <td class="mono">@version</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </DialogBodyTextLayout>
+    </Body>
+    <Footer>
+        <DialogFooterButton Text="@CommonVocabulary.CloseVerb" OnClick="@ClosePackages" />
+    </Footer>
+</Dialog>
+
+<Dialog @ref="@_tearDownDialog"
+        HeaderText="@ClusterOverview.TearDownEngine"
+        Width="420"
+        Height="200">
+    <Body>
+        <DialogBodyTextLayout>
+            <p class="dialog-question">@string.Format(ClusterOverview.TearDownQuestion, _pendingTearDown?.EngineName)</p>
+            <p class="dialog-hint">@ClusterOverview.TearDownConsequence</p>
+        </DialogBodyTextLayout>
+    </Body>
+    <Footer>
+        <DialogFooterButton Text="@ClusterOverview.TearDownEngine" OnClick="@ConfirmTearDown" />
+        <DialogFooterButton Text="@CommonVocabulary.Cancel" OnClick="@CancelTearDown" />
+    </Footer>
+</Dialog>

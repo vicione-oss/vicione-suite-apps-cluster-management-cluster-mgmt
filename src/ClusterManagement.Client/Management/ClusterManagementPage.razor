@@ -2,8 +2,11 @@
 @using ClusterManagement.Client.Management.Localization
 @using ClusterManagement.Public
 @using Sdk.Authorization
+@using ViciOne.Ui.Blazor.Components.Button
 @using ViciOne.Ui.Blazor.Components.Dialog.Components
+@using ViciOne.Ui.Blazor.Components.Toolbar.Components
 @using ViciOne.Ui.Localization.Resources
+@using ViciOne.Ui.MonochromeIcons.Core.Enums
 
 @attribute [Route(Constants.ManagementModuleRoute)]
 @attribute [ModuleAuthorize<ClusterManagementClientModule>(AccessLevel.Full)]
@@ -11,6 +14,31 @@
 @inherits ModulePageBase<ClusterManagementClientModule>
 
 <div class="cluster-mgmt">
+    <ClusterPageBar Page="@ClusterPage.Overview"
+                    ClusterName="@ActiveVersion?.DisplayName"
+                    ClusterId="@ActiveVersion?.Id"
+                    RunningVersion="@ActiveVersion?.Version"
+                    IsLoading="@(!_hasLoaded)"
+                    DraftVersion="@ReadyDraftVersion">
+        <Actions>
+            @if (ActiveVersion is not null)
+            {
+                <ToolbarButton Text="@ClusterOverview.OpenInEditor"
+                               IconName="@MonochromeIconName.Edit"
+                               TextVisibility="@ViciOne.Ui.Blazor.Components.Toolbar.Enums.TextVisibility.Always"
+                               OnClick="@OpenEditor" />
+                <ToolbarContent Context="toolbar">
+                    <Button Text="@DeployText"
+                            Title="@(DraftVersion is null ? ClusterOverview.NothingToDeploy : null)"
+                            IconCssClass="@_deployIconCssClass"
+                            CssClass="cm-primary"
+                            Enabled="@(DraftVersion is not null && _deployment?.IsRunning != true)"
+                            OnClick="@DeployDraft" />
+                </ToolbarContent>
+            }
+        </Actions>
+    </ClusterPageBar>
+
     @if (!_hasLoaded)
     {
         <LoadingSpinner Visible="true" />
@@ -18,40 +46,36 @@
     else
     {
         <div class="overview">
-            <div class="full-row">
-                @if (ActiveVersion is { } active)
-                {
-                    <ActiveClusterHeader Active="@active"
-                                         Draft="@DraftVersion"
-                                         Deployment="@_deployment"
-                                         OnOpenEditor="@OpenEditor"
-                                         OnDeployDraft="@DeployDraft"
-                                         OnShowSagaState="@ShowSagaState"
-                                         OnResetSagaState="@ResetSagaStates" />
-                }
-                else
-                {
+            @if (ActiveVersion is null)
+            {
+                <div class="full-row">
                     <div class="notice">@(Versions.Count == 0 ? ClusterOverview.NoVersions : ClusterOverview.NoActiveVersion)</div>
-                }
-            </div>
+                </div>
+            }
 
             @if (_summary is not null && ActiveVersion is not null)
             {
                 <div class="full-row">
-                    <ClusterSummaryTiles Summary="@_summary" />
+                    <ClusterSummaryTiles Summary="@_summary" Expert="@ExpertView.IsExpert" />
                 </div>
             }
 
             <div class="main-column">
                 @if (ActiveVersion is not null || _deployment is not null)
                 {
-                    <DeploymentPanel Deployment="@_deployment" Running="@ActiveVersion" />
+                    <DeploymentPanel Deployment="@_deployment"
+                                     Running="@ActiveVersion"
+                                     Expert="@ExpertView.IsExpert"
+                                     MayReset="@_mayReset"
+                                     OnShowSagaState="@ShowSagaState"
+                                     OnResetSagaState="@OnResetSagaStateShowAsync" />
                 }
 
                 @if (Versions.Count > 0)
                 {
                     <ClusterVersionList Versions="@Versions"
                                         Deployment="@_deployment"
+                                        Expert="@ExpertView.IsExpert"
                                         OnDeploy="@DeployClusterVersion"
                                         OnEdit="@HandleEdit"
                                         OnDownload="@DownloadClusterJson"
@@ -62,9 +86,12 @@
             @if (ActiveVersion is { } running && _activeCluster is not null)
             {
                 <div class="side-column">
-                    <RuntimePanel Cluster="@_activeCluster" />
-                    <DataflowEventsCard ActiveVersion="@running.Version" />
-                    <PackagesPanel Version="@running.Version" Dependencies="@_activeCluster.Dependencies" />
+                    <RuntimePanel Cluster="@_activeCluster" Expert="@ExpertView.IsExpert" Deployment="@RunningClusterDeployment" />
+                    <DataflowEventsCard ActiveVersion="@running.Version" Expert="@ExpertView.IsExpert" />
+                    @if (ExpertView.IsExpert)
+                    {
+                        <PackagesPanel Version="@running.Version" Dependencies="@_activeCluster.Dependencies" />
+                    }
                 </div>
             }
         </div>
@@ -107,6 +134,22 @@
         </Body>
         <Footer>
             <DialogFooterButton Text="@CommonVocabulary.CloseVerb" OnClick="@OnSagaStateCloseAsync" />
+        </Footer>
+    </Dialog>
+
+    <Dialog @ref="@_refResetSagaStateDialog"
+            HeaderText="@ClusterOverview.ResetSagaState"
+            Width="420"
+            Height="200">
+        <Body>
+            <DialogBodyTextLayout>
+                <p class="saga-headline">@string.Format(ClusterOverview.ResetSagaStateQuestion, ResetClusterName)</p>
+                <p class="saga-hint">@ClusterOverview.ResetSagaStateConsequence</p>
+            </DialogBodyTextLayout>
+        </Body>
+        <Footer>
+            <DialogFooterButton Text="@CommonVocabulary.ResetVerb" OnClick="@OnResetSagaStateOkAsync" />
+            <DialogFooterButton Text="@CommonVocabulary.Cancel" OnClick="@OnResetSagaStateCloseAsync" />
         </Footer>
     </Dialog>
 </div>

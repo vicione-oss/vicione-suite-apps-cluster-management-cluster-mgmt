@@ -1,3 +1,4 @@
+@using ClusterManagement.Client.DataflowEvents.Components
 @using ClusterManagement.Client.DataflowEvents.Models
 @using ClusterManagement.Client.Management.Components
 @using ClusterManagement.Public
@@ -6,7 +7,6 @@
 @using ViciOne.Ui.Blazor.Components.Button
 @using ViciOne.Ui.Blazor.Components.Button.Enums
 @using ViciOne.Ui.Blazor.Components.CheckBox
-@using ViciOne.Ui.Blazor.Components.SearchBox
 @using ViciOne.Ui.Blazor.Components.TextBox
 @using ViciOne.Ui.Localization.Resources
 
@@ -15,60 +15,27 @@
 @attribute [ModuleAuthorize<ClusterManagementClientModule>(AccessLevel.Full)]
 
 <div class="cluster-events">
-    <section class="events-head">
-        <ClusterStatusLink ClusterId="@PageService.ActiveClusterId" RunningVersion="@PageService.ActiveVersion" IsLoading="@_isLoading" />
-
-        <div class="title-row">
-            <div class="title">
-                <h1>@Localization.DataflowEventsPage.PageTitle</h1>
-                @if (PageService.ActiveVersion is { } activeVersion)
-                {
-                    <div class="muted">@string.Format(Localization.DataflowEventsPage.DataflowEventsOfVersion, activeVersion)</div>
-                }
-            </div>
-
-            <div class="actions">
-                <SearchBox CssClass="filter"
-                           Text="@_filter"
-                           TextChanging="@ApplyFilter"
-                           Placeholder="@Localization.DataflowEventsPage.FilterByName" />
-                <span class="muted shown">@string.Format(Localization.DataflowEventsPage.EventsShown, ShownCount, PageService.Events.Count)</span>
-                @if (_grouping != DataflowEventGrouping.None)
-                {
-                    <Button Text="@ToggleExpansionText"
-                            OnClick="@ToggleExpansion" />
-                }
-            </div>
-        </div>
-
-        <div class="chips">
-            <span class="muted">@Localization.DataflowEventsPage.GroupBy</span>
-            @foreach (var (grouping, label) in Groupings)
-            {
-                <Button Text="@label"
-                        CssClass="@ChipCssClass(grouping == _grouping)"
-                        Size="@ButtonSize.Small"
-                        OnClick="@(() => SetGrouping(grouping))" />
-            }
-
-            <span class="muted gap">@Localization.DataflowEventsPage.Show</span>
-            @foreach (var (direction, label) in Directions)
-            {
-                <Button Text="@label"
-                        CssClass="@ChipCssClass(direction == _direction)"
-                        Size="@ButtonSize.Small"
-                        OnClick="@(() => SetDirection(direction))" />
-            }
-
-            <span class="spacer"></span>
-            <span class="legend muted">@s_legendInputIcon @Localization.DataflowEventsPage.InputLegend</span>
-            <span class="legend muted">@s_legendOutputIcon @Localization.DataflowEventsPage.OutputLegend</span>
-        </div>
-    </section>
+    <ClusterPageBar Page="@ClusterPage.EventViewer"
+                    ClusterName="@PageService.ActiveClusterName"
+                    ClusterId="@PageService.ActiveClusterId"
+                    RunningVersion="@PageService.ActiveVersion"
+                    IsLoading="@_isLoading" />
 
     <section class="events-table">
+        <DataflowEventsToolbar Grouping="@_grouping"
+                               Direction="@_direction"
+                               Filter="@_filter"
+                               ShownCount="@ShownCount"
+                               TotalCount="@PageService.Events.Count"
+                               AnyGroupExpanded="@_nodes.Any(IsExpanded)"
+                               GroupingChanged="@SetGrouping"
+                               DirectionChanged="@SetDirection"
+                               FilterChanging="@ApplyFilter"
+                               ExpansionRequested="@SetExpansion" />
+
         @* The table renders only the rows in view, so it tells assistive technology how many there are and where each one sits. *@
-        <table @ref="_table" role="@(_grouping == DataflowEventGrouping.None ? null : "treegrid")" aria-label="@(_grouping == DataflowEventGrouping.None ? null : Localization.DataflowEventsPage.PageTitle)"
+        <div class="events-scroll">
+        <table @ref="_table" class="@(Expert ? "expert" : null)" role="@(_grouping == DataflowEventGrouping.None ? null : "treegrid")" aria-label="@(_grouping == DataflowEventGrouping.None ? null : Localization.DataflowEventsPage.PageTitle)"
                aria-rowcount="@(_rows.Count + 1)">
             <colgroup>
                 <col class="connector-column" />
@@ -76,6 +43,10 @@
                 <col class="type-column" />
                 <col class="value-column" />
                 <col class="time-column" />
+                @if (Expert)
+                {
+                    <col class="cycle-column" />
+                }
             </colgroup>
             <thead>
                 <tr aria-rowindex="1">
@@ -84,6 +55,10 @@
                     <th scope="col">@TechnicalTerms.ValueType</th>
                     <th scope="col">@CommonVocabulary.Value</th>
                     <th scope="col">@TechnicalTerms.Timestamp</th>
+                    @if (Expert)
+                    {
+                        <th scope="col" title="@Localization.DataflowEventsPage.EngineCycleHint">@Localization.DataflowEventsPage.EngineCycle</th>
+                    }
                 </tr>
             </thead>
             <tbody>
@@ -98,7 +73,7 @@
                            sits in a span that stops it, or one click would toggle the group twice. *@
                         <tr class="group" @key="node.Group.Key" style="@IndentStyle(row.Level)" @onclick="@(() => ToggleGroup(node))" aria-rowindex="@row.RowIndex"
                             aria-level="@row.Level" aria-setsize="@row.SetSize" aria-posinset="@row.Position" aria-expanded="@(isExpanded ? "true" : "false")">
-                            <td colspan="5">
+                            <td colspan="@ColumnCount">
                                 <div class="group-row">
                                     <span class="own-click" @onclick:stopPropagation="true">
                                         <Button Text="@node.Name"
@@ -147,11 +122,13 @@
                                                      Value="@dataflowEvent.PendingValue"
                                                      ValueChanging="@(value => dataflowEvent.PendingValue = value)"
                                                      EnterPressed="@(() => WritePending(dataflowEvent))" />
-                                            <Button IconCssClass="@_sendIconCssClass"
-                                                    Title="@string.Format(Localization.DataflowEventsPage.WriteValue, dataflowEvent.Name)"
-                                                    Size="@ButtonSize.Small"
-                                                    Enabled="@(!string.IsNullOrEmpty(dataflowEvent.PendingValue))"
-                                                    OnClick="@(() => WritePending(dataflowEvent))" />
+                                            <span class="send">
+                                                <Button IconCssClass="@_sendIconCssClass"
+                                                        Title="@string.Format(Localization.DataflowEventsPage.WriteValue, dataflowEvent.Name)"
+                                                        Size="@ButtonSize.Small"
+                                                        Enabled="@(!string.IsNullOrEmpty(dataflowEvent.PendingValue))"
+                                                        OnClick="@(() => WritePending(dataflowEvent))" />
+                                            </span>
                                         }
                                     </div>
                                 }
@@ -168,20 +145,29 @@
                                         {
                                             <span class="copied">@Localization.DataflowEventsPage.Copied</span>
                                         }
+                                        else if (!dataflowEvent.IsValid)
+                                        {
+                                            <span class="chip status-warning" title="@Localization.DataflowEventsPage.InvalidHint">@Localization.DataflowEventsPage.Invalid</span>
+                                        }
                                     </div>
                                 }
                             </td>
                             <td class="muted time" title="@TimeTitle(dataflowEvent.Timestamp)">@TimeText(dataflowEvent.Timestamp)</td>
+                            @if (Expert)
+                            {
+                                <td class="muted cycle">@dataflowEvent.EngineCycle</td>
+                            }
                         </tr>
                     }
                 </Virtualize>
                 @if (_nodes.Count == 0)
                 {
                     <tr class="empty">
-                        <td colspan="5">@(PageService.Events.Count == 0 ? Localization.DataflowEventsPage.NoEvents : Localization.DataflowEventsPage.NoMatchingEvents)</td>
+                        <td colspan="@ColumnCount">@(PageService.Events.Count == 0 ? Localization.DataflowEventsPage.NoEvents : Localization.DataflowEventsPage.NoMatchingEvents)</td>
                     </tr>
                 }
             </tbody>
         </table>
+        </div>
     </section>
 </div>

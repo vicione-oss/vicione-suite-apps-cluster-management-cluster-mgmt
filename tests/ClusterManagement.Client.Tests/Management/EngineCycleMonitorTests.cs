@@ -28,7 +28,7 @@ public class EngineCycleMonitorTests
         var host1 = Host(_instance1);
 
         // Act
-        await sut.Watch([host1, Host(_instance2)], TestContext.Current.CancellationToken);
+        await sut.Watch(sut, [host1, Host(_instance2)], TestContext.Current.CancellationToken);
 
         // Assert
         SubscribedTopics().Should().Equal(EngineCycleReport.InfoTopic(host1.Id));
@@ -44,7 +44,7 @@ public class EngineCycleMonitorTests
             .Returns<IReadOnlyDictionary<Guid, EngineHostBroker>>(_ => throw new TimeoutException());
 
         // Act
-        var isWatching = await sut.Watch([Host(_instance1)], TestContext.Current.CancellationToken);
+        var isWatching = await sut.Watch(sut, [Host(_instance1)], TestContext.Current.CancellationToken);
 
         // Assert
         isWatching.Should().BeFalse();
@@ -67,13 +67,49 @@ public class EngineCycleMonitorTests
         var host = Host(_instance1);
 
         // Act
-        await page.Watch([host], TestContext.Current.CancellationToken);
-        await otherPage.Watch([host], TestContext.Current.CancellationToken);
+        await page.Watch(page, [host], TestContext.Current.CancellationToken);
+        await otherPage.Watch(otherPage, [host], TestContext.Current.CancellationToken);
 
         // Assert
         created.Should().Be(1);
         SubscribedTopics().Should().Equal(EngineCycleReport.InfoTopic(host.Id));
         page.Series.Should().BeSameAs(otherPage.Series);
+    }
+
+    [Fact]
+    public async Task Stopping_one_owner_keeps_the_subscriptions_of_another()
+    {
+        // Arrange
+        await using var hub = CreateHub();
+        await using var sut = new EngineCycleMonitor(_brokerProvider, hub, Substitute.For<ILogger<EngineCycleMonitor>>());
+        BrokersAre(new() { [_instance1] = Broker() });
+        var host = Host(_instance1);
+        object closingPage = new(), openingPage = new();
+        await sut.Watch(closingPage, [host], TestContext.Current.CancellationToken);
+        await sut.Watch(openingPage, [host], TestContext.Current.CancellationToken);
+
+        // Act
+        await sut.Stop(closingPage);
+
+        // Assert
+        _client.ReceivedCalls().Select(c => c.GetMethodInfo().Name).Should().NotContain(nameof(IMqttClient.DisconnectAsync));
+    }
+
+    [Fact]
+    public async Task Stopping_the_last_owner_ends_the_subscriptions()
+    {
+        // Arrange
+        await using var hub = CreateHub();
+        await using var sut = new EngineCycleMonitor(_brokerProvider, hub, Substitute.For<ILogger<EngineCycleMonitor>>());
+        BrokersAre(new() { [_instance1] = Broker() });
+        var page = new object();
+        await sut.Watch(page, [Host(_instance1)], TestContext.Current.CancellationToken);
+
+        // Act
+        await sut.Stop(page);
+
+        // Assert
+        _client.ReceivedCalls().Select(c => c.GetMethodInfo().Name).Should().Contain(nameof(IMqttClient.DisconnectAsync));
     }
 
     private EngineCycleHub CreateHub()

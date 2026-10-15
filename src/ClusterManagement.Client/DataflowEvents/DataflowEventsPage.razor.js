@@ -49,7 +49,3 @@ function onKeyDown(event) {
 export function attach(table) {
     table.addEventListener('keydown', onKeyDown);
 }
-
-export function detach(table) {
-    table.removeEventListener('keydown', onKeyDown);
-}

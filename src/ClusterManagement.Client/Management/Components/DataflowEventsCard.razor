@@ -1,9 +1,14 @@
 @using ClusterManagement.Client.Management.Localization
+@using ViciOne.Ui.Blazor.Components.Button
+@using ViciOne.Ui.Blazor.Components.Button.Enums
 
-<section class="dataflow-events" aria-label="@ClusterOverview.DataflowEvents">
+<section class="dataflow-events" aria-label="@ClusterOverview.EventViewer">
     <div class="panel-head">
-        <h2 class="panel-title">@ClusterOverview.DataflowEvents</h2>
-        <a class="open-link" href="@Public.Constants.ManagementEventsRoute">@ClusterOverview.OpenDataflowEvents</a>
+        <h2 class="panel-title">@ClusterOverview.EventViewer</h2>
+        <Button Text="@ClusterOverview.OpenEventViewer"
+                IconCssClass="@_openIconCssClass"
+                Size="@ButtonSize.Small"
+                OnClick="@OpenEventViewer" />
     </div>
 
     <div class="content muted">@Summary</div>

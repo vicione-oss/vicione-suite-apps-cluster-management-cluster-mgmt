@@ -1,4 +1,4 @@
-<section class="summary-tiles">
+<section class="summary-tiles @(Expert ? null : "standard")">
     @foreach (var tile in Tiles)
     {
         <div class="tile" @key="tile.Label" title="@Tooltip(tile)">
@@ -9,7 +9,7 @@
                     <span class="of">/ @Format(of)</span>
                 }
             </div>
-            <div class="label">@tile.Label</div>
+            <div class="label">@tile.Text</div>
         </div>
     }
 </section>

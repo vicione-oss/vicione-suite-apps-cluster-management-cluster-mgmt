@@ -117,12 +117,6 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="BackToClusterManager" xml:space="preserve">
-    <value>Back to the Cluster Manager</value>
-  </data>
-  <data name="CheckedAt" xml:space="preserve">
-    <value>checked {0}</value>
-  </data>
   <data name="CompactBillions" xml:space="preserve">
     <value>{0:0.#} B</value>
   </data>
@@ -141,14 +135,17 @@
   <data name="CycleTimeExceeded" xml:space="preserve">
     <value>Cycle time exceeded in the last minute</value>
   </data>
+  <data name="Dataflow" xml:space="preserve">
+    <value>Dataflow</value>
+  </data>
+  <data name="DataPort" xml:space="preserve">
+    <value>DataPort</value>
+  </data>
   <data name="DataPorts" xml:space="preserve">
     <value>DataPorts</value>
   </data>
   <data name="DataflowEventCount" xml:space="preserve">
     <value>{0} event datapoints, {1} writable</value>
-  </data>
-  <data name="DataflowEvents" xml:space="preserve">
-    <value>Dataflow events</value>
   </data>
   <data name="Dataflows" xml:space="preserve">
     <value>Dataflows</value>
@@ -183,9 +180,6 @@
   <data name="DeployVersion" xml:space="preserve">
     <value>Deploy v{0}</value>
   </data>
-  <data name="Deployed" xml:space="preserve">
-    <value>Deployed</value>
-  </data>
   <data name="DeployingVersion" xml:space="preserve">
     <value>Deploying v{0}</value>
   </data>
@@ -209,6 +203,12 @@
   </data>
   <data name="EditVersion" xml:space="preserve">
     <value>Edit in Cluster Editor</value>
+  </data>
+  <data name="Engine" xml:space="preserve">
+    <value>Engine</value>
+  </data>
+  <data name="EngineHost" xml:space="preserve">
+    <value>Engine host</value>
   </data>
   <data name="EngineHosts" xml:space="preserve">
     <value>Engine hosts</value>
@@ -234,14 +234,23 @@
   <data name="Engines" xml:space="preserve">
     <value>Engines</value>
   </data>
+  <data name="EnginesDeploying" xml:space="preserve">
+    <value>{0} of {1} engines deploying</value>
+  </data>
   <data name="EnginesRunning" xml:space="preserve">
     <value>{0} of {1} engines running</value>
   </data>
   <data name="FailedInPhase" xml:space="preserve">
     <value>Failed in phase {0} after {1}</value>
   </data>
+  <data name="FunctionBlock" xml:space="preserve">
+    <value>FunctionBlock</value>
+  </data>
   <data name="FunctionBlocks" xml:space="preserve">
-    <value>Function blocks</value>
+    <value>FunctionBlocks</value>
+  </data>
+  <data name="HiddenVersion" xml:space="preserve">
+    <value>⋯ 1 more version</value>
   </data>
   <data name="HiddenVersions" xml:space="preserve">
     <value>⋯ {0} more versions</value>
@@ -257,6 +266,9 @@
   </data>
   <data name="HostsOverCycleTime" xml:space="preserve">
     <value>{0} over cycle time in the last minute</value>
+  </data>
+  <data name="Instance" xml:space="preserve">
+    <value>Instance</value>
   </data>
   <data name="InstanceFailed" xml:space="preserve">
     <value>Failed</value>
@@ -286,7 +298,7 @@
     <value>Latest cycle</value>
   </data>
   <data name="LinkedDatapointsHint" xml:space="preserve">
-    <value>Linked datapoints / all datapoints of all DataPorts. Linked ones are read or written by a function block.</value>
+    <value>Linked datapoints / all datapoints of all DataPorts. Linked ones are read or written by a FunctionBlock.</value>
   </data>
   <data name="LogsOnOtherInstance" xml:space="preserve">
     <value>The log of this engine host is in the journal of the instance that runs it</value>
@@ -296,6 +308,9 @@
   </data>
   <data name="NoDataflowEvents" xml:space="preserve">
     <value>The running version has no event datapoints.</value>
+  </data>
+  <data name="Node" xml:space="preserve">
+    <value>Node</value>
   </data>
   <data name="NoDeploymentObserved" xml:space="preserve">
     <value>Running since {0}</value>
@@ -326,9 +341,6 @@
   </data>
   <data name="OnNode" xml:space="preserve">
     <value>on {0}</value>
-  </data>
-  <data name="OpenDataflowEvents" xml:space="preserve">
-    <value>Open dataflow events</value>
   </data>
   <data name="OpenInEditor" xml:space="preserve">
     <value>Open in Cluster Editor</value>
@@ -503,5 +515,107 @@
   </data>
   <data name="VersionPrevious" xml:space="preserve">
     <value>Previous</value>
+  </data>
+  <data name="Location" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="EventViewer" xml:space="preserve">
+    <value>Event Viewer</value>
+  </data>
+  <data name="OpenEventViewer" xml:space="preserve">
+    <value>Open Event Viewer</value>
+  </data>
+  <data name="OpenEngines" xml:space="preserve">
+    <value>Open Engines</value>
+  </data>
+  <data name="ExpertView" xml:space="preserve">
+    <value>Expert view</value>
+  </data>
+  <data name="ExpertViewHint" xml:space="preserve">
+    <value>Also shows engine hosts, cycle times, ids, packages and the deployment state. Your rights stay the same.</value>
+  </data>
+  <data name="DataflowEventTotal" xml:space="preserve">
+    <value>{0} event datapoints</value>
+  </data>
+  <data name="ResetSagaStateQuestion" xml:space="preserve">
+    <value>Reset the deployment state of {0}?</value>
+  </data>
+  <data name="ResetSagaStateConsequence" xml:space="preserve">
+    <value>A running or hanging deployment is abandoned and ends as failed. What the instances already started still runs, so check the runtime afterwards.</value>
+  </data>
+  <data name="SagaStateNotReset" xml:space="preserve">
+    <value>The deployment state could not be reset: {0}</value>
+  </data>
+  <data name="SagaStateReset" xml:space="preserve">
+    <value>Reset the deployment state of {0}.</value>
+  </data>
+  <data name="NothingToReset" xml:space="preserve">
+    <value>There was no deployment state to reset.</value>
+  </data>
+  <data name="ResetInPhase" xml:space="preserve">
+    <value>Reset in phase {0} after {1}. Check the runtime before deploying again.</value>
+  </data>
+  <data name="EngineStartFailed" xml:space="preserve">
+    <value>Start failed</value>
+  </data>
+  <data name="EngineColumn" xml:space="preserve">
+    <value>Engine</value>
+  </data>
+  <data name="RunIndexColumn" xml:space="preserve">
+    <value>Order</value>
+  </data>
+  <data name="RunIndexHint" xml:space="preserve">
+    <value>Position in the cycle of its engine host</value>
+  </data>
+  <data name="LogLevelColumn" xml:space="preserve">
+    <value>Log level</value>
+  </data>
+  <data name="HostReporting" xml:space="preserve">
+    <value>Reports its cycles</value>
+  </data>
+  <data name="HostNotReporting" xml:space="preserve">
+    <value>Reports no cycles</value>
+  </data>
+  <data name="StopEngine" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="TearDownEngine" xml:space="preserve">
+    <value>Tear down</value>
+  </data>
+  <data name="ShowPackages" xml:space="preserve">
+    <value>Show packages</value>
+  </data>
+  <data name="PackagesOfEngine" xml:space="preserve">
+    <value>Packages of {0}</value>
+  </data>
+  <data name="PackageColumn" xml:space="preserve">
+    <value>Package</value>
+  </data>
+  <data name="NoEnginePackages" xml:space="preserve">
+    <value>The engine host reports no packages for this engine.</value>
+  </data>
+  <data name="PackagesNotRead" xml:space="preserve">
+    <value>The packages of {0} could not be read: {1}</value>
+  </data>
+  <data name="TearDownQuestion" xml:space="preserve">
+    <value>Tear down engine {0}?</value>
+  </data>
+  <data name="TearDownConsequence" xml:space="preserve">
+    <value>The engine host removes the engine. It runs again only after the next deployment.</value>
+  </data>
+  <data name="EngineDisabled" xml:space="preserve">
+    <value>disabled</value>
+  </data>
+  <data name="CycleRangeColumn" xml:space="preserve">
+    <value>Min / Max</value>
+  </data>
+  <data name="CycleRangeColumnHint" xml:space="preserve">
+    <value>Fastest and slowest cycle since the Cluster Manager receives the cycles of the engine host; each value says since when</value>
+  </data>
+  <data name="CycleRangeHint" xml:space="preserve">
+    <value>Fastest and slowest cycle since {0}</value>
+  </data>
+  <data name="EngineDeploying" xml:space="preserve">
+    <value>Deploying</value>
   </data>
 </root>

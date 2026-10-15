@@ -3,8 +3,11 @@ using ClusterManagement.Client.Management.Services;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Enums;
+using ClusterManagement.Internal.Commands;
+using ClusterManagement.Internal.Events;
 using ClusterManagement.Public.Events;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Sdk.Client.Infrastructure;
 using Sdk.Testing.Client;
 
@@ -12,8 +15,46 @@ namespace ClusterManagement.Client.Tests.Management;
 
 public class ClusterManagementPageServiceTests
 {
+    private static readonly Guid s_clusterId = Guid.NewGuid();
+
     private readonly IClusterService _clusterService = Substitute.For<IClusterService>();
 
+    [Fact]
+    public async Task Sends_the_reset_as_a_command()
+    {
+        // Arrange
+        var mediator = Substitute.For<IUiMediator>();
+        using var service = new ClusterManagementPageService(mediator, _clusterService, Substitute.For<ILogger<ClusterManagementPageService>>());
+
+        // Act
+        await service.ResetSagaState(s_clusterId, "admin", Xunit.TestContext.Current.CancellationToken);
+
+        // Assert
+        await mediator.Received(1).Send(Arg.Is<ResetSagaState>(command => command.ClusterId == s_clusterId && command.RequestedBy == "admin"),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Tells_only_the_outcome_of_its_own_reset()
+    {
+        // Arrange
+        var mediator = Substitute.For<IUiMediator>();
+        ResetSagaState? sent = null;
+        await mediator.Send(Arg.Do<ResetSagaState>(command => sent = command), Arg.Any<CancellationToken>());
+        using var service = new ClusterManagementPageService(mediator, _clusterService, Substitute.For<ILogger<ClusterManagementPageService>>());
+        await service.ResetSagaState(s_clusterId, "admin", Xunit.TestContext.Current.CancellationToken);
+        using var monitor = service.Monitor();
+        var other = new DeploymentStateReset(Guid.NewGuid(), s_clusterId);
+        var own = new DeploymentStateReset(sent!.CorrelationId, s_clusterId);
+
+        // Act
+        await service.Consume(new ClientContext<DeploymentStateReset>(other, other.CorrelationId), CancellationToken.None);
+        await service.Consume(new ClientContext<DeploymentStateReset>(own, own.CorrelationId), CancellationToken.None);
+
+        // Assert
+        monitor.OccurredEvents.Should().ContainSingle(e => e.EventName == nameof(ClusterManagementPageService.OnDeploymentStateReset))
+            .Which.Parameters[1].Should().Be(own);
+    }
 
     [Fact(Skip = "To be implemented..")]
     public async Task Query_cluster_versions_should_()
