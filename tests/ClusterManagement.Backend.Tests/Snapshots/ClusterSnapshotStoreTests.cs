@@ -1,5 +1,7 @@
-﻿using System.IO.Abstractions;
+using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Internal;
 using ClusterManagement.Public;
@@ -88,8 +90,167 @@ public class ClusterSnapshotStoreTests
             // Assert
             _fileSystem.FileExists(GetClusterInfoPath(builder.Cluster.Id, builder.Cluster.Version)).Should().BeTrue();
         }
-    }
 
+        // Issue #368: a failed store must never remove the version it found
+        [Fact]
+        public async Task StoreOfAnExistingVersionShouldFailAndKeepIt()
+        {
+            // Arrange
+            var snapshotStore = _serviceProvider.GetRequiredService<IClusterSnapshotStore>();
+            using var builder = ClusterFactory.CreateComplexCluster();
+            await snapshotStore.Store(builder.Cluster, CancellationToken.None);
+
+            // Act
+            var act = () => snapshotStore.Store(builder.Cluster, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<InvalidOperationException>();
+            await AssertStored(snapshotStore, builder.Cluster);
+        }
+
+        [Fact]
+        public async Task StoreAfterALeftoverInfoShouldSucceedOnRetry()
+        {
+            // Arrange
+            var snapshotStore = _serviceProvider.GetRequiredService<IClusterSnapshotStore>();
+            using var builder = ClusterFactory.CreateComplexCluster();
+            await snapshotStore.Store(builder.Cluster, CancellationToken.None);
+            // a crash between the info and the snapshot write leaves only the info
+            _fileSystem.File.Delete(GetClusterFilePath(builder.Cluster.Id, builder.Cluster.Version));
+            var failingStore = () => snapshotStore.Store(builder.Cluster, CancellationToken.None);
+            await failingStore.Should().ThrowAsync<InvalidOperationException>();
+
+            // Act
+            await snapshotStore.Store(builder.Cluster, CancellationToken.None);
+
+            // Assert
+            await AssertStored(snapshotStore, builder.Cluster);
+        }
+
+        [Fact]
+        public async Task StoreOfAnExistingCompressedVersionShouldFailAndKeepIt()
+        {
+            // Arrange
+            var snapshotStore = _serviceProvider.GetRequiredService<IClusterSnapshotStore>();
+            using var builder = ClusterFactory.CreateComplexCluster();
+            await snapshotStore.Store(builder.Cluster, CancellationToken.None);
+            var compressed = await ClusterSerializer.CompressAsync(builder.Cluster, cancellationToken: TestContext.Current.CancellationToken);
+
+            // Act
+            var act = () => snapshotStore.Store(compressed, new ClusterSnapshotInfo(builder.Cluster.Id, builder.Cluster.Version, builder.Cluster.Name), CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<InvalidOperationException>();
+            await AssertStored(snapshotStore, builder.Cluster);
+        }
+
+        [Fact]
+        public async Task CompressedStoreAfterALeftoverInfoShouldSucceedOnRetry()
+        {
+            // Arrange
+            var snapshotStore = _serviceProvider.GetRequiredService<IClusterSnapshotStore>();
+            using var builder = ClusterFactory.CreateComplexCluster();
+            await snapshotStore.Store(builder.Cluster, CancellationToken.None);
+            // a crash between the info and the snapshot write leaves only the info
+            _fileSystem.File.Delete(GetClusterFilePath(builder.Cluster.Id, builder.Cluster.Version));
+            var compressed = await ClusterSerializer.CompressAsync(builder.Cluster, cancellationToken: TestContext.Current.CancellationToken);
+            var info = new ClusterSnapshotInfo(builder.Cluster.Id, builder.Cluster.Version, builder.Cluster.Name);
+            var failingStore = () => snapshotStore.Store(compressed, info, CancellationToken.None);
+            await failingStore.Should().ThrowAsync<InvalidOperationException>();
+
+            // Act
+            await snapshotStore.Store(compressed, info, CancellationToken.None);
+
+            // Assert
+            await AssertStored(snapshotStore, builder.Cluster);
+        }
+
+        [Fact]
+        public async Task ReplacingStoreThatFailsShouldKeepTheExistingVersion()
+        {
+            // Arrange
+            var snapshotStore = _serviceProvider.GetRequiredService<IClusterSnapshotStore>();
+            using var builder = ClusterFactory.CreateComplexCluster();
+            await snapshotStore.Store(builder.Cluster, CancellationToken.None);
+
+            // Act
+            var act = () => snapshotStore.Store(builder.Cluster.Id, builder.Cluster.Version, InfoOf(builder.Cluster), builder.Cluster,
+                (_, _, _) => throw new InvalidOperationException("Write failed"), true, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("Write failed");
+            await AssertStored(snapshotStore, builder.Cluster);
+        }
+
+        [Fact]
+        public async Task StoreWithoutReplaceShouldCreateANewVersion()
+        {
+            // Arrange
+            var snapshotStore = _serviceProvider.GetRequiredService<IClusterSnapshotStore>();
+            using var builder = ClusterFactory.CreateComplexCluster();
+
+            // Act
+            await snapshotStore.Store(builder.Cluster.Id, builder.Cluster.Version, InfoOf(builder.Cluster), builder.Cluster, WriteCluster, false, CancellationToken.None);
+
+            // Assert
+            await AssertStored(snapshotStore, builder.Cluster);
+        }
+
+        [Fact]
+        public async Task StoreWithoutReplaceShouldFailAndKeepAnExistingVersion()
+        {
+            // Arrange
+            var snapshotStore = _serviceProvider.GetRequiredService<IClusterSnapshotStore>();
+            using var builder = ClusterFactory.CreateComplexCluster();
+            await snapshotStore.Store(builder.Cluster, CancellationToken.None);
+
+            // Act
+            var act = () => snapshotStore.Store(builder.Cluster.Id, builder.Cluster.Version, InfoOf(builder.Cluster), builder.Cluster, WriteCluster, false, CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<InvalidOperationException>();
+            await AssertStored(snapshotStore, builder.Cluster);
+        }
+
+        [Fact]
+        public async Task StoreWithoutReplaceAfterALeftoverInfoShouldSucceed()
+        {
+            // Arrange
+            var snapshotStore = _serviceProvider.GetRequiredService<IClusterSnapshotStore>();
+            using var builder = ClusterFactory.CreateComplexCluster();
+            await snapshotStore.Store(builder.Cluster, CancellationToken.None);
+            // a crash between the info and the snapshot write leaves only the info
+            _fileSystem.File.Delete(GetClusterFilePath(builder.Cluster.Id, builder.Cluster.Version));
+
+            // Act
+            await snapshotStore.Store(builder.Cluster.Id, builder.Cluster.Version, InfoOf(builder.Cluster), builder.Cluster, WriteCluster, false, CancellationToken.None);
+
+            // Assert
+            await AssertStored(snapshotStore, builder.Cluster);
+        }
+
+        // The info written by the snapshot migration, the only caller of the generic store
+        private static JsonObject InfoOf(Cluster cluster) => new()
+        {
+            { nameof(Cluster.Id), cluster.Id },
+            { nameof(Cluster.Version), cluster.Version.ToString() },
+            { nameof(Cluster.Name), cluster.Name },
+        };
+
+        private static Task WriteCluster(Stream stream, Cluster cluster, CancellationToken cancellationToken)
+            => JsonSerializer.SerializeAsync(stream, cluster, ClusterSerializer.TypedSerializerOptions ?? ClusterSerializer.UntypedSerializerOptions, cancellationToken);
+
+        // Listed and loadable, as the Cluster Manager and a deployment need it
+        private static async Task AssertStored(IClusterSnapshotStore snapshotStore, Cluster cluster)
+        {
+            (await snapshotStore.GetClusterInfos(cluster.Id, CancellationToken.None))
+                .Should().ContainSingle(i => i.Version == cluster.Version && i.Name == cluster.Name);
+
+            var loaded = await snapshotStore.Load(cluster.Id, cluster.Version, CancellationToken.None);
+            loaded.Should().NotBeNull();
+            loaded.Name.Should().Be(cluster.Name);
+        }
+    }
     public class LoadCluster : ClusterSnapshotStoreTests
     {
         [Fact]

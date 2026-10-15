@@ -1,4 +1,5 @@
 ﻿using ClusterManagement.Backend.Consumers;
+using ClusterManagement.Backend.DeployCluster.Extensions;
 using ClusterManagement.Backend.DeployCluster.Persistence;
 using ClusterManagement.Backend.DeployCluster.StateMachines;
 using ClusterManagement.Public.Events;
@@ -28,7 +29,7 @@ public sealed partial class GetDeployClusterStateConsumer(IClusterSagaDbContext 
                 deployState.ClusterId,
                 DeployClusterStateMachine.GetState(deployState.CurrentState),
                 deployState.ActiveVersion,
-                deployState.TargetVersion)
+                deployState.ReportedTargetVersion())
             {
                 CorrelationId = deployState.CorrelationId,
             },

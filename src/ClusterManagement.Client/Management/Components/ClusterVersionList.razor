@@ -19,13 +19,15 @@
     </div>
 
     <div class="rows @(_showAll ? "scrolling" : null)">
-        @{ var visible = VisibleVersions; }
+        @{ var visible = VisibleVersions; var severalClusters = HasSeveralClusters; }
         @for (var i = 0; i < visible.Count; i++)
         {
             var version = visible[i];
-            var status = ClusterVersionStatuses.Of(version, Deployment);
+            var status = ClusterVersionStatuses.Of(version, Deployment, ActiveVersion?.Id);
             var statusName = StatusName(status);
             var hidden = HiddenBefore(visible, i);
+            var startsCluster = i == 0 || visible[i - 1].Id != version.Id;
+            var endsCluster = i == visible.Count - 1 || visible[i + 1].Id != version.Id;
 
             @if (hidden > 0)
             {
@@ -37,15 +39,26 @@
                 </div>
             }
 
+            @if (severalClusters && startsCluster)
+            {
+                <div class="cluster-head" title="@version.Id" @key="@("cluster-" + version.Key)">
+                    <span class="name">@version.DisplayName</span>
+                    <span class="muted id">@version.Id.ToString()[..8]</span>
+                </div>
+            }
+
             <div class="row @(version.IsActive ? "active" : null)" @key="version.Key">
                 <div class="timeline">
-                    <span class="line @(i == 0 ? "hidden" : null)"></span>
+                    <span class="line @(startsCluster ? "hidden" : null)"></span>
                     <span class="node status-@statusName"></span>
-                    <span class="line @(i == visible.Count - 1 ? "hidden" : null)"></span>
+                    <span class="line @(endsCluster ? "hidden" : null)"></span>
                 </div>
                 <div class="version" title="@version.Version">@version.Version</div>
                 <div class="details">
-                    <span class="name" title="@version.DisplayName">@version.DisplayName</span>
+                    @if (!severalClusters)
+                    {
+                        <span class="name" title="@version.DisplayName">@version.DisplayName</span>
+                    }
                     @if (!string.IsNullOrEmpty(version.Description))
                     {
                         <span class="muted" title="@version.Description">@version.Description</span>

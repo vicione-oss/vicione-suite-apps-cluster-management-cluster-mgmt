@@ -131,7 +131,10 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
             if (state is null)
                 continue;
 
-            var target = await QueryTargetCluster(state.ClusterId, state.TargetVersion);
+            // A version being committed is not stored yet; the ClusterUpdateStarted after the commit brings its names.
+            var target = DeploymentPhases.FromSagaState(state.CurrentState) == DeploymentPhase.Committing
+                ? null
+                : await QueryTargetCluster(state.ClusterId, state.TargetVersion);
             var deployment = Named(DeploymentProgressModel.Resume(state, target));
             if (target is not null)
                 deployment.KnowNamesOf(target);

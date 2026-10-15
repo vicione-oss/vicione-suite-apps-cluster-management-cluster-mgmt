@@ -37,6 +37,10 @@ public sealed class CommitClusterChangeConsumer(
         var cluster = await ClusterSerializer.Decompress(context.Message.CompressedCluster) ??
                 throw new InvalidOperationException($"Failed to deserialize cluster {metaInfo.ClusterId} v{metaInfo.ClusterVersion}");
 
+        // The snapshot is stored under the cluster's own id, while the change is reported for the committed one
+        if (cluster.Id != metaInfo.ClusterId)
+            throw new InvalidOperationException($"Cluster {cluster.Id} does not match the committed cluster {metaInfo.ClusterId}");
+
         if (context.Message.Options is not null)
         {
             var modified = await ApplyClusterOptions(cluster, context.Message.Options, context.CancellationToken);

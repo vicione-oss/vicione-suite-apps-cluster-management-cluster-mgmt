@@ -40,6 +40,10 @@ public sealed partial class ClusterVersionList
 
     private ClusterInfoModel? ActiveVersion => Versions.FirstOrDefault(v => v.IsActive);
 
+    // Clusters can share a name, e.g. a second "Default Cluster"; their versions are headed by the cluster they belong to,
+    // which names the cluster instead of each row.
+    private bool HasSeveralClusters => Versions.Select(v => v.Id).Distinct().Skip(1).Any();
+
     private bool CanDeployDefault => DefaultVersion is { IsActive: false } && !IsDeploying;
 
     private string DefaultDeployQuestion => string.Format(CultureInfo.CurrentCulture, ClusterOverview.DeployDefaultConfirmation, DefaultVersion?.Version);

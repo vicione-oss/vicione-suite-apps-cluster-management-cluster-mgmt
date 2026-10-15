@@ -119,7 +119,7 @@ public sealed partial class DeployClusterStateMachine
         where TMessage : class
         => binder
             .Then(ctx => LogDeploymentStepFailed(_logger, ctx.Exception, ctx.Saga.CorrelationId, ctx.Saga.ClusterId, state))
-            .ThenAsync(ctx => PublishClusterUpdateFailed(ctx, ctx.Saga.TargetVersion, ctx.Exception.Message, state))
+            .ThenAsync(ctx => PublishClusterUpdateFailed(ctx, ctx.Saga.ReportedTargetVersion(), ctx.Exception.Message, state))
             .Then(BeforeFailedFinalize)
             .Finalize();
 

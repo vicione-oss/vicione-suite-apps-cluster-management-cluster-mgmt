@@ -71,6 +71,34 @@ public class GetDeployClusterStateConsumerTests : TestWithDbContextSqlite<Cluste
     }
 
     [Fact]
+    public async Task Should_return_the_commit_version_as_target_while_it_is_committed()
+    {
+        // Arrange
+        await using var tester = new MassTransitTester(cfg => SetupConsumer(cfg));
+        var clusterId = Guid.NewGuid();
+        var commitVersion = new Version(1, 2, 2);
+
+        TestDbContext.DeployClusterState.Add(new DeployClusterState
+        {
+            CorrelationId = Guid.NewGuid(),
+            ClusterId = clusterId,
+            CurrentState = 3,
+            ActiveVersion = new(1, 2, 1),
+            CommitVersion = commitVersion,
+        });
+        await TestDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var response = await tester.TestRequest<GetDeployClusterStateResponse, GetDeployClusterStateRequest>(new GetDeployClusterStateRequest(clusterId));
+
+        // Assert
+        response.RequestError.Should().BeNull();
+        response.State.Should().NotBeNull();
+        response.State.CurrentState.Should().Be("CommittingCluster");
+        response.State.TargetVersion.Should().Be(commitVersion);
+    }
+
+    [Fact]
     public async Task Request_with_unknown_cluster_id_should_return_empty_response()
     {
         // Arrange

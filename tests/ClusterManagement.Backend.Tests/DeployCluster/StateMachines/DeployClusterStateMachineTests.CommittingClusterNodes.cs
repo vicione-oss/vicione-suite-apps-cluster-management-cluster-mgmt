@@ -56,6 +56,53 @@ public partial class DeployClusterStateMachineTests
         }
 
         [Fact]
+        public async Task Should_report_the_commit_version_as_target_while_committing_cluster()
+        {
+            // Arrange
+            await using var provider = SetupServiceProvider();
+            SetupSagaClusterActiveVersionOnly(provider);
+            var commitVersion = SetupCommitClusterInfos(VersionIncrementKind.Patch);
+            var options = SetupDeployOptions(commitVersion);
+            var harness = provider.GetTestHarness();
+            await harness.Start();
+            await harness.DeployCluster(_correlationId, _clusterId, null, options);
+            await harness.AssertDeployClusterState(_correlationId, x => x.CommittingCluster);
+
+            // Act
+            await harness.DeployCluster(_correlationId, _clusterId, _deployAttemptVersion);
+
+            // Assert
+            Assert.True(await harness.Published.Any<ClusterUpdateChanged>(k => k.Context.Message.CurrentState == "CommittingCluster"
+                && k.Context.Message.TargetVersion == commitVersion, TestContext.Current.CancellationToken),
+                "Transition to CommittingCluster should report the commit version");
+            Assert.True(await harness.Published.Any<ClusterUpdateRejected>(k => k.Context.Message.RejectedVersion == _deployAttemptVersion
+                && k.Context.Message.TargetVersion == commitVersion, TestContext.Current.CancellationToken),
+                "Rejection should report the commit version as the running target");
+        }
+
+        [Fact]
+        public async Task Should_fail_with_the_commit_version_if_the_commit_reply_is_unexpected()
+        {
+            // Arrange
+            await using var provider = SetupServiceProvider();
+            SetupSagaClusterActiveVersionOnly(provider);
+            var commitVersion = SetupCommitClusterInfos(VersionIncrementKind.Patch);
+            var options = SetupDeployOptions(commitVersion);
+            var harness = provider.GetTestHarness();
+            await harness.Start();
+            await harness.DeployCluster(_correlationId, _clusterId, null, options);
+            await harness.AssertDeployClusterState(_correlationId, x => x.CommittingCluster);
+
+            // Act
+            await harness.PublishClusterChangedDeleted(_correlationId, _clusterId, commitVersion);
+
+            // Assert
+            await harness.AssertClusterUpdateFailed(_correlationId, commitVersion);
+            Assert.False(await harness.Published.Any<ClusterUpdateFailed>(k => k.Context.Message.Version == new Version(0, 0, 0), TestContext.Current.CancellationToken),
+                "No failure should report version 0.0.0");
+        }
+
+        [Fact]
         public async Task Should_fail_on_commit_cluster_failed()
         {
             // Arrange

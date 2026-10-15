@@ -93,6 +93,10 @@
 - A deployment whose rollback cannot remove the committed version is reported as failed instead of staying in progress
 - A deployment that fails while committing the target version shows the commit error
 - A deployment whose target or active cluster cannot be loaded is reported as failed instead of staying in progress
+- Cluster Manager shows the version being deployed instead of `0.0.0` while a new version is committed and when a deployment fails before it starts
+- A failed store no longer deletes an existing cluster version
+- Committing a cluster whose id differs from the committed cluster fails instead of storing it as another cluster
+- Cluster Manager groups the versions by cluster when several are stored, and shows draft and default only for the running cluster
 - Dataflow events page no longer stops receiving values when a write or subscription reconnects to the broker after the connection dropped
 - The dataflow events page and the debug engines page require full access to Cluster Management like its other pages; any signed-in user could open them by URL, write dataflow inputs and start, stop or tear down engines
 

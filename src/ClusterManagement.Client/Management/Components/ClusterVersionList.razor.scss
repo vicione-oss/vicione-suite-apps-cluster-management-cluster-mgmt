@@ -64,6 +64,24 @@
         }
     }
 
+    // Heads the versions of each cluster when the list holds several
+    .cluster-head {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        min-width: 560px;
+        padding: 10px overview.$panel-padding 6px;
+        border-bottom: 1px solid colors.$background-light;
+
+        .name {
+            color: colors.$font-light;
+        }
+
+        .id {
+            font-family: var(--bs-font-monospace);
+        }
+    }
+
     .timeline {
         display: flex;
         flex-direction: column;

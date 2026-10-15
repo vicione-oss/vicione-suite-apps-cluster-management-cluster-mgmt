@@ -114,6 +114,51 @@ public class CommitClusterChangeConsumerTests
             Assert.True(await tester.Harness.Published.Any<CommitClusterChangeFailed>(TestContext.Current.CancellationToken));
         }
 
+        // Issue #368: a commit never stores its cluster as another cluster than the one committed
+        [Fact]
+        public async Task Should_fail_and_store_nothing_if_the_cluster_id_does_not_match_the_commit()
+        {
+            // Arrange
+            await using var tester = new MassTransitTester(_configureServices);
+            var cluster = ClusterDbContextTools.CreateCluster();
+            var compressed = await ClusterSerializer.CompressAsync(cluster, cancellationToken: TestContext.Current.CancellationToken);
+            var command = new CommitClusterChange(compressed, new CommitClusterMetaInfo(cluster) { ClusterId = Guid.NewGuid() }, null)
+            {
+                CorrelationId = Guid.NewGuid(),
+            };
+
+            // Act
+            var act = async () => await tester.TestCommandFault<CommitClusterChange, CommitClusterChangeConsumer>(command);
+
+            // Assert
+            await act.Should().ThrowAsync<InvalidOperationException>();
+            await _storage.DidNotReceive().Store(Arg.Any<Cluster>(), Arg.Any<CancellationToken>());
+            Assert.True(await tester.Harness.Published.Any<CommitClusterChangeFailed>(k => k.Context.Message.CorrelationId == command.CorrelationId, TestContext.Current.CancellationToken));
+            Assert.False(await tester.Harness.Published.Any<ClusterChanged>(TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task Should_publish_commit_failed_event_with_the_command_correlation_id()
+        {
+            // Arrange
+            await using var tester = new MassTransitTester(_configureServices);
+            var cluster = ClusterDbContextTools.CreateCluster();
+            var compressed = await ClusterSerializer.CompressAsync(cluster, cancellationToken: TestContext.Current.CancellationToken);
+            var correlationId = Guid.NewGuid();
+            var command = new CommitClusterChange(compressed, new CommitClusterMetaInfo(cluster), null) { CorrelationId = correlationId };
+
+            _storage.Store(Arg.Any<Cluster>(), Arg.Any<CancellationToken>())
+                .Throws(new InvalidOperationException("Storage failed"));
+
+            // Act
+            var act = async () => await tester.TestCommandFault<CommitClusterChange, CommitClusterChangeConsumer>(command);
+
+            // Assert
+            await act.Should().ThrowAsync<InvalidOperationException>();
+            Assert.True(await tester.Harness.Published.Any<CommitClusterChangeFailed>(k => k.Context.Message.CorrelationId == correlationId, TestContext.Current.CancellationToken),
+                "The deploy saga only receives a commit failure correlated to its deployment");
+        }
+
         [Fact]
         public async Task Should_sync_metaversion_to_cluster_when_higher()
         {
