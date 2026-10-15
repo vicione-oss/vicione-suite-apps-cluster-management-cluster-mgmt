@@ -1,0 +1,5 @@
+@use "./../Styles/_shared.scss";
+
+.action-column {
+    @extend .cm-grid-action-column;
+}

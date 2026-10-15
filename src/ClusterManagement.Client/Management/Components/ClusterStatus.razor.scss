@@ -1,0 +1,25 @@
+@use "./../../Styles/overview";
+
+.cluster-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+
+    .chip {
+        @include overview.chip;
+        min-width: 0;
+    }
+
+    .text {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .dot {
+        @include overview.dot;
+    }
+}
+
+@include overview.status-colors;

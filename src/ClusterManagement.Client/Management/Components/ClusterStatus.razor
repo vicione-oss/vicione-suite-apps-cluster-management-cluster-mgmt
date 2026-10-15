@@ -1,0 +1,15 @@
+@using ClusterManagement.Client.Management.Localization
+
+<span class="cluster-status" role="status">
+    <span class="chip status-@StatusName">
+        <span class="dot status-@StatusName" aria-hidden="true"></span>
+        <span class="text" title="@StatusText">@StatusText</span>
+    </span>
+    @if (FailedBesideRunning)
+    {
+        <span class="chip status-failed">
+            <span class="dot status-failed" aria-hidden="true"></span>
+            <span class="text">@ClusterOverview.LastDeploymentFailed</span>
+        </span>
+    }
+</span>

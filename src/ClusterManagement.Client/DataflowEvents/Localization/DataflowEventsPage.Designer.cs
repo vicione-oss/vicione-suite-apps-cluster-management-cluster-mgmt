@@ -88,11 +88,20 @@ namespace ClusterManagement.Client.DataflowEvents.Localization {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Event datapoints of the running version v{0}.
+        ///   Looks up a localized string similar to Cycle.
         /// </summary>
-        internal static string DataflowEventsOfVersion {
+        internal static string EngineCycle {
             get {
-                return ResourceManager.GetString("DataflowEventsOfVersion", resourceCulture);
+                return ResourceManager.GetString("EngineCycle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The cycle of the engine that sent the value.
+        /// </summary>
+        internal static string EngineCycleHint {
+            get {
+                return ResourceManager.GetString("EngineCycleHint", resourceCulture);
             }
         }
 
@@ -106,7 +115,7 @@ namespace ClusterManagement.Client.DataflowEvents.Localization {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Filter by block, connector or path.
+        ///   Looks up a localized string similar to Filter by FunctionBlock, connector or path.
         /// </summary>
         internal static string FilterByName {
             get {
@@ -151,7 +160,7 @@ namespace ClusterManagement.Client.DataflowEvents.Localization {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Function block.
+        ///   Looks up a localized string similar to FunctionBlock.
         /// </summary>
         internal static string GroupByFunctionBlock {
             get {
@@ -219,6 +228,24 @@ namespace ClusterManagement.Client.DataflowEvents.Localization {
         internal static string InputTitle {
             get {
                 return ResourceManager.GetString("InputTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid.
+        /// </summary>
+        internal static string Invalid {
+            get {
+                return ResourceManager.GetString("Invalid", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The engine marked this value invalid.
+        /// </summary>
+        internal static string InvalidHint {
+            get {
+                return ResourceManager.GetString("InvalidHint", resourceCulture);
             }
         }
 

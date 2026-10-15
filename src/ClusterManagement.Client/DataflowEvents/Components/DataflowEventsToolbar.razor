@@ -1,0 +1,60 @@
+@using ClusterManagement.Client.DataflowEvents.Models
+@using ViciOne.Ui.Blazor.Components.SearchBox
+@using ViciOne.Ui.Blazor.Components.Toolbar.Components
+@using ViciOne.Ui.Blazor.Components.Toolbar.Enums
+@using ViciOne.Ui.MonochromeIcons.Core.Enums
+
+<div class="events-toolbar">
+    <Toolbar>
+        @* The search comes first, so it is the last to give way to the menu on a narrow screen. *@
+        <ToolbarGroup>
+            <ToolbarContent Context="toolbar">
+                <span class="search">
+                    <SearchBox CssClass="filter"
+                               Text="@Filter"
+                               TextChanging="@FilterChanging"
+                               Placeholder="@Localization.DataflowEventsPage.FilterByName" />
+                    <span class="muted shown">@ShownText</span>
+                </span>
+            </ToolbarContent>
+        </ToolbarGroup>
+        <ToolbarGroup>
+            <ToolbarContent Context="toolbar">
+                <span class="muted label">@Localization.DataflowEventsPage.GroupBy</span>
+            </ToolbarContent>
+            @foreach (var (grouping, label) in Groupings)
+            {
+                <ToolbarButton Text="@label"
+                               TextVisibility="@TextVisibility.Always"
+                               Active="@(grouping == Grouping)"
+                               OnClick="@(() => GroupingChanged.InvokeAsync(grouping))" />
+            }
+        </ToolbarGroup>
+        <ToolbarGroup>
+            <ToolbarContent Context="toolbar">
+                <span class="muted label">@Localization.DataflowEventsPage.Show</span>
+            </ToolbarContent>
+            @foreach (var (direction, label) in Directions)
+            {
+                <ToolbarButton Text="@label"
+                               TextVisibility="@TextVisibility.Always"
+                               Active="@(direction == Direction)"
+                               OnClick="@(() => DirectionChanged.InvokeAsync(direction))" />
+            }
+        </ToolbarGroup>
+        <ToolbarGroup AlignRight="true">
+            <ToolbarContent Context="toolbar">
+                <span class="legend muted">@s_legendInputIcon @Localization.DataflowEventsPage.InputLegend</span>
+                <span class="legend muted">@s_legendOutputIcon @Localization.DataflowEventsPage.OutputLegend</span>
+            </ToolbarContent>
+        </ToolbarGroup>
+        <ToolbarGroup AlignRight="true">
+            <ToolbarButton Enabled="@IsGrouped"
+                           IconName="@(AnyGroupExpanded ? MonochromeIconName.CollapseAll : MonochromeIconName.ExpandAll)"
+                           OnClick="@(() => ExpansionRequested.InvokeAsync(!AnyGroupExpanded))"
+                           Text="@ExpansionText"
+                           Tooltip="@ExpansionText"
+                           TextVisibility="@TextVisibility.MenuOnly" />
+        </ToolbarGroup>
+    </Toolbar>
+</div>

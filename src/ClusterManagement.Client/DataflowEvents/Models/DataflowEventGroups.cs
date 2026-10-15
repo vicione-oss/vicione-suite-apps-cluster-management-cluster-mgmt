@@ -1,6 +1,6 @@
 namespace ClusterManagement.Client.DataflowEvents.Models;
 
-internal enum DataflowEventGrouping
+public enum DataflowEventGrouping
 {
     None,
     Dataflow,
@@ -10,7 +10,7 @@ internal enum DataflowEventGrouping
     ValueType,
 }
 
-internal enum DataflowEventDirection
+public enum DataflowEventDirection
 {
     All,
     Inputs,

@@ -1,21 +1,181 @@
-﻿@use "./../Styles/_shared.scss";
+@use "./../Styles/_shared.scss";
+@use "./../Styles/design/colors";
+@use "./../Styles/overview";
 
+// The page bar spans the page; the table below it keeps the page padding, like the Event Viewer.
 .debug-engines {
-    @extend .cm-page-base;
+    @extend .cm-page-fill-base;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: overview.$page-padding;
+    box-sizing: border-box;
 
-    .debug-engines-toolbar {
-        @extend .cm-page-toolbar-base;
+    ::deep .button {
+        @include overview.button-states;
     }
 
-    .debug-engines-grid {
-        @extend .cm-page-grid-base;
+    .empty {
+        margin: overview.$page-padding;
+    }
 
-        .action-column {
-            @extend .cm-grid-action-column;
+    .engines {
+        @include overview.panel;
+        flex: 1;
+        min-height: 0;
+        margin: overview.$page-padding overview.$page-padding 0;
+        overflow: auto;
+    }
+
+    // Below its minimum width the table scrolls inside its panel instead of cutting columns. The engine column takes
+    // what the others leave, at least 180px.
+    table {
+        width: 100%;
+        min-width: 640px;
+        border-collapse: collapse;
+        table-layout: fixed;
+
+        &.expert {
+            min-width: 1300px;
         }
     }
 
-    .detail-container {
-        @extend .cm-page-detail-container-base;
+    .order-column {
+        width: 70px;
     }
+
+    .id-column {
+        width: 290px;
+    }
+
+    .state-column {
+        width: 150px;
+    }
+
+    .cycle-column {
+        width: 120px;
+    }
+
+    .range-column {
+        width: 140px;
+    }
+
+    .count-column {
+        width: 120px;
+    }
+
+    .level-column {
+        width: 90px;
+    }
+
+    .actions-column {
+        width: 140px;
+    }
+
+    th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        height: 34px;
+        padding: 0 10px;
+        border-bottom: 1px solid colors.$border;
+        background-color: colors.$background-dark;
+        text-align: left;
+        font-weight: 500;
+        font-size: 12px;
+        @include overview.muted;
+    }
+
+    td {
+        height: 36px;
+        padding: 0 10px;
+        border-bottom: 1px solid colors.$background-light;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .host td {
+        background-color: colors.$background-light;
+    }
+
+    .host-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .host-summary {
+        display: flex;
+        flex: none;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-left: auto;
+    }
+
+    .instance {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .host-name {
+        font-weight: 500;
+        color: colors.$font-light;
+    }
+
+    .cycle-range {
+        font-size: 12px;
+    }
+
+    .cycle {
+        @include overview.mono;
+
+        &.over {
+            color: colors.$error;
+        }
+    }
+
+    // The engines start where the host name starts, after its dot.
+    .engine td:first-child {
+        padding-left: 28px;
+    }
+
+    .engine:hover td {
+        background-color: colors.$background-dark;
+    }
+
+    .engine {
+        @include overview.actions-on-hover("::deep .action-column");
+    }
+
+    .engine-name {
+        margin-right: 8px;
+    }
+
+    .state {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .mono {
+        @include overview.mono;
+    }
+
+    .muted {
+        @include overview.muted;
+    }
+
+    .chip {
+        @include overview.chip;
+    }
+
+    .dot {
+        @include overview.dot;
+    }
+
+    @include overview.status-colors;
 }

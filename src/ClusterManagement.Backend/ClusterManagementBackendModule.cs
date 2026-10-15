@@ -16,6 +16,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Backend.Extensions;
+using Sdk.Authorization;
+using Sdk.Authorization.Extensions;
 using Sdk.Backend.Modules;
 using Sdk.Connections.Contracts;
 using Sdk.Instance;
@@ -53,6 +55,9 @@ public sealed class ClusterManagementBackendModule : BackendModule
             .AddOpcUaConnectionSupport();
 
         services.AddHostedService<ResourceDownloadCompletedService>();
+
+        services.AddModuleFeature(_ => new ModuleFeature(ModuleId, Public.Constants.EngineControlFeature,
+            "Controls starting, stopping and tearing down engines on the Engines page and resetting the deployment state in the Cluster Manager."));
     }
 
     public override void UseServices(IApplicationBuilder app)

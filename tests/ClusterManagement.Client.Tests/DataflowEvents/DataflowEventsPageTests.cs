@@ -1,10 +1,10 @@
 using System.Globalization;
 using Bunit;
 using ClusterManagement.Client.DataflowEvents;
+using ClusterManagement.Client.DataflowEvents.Models;
 using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Client.Management.Localization;
 using ClusterManagement.Client.Management.Services;
-using ClusterManagement.Public;
 using ClusterManagement.Public.DataflowEvents;
 using ClusterManagement.Public.Requests;
 using Microsoft.AspNetCore.Components;
@@ -19,8 +19,9 @@ using ViciOne.Ui.Blazor.Components.SearchBox;
 using ViciOne.Ui.Blazor.Components.TestingHelpers.Button.Extensions;
 using ViciOne.Ui.Blazor.Components.TestingHelpers.TextBox.Extensions;
 using ViciOne.Ui.Blazor.Components.TextBox;
-using ViciOne.Ui.Blazor.Components.Toolbar.Extensions;
+using ViciOne.Ui.Blazor.Components.Toolbar.Components;
 using ViciOne.Ui.Localization.Resources;
+using ViciOne.Ui.MonochromeIcons.Core.Enums;
 using DataflowEventsText = ClusterManagement.Client.DataflowEvents.Localization.DataflowEventsPage;
 
 namespace ClusterManagement.Client.Tests.DataflowEvents;
@@ -33,6 +34,7 @@ public sealed class DataflowEventsPageTests
     private readonly IDataflowEventBroker _eventBroker = Substitute.For<IDataflowEventBroker>().SubscribesEveryEvent();
     private readonly IClusterManagementService _managementService = Substitute.For<IClusterManagementService>();
     private readonly FakeTimeProvider _subscriptionClock = new();
+    private readonly ExpertViewState _expertView = new();
     private BunitJSModuleInterop? _treeKeys;
     private readonly IDataflowEvent _inputEvent = DataflowEventTestUtils.CreateInputEvent("Crest", "Threshold", "Pump 1");
     private readonly IDataflowEvent _outputEvent = DataflowEventTestUtils.CreateOutputEvent("Axis", "Value", "Pump 2");
@@ -48,7 +50,7 @@ public sealed class DataflowEventsPageTests
             setup.ClientMediator.SetupDataflowEventRequest(_inputEvent, _outputEvent);
             setup.Services.AddLocalization<ClusterManagementClientModule, ClusterManagementClientLocalizer>();
         });
-        ctx.Services.AddToolbar();
+        ctx.AddClusterPageBar();
         ctx.Services.AddClientTimeProvider(now: _now);
         ctx.Services.AddSingleton(_eventBroker);
         ctx.Services.AddSingleton(_managementService);
@@ -64,7 +66,7 @@ public sealed class DataflowEventsPageTests
     }
 
     [Fact]
-    public async Task Names_the_running_version()
+    public async Task Names_the_cluster_and_the_page_in_the_trail()
     {
         // Arrange
         await using var ctx = new BunitContext();
@@ -74,7 +76,8 @@ public sealed class DataflowEventsPageTests
         var sut = RenderPage(ctx);
 
         // Assert
-        sut.Find(".title .muted").TextContent.Should().Be(string.Format(CultureInfo.CurrentCulture, DataflowEventsText.DataflowEventsOfVersion, "0.1.2"));
+        sut.FindAll(".breadcrumb-item").Select(i => i.TextContent.Trim()).Should().Equal("Cluster", ClusterOverview.EventViewer);
+        sut.Find(".cluster-status .text").TextContent.Should().Be(string.Format(CultureInfo.CurrentCulture, ClusterOverview.RunningVersion, "0.1.2"));
     }
 
     [Fact]
@@ -95,21 +98,6 @@ public sealed class DataflowEventsPageTests
     }
 
     [Fact]
-    public async Task Links_back_to_the_Cluster_Manager_with_the_running_version()
-    {
-        // Arrange
-        await using var ctx = new BunitContext();
-        _eventBroker.GetCurrentClusterInfo().Returns(new ClusterInfo(Guid.NewGuid(), new Version(0, 1, 2), "Cluster", IsActive: true));
-
-        // Act
-        var sut = RenderPage(ctx);
-
-        // Assert
-        sut.Find("a.cluster-status-link").GetAttribute("href").Should().Be(Constants.ManagementModuleRoute);
-        sut.Find(".cluster-status-link .status").TextContent.Should().Be(string.Format(CultureInfo.CurrentCulture, ClusterOverview.RunningVersionDeployed, "0.1.2"));
-    }
-
-    [Fact]
     public async Task Names_no_version_without_a_running_cluster()
     {
         // Arrange
@@ -119,7 +107,7 @@ public sealed class DataflowEventsPageTests
         var sut = RenderPage(ctx);
 
         // Assert
-        sut.FindAll(".title .muted").Should().BeEmpty();
+        sut.Find(".cluster-status .text").TextContent.Should().Be(ClusterOverview.NoVersionRunning);
     }
 
     [Fact]
@@ -130,7 +118,7 @@ public sealed class DataflowEventsPageTests
         var sut = RenderPage(ctx);
 
         // Act
-        await Chip(sut, DataflowEventsText.GroupByFunctionBlock).FindInnerButton().ClickAsync(new());
+        await Choose(sut, DataflowEventsText.GroupByFunctionBlock);
 
         // Assert
         GroupToggles(sut).Select(b => b.Instance.Text).Should().Equal("Line 3 › Pump 1 › Crest", "Line 3 › Pump 2 › Axis");
@@ -161,7 +149,7 @@ public sealed class DataflowEventsPageTests
         var sut = RenderPage(ctx);
 
         // Act
-        await Chip(sut, DataflowEventsText.GroupByNone).FindInnerButton().ClickAsync(new());
+        await Choose(sut, DataflowEventsText.GroupByNone);
 
         // Assert
         sut.FindAll(".group").Should().BeEmpty();
@@ -176,7 +164,7 @@ public sealed class DataflowEventsPageTests
         var sut = await RenderExpandedPage(ctx);
 
         // Act
-        await Chip(sut, DataflowEventsText.Inputs).FindInnerButton().ClickAsync(new());
+        await Choose(sut, DataflowEventsText.Inputs);
 
         // Assert
         sut.FindAll(".event .connector-name").Select(e => e.TextContent).Should().Equal("Crest.Threshold");
@@ -188,7 +176,7 @@ public sealed class DataflowEventsPageTests
         // Arrange
         await using var ctx = new BunitContext();
         var sut = RenderPage(ctx);
-        await Chip(sut, DataflowEventsText.GroupByFunctionBlock).FindInnerButton().ClickAsync(new());
+        await Choose(sut, DataflowEventsText.GroupByFunctionBlock);
 
         // Act
         await GroupToggles(sut).First().FindInnerButton().ClickAsync(new());
@@ -203,7 +191,7 @@ public sealed class DataflowEventsPageTests
         // Arrange
         await using var ctx = new BunitContext();
         var sut = RenderPage(ctx);
-        await Chip(sut, DataflowEventsText.GroupByFunctionBlock).FindInnerButton().ClickAsync(new());
+        await Choose(sut, DataflowEventsText.GroupByFunctionBlock);
 
         // Act
         await sut.Find("tr.group .group-counts").ClickAsync(new());
@@ -235,7 +223,7 @@ public sealed class DataflowEventsPageTests
         var sut = RenderPage(ctx);
 
         // Act
-        await Chip(sut, DataflowEventsText.GroupByDirection).FindInnerButton().ClickAsync(new());
+        await Choose(sut, DataflowEventsText.GroupByDirection);
 
         // Assert
         GroupToggles(sut).Select(b => b.Instance.Text).Should().Equal(DataflowEventsText.InputsGroup, DataflowEventsText.OutputsGroup);
@@ -323,7 +311,7 @@ public sealed class DataflowEventsPageTests
         await ExpandAll(sut);
 
         // Act
-        await sut.FindComponents<Button>().Single(b => b.Instance.Text == AllEvents(UserActions.CollapseSomething)).FindInnerButton().ClickAsync(new());
+        await CollapseAll(sut);
 
         // Assert
         Rows(sut).Should().Equal("Line 3");
@@ -365,10 +353,10 @@ public sealed class DataflowEventsPageTests
         await using var ctx = new BunitContext();
         var sut = RenderPage(ctx);
         await GroupToggles(sut).Single().FindInnerButton().ClickAsync(new());
-        await Chip(sut, DataflowEventsText.GroupByDataflow).FindInnerButton().ClickAsync(new());
+        await Choose(sut, DataflowEventsText.GroupByDataflow);
 
         // Act
-        await Chip(sut, DataflowEventsText.GroupByContainer).FindInnerButton().ClickAsync(new());
+        await Choose(sut, DataflowEventsText.GroupByContainer);
 
         // Assert
         Rows(sut).Should().Equal("Line 3");
@@ -426,7 +414,7 @@ public sealed class DataflowEventsPageTests
         var sut = RenderPage(ctx);
 
         // Act
-        await Chip(sut, DataflowEventsText.GroupByNone).FindInnerButton().ClickAsync(new());
+        await Choose(sut, DataflowEventsText.GroupByNone);
 
         // Assert
         sut.Find("table").HasAttribute("role").Should().BeFalse();
@@ -442,11 +430,27 @@ public sealed class DataflowEventsPageTests
         await sut.InvokeAsync(() => sut.FindComponent<SearchBox>().Instance.TextChanging.InvokeAsync("line 3"));
 
         // Act
-        await sut.FindComponents<Button>().Single(b => b.Instance.Text == AllEvents(UserActions.CollapseSomething)).FindInnerButton().ClickAsync(new());
+        await CollapseAll(sut);
 
         // Assert
         sut.FindAll(".event").Should().BeEmpty();
-        sut.FindComponents<Button>().Should().Contain(b => b.Instance.Text == AllEvents(UserActions.ExpandSomething));
+        ExpansionButton(sut).Instance.Text.Should().Be(AllGroups(UserActions.ExpandSomething));
+    }
+
+    [Fact]
+    public async Task The_expansion_button_switches_to_collapse_once_a_group_is_open()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx);
+
+        // Act
+        await ExpandAll(sut);
+
+        // Assert
+        var button = ExpansionButton(sut);
+        button.Instance.IconName.Should().Be(MonochromeIconName.CollapseAll);
+        button.Instance.Text.Should().Be(AllGroups(UserActions.CollapseSomething));
     }
 
     [Fact]
@@ -457,11 +461,10 @@ public sealed class DataflowEventsPageTests
         var sut = RenderPage(ctx);
 
         // Act
-        await Chip(sut, DataflowEventsText.GroupByNone).FindInnerButton().ClickAsync(new());
+        await Choose(sut, DataflowEventsText.GroupByNone);
 
         // Assert
-        sut.FindComponents<Button>().Should().NotContain(b =>
-            b.Instance.Text == AllEvents(UserActions.CollapseSomething) || b.Instance.Text == AllEvents(UserActions.ExpandSomething));
+        ExpansionButton(sut).Instance.Enabled.Should().BeFalse();
     }
 
     [Fact]
@@ -550,6 +553,42 @@ public sealed class DataflowEventsPageTests
         // Assert
         sut.WaitForAssertion(() => sut.Find(".copy-cell .copy").TextContent.Should().Contain("0"));
         sut.FindAll(".event .time").Should().OnlyContain(cell => cell.TextContent.Trim().Length == 0);
+    }
+
+    [Fact]
+    public async Task A_value_the_engine_marked_invalid_says_so()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = await RenderExpandedPage(ctx);
+        var onValue = await ValueHandler(sut, _outputEvent);
+        _eventBroker.DetailsOf(_outputEvent.EventId).Returns(new DataflowValueDetails(false, 7));
+
+        // Act
+        await sut.InvokeAsync(() => onValue(_now.UtcDateTime, "1.5"));
+
+        // Assert
+        sut.WaitForAssertion(() => sut.Find(".copy-cell .chip").TextContent.Should().Be(DataflowEventsText.Invalid));
+        sut.FindAll(".event .cycle").Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task The_expert_view_shows_the_engine_cycle_and_the_milliseconds_of_a_value()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = await RenderExpandedPage(ctx);
+        var onValue = await ValueHandler(sut, _outputEvent);
+        _eventBroker.DetailsOf(_outputEvent.EventId).Returns(new DataflowValueDetails(true, 1234));
+        await sut.InvokeAsync(() => onValue(_now.AddMilliseconds(45).UtcDateTime, "1.5"));
+
+        // Act
+        await sut.InvokeAsync(_expertView.Toggle);
+
+        // Assert
+        sut.WaitForAssertion(() => sut.Find(".event .time:not(:empty)").TextContent.Trim().Should().Be("12:00:00.045"));
+        sut.FindAll(".event .cycle").Select(cell => cell.TextContent).Should().Contain("1234");
+        sut.FindAll(".copy-cell .chip").Should().BeEmpty();
     }
 
     [Fact]
@@ -717,7 +756,7 @@ public sealed class DataflowEventsPageTests
     private IRenderedComponent<DataflowEventsPage> RenderPage(BunitContext ctx, TimeZoneInfo timeZone, params IDataflowEvent[] events)
     {
         ctx.SetupSuiteServices(setup => setup.Services.AddLocalization<ClusterManagementClientModule, ClusterManagementClientLocalizer>());
-        ctx.Services.AddToolbar();
+        ctx.AddClusterPageBar(_expertView);
         ctx.Services.AddClientTimeProvider(timeZone, _now);
         ctx.Services.AddSingleton(_eventBroker);
         ctx.Services.AddSingleton(_managementService);
@@ -745,7 +784,25 @@ public sealed class DataflowEventsPageTests
     }
 
     private static Task ExpandAll(IRenderedComponent<DataflowEventsPage> sut)
-        => sut.FindComponents<Button>().Single(b => b.Instance.Text == AllEvents(UserActions.ExpandSomething)).FindInnerButton().ClickAsync(new());
+        => PressExpansion(sut, UserActions.ExpandSomething, MonochromeIconName.ExpandAll);
+
+    private static Task CollapseAll(IRenderedComponent<DataflowEventsPage> sut)
+        => PressExpansion(sut, UserActions.CollapseSomething, MonochromeIconName.CollapseAll);
+
+    // One button opens or closes every group; it offers what fits the tree, so it must offer the expected action.
+    private static Task PressExpansion(IRenderedComponent<DataflowEventsPage> sut, string action, MonochromeIconName icon)
+    {
+        var button = ExpansionButton(sut);
+        button.Instance.Text.Should().Be(AllGroups(action));
+        button.Instance.IconName.Should().Be(icon);
+        return Press(sut, button);
+    }
+
+    private static IRenderedComponent<ToolbarButton> ExpansionButton(IRenderedComponent<DataflowEventsPage> sut)
+        => sut.FindComponents<ToolbarButton>().Single(b => b.Instance.IconName == MonochromeIconName.ExpandAll || b.Instance.IconName == MonochromeIconName.CollapseAll);
+
+    private static Task Press(IRenderedComponent<DataflowEventsPage> sut, IRenderedComponent<ToolbarButton> button)
+        => sut.InvokeAsync(button.Instance.OnClick.InvokeAsync);
 
     // A heading shows its name, an event its function block and connector.
     private static IEnumerable<string> Rows(IRenderedComponent<DataflowEventsPage> sut)
@@ -761,7 +818,6 @@ public sealed class DataflowEventsPageTests
     {
         _treeKeys = ctx.JSInterop.SetupModule(TreeKeysModule);
         _treeKeys.SetupVoid("attach", _ => true).SetVoidResult();
-        _treeKeys.SetupVoid("detach", _ => true).SetVoidResult();
     }
 
     // The page's clock stands still at _now; the subscriptions run on one the test moves on.
@@ -784,12 +840,12 @@ public sealed class DataflowEventsPageTests
     private static IRenderedComponent<TextBox> ValueInput(IRenderedComponent<DataflowEventsPage> sut)
         => sut.FindComponents<TextBox>().Single(t => t.Instance.CssClass == "value-input");
 
-    private static IRenderedComponent<Button> Chip(IRenderedComponent<DataflowEventsPage> sut, string text)
-        => sut.FindComponents<Button>().Single(b => b.Instance.Text == text && b.Instance.CssClass?.StartsWith("chip-toggle", StringComparison.Ordinal) == true);
+    private static Task Choose(IRenderedComponent<DataflowEventsPage> sut, string text)
+        => Press(sut, sut.FindComponents<ToolbarButton>().Single(b => b.Instance.Text == text && b.Instance.IconName is null));
 
     private static IEnumerable<IRenderedComponent<Button>> GroupToggles(IRenderedComponent<DataflowEventsPage> sut)
         => sut.FindComponents<Button>().Where(b => b.Instance.CssClass == "group-toggle");
 
-    private static string AllEvents(string action)
-        => string.Format(CultureInfo.CurrentCulture, action, CommonVocabulary.All);
+    private static string AllGroups(string action)
+        => string.Format(CultureInfo.CurrentCulture, action, $"{CommonVocabulary.All} {CommonVocabulary.GroupPlural}");
 }

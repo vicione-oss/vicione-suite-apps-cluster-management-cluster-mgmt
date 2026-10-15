@@ -1,0 +1,36 @@
+@using ClusterManagement.Client.Management.Localization
+@using ViciOne.Ui.Blazor.Components.Breadcrumb.Components
+@using ViciOne.Ui.Blazor.Components.Toolbar.Components
+@using ViciOne.Ui.Blazor.Components.Toolbar.Enums
+@using ViciOne.Ui.MonochromeIcons.Core.Enums
+
+<div class="cluster-page-bar">
+    <h1 class="visually-hidden">@_current.Name</h1>
+    <Toolbar>
+        <ToolbarGroup>
+            <ToolbarContent Context="toolbar">
+                <nav class="trail" aria-label="@ClusterOverview.Location">
+                    <Breadcrumb CurrentItem="@_current" OnItemClick="@Navigate" />
+                </nav>
+            </ToolbarContent>
+            <ToolbarContent Context="toolbar">
+                <span class="states">
+                    <ClusterStatus ClusterId="@ClusterId" RunningVersion="@RunningVersion" IsLoading="@IsLoading" />
+                    @if (DraftVersion is { } draft)
+                    {
+                        <span class="chip status-draft">@string.Format(ClusterOverview.DraftReady, draft)</span>
+                    }
+                </span>
+            </ToolbarContent>
+        </ToolbarGroup>
+        <ToolbarGroup AlignRight="true">
+            <ToolbarButton Text="@ClusterOverview.ExpertView"
+                           Tooltip="@ClusterOverview.ExpertViewHint"
+                           IconName="@MonochromeIconName.Show"
+                           TextVisibility="@TextVisibility.Always"
+                           Active="@ExpertView.IsExpert"
+                           OnClick="@ExpertView.Toggle" />
+            @Actions
+        </ToolbarGroup>
+    </Toolbar>
+</div>

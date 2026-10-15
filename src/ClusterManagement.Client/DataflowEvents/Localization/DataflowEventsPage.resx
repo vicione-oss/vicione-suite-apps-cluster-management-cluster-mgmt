@@ -126,14 +126,17 @@
   <data name="Copied" xml:space="preserve">
     <value>Copied</value>
   </data>
-  <data name="DataflowEventsOfVersion" xml:space="preserve">
-    <value>Event datapoints of the running version v{0}</value>
+  <data name="EngineCycle" xml:space="preserve">
+    <value>Cycle</value>
+  </data>
+  <data name="EngineCycleHint" xml:space="preserve">
+    <value>The cycle of the engine that sent the value</value>
   </data>
   <data name="EventsShown" xml:space="preserve">
     <value>{0} of {1} shown</value>
   </data>
   <data name="FilterByName" xml:space="preserve">
-    <value>Filter by block, connector or path</value>
+    <value>Filter by FunctionBlock, connector or path</value>
   </data>
   <data name="GroupBy" xml:space="preserve">
     <value>Group by</value>
@@ -148,7 +151,7 @@
     <value>Input / output</value>
   </data>
   <data name="GroupByFunctionBlock" xml:space="preserve">
-    <value>Function block</value>
+    <value>FunctionBlock</value>
   </data>
   <data name="GroupByNone" xml:space="preserve">
     <value>None</value>
@@ -170,6 +173,12 @@
   </data>
   <data name="InputTitle" xml:space="preserve">
     <value>Input · {0} · written into the cluster</value>
+  </data>
+  <data name="Invalid" xml:space="preserve">
+    <value>Invalid</value>
+  </data>
+  <data name="InvalidHint" xml:space="preserve">
+    <value>The engine marked this value invalid</value>
   </data>
   <data name="Location" xml:space="preserve">
     <value>Where</value>

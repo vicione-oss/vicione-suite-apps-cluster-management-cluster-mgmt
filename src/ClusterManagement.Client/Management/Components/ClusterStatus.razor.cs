@@ -10,10 +10,10 @@ using Microsoft.Extensions.Logging;
 namespace ClusterManagement.Client.Management.Components;
 
 /// <summary>
-/// The way back to the Cluster Manager, which also tells what the running cluster is doing: the version that runs, a
-/// deployment in progress with its phase, or a deployment that failed.
+/// What the running cluster is doing: the version that runs, a deployment in progress with its phase, or a deployment
+/// that failed.
 /// </summary>
-public sealed partial class ClusterStatusLink : IAsyncDisposable
+public sealed partial class ClusterStatus : IAsyncDisposable
 {
     private readonly CancellationTokenSource _tokenSource = new();
     private DeploymentProgressModel? _deployment;
@@ -21,7 +21,7 @@ public sealed partial class ClusterStatusLink : IAsyncDisposable
 
     [Inject] private IClusterManagementService ManagementService { get; set; } = default!;
     [Inject(Key = Sdk.Constants.ClientTimeProviderServiceKey)] private TimeProvider TimeProvider { get; set; } = default!;
-    [Inject] private ILogger<ClusterStatusLink> Logger { get; set; } = default!;
+    [Inject] private ILogger<ClusterStatus> Logger { get; set; } = default!;
 
     /// <summary>
     /// The cluster that runs; <c>null</c> while no version runs, and then a deployment of any cluster is shown.
@@ -31,30 +31,33 @@ public sealed partial class ClusterStatusLink : IAsyncDisposable
     [Parameter] public Version? RunningVersion { get; set; }
 
     /// <summary>
-    /// <c>true</c> while the page has not yet loaded which version runs; the link then shows no status.
+    /// <c>true</c> while the page has not yet loaded which version runs; the status then shows no version.
     /// </summary>
     [Parameter] public bool IsLoading { get; set; }
 
-    // The saga reports a failed deployment once it has rolled back, so the version that ran before runs again.
+    // The saga reports a failed deployment once it has rolled back, so the version that ran before runs again. A reset
+    // deployment did not fail; the deployment panel says what happened to it.
     private string StatusName => _deployment switch
     {
-        { Phase: DeploymentPhase.Failed } when RunningVersion is null => "failed",
+        { Phase: DeploymentPhase.Failed, WasReset: false } when RunningVersion is null => "failed",
         { IsRunning: true } => "deploying",
         _ => RunningVersion is null ? "previous" : "running",
     };
 
     private string StatusText => _deployment switch
     {
-        { Phase: DeploymentPhase.Failed } failed when RunningVersion is null => Format(ClusterOverview.DeploymentFailed, failed.TargetVersion),
-        { Phase: DeploymentPhase.Failed } failed => $"{RunningText} · {Format(ClusterOverview.DeploymentFailed, failed.TargetVersion)}",
+        { Phase: DeploymentPhase.Failed, WasReset: false } failed when RunningVersion is null => Format(ClusterOverview.DeploymentFailed, failed.TargetVersion),
         { IsRunning: true, Phase: DeploymentPhase.Starting } starting => Format(ClusterOverview.DeployingVersion, starting.TargetVersion),
         { IsRunning: true } deploying => $"{Format(ClusterOverview.DeployingVersion, deploying.TargetVersion)} · {deploying.Phase.ToText()}",
         _ => RunningText,
     };
 
+    // A deployment that failed while a version runs gets a chip of its own, so the running version keeps its colour.
+    private bool FailedBesideRunning => _deployment is { Phase: DeploymentPhase.Failed, WasReset: false } && RunningVersion is not null;
+
     private string RunningText => RunningVersion switch
     {
-        { } version => Format(ClusterOverview.RunningVersionDeployed, version),
+        { } version => Format(ClusterOverview.RunningVersion, version),
         null when IsLoading => "…",
         null => ClusterOverview.NoVersionRunning,
     };
@@ -74,6 +77,9 @@ public sealed partial class ClusterStatusLink : IAsyncDisposable
             return;
 
         _lookedUpClusterId = clusterId;
+        if (_deployment?.ClusterId != clusterId)
+            _deployment = null;
+
         try
         {
             if (await ManagementService.QueryClusterDeploymentState(clusterId, _tokenSource.Token) is { } state)
@@ -102,13 +108,14 @@ public sealed partial class ClusterStatusLink : IAsyncDisposable
     private async void OnClusterUpdateChanged(object? sender, ClusterUpdateChanged ev)
         => await Update(ev.ClusterId, () => DeploymentFor(ev.ClusterId, ev.TargetVersion)?.Apply(ev));
 
-    // A deployment whose versions cannot be loaded fails before the saga reports its start.
+    // A deployment whose versions cannot be loaded fails before the saga reports its start. A reset ends every deployment
+    // of a cluster, also those the status does not show, which leave it alone.
     private async void OnClusterUpdateFailed(object? sender, ClusterUpdateFailed ev)
         => await Update(ev.ClusterId, () =>
         {
-            if (DeploymentFor(ev.ClusterId, ev.Version) is { } deployment)
+            if ((DeploymentFor(ev.ClusterId, ev.CorrelationId) ?? DeploymentFor(ev.ClusterId, ev.Version)) is { } deployment)
                 deployment.Fail(ev);
-            else
+            else if (!ev.WasReset || _deployment is null)
                 _deployment = DeploymentProgressModel.FailedBeforeStart(ev);
         });
 
@@ -122,6 +129,9 @@ public sealed partial class ClusterStatusLink : IAsyncDisposable
 
     private DeploymentProgressModel? DeploymentFor(Guid clusterId, Version version)
         => _deployment?.Matches(clusterId, version) == true ? _deployment : null;
+
+    private DeploymentProgressModel? DeploymentFor(Guid clusterId, Guid correlationId)
+        => _deployment?.Matches(clusterId, correlationId) == true ? _deployment : null;
 
     // The deployment events arrive in async void handlers, where an exception would be lost; the renderer reports it instead.
     private async Task Update(Guid clusterId, Action update)

@@ -21,9 +21,10 @@
     .rows {
         overflow-x: auto;
 
-        // All versions scroll inside the panel instead of stretching the page.
+        // All versions scroll inside the panel instead of stretching the page, from more rows than the collapsed list
+        // shows, so showing all reveals the hidden versions instead of a scroll area as high as before.
         &.scrolling {
-            max-height: 8 * 56px;
+            max-height: 12 * 56px;
             overflow-y: auto;
         }
     }
@@ -44,6 +45,8 @@
         &.active {
             background-color: color.change(colors.$primary, $alpha: .07);
         }
+
+        @include overview.actions-on-hover(".actions");
     }
 
     // Marks versions the collapsed list skips; the dashed line continues the timeline through the gap.

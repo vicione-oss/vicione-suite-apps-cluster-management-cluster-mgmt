@@ -26,6 +26,16 @@ public sealed record EngineHostRuntimeModel(Guid Id, Guid InstanceId, string Nam
                 [.. host.Engines.Select(engine => new EngineRuntimeModel(instance.Id, engine.Id, engine.Name, engine.MinCycleTime))])))];
 
     /// <summary>
+    /// The names of the instances that run the engine hosts of <paramref name="cluster"/>, by instance id.
+    /// </summary>
+    public static Dictionary<Guid, string> InstanceNamesOf(Cluster cluster)
+        => cluster.NodeGroups
+            .SelectMany(group => group.Nodes)
+            .SelectMany(node => node.Applications)
+            .GroupBy(instance => instance.Id)
+            .ToDictionary(group => group.Key, group => group.First().Name);
+
+    /// <summary>
     /// Replaces the engine with the id of <paramref name="engine"/> in whichever host holds it.
     /// </summary>
     public static IReadOnlyList<EngineHostRuntimeModel> WithEngine(IReadOnlyList<EngineHostRuntimeModel> hosts, EngineRuntimeModel engine)

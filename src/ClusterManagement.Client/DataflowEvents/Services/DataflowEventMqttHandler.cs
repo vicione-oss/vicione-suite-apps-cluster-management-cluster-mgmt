@@ -7,6 +7,7 @@ using ClusterManagement.Client.Management.Extensions;
 using ClusterManagement.Public.DataflowEvents;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
+using MQTTnet.Packets;
 using MQTTnet.Protocol;
 using Sdk.Messaging;
 
@@ -110,9 +111,15 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
                 return;
             }
 
+            var userProperties = args.ApplicationMessage.UserProperties;
             var timestamp = args.ApplicationMessage.FindRequiredUserProperty(MqttUserProperties.Timestamp).GetDateTime();
 
-            await EventReceivedAsync.Invoke(new DataflowEventArgs(eventId, args.ApplicationMessage, timestamp));
+            await EventReceivedAsync.Invoke(new DataflowEventArgs(eventId, args.ApplicationMessage, timestamp)
+            {
+                IsValid = userProperties.FindOptional(MqttUserProperties.Validity)?.ReadValueAsString() != "0",
+                EngineCycle = ulong.TryParse(userProperties.FindOptional(MqttUserProperties.EngineCycle)?.ReadValueAsString(), NumberStyles.None,
+                    CultureInfo.InvariantCulture, out var engineCycle) ? engineCycle : null,
+            });
         }
         catch (Exception ex)
         {

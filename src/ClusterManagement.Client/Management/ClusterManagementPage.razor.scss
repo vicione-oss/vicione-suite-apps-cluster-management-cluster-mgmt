@@ -1,17 +1,63 @@
+@use "sass:color";
 @use "./../Styles/_shared.scss";
 @use "./../Styles/design/colors";
 @use "./../Styles/overview";
 
 .cluster-mgmt {
     @extend .cm-page-fill-base;
-    overflow: auto;
+    display: flex;
+    flex-direction: column;
 
-    // Tiles and columns share one grid so the column split lines up with the tile edges.
+    // Fills the deploy button with the primary color, as the main action of the page. The rules depend on the
+    // internal `.button` class of the Button component of ViciOne.Ui.Blazor.Components 6.5.0. Re-check them after
+    // updating that package.
+    ::deep .button.cm-primary {
+        min-width: 160px;
+        justify-content: center;
+        background-color: colors.$primary;
+        border-color: colors.$primary;
+        color: colors.$background-darker;
+
+        // The library's hover and press would take the fill away; the main action keeps it.
+        &:not(:disabled):not(.button--busy):hover {
+            color: colors.$background-darker;
+            background-color: colors.$accent-hover;
+            border-color: colors.$accent-hover;
+        }
+
+        &:not(:disabled):active {
+            background-color: color.adjust(colors.$accent, $lightness: -10%);
+            border-color: color.adjust(colors.$accent, $lightness: -10%);
+        }
+    }
+
+    ::deep .button {
+        @include overview.button-states;
+    }
+
+    // A clicked main action keeps its own border instead of the light one the other buttons get.
+    ::deep .button.cm-primary:focus:not(:focus-visible) {
+        border-color: colors.$primary;
+    }
+
+    ::deep .button.cm-primary:disabled,
+    ::deep .button.cm-primary.disabled {
+        background-color: transparent;
+        border-color: colors.$border;
+        color: colors.$font;
+    }
+
+    // Tiles and columns share one grid so the column split lines up with the tile edges. The page bar stays; the grid
+    // below it scrolls.
     .overview {
         display: grid;
+        flex: 1;
         grid-template-columns: repeat(8, minmax(0, 1fr));
+        align-content: start;
         gap: overview.$gap;
+        min-height: 0;
         padding: overview.$page-padding;
+        overflow: auto;
     }
 
     .full-row {

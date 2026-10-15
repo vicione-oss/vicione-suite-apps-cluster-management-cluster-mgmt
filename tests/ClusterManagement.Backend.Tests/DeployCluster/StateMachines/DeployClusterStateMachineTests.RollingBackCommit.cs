@@ -47,6 +47,8 @@ public partial class DeployClusterStateMachineTests
                 && k.Context.Message.Version == commitVersion, TestContext.Current.CancellationToken);
 
             await harness.AssertClusterUpdateFailed(_correlationId, commitVersion);
+            (await harness.Published.Any<ClusterUpdateFailed>(k => k.Context.CorrelationId == _correlationId && !k.Context.Message.FailedVersionKept,
+                TestContext.Current.CancellationToken)).Should().BeTrue();
         }
 
         [Fact]
@@ -90,6 +92,8 @@ public partial class DeployClusterStateMachineTests
             // Assert
             await harness.Consumed.Any<ClusterError>(k => k.Context.Message.ClusterId == _clusterId, TestContext.Current.CancellationToken);
             await harness.AssertClusterUpdateFailed(_correlationId, commitVersion);
+            (await harness.Published.Any<ClusterUpdateFailed>(k => k.Context.CorrelationId == _correlationId && k.Context.Message.FailedVersionKept,
+                TestContext.Current.CancellationToken)).Should().BeTrue();
         }
 
         [Fact]

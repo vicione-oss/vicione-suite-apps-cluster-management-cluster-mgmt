@@ -29,8 +29,10 @@
         color: colors.$font-light;
     }
 
+    // Its own line height, or the smaller font enlarges the line box and pushes the label below those of its neighbours.
     .of {
         font-size: 16px;
+        line-height: 1;
         color: color.change(colors.$font-light, $alpha: .6);
     }
 
@@ -60,8 +62,17 @@
         color: color.change(colors.$font-light, $alpha: .8);
     }
 
+    // The four tiles of the Standard view span two columns each.
+    &.standard .tile {
+        grid-column: span 2;
+    }
+
     @media (max-width: 1100px) {
         grid-template-columns: repeat(4, minmax(0, 1fr));
+
+        &.standard .tile {
+            grid-column: span 1;
+        }
     }
 
     // Four tiles in a phone width leave too little room to tell the labels apart.

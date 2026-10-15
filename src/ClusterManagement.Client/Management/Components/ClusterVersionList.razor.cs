@@ -27,6 +27,11 @@ public sealed partial class ClusterVersionList
 
     [Parameter, EditorRequired] public IReadOnlyList<ClusterInfoModel> Versions { get; set; } = [];
     [Parameter] public DeploymentProgressModel? Deployment { get; set; }
+
+    /// <summary>
+    /// Adds downloading and deleting a version and deploying the default cluster.
+    /// </summary>
+    [Parameter] public bool Expert { get; set; }
     [Parameter] public EventCallback<ClusterInfoModel> OnDeploy { get; set; }
     [Parameter] public EventCallback<ClusterInfoModel> OnEdit { get; set; }
     [Parameter] public EventCallback<ClusterInfoModel> OnDownload { get; set; }
@@ -76,6 +81,9 @@ public sealed partial class ClusterVersionList
 
         return IndexInVersions(visible[visibleIndex]) - IndexInVersions(visible[visibleIndex - 1]) - 1;
     }
+
+    private static string HiddenText(int count)
+        => count == 1 ? ClusterOverview.HiddenVersion : string.Format(CultureInfo.CurrentCulture, ClusterOverview.HiddenVersions, count);
 
     /// <summary>
     /// How many versions the collapsed list skips after its last row.

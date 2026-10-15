@@ -5,6 +5,10 @@ using ClusterManagement.Client.Management.Localization;
 using ClusterManagement.Client.Management.Models;
 using Microsoft.AspNetCore.Components;
 using Sdk.Messaging;
+using ViciOne.Ui.Blazor.Components.Button.Enums;
+using ViciOne.Ui.Blazor.Components.Button.Extensions;
+using ViciOne.Ui.MonochromeIcons.Core.Enums;
+using ViciOne.Ui.MonochromeIcons.Core.Extensions;
 
 namespace ClusterManagement.Client.Management.Components;
 
@@ -17,6 +21,8 @@ public sealed partial class DeploymentPanel : IDisposable
     private static readonly TimeSpan s_stepClockInterval = TimeSpan.FromSeconds(1);
 
     private readonly HashSet<Guid> _expanded = [];
+    private readonly string _sagaStateIconCssClass = MonochromeIconName.InfoLight.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
+    private readonly string _resetIconCssClass = MonochromeIconName.Reload.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
 
     private bool _showAll;
     private ITimer? _stepClock;
@@ -32,6 +38,19 @@ public sealed partial class DeploymentPanel : IDisposable
     [Parameter] public ClusterInfoModel? Running { get; set; }
 
     /// <summary>
+    /// Adds the steps of each instance, the instances listed on request and the deployment state machine.
+    /// </summary>
+    [Parameter] public bool Expert { get; set; }
+
+    /// <summary>
+    /// The user holds the Engine control feature, which resetting the deployment state needs as well.
+    /// </summary>
+    [Parameter] public bool MayReset { get; set; }
+
+    [Parameter] public EventCallback OnShowSagaState { get; set; }
+    [Parameter] public EventCallback OnResetSagaState { get; set; }
+
+    /// <summary>
     /// The failed instances and, while the deployment runs, those that reported a step, or every instance once the user
     /// asked for all of them.
     /// </summary>
@@ -42,7 +61,7 @@ public sealed partial class DeploymentPanel : IDisposable
             if (Deployment is null)
                 return [];
 
-            return _showAll ? Deployment.Instances : Deployment.Instances.Where(IsListedByDefault);
+            return Expert && _showAll ? Deployment.Instances : Deployment.Instances.Where(IsListedByDefault);
         }
     }
 
@@ -85,9 +104,10 @@ public sealed partial class DeploymentPanel : IDisposable
         _stepClock = null;
     }
 
-    // From its first step on, so the row and its opened steps stay put between two steps.
+    // The only instance is listed from the start, the others from their first step on. A listed instance stays listed
+    // once the deployment ended: on a standalone its steps arrive together just before the end and would show for a moment.
     private bool IsListedByDefault(InstanceProgressModel instance)
-        => instance.HasFailed || (Deployment?.IsRunning == true && instance.Steps.Count > 0);
+        => instance.HasFailed || instance.Steps.Count > 0 || Deployment?.Instances.Count == 1;
 
     // A deployment that ended shows no step in progress, even when the event that ended the step was lost.
     private InstanceStepModel? StepInProgress(InstanceProgressModel instance)
@@ -163,6 +183,12 @@ public sealed partial class DeploymentPanel : IDisposable
         _ => ClusterOverview.StepStateInterrupted,
     };
 
+    // A node named after its instance, as on a standalone ("IFM10N34571 (Physical)"), is not repeated.
+    private static string? NodeText(InstanceProgressModel instance)
+        => instance.NodeName == instance.Name || instance.NodeName.StartsWith($"{instance.Name} (", StringComparison.Ordinal)
+            ? null
+            : Format(ClusterOverview.OnNode, instance.NodeName);
+
     private static string? ErrorText(InstanceProgressModel instance, ErrorInfo error)
         => instance.FailedStep is { } step ? Format(ClusterOverview.StepFailed, step.ToText(), error.Message) : error.Message;
 
@@ -207,9 +233,13 @@ public sealed partial class DeploymentPanel : IDisposable
 
     private static string FailureText(DeploymentProgressModel deployment)
     {
+        var duration = deployment.Duration?.ToDisplayText(CultureInfo.CurrentCulture);
+        if (deployment.WasReset)
+            return Format(ClusterOverview.ResetInPhase, deployment.FailedPhase?.ToText(), duration);
+
         var failedIn = Format(ClusterOverview.FailedInPhase,
             (deployment.FailurePhase ?? deployment.ForwardPhase).ToText(),
-            deployment.Duration?.ToDisplayText(CultureInfo.CurrentCulture));
+            duration);
 
         // Before the first phase no step is marked failed and no instance has an error, so only the reason explains it.
         if (deployment.ForwardPhase == DeploymentPhase.Starting && deployment.FailureReason is { } reason)
@@ -253,7 +283,7 @@ public sealed partial class DeploymentPanel : IDisposable
         { HasFailed: true } => ClusterOverview.InstanceFailed,
         { RollbackStarted: true } => Deployment?.IsRunning == true ? ClusterOverview.InstanceRollingBack : ClusterOverview.InstanceRolledBack,
         { IsUpdated: true } => ClusterOverview.InstanceUpdated,
-        { IsStarted: true } => ClusterOverview.InstanceStarted,
+        { IsStarted: true } or { Steps.Count: > 0 } => ClusterOverview.InstanceStarted,
         _ => ClusterOverview.InstanceWaiting,
     };
 

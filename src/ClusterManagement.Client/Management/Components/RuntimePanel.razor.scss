@@ -19,7 +19,7 @@
     }
 
     .head-info {
-        @extend .cm-grid-action-column;
+        display: flex;
         flex-wrap: wrap;
         align-items: center;
         gap: 10px;
@@ -41,11 +41,6 @@
         border-radius: overview.$radius;
     }
 
-    .checked {
-        min-width: 110px;
-        text-align: right;
-    }
-
     // Two lines: the host with its chips, and below it the cycle of all its engines against the host's cycle time, on
     // the same axis as the engine charts below.
     .host-head {
@@ -55,11 +50,19 @@
         padding: 10px 12px;
         border-bottom: 1px solid colors.$background-light;
 
+        // In the Standard view the chain's chart closes the title line, in the column of the engine charts below.
         .host-title {
             display: flex;
             align-items: center;
             gap: 10px;
             min-width: 0;
+
+            ::deep .cycle-chart {
+                width: 96px;
+                height: 24px;
+                flex: none;
+                background-color: transparent;
+            }
         }
 
         .name {

@@ -13,4 +13,7 @@ internal static class NavigationManagerExtensions
 
     public static void NavigateToManagementEvents(this NavigationManager manager)
         => manager.NavigateTo(Public.Constants.ManagementEventsRoute);
+
+    public static void NavigateToEngines(this NavigationManager manager)
+        => manager.NavigateTo(DebugConstants.DebugEnginesRoute);
 }

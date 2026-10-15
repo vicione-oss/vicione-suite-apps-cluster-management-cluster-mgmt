@@ -214,7 +214,7 @@ public sealed partial class DeployClusterStateMachine : MassTransitStateMachine<
             // Committed cluster version delete failed
             When(ClusterError)
                 .Then(CommitClusterDeleteFailed)
-                .If(ctx => ctx.Saga.IsCommitVersionEmpty(), PublishFailedAndFinalize));
+                .If(ctx => ctx.Saga.IsCommitVersionEmpty(), failed => PublishFailedAndFinalize(failed, failedVersionKept: true)));
 
         // Only one deployment per saga: reject further requests while one is running
         DuringAny(

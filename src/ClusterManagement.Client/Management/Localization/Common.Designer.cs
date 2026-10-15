@@ -61,7 +61,7 @@ namespace ClusterManagement.Client.Management.Localization {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Manage &amp; Deploy Cluster-Versions.
+        ///   Looks up a localized string similar to Deploy &amp; monitor versions.
         /// </summary>
         internal static string ModuleDescription {
             get {

@@ -114,6 +114,60 @@ public class CycleTimeSeriesTests
     }
 
     [Fact]
+    public void Last_report_is_the_second_of_the_newest_report()
+    {
+        // Arrange
+        var series = new CycleTimeSeries();
+        var source = Guid.NewGuid();
+        series.Add(source, new EngineCycleReport(1, []), DateTimeOffset.FromUnixTimeSeconds(100));
+
+        // Act
+        series.Add(source, new EngineCycleReport(1, []), DateTimeOffset.FromUnixTimeMilliseconds(103_400));
+
+        // Assert
+        series.LastReport(source).Should().Be(DateTimeOffset.FromUnixTimeSeconds(103));
+    }
+
+    [Fact]
+    public void Range_holds_the_fastest_and_slowest_of_every_report_since_the_first()
+    {
+        // Arrange
+        var series = new CycleTimeSeries();
+        var source = Guid.NewGuid();
+        series.Add(source, new EngineCycleReport(4, []), DateTimeOffset.FromUnixTimeSeconds(100));
+        series.Add(source, new EngineCycleReport(1.5, []), DateTimeOffset.FromUnixTimeMilliseconds(100_500));
+
+        // Act
+        series.Add(source, new EngineCycleReport(9, []), DateTimeOffset.FromUnixTimeSeconds(130));
+
+        // Assert
+        series.Range(source).Should().Be(new CycleRange(1.5, 9, DateTimeOffset.FromUnixTimeSeconds(100)));
+    }
+
+    [Fact]
+    public void Range_starts_over_once_the_source_was_silent_for_the_window()
+    {
+        // Arrange
+        var series = new CycleTimeSeries(seconds: 60);
+        var source = Guid.NewGuid();
+        series.Add(source, new EngineCycleReport(9, []), DateTimeOffset.FromUnixTimeSeconds(100));
+
+        // Act
+        series.Add(source, new EngineCycleReport(2, []), DateTimeOffset.FromUnixTimeSeconds(200));
+
+        // Assert
+        series.Range(source).Should().Be(new CycleRange(2, 2, DateTimeOffset.FromUnixTimeSeconds(200)));
+    }
+
+    [Fact]
+    public void A_source_without_a_report_has_no_range()
+        => new CycleTimeSeries().Range(Guid.NewGuid()).Should().BeNull();
+
+    [Fact]
+    public void A_source_without_a_report_has_no_last_report()
+        => new CycleTimeSeries().LastReport(Guid.NewGuid()).Should().BeNull();
+
+    [Fact]
     public void Clear_drops_every_source()
     {
         // Arrange

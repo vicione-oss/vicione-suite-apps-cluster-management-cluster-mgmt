@@ -2,94 +2,38 @@
 @use "./../Styles/design/colors";
 @use "./../Styles/overview";
 
+// The page bar spans the page; the table below it keeps the page padding.
 .cluster-events {
     @extend .cm-page-fill-base;
     display: flex;
     flex-direction: column;
-    gap: overview.$gap;
-    padding: overview.$page-padding;
+    padding-bottom: overview.$page-padding;
     box-sizing: border-box;
 
-    .events-head {
-        @include overview.panel;
-        display: flex;
-        flex: none;
-        flex-direction: column;
-        gap: 12px;
-        padding: overview.$panel-padding;
+    ::deep .button {
+        @include overview.button-states;
     }
 
-    .title-row {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: 12px;
-
-        h1 {
-            @include overview.page-heading;
-        }
+    > .events-table {
+        margin: overview.$page-padding overview.$page-padding 0;
     }
 
-    .actions,
-    .chips {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .actions ::deep .filter {
-        width: 260px;
-    }
-
-    .shown {
-        margin-right: 8px;
-    }
-
-    .gap {
-        margin-left: 12px;
-    }
-
-    .spacer {
-        flex: 1;
-    }
-
-    // Pill buttons, so the grouping reads as a choice and not as an action.
-    ::deep .button.chip-toggle {
-        min-width: 0;
-        height: 30px;
-        padding: 0 12px;
-        border-color: colors.$border;
-        border-radius: 15px;
-        background-color: transparent;
-        color: colors.$font;
-        font-size: 13px;
-
-        &:hover {
-            border-color: colors.$background-light-hover;
-        }
-
-        &.active {
-            border-color: colors.$primary;
-            background-color: colors.$primary;
-            color: colors.$theme;
-        }
-    }
-
-    .legend {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-    }
-
+    // The toolbar heads the table panel and stays in place while the rows scroll below it.
     .events-table {
         @include overview.panel;
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .events-scroll {
         flex: 1;
         min-height: 0;
         overflow: auto;
     }
+
 
     // Below its minimum width the table scrolls inside its panel instead of cutting columns.
     table {
@@ -97,6 +41,11 @@
         min-width: 640px;
         border-collapse: collapse;
         table-layout: fixed;
+
+        // The cycle column takes its room from the connectors, whose names keep at least 220px.
+        &.expert {
+            min-width: 800px;
+        }
     }
 
     .type-column {
@@ -111,11 +60,21 @@
         width: 150px;
     }
 
-    // The function block and container groups already name the location; narrow screens keep the room for values.
+    .cycle-column {
+        width: 90px;
+    }
+
+    // The function block and container groups already name the location; narrow screens keep the room for values. The
+    // column stays with no width: a column taken out of the table would leave the group rows spanning one more column
+    // than there is, which the table then adds empty beside the others.
     @media (max-width: 1000px) {
-        .location-column,
+        .location-column {
+            width: 0;
+        }
+
         .location {
-            display: none;
+            padding: 0;
+            visibility: hidden;
         }
     }
 
@@ -180,6 +139,17 @@
 
     .event:hover td {
         background-color: colors.$background-dark;
+    }
+
+    // The field of an input stays, it holds the value; its send button is the row's action. The button sits in a box of
+    // its own, so a disabled one keeps the library's dimmed look.
+    .event {
+        @include overview.actions-on-hover(".send");
+    }
+
+    .send {
+        display: inline-flex;
+        flex: none;
     }
 
     // The arrow keys move the focus onto event rows, which have no button of their own to show it.
@@ -336,10 +306,20 @@
         color: colors.$primary;
     }
 
-    .time {
+    .time,
+    .cycle {
         font-size: 11px;
         font-family: var(--bs-font-monospace);
     }
+
+    .chip {
+        @include overview.chip;
+        flex: none;
+        height: 20px;
+        font-size: 11px;
+    }
+
+    @include overview.status-colors;
 
     .muted {
         @include overview.muted;

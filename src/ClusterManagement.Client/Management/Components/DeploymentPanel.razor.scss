@@ -27,6 +27,12 @@
         @include overview.panel-title;
     }
 
+    .head-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
     .body {
         display: flex;
         flex-direction: column;
@@ -282,10 +288,12 @@
         }
     }
 
+    // Its line stays when nothing is running between two steps, so the card keeps its height.
     .summary {
         display: flex;
         justify-content: space-between;
         gap: 12px;
+        min-height: 18px;
         padding: 0 12px 10px;
         font-size: 12px;
 
@@ -391,12 +399,7 @@
     }
 
     .visually-hidden {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip-path: inset(50%);
-        white-space: nowrap;
+        @include overview.visually-hidden;
     }
 
     .error {

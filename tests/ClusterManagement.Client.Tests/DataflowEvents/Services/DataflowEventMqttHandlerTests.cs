@@ -1,4 +1,5 @@
-﻿using ClusterManagement.Client.DataflowEvents.Services;
+﻿using System.Text;
+using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Client.Management.Extensions;
 using ClusterManagement.Public.DataflowEvents;
 using Microsoft.Extensions.Logging;
@@ -375,6 +376,52 @@ public class DataflowEventMqttHandlerTests
 
             // Assert
             receivedEvent.Should().Be(true);
+        }
+
+        [Theory]
+        [InlineData("0", "17", false, 17UL)]
+        [InlineData("1", "18446744073709551615", true, ulong.MaxValue)]
+        public async Task Passes_on_the_validity_and_the_engine_cycle_of_a_value(string validity, string engineCycle, bool isValid, ulong cycle)
+        {
+            // Arrange
+            await using var handler = CreateHandler();
+            var receivedArgs = CreateMessageReceivedArgs(Guid.NewGuid().ToString(), builder => builder
+                .WithUserProperty(MqttUserProperties.Timestamp, DateTime.UtcNow)
+                .WithUserProperty(MqttUserProperties.Validity, Encoding.UTF8.GetBytes(validity))
+                .WithUserProperty(MqttUserProperties.EngineCycle, Encoding.UTF8.GetBytes(engineCycle)));
+            DataflowEventArgs? received = null;
+
+            handler.EventReceivedAsync += args => { received = args; return Task.CompletedTask; };
+            await handler.Subscribe([_outputEvent], TestContext.Current.CancellationToken);
+
+            // Act
+            _mqttClient.ApplicationMessageReceivedAsync += Raise.Event<Func<MqttApplicationMessageReceivedEventArgs, Task>>(receivedArgs);
+
+            // Assert
+            received.Should().NotBeNull();
+            received!.IsValid.Should().Be(isValid);
+            received.EngineCycle.Should().Be(cycle);
+        }
+
+        [Fact]
+        public async Task A_value_that_names_neither_validity_nor_engine_cycle_is_valid_without_a_cycle()
+        {
+            // Arrange
+            await using var handler = CreateHandler();
+            var receivedArgs = CreateMessageReceivedArgs(Guid.NewGuid().ToString(), builder => builder
+                .WithUserProperty(MqttUserProperties.Timestamp, DateTime.UtcNow));
+            DataflowEventArgs? received = null;
+
+            handler.EventReceivedAsync += args => { received = args; return Task.CompletedTask; };
+            await handler.Subscribe([_outputEvent], TestContext.Current.CancellationToken);
+
+            // Act
+            _mqttClient.ApplicationMessageReceivedAsync += Raise.Event<Func<MqttApplicationMessageReceivedEventArgs, Task>>(receivedArgs);
+
+            // Assert
+            received.Should().NotBeNull();
+            received!.IsValid.Should().BeTrue();
+            received.EngineCycle.Should().BeNull();
         }
 
         private static MqttApplicationMessageReceivedEventArgs CreateMessageReceivedArgs(string topic, Action<MqttApplicationMessageBuilder>? builder = null)

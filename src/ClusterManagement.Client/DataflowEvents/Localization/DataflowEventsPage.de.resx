@@ -126,14 +126,17 @@
   <data name="Copied" xml:space="preserve">
     <value>Kopiert</value>
   </data>
-  <data name="DataflowEventsOfVersion" xml:space="preserve">
-    <value>Event-Datenpunkte der aktiven Version v{0}</value>
+  <data name="EngineCycle" xml:space="preserve">
+    <value>Zyklus</value>
+  </data>
+  <data name="EngineCycleHint" xml:space="preserve">
+    <value>Der Zyklus der Engine, die den Wert gesendet hat</value>
   </data>
   <data name="EventsShown" xml:space="preserve">
     <value>{0} von {1} angezeigt</value>
   </data>
   <data name="FilterByName" xml:space="preserve">
-    <value>Nach Block, Konnektor oder Pfad filtern</value>
+    <value>Nach FunctionBlock, Konnektor oder Pfad filtern</value>
   </data>
   <data name="GroupBy" xml:space="preserve">
     <value>Gruppieren nach</value>
@@ -148,7 +151,7 @@
     <value>Eingang / Ausgang</value>
   </data>
   <data name="GroupByFunctionBlock" xml:space="preserve">
-    <value>Funktionsblock</value>
+    <value>FunctionBlock</value>
   </data>
   <data name="GroupByNone" xml:space="preserve">
     <value>Keine</value>
@@ -170,6 +173,12 @@
   </data>
   <data name="InputTitle" xml:space="preserve">
     <value>Eingang · {0} · wird in den Cluster geschrieben</value>
+  </data>
+  <data name="Invalid" xml:space="preserve">
+    <value>Ungültig</value>
+  </data>
+  <data name="InvalidHint" xml:space="preserve">
+    <value>Die Engine hat diesen Wert als ungültig markiert</value>
   </data>
   <data name="Location" xml:space="preserve">
     <value>Ort</value>

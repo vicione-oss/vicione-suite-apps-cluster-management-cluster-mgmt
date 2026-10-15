@@ -1,0 +1,72 @@
+@use "./../../Styles/_shared.scss";
+@use "./../../Styles/design/colors";
+@use "./../../Styles/overview";
+
+// The toolbar band of the suite's own pages, such as the Journal and the MQTT Viewer.
+.cluster-page-bar {
+    @extend .cm-page-toolbar-base;
+    flex: none;
+
+    // On a narrow screen the states give way, the trail keeps the name of the cluster.
+    ::deep .toolbar-content:has(.trail) {
+        flex-shrink: 0;
+    }
+
+    ::deep .toolbar-content:has(.states) {
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .trail {
+        display: flex;
+        min-width: 0;
+    }
+
+    // The breadcrumb of ViciOne.Ui.Blazor.Components 6.5.0 is built for the editor's bottom bar: a filled 11px strip
+    // whose separator opens a menu of the item's children. In the page bar it takes the toolbar's surface and size, and
+    // its separator only separates, so the trail offers nothing but the way back. The rules depend on its internal
+    // classes; re-check them after updating that package.
+    ::deep .breadcrumb {
+        height: 32px;
+        font-size: 14px;
+        background-color: transparent;
+
+        .breadcrumb-item {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            border-radius: overview.$radius;
+            color: colors.$font;
+
+            &.disabled {
+                color: colors.$font-light;
+            }
+        }
+
+        .breadcrumb-item-separator {
+            align-items: center;
+            pointer-events: none;
+        }
+    }
+
+    .states {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        margin-left: 8px;
+    }
+
+    .chip {
+        @include overview.chip;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .visually-hidden {
+        @include overview.visually-hidden;
+    }
+
+    @include overview.status-colors;
+}

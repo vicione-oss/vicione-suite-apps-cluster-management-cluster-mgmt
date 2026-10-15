@@ -7,6 +7,7 @@ internal sealed class DataflowRuntimeEvent
     internal required Guid EventId { get; init; }
     internal DateTime? Timestamp { get; set; }
     internal string? Value { get; set; }
+    internal DataflowValueDetails? Details { get; set; }
     internal ReadOnlyMemory<byte> LastPayload { get; set; }
 
     private readonly Lock _lock = new();

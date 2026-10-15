@@ -8,7 +8,7 @@
 <section class="version-list" aria-label="@TechnicalTerms.VersionPlural">
     <div class="panel-head">
         <h2 class="panel-title">@TechnicalTerms.VersionPlural</h2>
-        @if (DefaultVersion is not null)
+        @if (Expert && DefaultVersion is not null)
         {
             <Button Text="@ClusterOverview.DeployDefault"
                     IconCssClass="@_deployIconCssClass"
@@ -33,7 +33,7 @@
             {
                 <div class="gap-row" @key="@("gap-" + version.Key)">
                     <span class="gap-line"></span>
-                    <Button Text="@string.Format(ClusterOverview.HiddenVersions, hidden)"
+                    <Button Text="@HiddenText(hidden)"
                             Size="@ButtonSize.Small"
                             OnClick="@(() => _showAll = true)" />
                 </div>
@@ -85,18 +85,21 @@
                             Enabled="@(version.IsLatest && !IsDeploying)"
                             OnClick="@(() => OnEdit.InvokeAsync(version))" />
 
-                    <Button IconCssClass="@_downloadIconCssClass"
-                            CssClass="borderless"
-                            Title="@ClusterOverview.DownloadJson"
-                            Size="@ButtonSize.Small"
-                            OnClick="@(() => OnDownload.InvokeAsync(version))" />
+                    @if (Expert)
+                    {
+                        <Button IconCssClass="@_downloadIconCssClass"
+                                CssClass="borderless"
+                                Title="@ClusterOverview.DownloadJson"
+                                Size="@ButtonSize.Small"
+                                OnClick="@(() => OnDownload.InvokeAsync(version))" />
 
-                    <Button IconCssClass="@_deleteIconCssClass"
-                            CssClass="borderless"
-                            Title="@ClusterOverview.DeleteVersion"
-                            Size="@ButtonSize.Small"
-                            Enabled="@(!version.IsActive && !version.IsDefault && !IsDeploying)"
-                            OnClick="@(() => OnDeleteShowAsync(version))" />
+                        <Button IconCssClass="@_deleteIconCssClass"
+                                CssClass="borderless"
+                                Title="@ClusterOverview.DeleteVersion"
+                                Size="@ButtonSize.Small"
+                                Enabled="@(!version.IsActive && !version.IsDefault && !IsDeploying)"
+                                OnClick="@(() => OnDeleteShowAsync(version))" />
+                    }
                 </div>
             </div>
         }
@@ -105,7 +108,7 @@
         {
             <div class="gap-row" @key="@("gap-end")">
                 <span class="gap-line"></span>
-                <Button Text="@string.Format(ClusterOverview.HiddenVersions, trailing)"
+                <Button Text="@HiddenText(trailing)"
                         Size="@ButtonSize.Small"
                         OnClick="@(() => _showAll = true)" />
             </div>

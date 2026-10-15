@@ -1,5 +1,6 @@
 using System.Globalization;
 using Bunit;
+using Bunit.TestDoubles;
 using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Client.Management;
 using ClusterManagement.Client.Management.Components;
@@ -7,6 +8,7 @@ using ClusterManagement.Client.Management.Localization;
 using ClusterManagement.Client.Management.Models;
 using ClusterManagement.Client.Management.Services;
 using ClusterManagement.Client.Services;
+using ClusterManagement.Internal.Events;
 using ClusterManagement.Public.Designs;
 using ClusterManagement.Public.Enums;
 using ClusterManagement.Public.Events;
@@ -24,7 +26,7 @@ using ViciOne.Ui.Blazor.Components.Dialog.Extensions;
 using ViciOne.Ui.Blazor.Components.Tables.SimpleTable.Extensions;
 using ViciOne.Ui.Blazor.Components.TestingHelpers.Button.Extensions;
 using ViciOne.Ui.Blazor.Components.TestingHelpers.Dialog.Extensions;
-using ViciOne.Ui.Blazor.Components.Toolbar.Extensions;
+using ViciOne.Ui.Localization.Resources;
 using Range = System.Range;
 
 namespace ClusterManagement.Client.Tests.Management;
@@ -37,6 +39,7 @@ public sealed class ClusterManagementPageTests
 
     private readonly IClusterManagementService _managementService = Substitute.For<IClusterManagementService>();
     private readonly IMessageBannerService _bannerService = Substitute.For<IMessageBannerService>();
+    private BunitAuthorizationContext _authorization = default!;
 
     [Fact]
     public async Task PageGetsRendered()
@@ -54,7 +57,7 @@ public sealed class ClusterManagementPageTests
         });
         ctx.Services.AddSimpleTable();
         ctx.JSInterop.ConfigureSimpleTableJSInterop();
-        ctx.Services.AddToolbar();
+        ctx.AddClusterPageBar();
         ctx.Services.AddClientTimeProvider();
         ctx.Services.AddSingleton(_managementService);
         ctx.Services.AddSingleton(Substitute.For<IClusterService>());
@@ -162,7 +165,6 @@ public sealed class ClusterManagementPageTests
                 EngineHosts = [new EngineHost { Id = removedHostId, Name = "Packaging" }],
             }] }] }],
         };
-        ctx.AddAuthorization();
         var sut = RenderPage(ctx, RunningAndDraft(), runningCluster: running);
         _managementService.OnClusterUpdateStarted += Raise.Event<EventHandler<ClusterUpdateStarted>>(_managementService,
             new ClusterUpdateStarted(correlationId, s_clusterId, s_draftVersion)
@@ -241,8 +243,7 @@ public sealed class ClusterManagementPageTests
                 Type = ClusterApplicationType.CoreOsMaster,
             }] }] }],
         });
-        var sut = RenderPage(ctx, RunningAndDraft());
-        await sut.Find(".deployment .status-line button").ClickAsync(new());
+        var sut = RenderPage(ctx, RunningAndDraft(), expert: true);
 
         // Act
         _managementService.OnClusterNodeDeploymentStepChanged += Raise.Event<EventHandler<ClusterNodeDeploymentStepChanged>>(_managementService,
@@ -268,6 +269,51 @@ public sealed class ClusterManagementPageTests
 
         // Assert
         sut.WaitForAssertion(() => sut.Find(".deployment .headline").TextContent.Should().Be(Format(ClusterOverview.DeploymentFailed, s_draftVersion)));
+    }
+
+    [Fact]
+    public async Task Deploy_is_disabled_without_a_draft()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+
+        // Act
+        var sut = RenderPage(ctx, [new(new ClusterInfo(s_clusterId, s_runningVersion, "Cluster", IsActive: true)) { IsLatest = true }]);
+
+        // Assert
+        sut.WaitForAssertion(() => DeployButton(sut).Instance.Enabled.Should().BeFalse());
+        DeployButton(sut).Instance.Title.Should().Be(ClusterOverview.NothingToDeploy);
+    }
+
+    [Fact]
+    public async Task Deploy_is_disabled_while_a_deployment_runs()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx, RunningAndDraft());
+        sut.WaitForAssertion(() => DeployButton(sut).Instance.Enabled.Should().BeTrue());
+
+        // Act
+        _managementService.OnClusterUpdateStarted += Raise.Event<EventHandler<ClusterUpdateStarted>>(_managementService, new ClusterUpdateStarted(Guid.NewGuid(), s_clusterId, s_draftVersion));
+
+        // Assert
+        sut.WaitForAssertion(() => DeployButton(sut).Instance.Enabled.Should().BeFalse());
+    }
+
+    [Fact]
+    public async Task Does_not_announce_a_draft_whose_deployment_just_failed()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx, RunningAndDraft());
+        _managementService.OnClusterUpdateStarted += Raise.Event<EventHandler<ClusterUpdateStarted>>(_managementService, new ClusterUpdateStarted(Guid.NewGuid(), s_clusterId, s_draftVersion));
+
+        // Act
+        _managementService.OnClusterUpdateFailed += Raise.Event<EventHandler<ClusterUpdateFailed>>(_managementService, new ClusterUpdateFailed(Guid.NewGuid(), s_clusterId, s_draftVersion) { State = "UpdatingDeployments" });
+
+        // Assert
+        sut.WaitForAssertion(() => sut.FindAll(".cluster-page-bar .status-draft").Should().BeEmpty());
+        DeployButton(sut).Instance.Enabled.Should().BeTrue();
     }
 
     [Fact]
@@ -447,21 +493,21 @@ public sealed class ClusterManagementPageTests
     }
 
     [Fact]
-    public async Task Deploy_in_the_header_deploys_the_draft()
+    public async Task Deploy_in_the_page_bar_deploys_the_draft()
     {
         // Arrange
         await using var ctx = new BunitContext();
         var sut = RenderPage(ctx, RunningAndDraft());
 
         // Act
-        await HeaderButton(sut, b => b.CssClass == "cm-primary").FindInnerButton().ClickAsync(new());
+        await DeployButton(sut).FindInnerButton().ClickAsync(new());
 
         // Assert
         await _managementService.Received(1).DeployCluster(s_clusterId, s_draftVersion, Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task Deploy_in_the_header_ignores_the_newest_version_of_another_cluster()
+    public async Task Deploy_in_the_page_bar_ignores_the_newest_version_of_another_cluster()
     {
         // Arrange
         await using var ctx = new BunitContext();
@@ -470,7 +516,7 @@ public sealed class ClusterManagementPageTests
         var sut = RenderPage(ctx, versions);
 
         // Act
-        await HeaderButton(sut, b => b.CssClass == "cm-primary").FindInnerButton().ClickAsync(new());
+        await DeployButton(sut).FindInnerButton().ClickAsync(new());
 
         // Assert
         await _managementService.Received(1).DeployCluster(s_clusterId, s_draftVersion, Arg.Any<CancellationToken>());
@@ -482,10 +528,10 @@ public sealed class ClusterManagementPageTests
     {
         // Arrange
         await using var ctx = new BunitContext();
-        var sut = RenderPage(ctx, RunningAndDraft());
+        var sut = RenderPage(ctx, RunningAndDraft(), expert: true);
 
         // Act
-        await HeaderButton(sut, b => b.Title == ClusterOverview.ShowSagaState).FindInnerButton().ClickAsync(new());
+        await DeploymentPanelButton(sut, ClusterOverview.ShowSagaState).FindInnerButton().ClickAsync(new());
 
         // Assert
         var dialog = sut.FindComponents<Dialog>().Single(d => d.Instance.HeaderText == ClusterOverview.ShowSagaState);
@@ -494,20 +540,153 @@ public sealed class ClusterManagementPageTests
     }
 
     [Fact]
-    public async Task Reset_clears_the_deployment_of_every_cluster()
+    public async Task Reset_asks_before_it_resets()
     {
         // Arrange
         await using var ctx = new BunitContext();
-        _managementService.QueryClusterDeploymentState(s_clusterId, Arg.Any<CancellationToken>())
-            .Returns(new DeploymentState(s_clusterId, "UpdatingDeployments", s_runningVersion, s_draftVersion));
-        var sut = RenderPage(ctx, RunningAndDraft());
+        var sut = RenderPage(ctx, RunningAndDraft(), expert: true, engineControl: true);
 
         // Act
-        await HeaderButton(sut, b => b.Title == ClusterOverview.ResetSagaState).FindInnerButton().ClickAsync(new());
+        await DeploymentPanelButton(sut, ClusterOverview.ResetSagaState).FindInnerButton().ClickAsync(new());
 
         // Assert
-        await _managementService.Received(1).ResetSagaState(s_clusterId, Arg.Any<CancellationToken>());
-        sut.Find(".deployment .headline").TextContent.Should().Be(Format(ClusterOverview.RunningVersionDeployed, s_runningVersion));
+        DialogTitled(sut, ClusterOverview.ResetSagaState).Instance.Visible.Should().BeTrue();
+        DialogTitled(sut, ClusterOverview.ResetSagaState).RenderSectionContent(ctx).Find(".saga-headline").TextContent
+            .Should().Be(Format(ClusterOverview.ResetSagaStateQuestion, "Cluster"));
+        await _managementService.DidNotReceive().ResetSagaState(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Offers_the_reset_only_with_engine_control()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+
+        // Act
+        var sut = RenderPage(ctx, RunningAndDraft(), expert: true);
+
+        // Assert
+        sut.FindComponent<DeploymentPanel>().FindComponents<Button>().Select(b => b.Instance.Title)
+            .Should().Equal(ClusterOverview.ShowSagaState);
+    }
+
+    [Fact]
+    public async Task Resets_nothing_once_the_right_is_gone()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx, RunningAndDraft(), expert: true, engineControl: true);
+        await DeploymentPanelButton(sut, ClusterOverview.ResetSagaState).FindInnerButton().ClickAsync(new());
+        _authorization.SetPolicies();
+
+        // Act
+        await PressInResetDialog(ctx, sut, CommonVocabulary.ResetVerb);
+
+        // Assert
+        await _managementService.DidNotReceiveWithAnyArgs().ResetSagaState(default, default!, default);
+    }
+
+    [Fact]
+    public async Task Cancelling_the_reset_resets_nothing()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx, RunningAndDraft(), expert: true, engineControl: true);
+        await DeploymentPanelButton(sut, ClusterOverview.ResetSagaState).FindInnerButton().ClickAsync(new());
+
+        // Act
+        await PressInResetDialog(ctx, sut, CommonVocabulary.Cancel);
+
+        // Assert
+        await _managementService.DidNotReceive().ResetSagaState(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Reset_resets_only_the_cluster_of_the_deployment_panel()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var otherCluster = Guid.NewGuid();
+        var sut = RenderPage(ctx, [.. RunningAndDraft(), new(new ClusterInfo(otherCluster, new Version(2, 0, 0), "Other")) { IsLatest = true }], expert: true, engineControl: true);
+
+        // Act
+        await ResetSagaStates(ctx, sut);
+
+        // Assert
+        await _managementService.Received(1).ResetSagaState(s_clusterId, Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _managementService.DidNotReceive().ResetSagaState(otherCluster, Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Reset_question_keeps_its_cluster_when_another_deployment_starts()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var otherCluster = Guid.NewGuid();
+        var sut = RenderPage(ctx, [.. RunningAndDraft(), new(new ClusterInfo(otherCluster, new Version(2, 0, 0), "Other")) { IsLatest = true }], expert: true, engineControl: true);
+        await DeploymentPanelButton(sut, ClusterOverview.ResetSagaState).FindInnerButton().ClickAsync(new());
+
+        // Act
+        _managementService.OnClusterUpdateStarted += Raise.Event<EventHandler<ClusterUpdateStarted>>(_managementService,
+            new ClusterUpdateStarted(Guid.NewGuid(), otherCluster, new Version(2, 0, 0)));
+
+        // Assert
+        sut.WaitForAssertion(() => sut.Find(".deployment .headline").TextContent.Should().Be(Format(ClusterOverview.DeployingVersion, new Version(2, 0, 0))));
+        DialogTitled(sut, ClusterOverview.ResetSagaState).RenderSectionContent(ctx).Find(".saga-headline").TextContent
+            .Should().Be(Format(ClusterOverview.ResetSagaStateQuestion, "Cluster"));
+    }
+
+    [Fact]
+    public async Task Reset_resets_the_cluster_its_question_named_when_another_deployment_started_meanwhile()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var otherCluster = Guid.NewGuid();
+        var sut = RenderPage(ctx, [.. RunningAndDraft(), new(new ClusterInfo(otherCluster, new Version(2, 0, 0), "Other")) { IsLatest = true }], expert: true, engineControl: true);
+        await DeploymentPanelButton(sut, ClusterOverview.ResetSagaState).FindInnerButton().ClickAsync(new());
+        _managementService.OnClusterUpdateStarted += Raise.Event<EventHandler<ClusterUpdateStarted>>(_managementService,
+            new ClusterUpdateStarted(Guid.NewGuid(), otherCluster, new Version(2, 0, 0)));
+        sut.WaitForAssertion(() => sut.Find(".deployment .headline").TextContent.Should().Be(Format(ClusterOverview.DeployingVersion, new Version(2, 0, 0))));
+
+        // Act
+        await PressInResetDialog(ctx, sut, CommonVocabulary.ResetVerb);
+
+        // Assert
+        await _managementService.Received(1).ResetSagaState(s_clusterId, Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _managementService.DidNotReceive().ResetSagaState(otherCluster, Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Reset_names_the_deployments_it_reset()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx, RunningAndDraft(), expert: true, engineControl: true);
+        await ResetSagaStates(ctx, sut);
+
+        // Act
+        RaiseReset(new DeploymentStateReset(Guid.NewGuid(), s_clusterId)
+        {
+            Reset = [new DeploymentState(s_clusterId, "RollingBackCommit", s_runningVersion, s_draftVersion)],
+        });
+
+        // Assert
+        _bannerService.Received(1).ShowMessageBanner(MessageType.Information, Format(ClusterOverview.SagaStateReset, $"v{s_draftVersion}"));
+    }
+
+    [Fact]
+    public async Task Reset_says_when_there_was_nothing_to_reset()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx, RunningAndDraft(), expert: true, engineControl: true);
+        await ResetSagaStates(ctx, sut);
+
+        // Act
+        RaiseReset(new DeploymentStateReset(Guid.NewGuid(), s_clusterId));
+
+        // Assert
+        _bannerService.Received(1).ShowMessageBanner(MessageType.Information, ClusterOverview.NothingToReset);
     }
 
     [Fact]
@@ -515,16 +694,30 @@ public sealed class ClusterManagementPageTests
     {
         // Arrange
         await using var ctx = new BunitContext();
-        _managementService.ResetSagaState(s_clusterId, Arg.Any<CancellationToken>()).Returns(Task.FromException(new InvalidOperationException("Saga is locked")));
-        var sut = RenderPage(ctx, RunningAndDraft());
+        _managementService.ResetSagaState(s_clusterId, Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(new InvalidOperationException("Saga is locked")));
+        var sut = RenderPage(ctx, RunningAndDraft(), expert: true, engineControl: true);
 
         // Act
-        await HeaderButton(sut, b => b.Title == ClusterOverview.ResetSagaState).FindInnerButton().ClickAsync(new());
+        await ResetSagaStates(ctx, sut);
 
         // Assert
-        var dialog = sut.FindComponents<Dialog>().Single(d => d.Instance.HeaderText == ClusterOverview.ShowSagaState);
-        dialog.Instance.Visible.Should().BeTrue();
-        dialog.RenderSectionContent(ctx).Markup.Should().Contain("Saga is locked");
+        _bannerService.Received(1).ShowMessageBanner(MessageType.Error, Format(ClusterOverview.SagaStateNotReset, "Saga is locked"));
+    }
+
+    [Fact]
+    public async Task Reset_shows_why_the_backend_could_not_reset()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx, RunningAndDraft(), expert: true, engineControl: true);
+        await ResetSagaStates(ctx, sut);
+
+        // Act
+        RaiseReset(new DeploymentStateReset(Guid.NewGuid(), s_clusterId) { Error = new(0, "Database is locked") });
+
+        // Assert
+        _bannerService.Received(1).ShowMessageBanner(MessageType.Error, Format(ClusterOverview.SagaStateNotReset, "Database is locked"));
     }
 
     [Fact]
@@ -542,8 +735,27 @@ public sealed class ClusterManagementPageTests
         sut.WaitForAssertion(() => sut.Find(".deployment .panel-head .muted").TextContent.Should().Contain("15:00:00"));
     }
 
-    private static IRenderedComponent<Button> HeaderButton(IRenderedComponent<ClusterManagementPage> sut, Func<Button, bool> predicate)
-        => sut.FindComponent<ActiveClusterHeader>().FindComponents<Button>().Single(b => predicate(b.Instance));
+    private void RaiseReset(DeploymentStateReset reset)
+        => _managementService.OnDeploymentStateReset += Raise.Event<EventHandler<DeploymentStateReset>>(_managementService, reset);
+
+    private static async Task ResetSagaStates(BunitContext ctx, IRenderedComponent<ClusterManagementPage> sut)
+    {
+        await DeploymentPanelButton(sut, ClusterOverview.ResetSagaState).FindInnerButton().ClickAsync(new());
+        await PressInResetDialog(ctx, sut, CommonVocabulary.ResetVerb);
+    }
+
+    private static async Task PressInResetDialog(BunitContext ctx, IRenderedComponent<ClusterManagementPage> sut, string text)
+        => await DialogTitled(sut, ClusterOverview.ResetSagaState).RenderSectionContent(ctx)
+            .FindFooterButton(b => b.Text == text).FindInnerButton().ClickAsync(new());
+
+    private static IRenderedComponent<Dialog> DialogTitled(IRenderedComponent<ClusterManagementPage> sut, string title)
+        => sut.FindComponents<Dialog>().Single(d => d.Instance.HeaderText == title);
+
+    private static IRenderedComponent<Button> DeployButton(IRenderedComponent<ClusterManagementPage> sut)
+        => sut.FindComponent<ClusterPageBar>().FindComponents<Button>().Single(b => b.Instance.CssClass == "cm-primary");
+
+    private static IRenderedComponent<Button> DeploymentPanelButton(IRenderedComponent<ClusterManagementPage> sut, string title)
+        => sut.FindComponent<DeploymentPanel>().FindComponents<Button>().Single(b => b.Instance.Title == title);
 
     private static string Format(string format, params object?[] args)
         => string.Format(CultureInfo.CurrentCulture, format, args);
@@ -555,9 +767,20 @@ public sealed class ClusterManagementPageTests
         ];
 
     private IRenderedComponent<ClusterManagementPage> RenderPage(BunitContext ctx, List<ClusterInfoModel> versions,
-        TimeZoneInfo? timeZone = null, DateTimeOffset? now = null, bool queryVersions = true, Cluster? runningCluster = null)
+        TimeZoneInfo? timeZone = null, DateTimeOffset? now = null, bool queryVersions = true, Cluster? runningCluster = null, bool expert = false,
+        bool engineControl = false)
     {
         ctx.SetupSuiteServices(setup => setup.Services.AddLocalization<ClusterManagementClientModule>());
+        _authorization = ctx.AddAuthorization();
+        _authorization.SetAuthorized("operator");
+        if (engineControl)
+            _authorization.SetPolicies(EngineControlRight.Policy);
+
+        var expertView = new ExpertViewState();
+        if (expert)
+            expertView.Toggle();
+
+        ctx.AddClusterPageBar(expertView);
         ctx.Services.AddDialog();
         ctx.Services.AddClientTimeProvider(timeZone, now);
         ctx.Services.AddSingleton(_managementService);

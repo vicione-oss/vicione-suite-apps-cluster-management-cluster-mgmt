@@ -14,6 +14,7 @@ internal partial class DataflowEventPageService(IDataflowEventBroker eventBroker
     public List<DataflowEventModel> Events { get; private set; } = [];
     public Version? ActiveVersion { get; private set; }
     public Guid? ActiveClusterId { get; private set; }
+    public string? ActiveClusterName { get; private set; }
 
     public event Func<Task>? RefreshRequested;
 
@@ -31,6 +32,7 @@ internal partial class DataflowEventPageService(IDataflowEventBroker eventBroker
 
         ActiveVersion = clusterInfo?.Version;
         ActiveClusterId = clusterInfo?.Id;
+        ActiveClusterName = clusterInfo?.Name;
 
         // A reload creates new models; what was typed, written and received for an event stays.
         var previous = _eventsById;
@@ -54,6 +56,8 @@ internal partial class DataflowEventPageService(IDataflowEventBroker eventBroker
             PendingValue = previous?.PendingValue,
             Value = previous?.Value,
             Timestamp = previous?.Timestamp,
+            IsValid = previous?.IsValid ?? true,
+            EngineCycle = previous?.EngineCycle,
         };
 
     /// <returns><c>false</c> when nothing was written; a failure is shown as a banner.</returns>
@@ -91,8 +95,11 @@ internal partial class DataflowEventPageService(IDataflowEventBroker eventBroker
         if (!_eventsById.TryGetValue(eventId, out var model))
             return;
 
+        var details = eventBroker.DetailsOf(eventId);
         model.Timestamp = timestamp;
         model.Value = value;
+        model.IsValid = details?.IsValid ?? true;
+        model.EngineCycle = details?.EngineCycle;
         if (RefreshRequested is not null)
             await RefreshRequested.Invoke();
     }

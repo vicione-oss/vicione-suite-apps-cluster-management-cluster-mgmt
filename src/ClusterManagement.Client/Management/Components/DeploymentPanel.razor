@@ -9,7 +9,23 @@
 <section class="deployment @(Deployment?.Phase == DeploymentPhase.Failed ? "failed" : null)" aria-label="@ClusterOverview.Deployment">
     <div class="panel-head">
         <h2 class="panel-title">@ClusterOverview.Deployment</h2>
-        <span class="muted">@StartedText</span>
+        <div class="head-info">
+            <span class="muted">@StartedText</span>
+            @if (Expert)
+            {
+                <Button IconCssClass="@_sagaStateIconCssClass"
+                        Title="@ClusterOverview.ShowSagaState"
+                        Size="@ButtonSize.Small"
+                        OnClick="@OnShowSagaState" />
+                @if (MayReset)
+                {
+                    <Button IconCssClass="@_resetIconCssClass"
+                            Title="@ClusterOverview.ResetSagaState"
+                            Size="@ButtonSize.Small"
+                            OnClick="@OnResetSagaState" />
+                }
+            }
+        </div>
     </div>
 
     <div class="body">
@@ -27,7 +43,7 @@
 
         <div class="status-line">
             <span class="muted" title="@StatusLine">@StatusLine</span>
-            @if (HasInstancesListedOnRequest)
+            @if (Expert && HasInstancesListedOnRequest)
             {
                 <Button Text="@ShowInstancesText"
                         Size="@ButtonSize.Small"
@@ -40,7 +56,7 @@
         {
             var expanded = _expanded.Contains(instance.Id);
             <div class="instance @(instance.HasFailed ? "failed" : null)" @key="instance.Id">
-                @if (instance.Steps.Count > 0)
+                @if (Expert && instance.Steps.Count > 0)
                 {
                     <button type="button" class="steps-toggle" aria-expanded="@(expanded ? "true" : "false")" @onclick="() => ToggleSteps(instance.Id)">
                         <span class="instance-head">
@@ -49,30 +65,22 @@
                                 <MonochromeIcon Name="MonochromeIconName.Chevron" Size="MonochromeIconSize.Small" />
                             </span>
                         </span>
-                        <span class="trail" aria-hidden="true">
-                            @foreach (var step in instance.Steps)
-                            {
-                                <span class="segment @StateClass(step)"></span>
-                            }
-                        </span>
-                        @if (instance.Error is null && Summary(instance) is { } summary)
-                        {
-                            <span class="summary @summary.CssClass">
-                                <span class="text" title="@summary.Text">@summary.Text</span>
-                                <span class="time">@summary.Time</span>
-                            </span>
-                        }
+                        @Progress(instance)
                     </button>
                 }
                 else
                 {
                     <div class="instance-head">@InstanceHead(instance)</div>
+                    @if (instance.Steps.Count > 0)
+                    {
+                        @Progress(instance)
+                    }
                 }
                 @if (instance.Error is not null)
                 {
                     <pre class="error">@ErrorText(instance, instance.Error)</pre>
                 }
-                @if (expanded && instance.Steps.Count > 0)
+                @if (Expert && expanded && instance.Steps.Count > 0)
                 {
                     <ol class="steps" aria-label="@Format(ClusterOverview.StepsOf, instance.Name)">
                         @for (var i = 0; i < instance.Steps.Count; i++)
@@ -100,7 +108,28 @@
     private RenderFragment InstanceHead(InstanceProgressModel instance) => @<text>
         <span class="dot status-@InstanceStatusName(instance)"></span>
         <span class="name" title="@instance.Name">@instance.Name</span>
-        <span class="muted node" title="@instance.NodeName">@string.Format(ClusterOverview.OnNode, instance.NodeName)</span>
+        <span class="muted node" title="@instance.NodeName">@NodeText(instance)</span>
         <span class="chip status-@InstanceStatusName(instance)">@InstanceStatusText(instance)</span>
+    </text>;
+
+    // How far the instance got, one segment per step, and the step in progress or how long the run took.
+    private RenderFragment Progress(InstanceProgressModel instance) => @<text>
+        <span class="trail" aria-hidden="true">
+            @foreach (var step in instance.Steps)
+            {
+                <span class="segment @StateClass(step)"></span>
+            }
+        </span>
+        @if (instance.Error is null)
+        {
+            var summary = Summary(instance);
+            <span class="summary @summary?.CssClass">
+                @if (summary is not null)
+                {
+                    <span class="text" title="@summary.Text">@summary.Text</span>
+                    <span class="time">@summary.Time</span>
+                }
+            </span>
+        }
     </text>;
 }

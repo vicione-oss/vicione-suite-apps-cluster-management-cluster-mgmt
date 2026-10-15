@@ -1,6 +1,7 @@
 using System.Globalization;
 using Bunit;
 using ClusterManagement.Client.Management.Components;
+using ClusterManagement.Client.Management.Localization;
 using ClusterManagement.Client.Management.Models;
 
 namespace ClusterManagement.Client.Tests.Management;
@@ -17,6 +18,37 @@ public sealed class ClusterSummaryTilesTests : IDisposable
     }
 
     [Fact]
+    public async Task Shows_the_engines_dataflows_DataPorts_and_datapoints_in_the_standard_view()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var summary = new ClusterTopologySummary(1, 1, 1, 3, 2, 27, 3, 12, 4);
+
+        // Act
+        var sut = ctx.Render<ClusterSummaryTiles>(p => p.Add(c => c.Summary, summary));
+
+        // Assert
+        sut.FindAll(".tile .label").Select(l => l.TextContent).Should().Equal(
+            ClusterOverview.Engines, ClusterOverview.Dataflows, ClusterOverview.DataPorts, ClusterOverview.Datapoints);
+    }
+
+    [Fact]
+    public async Task A_count_of_one_names_one_and_a_total_keeps_the_plural()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var summary = new ClusterTopologySummary(1, 1, 1, 1, 1, 1, 1, 1, 1);
+
+        // Act
+        var sut = ctx.Render<ClusterSummaryTiles>(p => p.Add(c => c.Summary, summary).Add(c => c.Expert, true));
+
+        // Assert
+        sut.FindAll(".tile .label").Select(l => l.TextContent).Should().Equal(
+            ClusterOverview.Node, ClusterOverview.Instance, ClusterOverview.EngineHost, ClusterOverview.Engine, ClusterOverview.Dataflow,
+            ClusterOverview.FunctionBlock, ClusterOverview.DataPort, ClusterOverview.Datapoints);
+    }
+
+    [Fact]
     public async Task Big_counts_are_shortened_and_exact_on_hover()
     {
         // Arrange
@@ -26,7 +58,7 @@ public sealed class ClusterSummaryTilesTests : IDisposable
         var summary = new ClusterTopologySummary(128, 1_024, 4_096, 16_384, 2_048, 123_456, 8_192, 9_876_543, 1_234_567);
 
         // Act
-        var sut = ctx.Render<ClusterSummaryTiles>(p => p.Add(c => c.Summary, summary));
+        var sut = ctx.Render<ClusterSummaryTiles>(p => p.Add(c => c.Expert, true).Add(c => c.Summary, summary));
 
         // Assert
         var datapoints = sut.FindAll(".tile")[^1];

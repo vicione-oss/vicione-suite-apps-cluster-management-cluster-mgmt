@@ -2,6 +2,7 @@
 using ClusterManagement.Client.Management.Models;
 using ClusterManagement.Client.Services;
 using ClusterManagement.Internal.Commands;
+using ClusterManagement.Internal.Events;
 using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
@@ -19,6 +20,7 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
     IEventConsumer<ClusterUpdateFailed>,
     IEventConsumer<ClusterUpdateRejected>,
     IEventConsumer<ClusterNodeDeploymentStepChanged>,
+    IEventConsumer<DeploymentStateReset>,
     IDisposable
 {
     private readonly IUiMediator _mediator;
@@ -27,6 +29,7 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
     private readonly AutoDisposeList<IDisposable> _subscriptionHandle = [];
 
     private Guid? CorrelationId { get; set; }
+    private Guid? _resetCorrelationId;
 
     public event EventHandler<ClusterUpdateChanged>? OnClusterUpdateChanged;
     public event EventHandler<ClusterUpdateCompleted>? OnClusterUpdateCompleted;
@@ -34,6 +37,7 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
     public event EventHandler<ClusterUpdateRejected>? OnClusterUpdateRejected;
     public event EventHandler<ClusterUpdateStarted>? OnClusterUpdateStarted;
     public event EventHandler<ClusterNodeDeploymentStepChanged>? OnClusterNodeDeploymentStepChanged;
+    public event EventHandler<DeploymentStateReset>? OnDeploymentStateReset;
 
     public ClusterManagementPageService(IUiMediator mediator, IClusterService clusterService, ILogger<ClusterManagementPageService> logger)
     {
@@ -47,6 +51,7 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
         _subscriptionHandle.Add(_mediator.Register<ClusterUpdateFailed>(this));
         _subscriptionHandle.Add(_mediator.Register<ClusterUpdateRejected>(this));
         _subscriptionHandle.Add(_mediator.Register<ClusterNodeDeploymentStepChanged>(this));
+        _subscriptionHandle.Add(_mediator.Register<DeploymentStateReset>(this));
     }
 
     public void Dispose()
@@ -126,6 +131,15 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
         return Task.CompletedTask;
     }
 
+    // Every session receives the outcome of every reset; only the session that sent it is told.
+    public Task Consume(ClientContext<DeploymentStateReset> context, CancellationToken cancellationToken)
+    {
+        if (context.Message.CorrelationId == _resetCorrelationId)
+            OnDeploymentStateReset?.Invoke(this, context.Message);
+
+        return Task.CompletedTask;
+    }
+
     private void LogReceivedEvent(string eventName, Guid? correlationId)
     {
         if (CorrelationId == correlationId)
@@ -138,8 +152,13 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
         => _clusterService.Query(clusterId, version, cancellationToken)
         ?? throw new InvalidOperationException($"Failed to query cluster {clusterId} v{version}");
 
-    public Task ResetSagaState(Guid clusterId, CancellationToken token)
-        => _mediator.Send(new ResetSagaState(clusterId), token);
+    public async Task ResetSagaState(Guid clusterId, string requestedBy, CancellationToken token)
+    {
+        var command = new ResetSagaState(clusterId, requestedBy);
+        _resetCorrelationId = command.CorrelationId;
+
+        await _mediator.Send(command, token);
+    }
 
     public async Task<DeploymentState?> QueryClusterDeploymentState(Guid clusterId, CancellationToken cancellationToken = default)
     {

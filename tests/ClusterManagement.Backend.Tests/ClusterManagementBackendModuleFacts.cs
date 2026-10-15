@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Sdk.Authorization;
 using Sdk.Backend.Artifacts;
 using Sdk.Backend.IO;
 using Sdk.Backend.Messaging;
@@ -26,38 +27,18 @@ public class ClusterManagementBackendModuleFacts
     public class RegisterServices
     {
         [Fact]
+        public void Registers_the_engine_control_feature()
+        {
+            using var serviceProvider = InitializeModule(out _);
+
+            serviceProvider.GetServices<IModuleFeature>().Should().ContainSingle(feature =>
+                feature.ModuleId == ModuleIdResolver.ResolveId<ClusterManagementBackendModule>() && feature.Name == Public.Constants.EngineControlFeature);
+        }
+
+        [Fact]
         public void Registers_instantiable_service()
         {
-            var moduleId = ModuleIdResolver.ResolveId<ClusterManagementBackendModule>();
-            ClusterManagementOptions options = new();
-            var config = new TestConfig()
-                .SetAppDirectory("temp")
-                .AddModuleWithOptions(moduleId, options);
-
-            var module = new ClusterManagementBackendModule();
-            ServiceCollection serviceCollection = new();
-
-            using var serviceProvider = module.TestModuleInitialization(
-                services =>
-                {
-                    serviceCollection = services;
-                    serviceCollection.AddConfiguration(config);
-                    serviceCollection.AddOptions<ClusterManagementOptions>();
-                    serviceCollection.AddSingleton(_ =>
-                    {
-                        var mvcBuilderMock = Substitute.For<IMvcBuilder>();
-                        mvcBuilderMock.PartManager.Returns(Substitute.For<ApplicationPartManager>());
-                        return mvcBuilderMock;
-                    });
-                    serviceCollection.AddSingleton(_ => Substitute.For<IFileSystem>());
-                    serviceCollection.AddSingleton(_ => Substitute.For<IAtomicFileWriter>());
-                    serviceCollection.AddSingleton(_ => Substitute.For<IArtifactRepository>());
-                    serviceCollection.AddSingleton(_ => Substitute.For<IInstanceInformationProvider>());
-                    serviceCollection.AddSingleton(_ => Substitute.For<ISuiteMediator>());
-                    serviceCollection.AddSingleton(_ => Substitute.For<IControlServiceManagement>());
-                    serviceCollection.AddSingleton(_ => Substitute.For<IConnectionTypeRegistry>());
-                    serviceCollection.AddSingleton(_ => Substitute.For<IHostApplicationLifetime>());
-                });
+            using var serviceProvider = InitializeModule(out var serviceCollection);
 
             IsInstantiable<IEngineHostPoolCommunication>(serviceCollection, serviceProvider);
             IsInstantiable<IEngineHostCommunication>(serviceCollection, serviceProvider);
@@ -84,6 +65,43 @@ public class ClusterManagementBackendModuleFacts
                     targetServiceProvider.Invoking(s => s.GetRequiredService(type)).Should().NotThrow();
                 }
             }
+        }
+
+        private static ServiceProvider InitializeModule(out ServiceCollection serviceCollection)
+        {
+            var moduleId = ModuleIdResolver.ResolveId<ClusterManagementBackendModule>();
+            ClusterManagementOptions options = new();
+            var config = new TestConfig()
+                .SetAppDirectory("temp")
+                .AddModuleWithOptions(moduleId, options);
+
+            var module = new ClusterManagementBackendModule();
+            ServiceCollection initialized = new();
+
+            var serviceProvider = module.TestModuleInitialization(
+                services =>
+                {
+                    initialized = services;
+                    initialized.AddConfiguration(config);
+                    initialized.AddOptions<ClusterManagementOptions>();
+                    initialized.AddSingleton(_ =>
+                    {
+                        var mvcBuilderMock = Substitute.For<IMvcBuilder>();
+                        mvcBuilderMock.PartManager.Returns(Substitute.For<ApplicationPartManager>());
+                        return mvcBuilderMock;
+                    });
+                    initialized.AddSingleton(_ => Substitute.For<IFileSystem>());
+                    initialized.AddSingleton(_ => Substitute.For<IAtomicFileWriter>());
+                    initialized.AddSingleton(_ => Substitute.For<IArtifactRepository>());
+                    initialized.AddSingleton(_ => Substitute.For<IInstanceInformationProvider>());
+                    initialized.AddSingleton(_ => Substitute.For<ISuiteMediator>());
+                    initialized.AddSingleton(_ => Substitute.For<IControlServiceManagement>());
+                    initialized.AddSingleton(_ => Substitute.For<IConnectionTypeRegistry>());
+                    initialized.AddSingleton(_ => Substitute.For<IHostApplicationLifetime>());
+                });
+
+            serviceCollection = initialized;
+            return serviceProvider;
         }
     }
 

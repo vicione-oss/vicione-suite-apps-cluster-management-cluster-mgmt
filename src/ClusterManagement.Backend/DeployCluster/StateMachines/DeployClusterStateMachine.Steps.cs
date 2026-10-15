@@ -129,8 +129,16 @@ public sealed partial class DeployClusterStateMachine
     private EventActivityBinder<DeployClusterState, TMessage> PublishFailedAndFinalize<TMessage>(
         EventActivityBinder<DeployClusterState, TMessage> binder)
         where TMessage : class
+        => PublishFailedAndFinalize(binder, failedVersionKept: false);
+
+    /// <inheritdoc cref="PublishFailedAndFinalize{TMessage}(EventActivityBinder{DeployClusterState, TMessage})"/>
+    /// <param name="binder">The activities to add to.</param>
+    /// <param name="failedVersionKept">The rollback could not delete the version this saga committed.</param>
+    private EventActivityBinder<DeployClusterState, TMessage> PublishFailedAndFinalize<TMessage>(
+        EventActivityBinder<DeployClusterState, TMessage> binder, bool failedVersionKept)
+        where TMessage : class
         => binder
-            .ThenAsync(PublishClusterUpdateFailed)
+            .ThenAsync(ctx => PublishClusterUpdateFailed(ctx, failedVersionKept))
             .Then(BeforeFailedFinalize)
             .Finalize();
 }
