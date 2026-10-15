@@ -215,6 +215,47 @@ public class ClusterVersionListTests
         DeployDefaultButton(sut).Instance.Enabled.Should().BeFalse();
     }
 
+    // Issue #368: a second cluster named like the running one is told apart from it and offers no draft
+    [Fact]
+    public async Task Versions_of_a_second_cluster_with_the_same_name_are_headed_by_their_cluster_and_not_a_draft()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        ctx.Services.AddDialog();
+        var otherClusterId = Guid.NewGuid();
+        var versions = new List<ClusterInfoModel>
+        {
+            ClusterInfoModels.Version("0.1.24", isActive: true, isLatest: true),
+            ClusterInfoModels.Version("0.1.11"),
+            ClusterInfoModels.Version("0.1.0"),
+            new(new ClusterInfo(otherClusterId, new Version(0, 1, 0), "Cluster")) { IsLatest = true },
+        };
+
+        // Act
+        var sut = ctx.Render<ClusterVersionList>(p => p.Add(c => c.Versions, versions));
+
+        // Assert
+        sut.FindAll(".row .chip").Select(c => c.TextContent).Should().Equal(ClusterOverview.Running, CommonVocabulary.Default);
+        sut.FindAll(".cluster-head").Select(h => h.GetAttribute("title")).Should().Equal(ClusterInfoModels.ClusterId.ToString(), otherClusterId.ToString());
+        sut.FindAll(".rows > div").Select(r => r.ClassList.Contains("cluster-head")).Should().Equal(true, false, false, false, true, false);
+        sut.FindAll(".row .name").Should().BeEmpty("the cluster head names the cluster");
+    }
+
+    [Fact]
+    public async Task Versions_of_one_cluster_have_no_cluster_head()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        ctx.Services.AddDialog();
+
+        // Act
+        var sut = RenderList(ctx);
+
+        // Assert
+        sut.FindAll(".cluster-head").Should().BeEmpty();
+        sut.FindAll(".row .name").Select(n => n.TextContent).Should().AllBe("Cluster");
+    }
+
     private static IRenderedComponent<Dialog> DialogTitled(IRenderedComponent<ClusterVersionList> sut, string title)
         => sut.FindComponents<Dialog>().Single(d => d.Instance.HeaderText == title);
 

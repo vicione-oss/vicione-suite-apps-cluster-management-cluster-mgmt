@@ -12,7 +12,11 @@ public enum ClusterVersionStatus
 
 internal static class ClusterVersionStatuses
 {
-    public static ClusterVersionStatus Of(ClusterInfoModel version, DeploymentProgressModel? deployment)
+    /// <summary>
+    /// The draft and the default are versions of the running cluster; another cluster's versions are only previous ones.
+    /// Without <paramref name="runningClusterId"/> no cluster runs and every cluster has its draft and default.
+    /// </summary>
+    public static ClusterVersionStatus Of(ClusterInfoModel version, DeploymentProgressModel? deployment, Guid? runningClusterId = null)
     {
         if (deployment?.Matches(version.Id, version.Version) == true)
         {
@@ -25,6 +29,9 @@ internal static class ClusterVersionStatuses
 
         if (version.IsActive)
             return ClusterVersionStatus.Running;
+
+        if (runningClusterId is { } running && version.Id != running)
+            return ClusterVersionStatus.Previous;
 
         if (version.IsLatest)
             return ClusterVersionStatus.Draft;

@@ -198,6 +198,8 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
 
     public async Task Store(byte[] compressedClusterJson, ClusterSnapshotInfo info, CancellationToken cancellationToken)
     {
+        ThrowIfExists(info.Id, info.Version);
+
         try
         {
             await StoreInfo(info, ClusterSerializer.TypedSerializerOptions ?? ClusterSerializer.UntypedSerializerOptions, cancellationToken);
@@ -213,6 +215,9 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
 
     public async Task Store<T>(Guid clusterId, Version clusterVersion, JsonObject info, T value, Func<Stream, T, CancellationToken, Task> write, bool replace, CancellationToken cancellationToken)
     {
+        if (!replace)
+            ThrowIfExists(clusterId, clusterVersion);
+
         try
         {
             await StoreInfoLocal(ClusterSerializer.TypedSerializerOptions ?? ClusterSerializer.UntypedSerializerOptions);
@@ -220,28 +225,23 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
         }
         catch (Exception e)
         {
-            Delete(clusterId, clusterVersion);
+            // A replaced version is kept: the atomic writer leaves the file it failed to write as it was, and an info
+            // written before describes the same cluster version
+            if (!replace)
+                Delete(clusterId, clusterVersion);
+
             _logger.LogStoreClusterError(e, clusterId, clusterVersion);
             throw;
         }
 
         async Task StoreInfoLocal(JsonSerializerOptions serializerOptions)
-        {
-            var storageInfoPath = GetStorageInfoPath(clusterId, clusterVersion);
-            if (!replace && _fileSystem.File.Exists(storageInfoPath))
-                throw new InvalidOperationException($"Cluster info {clusterId}-{clusterVersion} already exists");
-
-            await _atomicFileWriter.WriteAsync(storageInfoPath,
+            => await _atomicFileWriter.WriteAsync(GetStorageInfoPath(clusterId, clusterVersion),
                 stream => JsonSerializer.SerializeAsync(stream, info, serializerOptions, cancellationToken),
                 cancellationToken);
-        }
 
         async Task StoreJson()
         {
             var storageFilePath = GetStorageFilePath(clusterId, clusterVersion);
-            if (!replace && !_fileSystem.File.Exists(storageFilePath))
-                throw new InvalidOperationException($"Cluster {clusterId}-{clusterVersion} already exists");
-
             await _atomicFileWriter.WriteAsync(storageFilePath, async stream =>
             {
                 // leaveOpen: the atomic writer still flushes the underlying stream after this callback
@@ -264,6 +264,8 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
 
     public async Task Store(Cluster cluster, CancellationToken cancellationToken)
     {
+        ThrowIfExists(cluster.Id, cluster.Version);
+
         try
         {
             // when we store the empty cluster the designs are not yet loaded and therefore the static
@@ -294,6 +296,19 @@ public sealed class ClusterSnapshotStore : IClusterSnapshotStore
             await using GZipStream gs = new(stream, CompressionMode.Compress, leaveOpen: true);
             await JsonSerializer.SerializeAsync(gs, cluster, options, cancellationToken);
         }, cancellationToken);
+    }
+
+    /// <summary>
+    /// Throws before anything is written, so the cleanup of a failed store never deletes an existing version.
+    /// Only the snapshot is checked: an info left without its snapshot (e.g. a crash between the two writes) makes
+    /// the store fail and its cleanup delete that info, so the next store of the version succeeds.
+    /// Stores are not serialized: a parallel store of the same version passes until the snapshot is written, and its
+    /// cleanup then deletes the version being stored.
+    /// </summary>
+    private void ThrowIfExists(Guid clusterId, Version clusterVersion)
+    {
+        if (Exists(clusterId, clusterVersion))
+            throw new InvalidOperationException($"Cluster {clusterId}-{clusterVersion} already exists");
     }
 
     private Task StoreInfo(Cluster cluster, JsonSerializerOptions serializerOptions, CancellationToken cancellationToken)

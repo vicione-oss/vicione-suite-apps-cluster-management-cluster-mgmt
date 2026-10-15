@@ -152,7 +152,24 @@ public partial class DeployClusterStateMachineTests
             await harness.DeployCluster(_correlationId, _clusterId, _targetVersion);
 
             // Assert
-            await harness.AssertClusterUpdateFailed(_correlationId, null);
+            await harness.AssertClusterUpdateFailed(_correlationId, _targetVersion);
+        }
+
+        [Fact]
+        public async Task Should_fail_with_the_commit_version_if_no_active_cluster_is_available()
+        {
+            // Arrange
+            await using var provider = SetupServiceProvider();
+            var commitVersion = SetupCommitClusterInfos(Public.Enums.VersionIncrementKind.Patch);
+            var options = SetupDeployOptions(commitVersion);
+            var harness = provider.GetTestHarness();
+            await harness.Start();
+
+            // Act
+            await harness.DeployCluster(_correlationId, _clusterId, null, options);
+
+            // Assert
+            await harness.AssertClusterUpdateFailed(_correlationId, commitVersion);
         }
 
         [Fact]

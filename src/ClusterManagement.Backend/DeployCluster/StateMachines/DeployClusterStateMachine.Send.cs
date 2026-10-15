@@ -14,7 +14,7 @@ public sealed partial class DeployClusterStateMachine
 {
     private Task PublishTransition<TMessage>(BehaviorContext<DeployClusterState, TMessage> ctx, string targetTransition) where TMessage : class
     {
-        var ev = new ClusterUpdateChanged(ctx.Saga.CorrelationId, ctx.Saga.ClusterId, ctx.Saga.TargetVersion, targetTransition) { Change = ClusterUpdateChange.Transition };
+        var ev = new ClusterUpdateChanged(ctx.Saga.CorrelationId, ctx.Saga.ClusterId, ctx.Saga.ReportedTargetVersion(), targetTransition) { Change = ClusterUpdateChange.Transition };
 
         LogTransition(_logger,
             ctx.Saga.CorrelationId,
@@ -28,11 +28,11 @@ public sealed partial class DeployClusterStateMachine
     {
         // Important to correlate the reply to the command and not to the ongoing saga correlation
         // to allow the caller to react on rejecting his command 
-        var ev = new ClusterUpdateRejected(ctx.Message.CorrelationId, ctx.Saga.ClusterId, ctx.Saga.ActiveVersion, ctx.Saga.TargetVersion, ctx.Message.TargetVersion);
+        var ev = new ClusterUpdateRejected(ctx.Message.CorrelationId, ctx.Saga.ClusterId, ctx.Saga.ActiveVersion, ctx.Saga.ReportedTargetVersion(), ctx.Message.TargetVersion);
 
         LogDeployRejected(_logger,
             ctx.Saga.CorrelationId,
-            ctx.Saga.TargetVersion,
+            ev.TargetVersion,
             ctx.Message.TargetVersion);
 
         return ctx.Publish(ev);

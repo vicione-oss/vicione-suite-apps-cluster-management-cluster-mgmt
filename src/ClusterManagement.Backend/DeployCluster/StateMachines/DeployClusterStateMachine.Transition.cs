@@ -33,6 +33,14 @@ public sealed partial class DeployClusterStateMachine
         var dbContext = scope.ServiceProvider.GetRequiredService<IClusterDbContext>();
         var snapshotStore = scope.ServiceProvider.GetRequiredService<IClusterSnapshotStore>();
 
+        // The version is known before anything can fail, so a failure reports it
+        if (ctx.Message.Options is not null)
+            ctx.Saga.CommitVersion = await snapshotStore.GetLatestVersionIncrement(ctx.Saga.ClusterId, ctx.Message.Options.IncrementKind);
+        else if (ctx.Message.TargetVersion is not null)
+            ctx.Saga.TargetVersion = ctx.Message.TargetVersion;
+        else
+            throw new InvalidOperationException($"Specify an existing TargetVersion or use DeployOptions to commit a target version for cluster {ctx.Message.ClusterId}.");
+
         // Load active cluster version
         var activeVersion = await dbContext.ActiveClusters.FirstOrDefaultAsync(c => c.Id == ctx.Message.ClusterId, ctx.CancellationToken)
             ?? throw new InvalidOperationException($"Could not load active cluster id = {ctx.Message.ClusterId}.");
@@ -44,26 +52,16 @@ public sealed partial class DeployClusterStateMachine
 
         // Target does not exist yet so continue with transition to CommittingClusterChange
         if (ctx.Message.Options is not null)
-        {
-            var commitVersion = await snapshotStore.GetLatestVersionIncrement(ctx.Saga.ClusterId, ctx.Message.Options.IncrementKind);
-            ctx.Saga.CommitVersion = commitVersion;
             return;
-        }
-
-        // Target an existing version or use incremented version on commit
-        if (ctx.Message.TargetVersion is null)
-            throw new InvalidOperationException($"Specify an existing TargetVersion or use DeployOptions to commit a target version for cluster {ctx.Message.ClusterId}.");
-
-        ctx.Saga.TargetVersion = ctx.Message.TargetVersion;
 
         var activeCluster = await snapshotStore.Load(ctx.Message.ClusterId, activeVersion.Version, ctx.CancellationToken) ??
             throw new ArgumentException($"Active Cluster {ctx.Message.ClusterId} v{activeVersion.Version} not found.");
 
-        var targetCluster = await snapshotStore.Load(ctx.Message.ClusterId, ctx.Message.TargetVersion, ctx.CancellationToken)
-                ?? throw new ArgumentException($"Cluster {ctx.Message.ClusterId} v{ctx.Message.TargetVersion} not found.");
+        var targetCluster = await snapshotStore.Load(ctx.Message.ClusterId, ctx.Saga.TargetVersion, ctx.CancellationToken)
+                ?? throw new ArgumentException($"Cluster {ctx.Message.ClusterId} v{ctx.Saga.TargetVersion} not found.");
 
         // If we set the version on commit metainfo it's not set for the cluster
-        targetCluster.Version = ctx.Message.TargetVersion;
+        targetCluster.Version = ctx.Saga.TargetVersion;
 
         await PublishClusterUpdateStarted(ctx, activeCluster, targetCluster);
     }
@@ -73,7 +71,7 @@ public sealed partial class DeployClusterStateMachine
         LogEvent(ctx, nameof(ClusterChangeCommitted));
 
         if (ctx.Message.Action != CrudAction.Created)
-            throw new InvalidOperationException($"Target cluster version '{ctx.Saga.TargetVersion}' could not be created.");
+            throw new InvalidOperationException($"Target cluster version '{ctx.Saga.CommitVersion}' could not be created.");
 
         if (ctx.Message.Version != ctx.Saga.CommitVersion)
             throw new InvalidOperationException($"Create cluster version '{ctx.Message.Version}' does not match expected target version '{ctx.Saga.CommitVersion}'.");

@@ -39,6 +39,19 @@ public class ClusterVersionStatusesTests
         status.Should().Be(ClusterVersionStatus.Failed);
     }
 
+    // Issue #368: only the running cluster has a draft and a default
+    [Fact]
+    public void Latest_version_of_another_cluster_than_the_running_one_is_not_a_draft()
+        => ClusterVersionStatuses.Of(ClusterInfoModels.Version("0.1.4", isLatest: true), null, Guid.NewGuid()).Should().Be(ClusterVersionStatus.Previous);
+
+    [Fact]
+    public void Default_version_of_another_cluster_than_the_running_one_is_not_the_default()
+        => ClusterVersionStatuses.Of(ClusterInfoModels.Version("0.1.0"), null, Guid.NewGuid()).Should().Be(ClusterVersionStatus.Previous);
+
+    [Fact]
+    public void Latest_version_of_the_running_cluster_is_a_draft()
+        => ClusterVersionStatuses.Of(ClusterInfoModels.Version("0.1.4", isLatest: true), null, ClusterInfoModels.ClusterId).Should().Be(ClusterVersionStatus.Draft);
+
     [Fact]
     public void Deployment_of_another_version_does_not_change_the_status()
         => ClusterVersionStatuses.Of(ClusterInfoModels.Version("0.1.3", isActive: true), Deployment("0.1.4")).Should().Be(ClusterVersionStatus.Running);

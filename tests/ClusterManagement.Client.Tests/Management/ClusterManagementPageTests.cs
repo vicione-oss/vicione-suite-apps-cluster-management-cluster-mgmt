@@ -397,6 +397,23 @@ public sealed class ClusterManagementPageTests
         sut.Find(".deployment .headline").TextContent.Should().Be(Format(ClusterOverview.DeployingVersion, s_draftVersion));
     }
 
+    // Issue #368: the version being committed is not stored yet, so asking for it only fails
+    [Fact]
+    public async Task Does_not_query_the_target_of_a_deployment_resumed_while_committing()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        _managementService.QueryClusterDeploymentState(s_clusterId, Arg.Any<CancellationToken>())
+            .Returns(new DeploymentState(s_clusterId, "CommittingCluster", s_runningVersion, s_draftVersion));
+
+        // Act
+        var sut = RenderPage(ctx, RunningAndDraft());
+
+        // Assert
+        sut.Find(".deployment .headline").TextContent.Should().Be(Format(ClusterOverview.DeployingVersion, s_draftVersion));
+        await _managementService.DidNotReceive().QueryCluster(s_clusterId, s_draftVersion, Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task Lists_the_instances_of_a_resumed_deployment()
     {
