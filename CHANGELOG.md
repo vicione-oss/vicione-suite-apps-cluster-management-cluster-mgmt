@@ -89,6 +89,7 @@
 
 ### Fixed
 
+- Unsubscribing an event topic the broker held no subscription for no longer logs a warning
 - Parallel deployments of one cluster no longer leave a deployment in `CleaningCluster` or fail the deployment state request
 - Two deployments completing close together no longer break the reconnect of the dataflow event connection
 - Asking for the state of an engine answers with an error when it fails unexpectedly, instead of failing the request

@@ -206,7 +206,10 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
         {
             foreach (var item in result.Items)
             {
-                if (item.ResultCode != MqttClientUnsubscribeResultCode.Success)
+                // A subscribe request cancelled before it reached the broker leaves nothing to unsubscribe.
+                if (item.ResultCode == MqttClientUnsubscribeResultCode.NoSubscriptionExisted)
+                    LogUnsubscribeFoundNoSubscription(_logger, item.TopicFilter);
+                else if (item.ResultCode != MqttClientUnsubscribeResultCode.Success)
                     LogUnsubscribeResultCodeFailed(_logger, item.TopicFilter, item.ResultCode);
             }
         }
@@ -500,6 +503,9 @@ internal sealed partial class DataflowEventMqttHandler(IDataflowEventMqttClientP
 
     [LoggerMessage(LogLevel.Warning, "MQTT subscribe failed for topic '{Topic}' with result code {ResultCode}.")]
     private static partial void LogSubscribeResultCodeFailed(ILogger logger, string topic, MqttClientSubscribeResultCode resultCode);
+
+    [LoggerMessage(LogLevel.Debug, "MQTT unsubscribe found no subscription for topic '{Topic}'.")]
+    private static partial void LogUnsubscribeFoundNoSubscription(ILogger logger, string topic);
 
     [LoggerMessage(LogLevel.Warning, "MQTT unsubscribe failed for topic '{Topic}' with result code {ResultCode}.")]
     private static partial void LogUnsubscribeResultCodeFailed(ILogger logger, string topic, MqttClientUnsubscribeResultCode resultCode);

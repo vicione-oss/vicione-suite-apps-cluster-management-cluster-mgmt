@@ -206,6 +206,25 @@ public class DataflowEventMqttHandlerTests
         }
 
         [Fact]
+        public async Task Should_not_warn_about_a_topic_the_broker_had_no_subscription_for()
+        {
+            // Arrange
+            await using var handler = CreateHandler();
+            _logger.IsEnabled(Arg.Any<LogLevel>()).Returns(true);
+            _mqttClient.UnsubscribeAsync(Arg.Any<MqttClientUnsubscribeOptions>(), Arg.Any<CancellationToken>())
+                .Returns(new MqttClientUnsubscribeResult(0,
+                    [new MqttClientUnsubscribeResultItem(_outputEvent.EventId.ToString(), MqttClientUnsubscribeResultCode.NoSubscriptionExisted)],
+                    string.Empty, []));
+
+            // Act
+            await handler.Unsubscribe([_outputEvent], TestContext.Current.CancellationToken);
+
+            // Assert
+            _logger.DidNotReceive().Log(LogLevel.Warning, Arg.Any<EventId>(), Arg.Any<Arg.AnyType>(), Arg.Any<Exception?>(), Arg.Any<Func<Arg.AnyType, Exception?, string>>());
+            _logger.Received(1).Log(LogLevel.Debug, Arg.Any<EventId>(), Arg.Any<Arg.AnyType>(), Arg.Any<Exception?>(), Arg.Any<Func<Arg.AnyType, Exception?, string>>());
+        }
+
+        [Fact]
         public async Task Should_unsubscribe_from_the_topics_of_several_events_with_one_packet()
         {
             // Arrange
