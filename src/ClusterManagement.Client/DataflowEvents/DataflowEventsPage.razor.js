@@ -49,3 +49,8 @@ function onKeyDown(event) {
 export function attach(table) {
     table.addEventListener('keydown', onKeyDown);
 }
+
+// Leaving the page removes the table before the page is disposed; its listener went with it.
+export function detach(table) {
+    table?.removeEventListener('keydown', onKeyDown);
+}
