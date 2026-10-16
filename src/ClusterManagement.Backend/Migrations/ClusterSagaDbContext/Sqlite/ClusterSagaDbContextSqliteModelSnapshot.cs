@@ -17,7 +17,7 @@ namespace ClusterManagement.Backend.Ef.Migrations.ClusterSagaDbContext.Sqlite
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("clustersaga")
-                .HasAnnotation("ProductVersion", "9.0.7");
+                .HasAnnotation("ProductVersion", "10.0.12");
 
             modelBuilder.Entity("ClusterManagement.Backend.DeployCluster.StateMachines.DeployClusterState", b =>
                 {
@@ -69,8 +69,10 @@ namespace ClusterManagement.Backend.Ef.Migrations.ClusterSagaDbContext.Sqlite
                     b.Property<int>("CurrentState")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("InitializeFailed")
-                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FailureReason")
+                        .HasColumnType("TEXT");
+
 
                     b.Property<string>("RemoveVersion")
                         .IsRequired()

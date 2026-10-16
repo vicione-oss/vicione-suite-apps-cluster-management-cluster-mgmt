@@ -39,8 +39,8 @@ public sealed class DeployClusterState : SagaStateMachineInstance
     public bool AtLeastOneDeployReturnedError { get; set; }
 
     /// <summary>
-    /// No longer used: start failures are handled with Catch in the state machine.
-    /// Kept to avoid a schema migration for the persisted column.
+    /// Reason of a failure that is reported after a rollback, e.g. the exception of a failed step.
+    /// Null if the deployment failed because an application update failed.
     /// </summary>
-    public bool InitializeFailed { get; set; }
+    public string? FailureReason { get; set; }
 }

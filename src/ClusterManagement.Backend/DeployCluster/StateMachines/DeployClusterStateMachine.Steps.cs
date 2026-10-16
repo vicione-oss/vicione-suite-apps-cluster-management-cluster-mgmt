@@ -119,9 +119,30 @@ public sealed partial class DeployClusterStateMachine
         where TMessage : class
         => binder
             .Then(ctx => LogDeploymentStepFailed(_logger, ctx.Exception, ctx.Saga.CorrelationId, ctx.Saga.ClusterId, state))
-            .ThenAsync(ctx => PublishClusterUpdateFailed(ctx, ctx.Saga.ReportedTargetVersion(), ctx.Exception.Message, state))
+            .ThenAsync(ctx => PublishClusterUpdateFailed(ctx, ctx.Saga.ReportedTargetVersion(), GetFailureReason(ctx.Exception), state))
             .Then(BeforeFailedFinalize)
             .Finalize();
+
+    /// <summary>
+    /// An activity of <paramref name="state"/> threw after the saga committed a version: keeps the failure and removes the
+    /// committed version in <see cref="RollingBackCommit"/>, which publishes <see cref="Public.Events.ClusterUpdateFailed"/>.
+    /// </summary>
+    private ExceptionActivityBinder<DeployClusterState, TMessage, Exception> FailAndRemoveCommittedVersion<TMessage>(
+        ExceptionActivityBinder<DeployClusterState, TMessage, Exception> binder, string state)
+        where TMessage : class
+        => binder
+            .Then(ctx => LogDeploymentStepFailed(_logger, ctx.Exception, ctx.Saga.CorrelationId, ctx.Saga.ClusterId, state))
+            .Then(ctx => KeepFailure(ctx, GetFailureReason(ctx.Exception)))
+            .ThenAsync(SendRemoveCommittedVersion)
+            .ThenAsync(ctx => PublishTransition(ctx, RollingBackCommit!.Name))
+            .TransitionTo(RollingBackCommit);
+
+    /// <summary>
+    /// The message of <paramref name="exception"/>, or of its inner exception if MassTransit wrapped it in an
+    /// <see cref="EventExecutionException"/>, as it does for some activities, e.g. <c>PublishAsync</c>.
+    /// </summary>
+    private static string GetFailureReason(Exception exception)
+        => (exception is EventExecutionException { InnerException: { } inner } ? inner : exception).Message;
 
     /// <summary>
     /// Publishes <see cref="Public.Events.ClusterUpdateFailed"/>, logs the results and finalizes the saga.

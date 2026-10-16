@@ -39,7 +39,8 @@ public sealed partial class DeployClusterStateMachine
     }
 
     /// <summary>
-    /// Publish <see cref="ClusterUpdateFailed"/> containing the errors occurred on update deployments step
+    /// Publish <see cref="ClusterUpdateFailed"/> containing the errors occurred on update deployments step,
+    /// or the failure kept by <see cref="KeepFailure"/>
     /// </summary>
     private async Task PublishClusterUpdateFailed<TMessage>(BehaviorContext<DeployClusterState, TMessage> ctx, bool failedVersionKept)
         where TMessage : class
@@ -54,7 +55,7 @@ public sealed partial class DeployClusterStateMachine
                 .Where(v => v.Value is not null)
                 .ToDictionary(k => k.Key, v => v.Value!),
             State = GetState(ctx.Saga.CurrentState),
-            Reason = "At least one application update failed",
+            Reason = ctx.Saga.FailureReason ?? "At least one application update failed",
             FailedVersionKept = failedVersionKept,
         };
 
@@ -138,7 +139,7 @@ public sealed partial class DeployClusterStateMachine
     }
 
     /// <summary>
-    /// Sends a <see cref="RemoveCluster" /> command to remove the previous cluster version.    
+    /// Sends a <see cref="RemoveCluster" /> command to remove the previous cluster version.
     /// </summary>    
     private async Task SendRemovePreviousVersion<TMessage>(BehaviorContext<DeployClusterState, TMessage> ctx)
         where TMessage : class

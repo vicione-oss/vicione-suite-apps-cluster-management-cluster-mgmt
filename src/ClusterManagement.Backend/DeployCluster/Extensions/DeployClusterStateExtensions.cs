@@ -8,6 +8,12 @@ internal static class DeployClusterStateExtensions
         => state.CommitVersion == DeployClusterState.EmptyVersion;
 
     /// <summary>
+    /// The commit reply confirmed that the <see cref="DeployClusterState.CommitVersion"/> was created, so it's the target version.
+    /// </summary>
+    public static bool IsCommitVersionCreated(this DeployClusterState state)
+        => !state.IsCommitVersionEmpty() && state.TargetVersion == state.CommitVersion;
+
+    /// <summary>
     /// The version being deployed. A deployment that commits a new version has no <see cref="DeployClusterState.TargetVersion"/>
     /// until that version is created, so the <see cref="DeployClusterState.CommitVersion"/> is reported until then.
     /// </summary>

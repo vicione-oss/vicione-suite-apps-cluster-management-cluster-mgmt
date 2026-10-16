@@ -324,6 +324,17 @@ public sealed partial class DeployClusterStateMachine
         await dbContext.UpsertActiveClusterInfo(ctx.Saga.ClusterId, ctx.Saga.TargetVersion, DateTimeOffset.UtcNow, null, ctx.CancellationToken);
     }
 
+    /// <summary>
+    /// Keep the failure until it's reported after the rollback. The version being deployed is kept as target version,
+    /// as the commit version is cleared once it's removed.
+    /// </summary>
+    private static void KeepFailure<TMessage>(BehaviorContext<DeployClusterState, TMessage> ctx, string reason)
+        where TMessage : class
+    {
+        ctx.Saga.FailureReason = reason;
+        ctx.Saga.TargetVersion = ctx.Saga.ReportedTargetVersion();
+    }
+
     private void BeforeFailedFinalize<TMessage>(BehaviorContext<DeployClusterState, TMessage> ctx)
         where TMessage : class
     {
