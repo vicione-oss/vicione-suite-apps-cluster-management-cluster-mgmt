@@ -137,8 +137,11 @@ public sealed partial class DeployClusterStateMachine : MassTransitStateMachine<
         During(CommittingCluster,
             ContinueWithTargetCluster(When(ClusterChanged)
                     .ThenAsync(ClusterChangeCommitted))
-                // Any failure while loading the committed cluster fails the deployment
-                .Catch<Exception>(ex => FailDeployment(ex, nameof(CommittingCluster))),
+                // Any failure fails the deployment, after removing the committed version if the reply confirmed it was created.
+                // An unexpected reply leaves nothing to remove: the commit version may belong to another commit.
+                .Catch<Exception>(ex => ex.IfElse(ctx => ctx.Saga.IsCommitVersionCreated(),
+                    created => FailAndRemoveCommittedVersion(created, nameof(CommittingCluster)),
+                    notCreated => FailDeployment(notCreated, nameof(CommittingCluster)))),
             When(CommitClusterFailed)
                 .ThenAsync(PublishCommitClusterFailed)
                 .Then(BeforeFailedFinalize)
@@ -205,7 +208,7 @@ public sealed partial class DeployClusterStateMachine : MassTransitStateMachine<
                 .Then(ProcessClusterNodeCleaned)
                 .If(ctx => AreAllClusterNodesCleaned(ctx.Saga, ctx.Saga.ClusterNodesCreated), ContinueAfterClusterNodesRolledBack));
 
-        // Entered from RollingBackDeployments if the saga committed a cluster version
+        // Entered after a rollback, or from CommittingCluster if a step failed after the commit, when the saga committed a cluster version
         During(RollingBackCommit,
             // Committed cluster version was deleted
             When(ClusterChanged)

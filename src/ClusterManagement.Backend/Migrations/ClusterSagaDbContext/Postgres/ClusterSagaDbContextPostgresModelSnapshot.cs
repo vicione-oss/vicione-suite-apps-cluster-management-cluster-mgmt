@@ -18,7 +18,7 @@ namespace ClusterManagement.Backend.Ef.Migrations.ClusterSagaDbContext.Postgres
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("clustersaga")
-                .HasAnnotation("ProductVersion", "9.0.7")
+                .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -73,8 +73,10 @@ namespace ClusterManagement.Backend.Ef.Migrations.ClusterSagaDbContext.Postgres
                     b.Property<int>("CurrentState")
                         .HasColumnType("integer");
 
-                    b.Property<bool>("InitializeFailed")
-                        .HasColumnType("boolean");
+
+                    b.Property<string>("FailureReason")
+                        .HasColumnType("text");
+
 
                     b.Property<string>("RemoveVersion")
                         .IsRequired()
