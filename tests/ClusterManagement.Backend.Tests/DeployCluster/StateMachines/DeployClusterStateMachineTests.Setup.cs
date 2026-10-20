@@ -2,6 +2,7 @@
 using ClusterManagement.Backend.Extensions;
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Backend.Tests.Extensions;
+using ClusterManagement.Internal;
 using ClusterManagement.Public;
 using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Enums;
@@ -31,13 +32,14 @@ public partial class DeployClusterStateMachineTests
     private readonly Guid _nodeIdToAdd = Guid.Parse("AAAAAAAA-1111-414A-90BE-6F4BA877A9CF");
     private readonly Guid _applicationId = Guid.Parse("AAAAAAAA-2222-414A-90BE-6F4BA877A9CF");
 
-    private ServiceProvider SetupServiceProvider()
+    private ServiceProvider SetupServiceProvider(ClusterManagementOptions? options = null)
         => new ServiceCollection()
             .ConfigureDeployClusterSaga(_snapshotStore, x =>
             {
                 x.AddSagaStateMachine<DeployClusterStateMachine, DeployClusterState>();
+                x.AddHostedService<DeploySagaTimeoutWatchdog>();
                 x.AddSingleton(_logger);
-            })
+            }, options)
             .BuildServiceProvider(true);
 
     private Cluster SetupSagaClusterActiveVersionOnly(IServiceProvider services)

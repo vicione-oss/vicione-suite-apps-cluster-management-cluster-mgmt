@@ -86,5 +86,7 @@ public sealed class ClusterManagementBackendModule : BackendModule
                 r.ConcurrencyMode = ConcurrencyMode.Optimistic; // requires RowVersion
                 r.DatabaseFactory(s => () => (ClusterSagaDbContext)s.GetRequiredService<IClusterSagaDbContext>());
             });
+
+        busConfig.AddHostedService<DeploySagaTimeoutWatchdog>();
     }
 }

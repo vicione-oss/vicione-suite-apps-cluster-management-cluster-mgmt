@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Options;
 
 namespace ClusterManagement.Internal;
 
@@ -21,4 +22,10 @@ public sealed class ClusterManagementOptions
     /// Allows hiding of the NavTile for the cluster editor
     /// </summary>
     public bool HideClusterEditorNavTile { get; set; }
+
+    /// <summary>
+    /// Per-state timeouts of the deploy cluster saga
+    /// </summary>
+    [ValidateObjectMembers]
+    public DeploySagaTimeoutOptions DeploySagaTimeouts { get; set; } = new();
 }

@@ -1,6 +1,8 @@
 using ClusterManagement.Backend.DeployCluster.StateMachines;
+using ClusterManagement.Internal;
 using MassTransit;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster.StateMachines;
 
@@ -42,7 +44,7 @@ public class DeployClusterStateMachineStateValueTests
         if (value == 0)
             return; // "None" is not a state of the machine
 
-        var machine = new DeployClusterStateMachine(Substitute.For<IServiceProvider>(), NullLogger<DeployClusterStateMachine>.Instance);
+        var machine = new DeployClusterStateMachine(Substitute.For<IServiceProvider>(), Options.Create(new ClusterManagementOptions()), NullLogger<DeployClusterStateMachine>.Instance);
         var saga = new DeployClusterState { CurrentState = value };
 
         var state = await machine.GetState(saga);

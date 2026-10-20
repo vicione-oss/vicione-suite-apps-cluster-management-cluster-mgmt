@@ -39,7 +39,12 @@ public sealed class DeployClusterState : SagaStateMachineInstance
     public bool AtLeastOneDeployReturnedError { get; set; }
 
     /// <summary>
-    /// Reason of a failure that is reported after a rollback, e.g. the exception of a failed step.
+    /// When the current state times out (UTC), see <see cref="DeploySagaTimeoutWatchdog"/>
+    /// </summary>
+    public DateTime? StateTimeoutAt { get; set; }
+
+    /// <summary>
+    /// Reason of a failure that is reported after a rollback, e.g. the exception of a failed step or a state timeout.
     /// Null if the deployment failed because an application update failed.
     /// </summary>
     public string? FailureReason { get; set; }

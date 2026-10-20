@@ -37,8 +37,8 @@ public partial class DeployClusterStateMachineTests
             await harness.PublishClusterApplicationStarted(_correlationId, _clusterId, _slave1ApplicationId);
             await harness.PublishClusterApplicationStarted(_correlationId, _clusterId, _slave2ApplicationId);
 
-            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _slave1ApplicationId);
-            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _slave2ApplicationId);
+            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _slave1ApplicationId, prepared.Item2.Version);
+            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _slave2ApplicationId, prepared.Item2.Version);
 
             await harness.PublishClusterNodeCleaned(_correlationId, _clusterId, _nodeIdToClean);
 
@@ -63,10 +63,10 @@ public partial class DeployClusterStateMachineTests
             await harness.AssertDeployClusterState(_correlationId, x => x.UpdatingDeployments);
 
             // Act
-            await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _slave1ApplicationId);
-            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _slave1ApplicationId);
+            await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _slave1ApplicationId, prepared.Item2.Version);
+            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _slave1ApplicationId, prepared.Item2.Version);
             await harness.AssertDeployClusterState(_correlationId, x => x.UpdatingDeployments);
-            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _slave2ApplicationId);
+            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _slave2ApplicationId, prepared.Item2.Version);
 
             // Assert: the first reply (failed) wins, so the deployment rolls back
             await harness.AssertDeployClusterState(_correlationId, x => x.RollingBackDeployments);

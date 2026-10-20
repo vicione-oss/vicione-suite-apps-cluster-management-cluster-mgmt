@@ -37,7 +37,7 @@ public partial class DeployClusterStateMachineTests
             await TransitionToUpdatingDeployments(harness, prepared.Item2.Version);
 
             // Act            
-            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _applicationId);
+            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _applicationId, prepared.Item2.Version);
 
             // Assert
             await harness.AssertDeployClusterState(_correlationId, x => x.CleaningClusterNodes);
@@ -59,7 +59,7 @@ public partial class DeployClusterStateMachineTests
             await TransitionToUpdatingDeployments(harness, target.Version, deletePreviousVersion: true);
 
             // Act            
-            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _applicationId);
+            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _applicationId, target.Version);
 
             // Assert
             Assert.True(await harness.Sent.Any<RemoveCluster>(k
@@ -83,7 +83,7 @@ public partial class DeployClusterStateMachineTests
             await TransitionToUpdatingDeployments(harness, prepared.Item2.Version);
 
             // Act            
-            await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _applicationId);
+            await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _applicationId, prepared.Item2.Version);
 
             // Assert
             await harness.AssertDeployClusterState(_correlationId, x => x.RollingBackDeployments);
@@ -102,7 +102,7 @@ public partial class DeployClusterStateMachineTests
             await TransitionToUpdatingDeployments(harness, prepared.Item2.Version);
 
             // Act
-            await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _applicationId);
+            await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _applicationId, prepared.Item2.Version);
 
             // Assert
             await harness.AssertClusterUpdateFailed(_correlationId, prepared.Item2.Version);
@@ -123,7 +123,7 @@ public partial class DeployClusterStateMachineTests
             await TransitionToUpdatingDeployments(harness, target.Version);
 
             // Act
-            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _applicationId);
+            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _applicationId, target.Version);
 
             // Assert
             await harness.AssertClusterUpdateCompleted(_correlationId, target.Version);

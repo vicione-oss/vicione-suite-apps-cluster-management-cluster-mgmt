@@ -19,7 +19,7 @@ public partial class DeployClusterStateMachineTests
             await harness.PublishClusterChangedCreated(_correlationId, _clusterId, commitVersion);
             await harness.PublishClusterNodeAdded(_correlationId, _clusterId, _nodeIdToAdd);
             await harness.PublishClusterApplicationStarted(_correlationId, _clusterId, _applicationId);
-            await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _applicationId);
+            await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _applicationId, commitVersion);
             await harness.AssertDeployClusterState(_correlationId, x => x.RollingBackDeployments);
         }
 
@@ -30,7 +30,7 @@ public partial class DeployClusterStateMachineTests
             await harness.PublishClusterChangedCreated(_correlationId, _clusterId, targetVersion);
             await harness.PublishClusterNodeAdded(_correlationId, _clusterId, _nodeIdToAdd);
             await harness.PublishClusterApplicationStarted(_correlationId, _clusterId, _applicationId);
-            await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _applicationId);
+            await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _applicationId, targetVersion);
             await harness.AssertDeployClusterState(_correlationId, x => x.RollingBackDeployments);
         }
 
@@ -46,7 +46,7 @@ public partial class DeployClusterStateMachineTests
             await TransitionRollingBackDeployments(harness, prepared.Item2.Version);
 
             // Act
-            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _applicationId);
+            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _applicationId, _activeVersion);
             await harness.AssertDeployClusterState(_correlationId, x => x.RollingBackClusterNodes);
             await harness.PublishClusterNodeCleaned(_correlationId, _clusterId, _nodeIdToAdd);
 
@@ -70,7 +70,7 @@ public partial class DeployClusterStateMachineTests
             await TransitionRollingBackDeployments(harness, prepared.Item2.Version);
 
             // Act
-            await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _applicationId);
+            await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _applicationId, _activeVersion);
             await harness.AssertDeployClusterState(_correlationId, x => x.RollingBackClusterNodes);
             await harness.PublishClusterNodeCleaned(_correlationId, _clusterId, _nodeIdToAdd);
 
@@ -92,7 +92,7 @@ public partial class DeployClusterStateMachineTests
             await TransitionRollingBackDeployments(harness, options, commitVersion);
 
             // Act
-            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _applicationId);
+            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _applicationId, _activeVersion);
 
             // Assert
             await harness.Sent.Any<RemoveCluster>(k => k.Context.Message.ClusterId == _clusterId
@@ -118,7 +118,7 @@ public partial class DeployClusterStateMachineTests
             await TransitionRollingBackDeployments(harness, options, commitVersion);
 
             // Act
-            await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _applicationId);
+            await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _applicationId, _activeVersion);
 
             // Assert            
             await harness.Sent.Any<RemoveCluster>(k => k.Context.Message.ClusterId == _clusterId

@@ -1,11 +1,13 @@
 ﻿using System.IO.Abstractions;
 using ClusterManagement.Backend.Connections;
+using ClusterManagement.Backend.DeployCluster.StateMachines;
 using ClusterManagement.Backend.Designs;
 using ClusterManagement.Backend.EngineHosts;
 using ClusterManagement.Backend.Engines;
 using ClusterManagement.Internal;
 using ClusterManagement.Public.Connections.Contracts;
 using ClusterManagement.Public.Connections.Extensions;
+using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.Extensions.DependencyInjection;
@@ -137,6 +139,23 @@ public class ClusterManagementBackendModuleFacts
             createServerConnection.Should().NotBeNull();
             createServerConnection().Should().BeOfType<OpcUaServerConnection>()
                 .Which.ApplicationCertificatesPath.Should().StartWith("ua-certs/");
+        }
+    }
+
+    public class ConfigureMessageBus
+    {
+        [Theory]
+        [InlineData(InstanceType.Standalone, true)]
+        [InlineData(InstanceType.Master, true)]
+        [InlineData(InstanceType.Slave, false)]
+        public void Registers_the_deploy_saga_timeout_watchdog_with_the_saga(InstanceType instanceType, bool registered)
+        {
+            var services = new ServiceCollection();
+
+            services.AddMassTransit(x => new ClusterManagementBackendModule().ConfigureMessageBus(x, instanceType));
+
+            services.Any(d => d.ServiceType == typeof(IHostedService) && d.ImplementationType == typeof(DeploySagaTimeoutWatchdog))
+                .Should().Be(registered);
         }
     }
 }

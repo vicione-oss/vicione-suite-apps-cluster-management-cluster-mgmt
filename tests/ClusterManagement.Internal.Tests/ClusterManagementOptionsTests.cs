@@ -46,4 +46,27 @@ public class ClusterManagementOptionsTests
         Assert.NotNull(options);
         options.Value.Should().BeEquivalentTo(_options);
     }
+
+    [Theory]
+    [InlineData("00:00:00")]
+    [InlineData("-00:01:00")]
+    public void Deploy_saga_timeouts_should_be_positive(string timeout)
+    {
+        // Arrange: AddModuleWithOptions only sets the top level options
+        var config = new TestConfig()
+            .AddModuleWithOptions(_moduleId, _options);
+        config.SetSetting("ViciOneSuiteClusterManagement:DeploySagaTimeouts:UpdatingDeployments", timeout);
+
+        var services = new ServiceCollection()
+            .AddConfiguration(config)
+            .AddModuleSection<ClusterManagementOptions>(_moduleId);
+
+        // Act
+        var serviceProvider = services.BuildServiceProvider();
+        var act = () => serviceProvider.GetRequiredService<IOptions<ClusterManagementOptions>>().Value;
+
+        // Assert
+        act.Should().Throw<OptionsValidationException>()
+            .Which.Message.Should().Contain(nameof(DeploySagaTimeoutOptions.UpdatingDeployments));
+    }
 }

@@ -20,20 +20,11 @@ internal sealed class EngineLifetime(IEngineHostPoolCommunication engineHostPool
 {
     public async Task Start(CancellationToken cancellationToken)
     {
-        if (instanceInformationProvider.Local.Type == InstanceType.Standalone)
+        var instanceType = instanceInformationProvider.Local.Type;
+        if (instanceType == InstanceType.Standalone)
         {
-            var clusterInfos = await mediator.Request<GetClusterInfosRequest, GetClusterInfosResponse>(new(), cancellationToken);
-            if (clusterInfos.RequestError is null)
-            {
-                var activeCluster = clusterInfos.Results.SingleOrDefault(clusterInfo => clusterInfo.IsActive);
-                if (activeCluster is not null)
-                {
-                    await RemoveExistingSagaState(activeCluster.Id, cancellationToken);
-
-                    Public.Commands.DeployCluster deployCluster = new(activeCluster.Id, activeCluster.Version);
-                    await mediator.Send(deployCluster, cancellationToken);
-                }
-            }
+            // Deploying the active version also starts the engines of a standalone instance
+            await RecoverDeploySaga(redeployAlways: true, cancellationToken);
         }
         else
         {
@@ -42,7 +33,49 @@ internal sealed class EngineLifetime(IEngineHostPoolCommunication engineHostPool
                 .Where(eh => eh.Deployments.Count > 0).ToListAsync(cancellationToken);
             var startEngineHosts = engineHosts.Select(engineHost => StartEngineHost(engineHost, cancellationToken));
             await Task.WhenAll(startEngineHosts);
+
+            // The deploy saga only runs on master (or standalone)
+            if (instanceType == InstanceType.Master)
+                await TryRecoverDeploySaga(cancellationToken);
         }
+    }
+
+    private async Task TryRecoverDeploySaga(CancellationToken cancellationToken)
+    {
+        try
+        {
+            // The engines are already started, only an interrupted deployment needs a redeploy
+            await RecoverDeploySaga(redeployAlways: false, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Engines are already started, a failed recovery must not fail the startup
+            logger.LogRecoverDeploySagaFailed(ex);
+        }
+    }
+
+    /// <summary>
+    /// A saga state surviving a restart belongs to an interrupted deployment and would never finish.
+    /// Remove it and deploy the active cluster version again, so all instances run it.
+    /// </summary>
+    /// <param name="redeployAlways">Deploy the active cluster version also if no deployment was interrupted.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    private async Task RecoverDeploySaga(bool redeployAlways, CancellationToken cancellationToken)
+    {
+        var clusterInfos = await mediator.Request<GetClusterInfosRequest, GetClusterInfosResponse>(new(), cancellationToken);
+        if (clusterInfos.RequestError is not null)
+            return;
+
+        var activeCluster = clusterInfos.Results.SingleOrDefault(clusterInfo => clusterInfo.IsActive);
+        if (activeCluster is null)
+            return;
+
+        var interrupted = await RemoveExistingSagaState(activeCluster.Id, cancellationToken);
+        if (!interrupted && !redeployAlways)
+            return;
+
+        Public.Commands.DeployCluster deployCluster = new(activeCluster.Id, activeCluster.Version);
+        await mediator.Send(deployCluster, cancellationToken);
     }
 
     private async Task StartEngineHost(EngineHost engineHost, CancellationToken cancellationToken)
@@ -120,18 +153,20 @@ internal sealed class EngineLifetime(IEngineHostPoolCommunication engineHostPool
     }
 
     // Earlier versions could leave several deployments of one cluster behind; each of them would reject the next one.
-    private async Task RemoveExistingSagaState(Guid clusterId, CancellationToken cancellationToken)
+    // Returns whether a deployment state was removed
+    private async Task<bool> RemoveExistingSagaState(Guid clusterId, CancellationToken cancellationToken)
     {
         var deployStates = await sagaDbContext.DeployClusterState
                 .Where(k => k.ClusterId == clusterId)
                 .ToListAsync(cancellationToken);
 
         if (deployStates.Count == 0)
-            return;
+            return false;
 
         logger.LogRemoveDeploySagaState(clusterId);
 
         sagaDbContext.DeployClusterState.RemoveRange(deployStates);
         await sagaDbContext.SaveChangesAsync(cancellationToken);
+        return true;
     }
 }
