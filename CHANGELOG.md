@@ -6,6 +6,7 @@
 
 - `Public`
   - `ClusterSerializer` class, added asynchronous compress methods
+  - `ClusterError.PublishFailedClusterIdMismatch`, a commit was rejected because the cluster has another id than the committed cluster
   - `ClusterInfo.Deployed`, when the active version was deployed
   - `OpcUaClientConnection` contract and `ConnectionType.OpcUaClient` / `Connection.SetOpcUaClientConnection` / `Connection.GetOpcUaClientConnection` extension members for configuring a client-side connection to an OPC UA server
   - `OpcUaServerConnection` contract and `ConnectionType.OpcUaServer` / `Connection.SetOpcUaServerConnection` / `Connection.GetOpcUaServerConnection` extension members for configuring a server-side OPC UA connection, bound to a single network interface by name
@@ -119,6 +120,7 @@
 - Cluster Manager shows the version being deployed instead of `0.0.0` while a new version is committed and when a deployment fails before it starts
 - A failed store no longer deletes an existing cluster version
 - Committing a cluster whose id differs from the committed cluster fails instead of storing it as another cluster
+- Committing a cluster that cannot be read fails at once instead of after several retries
 - Cluster Manager groups the versions by cluster when several are stored, and shows draft and default only for the running cluster
 - Dataflow events page no longer stops receiving values when a write or subscription reconnects to the broker after the connection dropped
 - The dataflow events page and the debug engines page require full access to Cluster Management like its other pages; any signed-in user could open them by URL, write dataflow inputs and start, stop or tear down engines

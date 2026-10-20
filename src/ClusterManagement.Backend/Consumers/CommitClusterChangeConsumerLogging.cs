@@ -31,6 +31,26 @@ internal static partial class CommitClusterChangeConsumerLogging
         Version version);
 
     [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Commit of cluster {Id} v{Version} rejected, the cluster cannot be read CorrelationId:{CorrelationId}")]
+    public static partial void LogCommitClusterUnreadable(
+        this ILogger logger,
+        Exception exception,
+        Guid correlationId,
+        Guid id,
+        Version version);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Commit of cluster {Id} v{Version} rejected, it contains cluster {ContainedId} CorrelationId:{CorrelationId}")]
+    public static partial void LogCommitClusterIdMismatch(
+        this ILogger logger,
+        Guid correlationId,
+        Guid id,
+        Version version,
+        Guid containedId);
+
+    [LoggerMessage(
         Level = LogLevel.Error,
         Message = "{Command} faulted with errors: {Errors}")]
     public static partial void LogCommandFaulted(

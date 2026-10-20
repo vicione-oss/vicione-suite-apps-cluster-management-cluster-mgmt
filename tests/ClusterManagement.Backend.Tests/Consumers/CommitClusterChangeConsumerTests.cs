@@ -128,13 +128,40 @@ public class CommitClusterChangeConsumerTests
             };
 
             // Act
-            var act = async () => await tester.TestCommandFault<CommitClusterChange, CommitClusterChangeConsumer>(command);
+            await tester.TestCommand<CommitClusterChange, CommitClusterChangeConsumer>(command);
 
             // Assert
-            await act.Should().ThrowAsync<InvalidOperationException>();
             await _storage.DidNotReceive().Store(Arg.Any<Cluster>(), Arg.Any<CancellationToken>());
-            Assert.True(await tester.Harness.Published.Any<CommitClusterChangeFailed>(k => k.Context.Message.CorrelationId == command.CorrelationId, TestContext.Current.CancellationToken));
+            Assert.True(await tester.Harness.Published.Any<CommitClusterChangeFailed>(k => k.Context.Message.CorrelationId == command.CorrelationId
+                && k.Context.Message.Error.ErrorCode == ClusterError.PublishFailedClusterIdMismatch, TestContext.Current.CancellationToken));
             Assert.False(await tester.Harness.Published.Any<ClusterChanged>(TestContext.Current.CancellationToken));
+            // Issue #377: the mismatch cannot be fixed by a retry, so it is reported without faulting the message
+            Assert.False(await tester.Harness.Published.Any<Fault<CommitClusterChange>>(TestContext.Current.CancellationToken),
+                "A cluster id mismatch should not fault the command");
+        }
+
+        // Issue #377: an unreadable cluster cannot be fixed by a retry either
+        [Fact]
+        public async Task Should_fail_without_fault_if_the_cluster_cannot_be_read()
+        {
+            // Arrange
+            await using var tester = new MassTransitTester(_configureServices);
+            var cluster = ClusterDbContextTools.CreateCluster();
+            var command = new CommitClusterChange([0x20, 0x22, 0x25, 0x27, 0x16, 0x21], new CommitClusterMetaInfo(cluster), null)
+            {
+                CorrelationId = Guid.NewGuid(),
+            };
+
+            // Act
+            await tester.TestCommand<CommitClusterChange, CommitClusterChangeConsumer>(command);
+
+            // Assert
+            await _storage.DidNotReceive().Store(Arg.Any<Cluster>(), Arg.Any<CancellationToken>());
+            Assert.True(await tester.Harness.Published.Any<CommitClusterChangeFailed>(k => k.Context.Message.CorrelationId == command.CorrelationId
+                && k.Context.Message.Error.ErrorCode == ClusterError.PublishFailed, TestContext.Current.CancellationToken));
+            Assert.False(await tester.Harness.Published.Any<ClusterChanged>(TestContext.Current.CancellationToken));
+            Assert.False(await tester.Harness.Published.Any<Fault<CommitClusterChange>>(TestContext.Current.CancellationToken),
+                "An unreadable cluster should not fault the command");
         }
 
         [Fact]
