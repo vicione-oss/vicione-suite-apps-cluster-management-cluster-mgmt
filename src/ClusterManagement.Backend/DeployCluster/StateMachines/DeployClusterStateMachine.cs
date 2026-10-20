@@ -1,9 +1,11 @@
 using ClusterManagement.Backend.DeployCluster.Contracts;
 using ClusterManagement.Backend.DeployCluster.Extensions;
+using ClusterManagement.Internal;
 using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Extensions;
 using MassTransit;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.DeployCluster.StateMachines;
@@ -36,6 +38,7 @@ public sealed partial class DeployClusterStateMachine : MassTransitStateMachine<
 
     private readonly ILogger<DeployClusterStateMachine> _logger;
     private readonly IServiceProvider _services;
+    private readonly DeploySagaTimeoutOptions _timeouts;
 
     /// <summary>
     /// State is only executed if <see cref="Public.Commands.DeployCluster"/> has options containing a compressed cluster json.
@@ -97,9 +100,10 @@ public sealed partial class DeployClusterStateMachine : MassTransitStateMachine<
     public Event<ClusterNodeCleanedEvent>? ClusterNodesCleaned { get; }
 
 
-    public DeployClusterStateMachine(IServiceProvider services, ILogger<DeployClusterStateMachine> logger)
+    public DeployClusterStateMachine(IServiceProvider services, IOptions<ClusterManagementOptions> options, ILogger<DeployClusterStateMachine> logger)
     {
         _services = services;
+        _timeouts = options.Value.DeploySagaTimeouts;
         _logger = logger;
 
         // Register the state events
@@ -159,12 +163,13 @@ public sealed partial class DeployClusterStateMachine : MassTransitStateMachine<
                 .Catch<Exception>(ex => FailDeployment(ex, nameof(AddingClusterNodes))));
 
         // Update deployments on all nodes/apps, then clean up or roll back
+        // Replies of another version are late replies of a previous deployment attempt and are ignored
         During(UpdatingDeployments,
-            When(NodeDeploymentsUpdated)
+            When(NodeDeploymentsUpdated, ctx => ctx.Message.ClusterVersion == ctx.Saga.TargetVersion)
                 .ThenAsync(ProcessNodeDeploymentUpdated)
                 .If(ctx => AreAllDeploymentsUpdated(ctx.Saga), ContinueAfterDeploymentsUpdated)
                 .Catch<Exception>(ex => FailDeployment(ex, nameof(UpdatingDeployments))),
-            When(NodeDeploymentsUpdateFailed)
+            When(NodeDeploymentsUpdateFailed, ctx => ctx.Message.ClusterVersion == ctx.Saga.TargetVersion)
                 .ThenAsync(ProcessNodeDeploymentFailed)
                 .If(ctx => AreAllDeploymentsUpdated(ctx.Saga), ContinueAfterDeploymentsUpdated)
                 .Catch<Exception>(ex => FailDeployment(ex, nameof(UpdatingDeployments))),
@@ -193,12 +198,13 @@ public sealed partial class DeployClusterStateMachine : MassTransitStateMachine<
                     .Finalize()));
 
         // Entered from UpdatingDeployments if at least one deployment failed
+        // Replies of the target version are late replies of UpdatingDeployments, e.g. after a state timeout
         During(RollingBackDeployments,
-            When(NodeDeploymentsUpdated)
+            When(NodeDeploymentsUpdated, ctx => ctx.Message.ClusterVersion == ctx.Saga.ActiveVersion)
                 .Then(ProcessRollbackNodeDeploymentUpdated)
                 .If(ctx => AreAllDeploymentsUpdated(ctx.Saga), ContinueAfterDeploymentsRolledBack),
             // This case should never happen but we have to handle it!
-            When(NodeDeploymentsUpdateFailed)
+            When(NodeDeploymentsUpdateFailed, ctx => ctx.Message.ClusterVersion == ctx.Saga.ActiveVersion)
                 .Then(ProcessRollbackNodeDeploymentFailed)
                 .If(ctx => AreAllDeploymentsUpdated(ctx.Saga), ContinueAfterDeploymentsRolledBack));
 
@@ -230,6 +236,8 @@ public sealed partial class DeployClusterStateMachine : MassTransitStateMachine<
             LogUnhandledEvent(_logger, ctx.Saga.CorrelationId, ctx.Event.Name, GetState(ctx.Saga.CurrentState));
             return ctx.Ignore();
         });
+
+        ConfigureStateTimeouts();
 
         SetCompletedWhenFinalized();
     }

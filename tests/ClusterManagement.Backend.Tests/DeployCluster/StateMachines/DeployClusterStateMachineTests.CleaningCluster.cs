@@ -15,7 +15,7 @@ public partial class DeployClusterStateMachineTests
             await harness.DeployCluster(_correlationId, _clusterId, targetVersion, deletePreviousVersion: true);
             await harness.PublishClusterNodeAdded(_correlationId, _clusterId, _nodeIdToAdd);
             await harness.PublishClusterApplicationStarted(_correlationId, _clusterId, _applicationId);
-            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _applicationId);
+            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _applicationId, targetVersion);
             await harness.AssertDeployClusterState(_correlationId, x => x.CleaningCluster);
         }
 

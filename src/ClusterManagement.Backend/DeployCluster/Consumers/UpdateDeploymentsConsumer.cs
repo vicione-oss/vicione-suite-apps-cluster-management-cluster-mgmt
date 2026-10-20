@@ -114,7 +114,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
             }
 
             await context.Publish(
-                new ClusterNodeDeploymentsUpdatedEvent(context.Message.CorrelationId, context.Message.ClusterId, clusterApplicationId),
+                new ClusterNodeDeploymentsUpdatedEvent(context.Message.CorrelationId, context.Message.ClusterId, clusterApplicationId, context.Message.ClusterVersion),
                 context.CancellationToken);
         }
         catch (ClusterUpdateException e)
@@ -126,6 +126,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
                 new ClusterNodeDeploymentsUpdateFailedEvent(context.Message.CorrelationId,
                     context.Message.ClusterId,
                     clusterApplicationId,
+                    context.Message.ClusterVersion,
                     errorInfo),
                 context.CancellationToken);
         }
@@ -138,6 +139,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
                 new ClusterNodeDeploymentsUpdateFailedEvent(context.Message.CorrelationId,
                     context.Message.ClusterId,
                     clusterApplicationId,
+                    context.Message.ClusterVersion,
                     errorInfo),
                 context.CancellationToken);
         }
@@ -150,6 +152,7 @@ public sealed class UpdateDeploymentsConsumer(IInstanceInformationProvider insta
                 new ClusterNodeDeploymentsUpdateFailedEvent(context.Message.CorrelationId,
                     context.Message.ClusterId,
                     clusterApplicationId,
+                    context.Message.ClusterVersion,
                     errorInfo),
                 context.CancellationToken);
         }

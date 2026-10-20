@@ -69,10 +69,8 @@ namespace ClusterManagement.Backend.Ef.Migrations.ClusterSagaDbContext.Sqlite
                     b.Property<int>("CurrentState")
                         .HasColumnType("INTEGER");
 
-
                     b.Property<string>("FailureReason")
                         .HasColumnType("TEXT");
-
 
                     b.Property<string>("RemoveVersion")
                         .IsRequired()
@@ -84,6 +82,9 @@ namespace ClusterManagement.Backend.Ef.Migrations.ClusterSagaDbContext.Sqlite
                         .HasColumnType("BLOB");
 
                     b.Property<DateTime>("Started")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("StateTimeoutAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("TargetVersion")

@@ -476,6 +476,94 @@ public sealed class EngineLifetimeFacts
         }
     }
 
+    public sealed class DeploySagaRecovery
+    {
+        private static void SetupActiveCluster(EngineLifetimeContext ctx, Guid clusterId, Version version)
+            => ctx.Mediator.Request<GetClusterInfosRequest, GetClusterInfosResponse>(
+                Arg.Any<GetClusterInfosRequest>(), Arg.Any<CancellationToken>())
+                .Returns(new GetClusterInfosResponse
+                {
+                    Results = [new ClusterInfo(clusterId, version, "TestCluster", IsActive: true)]
+                });
+
+        [Theory]
+        [InlineData(InstanceType.Standalone)]
+        [InlineData(InstanceType.Master)]
+        public async Task Removes_all_saga_states_of_active_cluster_and_sends_DeployCluster(InstanceType instanceType)
+        {
+            // Arrange
+            await using var ctx = new EngineLifetimeContext(instanceType);
+            var clusterId = Guid.NewGuid();
+            var version = new Version(1, 0, 0);
+
+            ctx.SagaDbContext.DeployClusterState.Add(new DeployClusterState { CorrelationId = Guid.NewGuid(), ClusterId = clusterId, CurrentState = 5 });
+            ctx.SagaDbContext.DeployClusterState.Add(new DeployClusterState { CorrelationId = Guid.NewGuid(), ClusterId = clusterId, CurrentState = 8 });
+            await ctx.SagaDbContext.SaveChangesAsync(CancellationToken.None);
+
+            SetupActiveCluster(ctx, clusterId, version);
+
+            // Act
+            await ctx.EngineLifetime.Start(CancellationToken.None);
+
+            // Assert
+            (await ctx.SagaDbContext.DeployClusterState.CountAsync(k => k.ClusterId == clusterId, CancellationToken.None)).Should().Be(0);
+
+            await ctx.Mediator.Received(1).Send(
+                Arg.Is<Public.Commands.DeployCluster>(cmd => cmd.ClusterId == clusterId && cmd.TargetVersion == version),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Theory]
+        [InlineData(InstanceType.Standalone, 1)]
+        [InlineData(InstanceType.Master, 0)]
+        public async Task Redeploys_without_saga_state_only_on_standalone(InstanceType instanceType, int expectedDeployments)
+        {
+            // Arrange
+            await using var ctx = new EngineLifetimeContext(instanceType);
+            var clusterId = Guid.NewGuid();
+            SetupActiveCluster(ctx, clusterId, new Version(1, 0, 0));
+
+            // Act
+            await ctx.EngineLifetime.Start(CancellationToken.None);
+
+            // Assert
+            await ctx.Mediator.Received(expectedDeployments).Send(
+                Arg.Is<Public.Commands.DeployCluster>(cmd => cmd.ClusterId == clusterId),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Does_not_recover_on_slave()
+        {
+            // Arrange
+            await using var ctx = new EngineLifetimeContext(InstanceType.Slave);
+            SetupActiveCluster(ctx, Guid.NewGuid(), new Version(1, 0, 0));
+
+            // Act
+            await ctx.EngineLifetime.Start(CancellationToken.None);
+
+            // Assert
+            await ctx.Mediator.DidNotReceive().Send(Arg.Any<Public.Commands.DeployCluster>(), Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Logs_error_and_swallows_when_recovery_throws_on_master()
+        {
+            // Arrange
+            await using var ctx = new EngineLifetimeContext(InstanceType.Master);
+            ctx.Mediator.Request<GetClusterInfosRequest, GetClusterInfosResponse>(
+                Arg.Any<GetClusterInfosRequest>(), Arg.Any<CancellationToken>())
+                .ThrowsAsync(new InvalidOperationException("boom"));
+
+            // Act
+            var act = () => ctx.EngineLifetime.Start(CancellationToken.None);
+
+            // Assert
+            await act.Should().NotThrowAsync();
+            ctx.Logger.LogEntries.Should().Contain(e => e.LogLevel == LogLevel.Error && e.Message.Contains("deploy saga"));
+        }
+    }
+
     public sealed class Stop : IAsyncDisposable
     {
         private readonly EngineLifetimeContext _ctx = new(InstanceType.Standalone);
@@ -671,6 +759,10 @@ internal sealed class EngineLifetimeContext : IAsyncDisposable
         var instanceInformation = Substitute.For<IInstanceInformation>();
         instanceInformation.Type.Returns(instanceType);
         InstanceInformationProvider.Local.Returns(instanceInformation);
+
+        // No clusters by default
+        Mediator.Request<GetClusterInfosRequest, GetClusterInfosResponse>(Arg.Any<GetClusterInfosRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new GetClusterInfosResponse());
 
         var engineOptions = new DbContextOptionsBuilder<EngineDbContextSqlite>()
             .UseSqlite("DataSource=:memory:")

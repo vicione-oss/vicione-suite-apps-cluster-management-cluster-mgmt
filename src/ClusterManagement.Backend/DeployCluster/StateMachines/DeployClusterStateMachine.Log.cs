@@ -102,6 +102,10 @@ public partial class DeployClusterStateMachine
     internal static partial void LogDeploymentsError(ILogger<DeployClusterStateMachine> logger, Guid correlationId, Guid applicationId, string? message);
 
 
+    [LoggerMessage(LogLevel.Warning, "Saga[{CorrelationId}] state {State} timed out after {Timeout}, pending applications={ApplicationIds}")]
+    internal static partial void LogStateTimeout(ILogger<DeployClusterStateMachine> logger, Guid correlationId, string state, TimeSpan timeout, string applicationIds);
+
+
     [LoggerMessage(LogLevel.Information, "Saga[{CorrelationId}] all nodes={NodeIds} cleaned up")]
     internal static partial void LogAllNodesCleaned(ILogger<DeployClusterStateMachine> logger, Guid correlationId, string nodeIds);
 

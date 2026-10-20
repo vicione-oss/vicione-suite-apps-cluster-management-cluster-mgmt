@@ -73,10 +73,8 @@ namespace ClusterManagement.Backend.Ef.Migrations.ClusterSagaDbContext.Postgres
                     b.Property<int>("CurrentState")
                         .HasColumnType("integer");
 
-
                     b.Property<string>("FailureReason")
                         .HasColumnType("text");
-
 
                     b.Property<string>("RemoveVersion")
                         .IsRequired()
@@ -88,6 +86,9 @@ namespace ClusterManagement.Backend.Ef.Migrations.ClusterSagaDbContext.Postgres
                         .HasColumnType("bytea");
 
                     b.Property<DateTime>("Started")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("StateTimeoutAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("TargetVersion")

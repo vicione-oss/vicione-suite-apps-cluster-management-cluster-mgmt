@@ -30,4 +30,7 @@ internal static partial class EngineLifetimeLog
 
     [LoggerMessage(LogLevel.Debug, "Remove existing saga state for cluster '{ClusterId}'")]
     internal static partial void LogRemoveDeploySagaState(this ILogger<EngineLifetime> logger, Guid clusterId);
+
+    [LoggerMessage(LogLevel.Error, "Failed to recover the deploy saga state on startup")]
+    internal static partial void LogRecoverDeploySagaFailed(this ILogger<EngineLifetime> logger, Exception ex);
 }

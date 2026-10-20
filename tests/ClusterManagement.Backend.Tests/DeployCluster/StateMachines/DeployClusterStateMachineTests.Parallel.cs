@@ -94,7 +94,7 @@ public partial class DeployClusterStateMachineTests
             await harness.AssertDeployClusterState(deploymentA, x => x.UpdatingDeployments);
 
             // Act: A's update fails on the node
-            await harness.PublishClusterNodeDeploymentsUpdateFailed(deploymentA, _clusterId, _applicationId);
+            await harness.PublishClusterNodeDeploymentsUpdateFailed(deploymentA, _clusterId, _applicationId, target.Version);
             await harness.AssertDeployClusterState(deploymentA, x => x.RollingBackDeployments);
 
             // Assert: the engines go back to the version that is recorded as running, and B never reached them
@@ -126,13 +126,13 @@ public partial class DeployClusterStateMachineTests
             await harness.DeployCluster(tooEarly, _clusterId, target.Version, deletePreviousVersion: true);
             await harness.AssertDeployClusterRejected(tooEarly, target.Version);
 
-            await harness.PublishClusterNodeDeploymentsUpdated(startup, _clusterId, _applicationId);
+            await harness.PublishClusterNodeDeploymentsUpdated(startup, _clusterId, _applicationId, active.Version);
             await harness.AssertClusterUpdateCompleted(startup, active.Version);
 
             var retry = Guid.NewGuid();
             await harness.DeployCluster(retry, _clusterId, target.Version, deletePreviousVersion: true);
             await harness.AssertDeployClusterState(retry, x => x.UpdatingDeployments);
-            await harness.PublishClusterNodeDeploymentsUpdated(retry, _clusterId, _applicationId);
+            await harness.PublishClusterNodeDeploymentsUpdated(retry, _clusterId, _applicationId, target.Version);
             await harness.AssertClusterUpdateCompleted(retry, target.Version);
 
             // Assert

@@ -181,6 +181,6 @@ public sealed partial class DeployClusterStateMachine
         var targetCluster = await snapshotStore.LoadCompressedJson(clusterId, version, cancellationToken) ??
             throw new ArgumentException($"Cluster {clusterId} v{version} not found"); //Will throw in IClusterSnapshotStore
 
-        return new(targetCluster, correlationId, clusterId);
+        return new(targetCluster, correlationId, clusterId, version);
     }
 }

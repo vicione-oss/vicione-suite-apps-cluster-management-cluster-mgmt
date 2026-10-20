@@ -150,7 +150,7 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
 
         var cancellationToken = _deploymentCancellation.Token;
         var consumeContext = Substitute.For<ConsumeContext<UpdateDeployments>>();
-        consumeContext.Message.Returns(new UpdateDeployments(clusterCompressed, _correlationId, _clusterBuilder.Cluster.Id));
+        consumeContext.Message.Returns(new UpdateDeployments(clusterCompressed, _correlationId, _clusterBuilder.Cluster.Id, clusterVersion));
         consumeContext.CorrelationId.Returns(_correlationId);
         consumeContext.CancellationToken.Returns(cancellationToken);
         consumeContext.When(x => x.Publish(Arg.Any<Arg.AnyType>(), Arg.Is(cancellationToken))).Do(x => _events.Add(x[0]));

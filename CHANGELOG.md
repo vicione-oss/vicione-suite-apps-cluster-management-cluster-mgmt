@@ -87,6 +87,7 @@
 - Rename the company to `ViciOne open automation gmbh` in the license and the package metadata
 - Cluster Manager and Event Viewer call FunctionBlocks by their name, in English and German
 - Cluster Manager version list, Engines page and Event Viewer show the actions of a row only while the pointer or the keyboard focus is on it, unless the screen has no pointer that hovers
+- A deployment that gets no answer from an instance, e.g. an offline node, fails after a timeout and rolls back instead of waiting forever
 
 ### Fixed
 
@@ -116,6 +117,7 @@
 - A deployment whose rollback cannot remove the committed version is reported as failed instead of staying in progress
 - A deployment that fails while committing the target version shows the commit error
 - A deployment whose target or active cluster cannot be loaded is reported as failed instead of staying in progress
+- A master restarted during a deployment deploys its running version again instead of rejecting every further deployment
 - A deployment that fails right after committing its version no longer leaves that version in the version list
 - Cluster Manager shows the version being deployed instead of `0.0.0` while a new version is committed and when a deployment fails before it starts
 - A failed store no longer deletes an existing cluster version

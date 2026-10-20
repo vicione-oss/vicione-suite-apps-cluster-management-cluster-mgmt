@@ -22,11 +22,11 @@ internal static class ITestHarnessExtensions
     public static async Task PublishClusterApplicationStarted(this ITestHarness harness, Guid correlationId, Guid clusterId, Guid applicationId)
         => await harness.Bus.Publish(new ClusterApplicationStartedEvent(clusterId, applicationId) { CorrelationId = correlationId });
 
-    public static async Task PublishClusterNodeDeploymentsUpdated(this ITestHarness harness, Guid correlationId, Guid clusterId, Guid applicationId)
-        => await harness.Bus.Publish(new ClusterNodeDeploymentsUpdatedEvent(correlationId, clusterId, applicationId));
+    public static async Task PublishClusterNodeDeploymentsUpdated(this ITestHarness harness, Guid correlationId, Guid clusterId, Guid applicationId, Version version)
+        => await harness.Bus.Publish(new ClusterNodeDeploymentsUpdatedEvent(correlationId, clusterId, applicationId, version));
 
-    public static async Task PublishClusterNodeDeploymentsUpdateFailed(this ITestHarness harness, Guid correlationId, Guid clusterId, Guid applicationId)
-        => await harness.Bus.Publish(new ClusterNodeDeploymentsUpdateFailedEvent(correlationId, clusterId, applicationId, new ErrorInfo(42, "TestFailure")));
+    public static async Task PublishClusterNodeDeploymentsUpdateFailed(this ITestHarness harness, Guid correlationId, Guid clusterId, Guid applicationId, Version version)
+        => await harness.Bus.Publish(new ClusterNodeDeploymentsUpdateFailedEvent(correlationId, clusterId, applicationId, version, new ErrorInfo(42, "TestFailure")));
 
     public static async Task PublishClusterNodeCleaned(this ITestHarness harness, Guid correlationId, Guid clusterId, Guid nodeId)
         => await harness.Bus.Publish(new ClusterNodeCleanedEvent(correlationId, clusterId, nodeId));
@@ -34,13 +34,25 @@ internal static class ITestHarnessExtensions
     public static async Task PublishClusterDeploymentCompleted(this ITestHarness harness, Guid correlationId, Guid clusterId, Version newVersion)
         => await harness.Bus.Publish(new ClusterUpdateCompleted(correlationId, clusterId, newVersion, TimeSpan.FromSeconds(1)));
 
+    /// <summary>
+    /// Publishes <see cref="Public.Commands.DeployCluster"/> and waits until the saga consumed it.
+    /// </summary>
+    /// <remarks>
+    /// The saga endpoint consumes messages concurrently, so a reply published right afterwards could arrive before the
+    /// saga exists and would be dropped. A real reply can't, since it answers a command the saga sent.
+    /// </remarks>
     public static async Task DeployCluster(this ITestHarness harness, Guid correlationId, Guid clusterId, Version? targetVersion, DeployClusterOptions? options = null, bool deletePreviousVersion = false)
-        => await harness.Bus.Publish(new Public.Commands.DeployCluster(clusterId, targetVersion)
+    {
+        await harness.Bus.Publish(new Public.Commands.DeployCluster(clusterId, targetVersion)
         {
             CorrelationId = correlationId,
             Options = options,
             DeletePreviousVersionOnSuccess = deletePreviousVersion
         });
+
+        var sagaHarness = harness.GetSagaStateMachineHarness<DeployClusterStateMachine, DeployClusterState>();
+        await sagaHarness.Consumed.Any<Public.Commands.DeployCluster>(m => m.Context.Message.CorrelationId == correlationId);
+    }
 
     public static async Task PublishClusterChangedDeleted(this ITestHarness harness, Guid correlationId, Guid clusterId, Version removedVersion)
         => await harness.Bus.Publish(new ClusterChanged(correlationId, clusterId, CrudAction.Deleted, removedVersion));
