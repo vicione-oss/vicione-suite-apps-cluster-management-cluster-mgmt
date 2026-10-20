@@ -46,6 +46,9 @@ public sealed record ClusterError : IEvent, CorrelatedBy<Guid?>
     /// <summary>Publishing failed because the same version already exists.</summary>
     public const int PublishFailedVersionVersionExists = 202;
 
+    /// <summary>Publishing failed because the cluster has another id than the committed cluster.</summary>
+    public const int PublishFailedClusterIdMismatch = 203;
+
     /// <summary>Updating deployment failed.</summary>
     public const int UpdateDeploymentFailed = 210;
 

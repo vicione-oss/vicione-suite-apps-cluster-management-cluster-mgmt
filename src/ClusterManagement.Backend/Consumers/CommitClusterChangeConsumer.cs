@@ -10,6 +10,7 @@ using ClusterManagement.Public.Events;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using Sdk.Messaging;
+using System.Text.Json;
 using ViciOne.Cluster.Builder;
 using ViciOne.Cluster.Builder.Extensions;
 using ViciOne.Cluster.Model;
@@ -34,12 +35,29 @@ public sealed class CommitClusterChangeConsumer(
         var metaInfo = context.Message.MetaInfo;
         var metaVersion = metaInfo.ClusterVersion;
 
-        var cluster = await ClusterSerializer.Decompress(context.Message.CompressedCluster) ??
-                throw new InvalidOperationException($"Failed to deserialize cluster {metaInfo.ClusterId} v{metaInfo.ClusterVersion}");
+        // A retry cannot fix the command itself, so these failures are reported directly instead of faulting the message
+        Cluster cluster;
+        try
+        {
+            cluster = await ClusterSerializer.Decompress(context.Message.CompressedCluster, cancellationToken: context.CancellationToken);
+        }
+        catch (Exception ex) when (ex is InvalidDataException or JsonException or InvalidOperationException)
+        {
+            logger.LogCommitClusterUnreadable(ex, context.Message.CorrelationId, metaInfo.ClusterId, metaInfo.ClusterVersion);
+
+            await PublishCommitFailed(context, ClusterEventFactory.CreateErrorInfo(ClusterError.PublishFailed, metaInfo.ClusterId, metaInfo.ClusterVersion));
+            return;
+        }
 
         // The snapshot is stored under the cluster's own id, while the change is reported for the committed one
         if (cluster.Id != metaInfo.ClusterId)
-            throw new InvalidOperationException($"Cluster {cluster.Id} does not match the committed cluster {metaInfo.ClusterId}");
+        {
+            logger.LogCommitClusterIdMismatch(context.Message.CorrelationId, metaInfo.ClusterId, metaInfo.ClusterVersion, cluster.Id);
+
+            await PublishCommitFailed(context, new ErrorInfo(ClusterError.PublishFailedClusterIdMismatch,
+                $"Cluster {cluster.Id} does not match the committed cluster {metaInfo.ClusterId}"));
+            return;
+        }
 
         if (context.Message.Options is not null)
         {
@@ -123,6 +141,14 @@ public sealed class CommitClusterChangeConsumer(
         };
 
         builder.EnsureDependencyExists(defaultPoolings);
+    }
+
+    private static Task PublishCommitFailed(ConsumeContext<CommitClusterChange> context, ErrorInfo error)
+    {
+        var metaInfo = context.Message.MetaInfo;
+
+        return context.Publish(new CommitClusterChangeFailed(context.Message.CorrelationId, metaInfo.ClusterId, metaInfo.ClusterVersion, error),
+            context.CancellationToken);
     }
 
     /// <summary>
