@@ -15,29 +15,28 @@ using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Engines.Consumers;
 
-public class UpdateFunctionBlockSettingsConsumer(IClusterDbContext clusterDb, IClusterSnapshotStore snapshotStore, ISuiteMediator mediator,
+public class UpdateFunctionBlockSettingsConsumer(IClusterDbContext clusterDb, IClusterSnapshotStore snapshotStore, IClusterLock clusterLock, ISuiteMediator mediator,
     IDesignProvider designProvider) : IConsumer<UpdateFunctionBlockSettings>
 {
     public async Task Consume(ConsumeContext<UpdateFunctionBlockSettings> context)
     {
-        var cluster = await GetCluster(context.Message.ClusterId, context.CancellationToken);
-        var snapshot = await LoadSnapshot(cluster.Id, cluster.Version, context.CancellationToken);
         var dependencyResolver = await designProvider.CreateResolver();
-        UpdateSettingsInCluster(context.Message.SettingsToApply, cluster, dependencyResolver);
-        UpdateSettingsInCluster(context.Message.SettingsToApply, snapshot, dependencyResolver);
-        await Task.WhenAll(
-            SaveCluster(context.CancellationToken),
-            SaveSnapshot(snapshot, context.CancellationToken),
-            UpdateSettingsInEngines(context.Message.SettingsToApply, cluster, context.CancellationToken));
-    }
 
-    private async Task<Cluster> GetCluster(Guid clusterId, CancellationToken cancellationToken)
-    {
-        var activeCluster = await clusterDb.ActiveClusters.SingleOrDefaultAsync(c => c.Id == clusterId, cancellationToken)
-            ?? throw new InvalidOperationException($"Could not load active cluster {clusterId}.");
+        Cluster snapshot;
 
-        return await snapshotStore.Load(activeCluster.Id, activeCluster.Version, cancellationToken)
-            ?? throw new InvalidOperationException($"Could not load cluster '{activeCluster.Id}' v.{activeCluster.Version}.");
+        // Loading through storing is one change: a parallel change of the snapshots starts from this one's.
+        // The active version is read under the lock, after the changes that ran before this one.
+        using (await clusterLock.Acquire(context.Message.ClusterId, context.CancellationToken))
+        {
+            var activeCluster = await clusterDb.ActiveClusters.AsNoTracking()
+                .SingleOrDefaultAsync(c => c.Id == context.Message.ClusterId, context.CancellationToken)
+                ?? throw new InvalidOperationException($"Could not load active cluster {context.Message.ClusterId}.");
+            snapshot = await LoadSnapshot(activeCluster.Id, activeCluster.Version, context.CancellationToken);
+            UpdateSettingsInCluster(context.Message.SettingsToApply, snapshot, dependencyResolver);
+            await snapshotStore.Store(snapshot, replace: true, context.CancellationToken);
+        }
+
+        await UpdateSettingsInEngines(context.Message.SettingsToApply, snapshot, context.CancellationToken);
     }
 
     private async Task<Cluster> LoadSnapshot(Guid clusterId, Version clusterVersion, CancellationToken cancellationToken)
@@ -56,15 +55,6 @@ public class UpdateFunctionBlockSettingsConsumer(IClusterDbContext clusterDb, IC
             var newValue = matchedSetting.NewValue.Value is not null ? JsonSerializer.Deserialize(matchedSetting.NewValue.Value, type) : default;
             builder.Editors.Setting.SetValue(matchedSetting.Setting, newValue);
         }
-    }
-
-    private Task<int> SaveCluster(CancellationToken cancellationToken)
-        => clusterDb.SaveChangesAsync(cancellationToken);
-
-    private async Task SaveSnapshot(Cluster snapshot, CancellationToken cancellationToken)
-    {
-        snapshotStore.Delete(snapshot.Id, snapshot.Version);
-        await snapshotStore.Store(snapshot, cancellationToken);
     }
 
     private async Task UpdateSettingsInEngines(IReadOnlyCollection<FunctionBlockParameterValues> settings, Cluster cluster,

@@ -8,7 +8,8 @@ using Sdk.Messaging;
 
 namespace ClusterManagement.Backend.Consumers;
 
-public sealed partial class RemoveClusterConsumer(IClusterDbContext dbContext, IClusterSnapshotStore store, ILogger<RemoveClusterConsumer> logger) :
+public sealed partial class RemoveClusterConsumer(IClusterDbContext dbContext, IClusterSnapshotStore store, IClusterLock clusterLock,
+    ILogger<RemoveClusterConsumer> logger) :
     IConsumer<Public.Commands.RemoveCluster>, IConsumer<Fault<Public.Commands.RemoveCluster>>
 {
     public async Task Consume(ConsumeContext<Public.Commands.RemoveCluster> context)
@@ -22,17 +23,21 @@ public sealed partial class RemoveClusterConsumer(IClusterDbContext dbContext, I
         if (context.Message.Version == Public.Constants.DefaultClusterVersion)
             throw new InvalidOperationException("Default cluster can't be deleted");
 
-        if (!store.Exists(context.Message.ClusterId, context.Message.Version))
-            throw new InvalidOperationException($"Cluster version '{context.Message.Version}' does not exist");
+        // A version is never removed while it is being stored
+        using (await clusterLock.Acquire(context.Message.ClusterId, context.CancellationToken))
+        {
+            if (!store.Exists(context.Message.ClusterId, context.Message.Version))
+                throw new InvalidOperationException($"Cluster version '{context.Message.Version}' does not exist");
 
-        var clusterIsActive = await dbContext.ActiveClusters.AsNoTracking()
-            .AnyAsync(c => c.Id == context.Message.ClusterId
-                && c.Version == context.Message.Version, context.CancellationToken);
+            var clusterIsActive = await dbContext.ActiveClusters.AsNoTracking()
+                .AnyAsync(c => c.Id == context.Message.ClusterId
+                    && c.Version == context.Message.Version, context.CancellationToken);
 
-        if (clusterIsActive)
-            throw new InvalidOperationException($"Active cluster version '{context.Message.Version}' can't be deleted");
+            if (clusterIsActive)
+                throw new InvalidOperationException($"Active cluster version '{context.Message.Version}' can't be deleted");
 
-        store.Delete(context.Message.ClusterId, context.Message.Version);
+            store.Delete(context.Message.ClusterId, context.Message.Version);
+        }
 
         await context.Publish(
             new ClusterChanged(context.Message.CorrelationId, context.Message.ClusterId, CrudAction.Deleted, context.Message.Version)

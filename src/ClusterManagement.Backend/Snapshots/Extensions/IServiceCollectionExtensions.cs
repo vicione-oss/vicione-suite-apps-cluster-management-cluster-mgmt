@@ -8,6 +8,7 @@ internal static class IServiceCollectionExtensions
     {
         services
             .AddTransient<IClusterSnapshotStore, ClusterSnapshotStore>()
+            .AddSingleton<IClusterLock, ClusterLock>()
             .AddTransient<ClusterSnapshotStoreMigration>();
 
         return services;

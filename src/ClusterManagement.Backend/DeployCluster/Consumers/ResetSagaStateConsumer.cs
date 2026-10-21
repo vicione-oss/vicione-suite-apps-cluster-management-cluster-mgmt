@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using ClusterManagement.Backend.DeployCluster.Extensions;
 using ClusterManagement.Backend.DeployCluster.Persistence;
 using ClusterManagement.Backend.DeployCluster.StateMachines;
+using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Internal.Commands;
 using ClusterManagement.Internal.Events;
 using ClusterManagement.Public.Events;
@@ -14,7 +15,7 @@ using Sdk.Messaging;
 
 namespace ClusterManagement.Backend.DeployCluster.Consumers;
 
-public sealed partial class ResetSagaStateConsumer(IClusterSagaDbContext sagaDbContext, ILogger<ResetSagaStateConsumer> logger) :
+public sealed partial class ResetSagaStateConsumer(IClusterSagaDbContext sagaDbContext, IClusterLock clusterLock, ILogger<ResetSagaStateConsumer> logger) :
     IConsumer<ResetSagaState>, IConsumer<Fault<ResetSagaState>>
 {
     public async Task Consume(ConsumeContext<ResetSagaState> context)
@@ -38,6 +39,10 @@ public sealed partial class ResetSagaStateConsumer(IClusterSagaDbContext sagaDbC
 
             sagaDbContext.DeployClusterState.RemoveRange(deployStates);
             await sagaDbContext.SaveChangesAsync(context.CancellationToken);
+
+            // A removed deployment never releases the commit version it reserved; a stored one is no longer reserved
+            foreach (var deployState in deployStates.Where(s => !s.IsCommitVersionEmpty()))
+                clusterLock.Release(deployState.ClusterId, deployState.CommitVersion);
         }
 
         // Whoever waits for the end of a removed deployment would wait forever, so each one ends as failed.

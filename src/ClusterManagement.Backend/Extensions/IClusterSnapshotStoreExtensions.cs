@@ -11,9 +11,14 @@ internal static class IClusterSnapshotStoreExtensions
         return allVersions.Max(k => k.Version) ?? new Version(0, 0, 1);
     }
 
-    public static async Task<Version> GetLatestVersionIncrement(this IClusterSnapshotStore snapshotStore, Guid clusterId, VersionIncrementKind updateType, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// The next version after both the stored and the reserved versions of the cluster.
+    /// Call it holding the <paramref name="clusterLock"/> of the cluster, until the version is stored or reserved.
+    /// </summary>
+    public static async Task<Version> GetLatestVersionIncrement(this IClusterSnapshotStore snapshotStore, IClusterLock clusterLock, Guid clusterId, VersionIncrementKind updateType, CancellationToken cancellationToken = default)
     {
         var latestVersion = await snapshotStore.GetLatestVersion(clusterId, cancellationToken);
-        return latestVersion.GetVersionIncrement(updateType);
+        var latestReserved = clusterLock.GetReservedVersions(clusterId).Max();
+        return (latestReserved > latestVersion ? latestReserved : latestVersion).GetVersionIncrement(updateType);
     }
 }

@@ -32,10 +32,11 @@ public sealed partial class DeployClusterStateMachine
         using var scope = _services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<IClusterDbContext>();
         var snapshotStore = scope.ServiceProvider.GetRequiredService<IClusterSnapshotStore>();
+        var clusterLock = scope.ServiceProvider.GetRequiredService<IClusterLock>();
 
         // The version is known before anything can fail, so a failure reports it
         if (ctx.Message.Options is not null)
-            ctx.Saga.CommitVersion = await snapshotStore.GetLatestVersionIncrement(ctx.Saga.ClusterId, ctx.Message.Options.IncrementKind);
+            ctx.Saga.CommitVersion = await ReserveCommitVersion(ctx.Saga.ClusterId, ctx.Message.Options.IncrementKind, snapshotStore, clusterLock, ctx.CancellationToken);
         else if (ctx.Message.TargetVersion is not null)
             ctx.Saga.TargetVersion = ctx.Message.TargetVersion;
         else
@@ -64,6 +65,21 @@ public sealed partial class DeployClusterStateMachine
         targetCluster.Version = ctx.Saga.TargetVersion;
 
         await PublishClusterUpdateStarted(ctx, activeCluster, targetCluster);
+    }
+
+    /// <summary>
+    /// The commit stores the version in a later message, which no lock can span: reserving the version keeps other
+    /// commits of the cluster from taking it until the commit stored it or the deployment failed.
+    /// </summary>
+    private static async Task<Version> ReserveCommitVersion(Guid clusterId, VersionIncrementKind incrementKind,
+        IClusterSnapshotStore snapshotStore, IClusterLock clusterLock, CancellationToken cancellationToken)
+    {
+        using (await clusterLock.Acquire(clusterId, cancellationToken))
+        {
+            var commitVersion = await snapshotStore.GetLatestVersionIncrement(clusterLock, clusterId, incrementKind, cancellationToken);
+            clusterLock.Reserve(clusterId, commitVersion);
+            return commitVersion;
+        }
     }
 
     private async Task ClusterChangeCommitted(BehaviorContext<DeployClusterState, ClusterChanged> ctx)
@@ -348,6 +364,11 @@ public sealed partial class DeployClusterStateMachine
 
             LogApplicationUpdateFailure(_logger, ctx.Saga.CorrelationId, item.Key, item.Value.Message);
         }
+
+        // A commit version not stored yet is free again; a stored one was released by its commit.
+        // A commit still queued then fails if another commit takes the version first, without deleting anything.
+        if (!ctx.Saga.IsCommitVersionEmpty())
+            _services.GetRequiredService<IClusterLock>().Release(ctx.Saga.ClusterId, ctx.Saga.CommitVersion);
 
         LogDeployDuration(_logger, ctx.Saga.CorrelationId, ctx.Saga.ClusterId, DateTime.UtcNow - ctx.Saga.Started);
     }

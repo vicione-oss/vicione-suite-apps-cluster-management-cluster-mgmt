@@ -44,6 +44,7 @@ public class ClusterManagementModuleInitializer_OnPostMigrate : TestWithDbContex
             .AddSingleton<IFileSystem>(_fileSystem)
             .AddSingleton(Substitute.For<IOptions<ClusterManagementOptions>>())
             .AddSingleton<IAtomicFileWriter, TestAtomicFileWriter>()
+            .AddSingleton<IClusterLock, ClusterLock>()
             .AddSingleton<IClusterSnapshotStore, ClusterSnapshotStore>()
             .AddSingleton(Substitute.For<IClusterDependencyStore>())
             .AddSingleton<ClusterSnapshotStoreMigration>()

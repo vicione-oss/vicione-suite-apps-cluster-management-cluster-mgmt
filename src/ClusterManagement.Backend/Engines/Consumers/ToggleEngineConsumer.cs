@@ -1,4 +1,5 @@
 ﻿using ClusterManagement.Backend.DbContext;
+using ClusterManagement.Backend.DeployCluster.Contracts;
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Internal.Commands;
 using ClusterManagement.Public.Commands;
@@ -10,7 +11,7 @@ using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Engines.Consumers;
 
-public sealed class ToggleEngineConsumer(IClusterDbContext database, IClusterSnapshotStore snapshotStore, ISuiteMediator mediator) :
+public sealed class ToggleEngineConsumer(IClusterDbContext database, IClusterSnapshotStore snapshotStore, IClusterLock clusterLock, ISuiteMediator mediator) :
     IConsumer<ToggleEngine>
 {
     public async Task Consume(ConsumeContext<ToggleEngine> context)
@@ -20,34 +21,34 @@ public sealed class ToggleEngineConsumer(IClusterDbContext database, IClusterSna
     public async Task ChangeEngineState<T>(Guid engineId, bool enabled, T messageForInstance, CancellationToken cancellationToken)
         where T : class, IInstanceDependentCommand
     {
-        var cluster = await LoadCluster(cancellationToken);
-        var snapshot = await LoadSnapshot(cluster.Id, cluster.Version, cancellationToken);
-        SetEngineState(cluster, snapshot, engineId, enabled);
-        await Task.WhenAll(
-            SaveCluster(cancellationToken),
-            SaveSnapshot(snapshot, cancellationToken));
-        await ChangeEngineStateOnInstance(engineId, messageForInstance, cluster, cancellationToken);
+        var clusterId = await LoadActiveClusterId(cancellationToken);
+
+        Cluster snapshot;
+
+        // Loading through storing is one change: a parallel change of the snapshots starts from this one's.
+        // The active version is read again under the lock, after the changes that ran before this one.
+        using (await clusterLock.Acquire(clusterId, cancellationToken))
+        {
+            var activeCluster = await LoadActiveCluster(clusterId, cancellationToken);
+            snapshot = await LoadSnapshot(activeCluster.Id, activeCluster.Version, cancellationToken);
+            FindEngine(snapshot, engineId).Enabled = enabled;
+            await snapshotStore.Store(snapshot, replace: true, cancellationToken);
+        }
+
+        await ChangeEngineStateOnInstance(engineId, messageForInstance, snapshot, cancellationToken);
     }
 
-    private async Task<Cluster> LoadCluster(CancellationToken cancellationToken)
-    {
-        var activeCluster = await database.ActiveClusters.FirstOrDefaultAsync(cancellationToken)
-                ?? throw new InvalidOperationException("Could not load active cluster.");
+    private async Task<Guid> LoadActiveClusterId(CancellationToken cancellationToken)
+        => (await database.ActiveClusters.AsNoTracking().FirstOrDefaultAsync(cancellationToken)
+            ?? throw new InvalidOperationException("Could not load active cluster.")).Id;
 
-        return await LoadSnapshot(activeCluster.Id, activeCluster.Version, cancellationToken);
-    }
+    private async Task<ActiveClusterInfo> LoadActiveCluster(Guid clusterId, CancellationToken cancellationToken)
+        => await database.ActiveClusters.AsNoTracking().FirstOrDefaultAsync(c => c.Id == clusterId, cancellationToken)
+            ?? throw new InvalidOperationException($"Could not load active cluster {clusterId}.");
 
     private async Task<Cluster> LoadSnapshot(Guid clusterId, Version clusterVersion, CancellationToken cancellationToken)
         => await snapshotStore.Load(clusterId, clusterVersion, cancellationToken)
             ?? throw new InvalidOperationException($"Could not load cluster snapshot '{clusterId}' {clusterVersion}.");
-
-    private static void SetEngineState(Cluster cluster, Cluster snapshot, Guid engineId, bool enabled)
-    {
-        var engine = FindEngine(cluster, engineId);
-        engine.Enabled = enabled;
-        engine = FindEngine(snapshot, engineId);
-        engine.Enabled = enabled;
-    }
 
     private static ViciOne.Cluster.Model.Engine FindEngine(Cluster cluster, Guid engineId)
         => cluster.NodeGroups
@@ -57,15 +58,6 @@ public sealed class ToggleEngineConsumer(IClusterDbContext database, IClusterSna
             .SelectMany(x => x.Engines)
             .FirstOrDefault(x => x.Id == engineId)
             ?? throw new InvalidOperationException($"Could not find engine '{engineId}' in cluster '{cluster.Id}'.");
-
-    private Task<int> SaveCluster(CancellationToken cancellationToken)
-        => database.SaveChangesAsync(cancellationToken);
-
-    private async Task SaveSnapshot(Cluster snapshot, CancellationToken cancellationToken)
-    {
-        snapshotStore.Delete(snapshot.Id, snapshot.Version);
-        await snapshotStore.Store(snapshot, cancellationToken);
-    }
 
     private async Task ChangeEngineStateOnInstance<T>(Guid engineId, T messageForInstance, Cluster cluster, CancellationToken cancellationToken)
         where T : class, IInstanceDependentCommand

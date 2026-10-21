@@ -26,6 +26,7 @@ public class CommitClusterChangeConsumerTests
             // consumer needs
             cfg.AddConsumer<CommitClusterChangeConsumer>();
             cfg.AddSingleton(_ => _storage);
+            cfg.AddSingleton<IClusterLock, ClusterLock>();
             cfg.AddSingleton(_ => _rulesetProvider);
             cfg.AddTransient(_ => TestDataFactory.SetupMqttDataPortDesignProvider());
         };
