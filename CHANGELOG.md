@@ -91,6 +91,7 @@
 
 ### Fixed
 
+- Startup no longer adds a second Default Cluster when the snapshot of the active version is missing
 - Unsubscribing an event topic the broker held no subscription for no longer logs a warning
 - Parallel deployments of one cluster no longer leave a deployment in `CleaningCluster` or fail the deployment state request
 - Two deployments completing close together no longer break the reconnect of the dataflow event connection

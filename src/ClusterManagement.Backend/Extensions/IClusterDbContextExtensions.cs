@@ -5,7 +5,7 @@ namespace ClusterManagement.Backend.Extensions;
 
 internal static class IClusterDbContextExtensions
 {
-    public static async Task<int> UpsertActiveClusterInfo(this IClusterDbContext dbContext, Guid clusterId, Version clusterVersion, DateTimeOffset deployed, string? deployedBy = "suite", CancellationToken cancellationToken = default)
+    public static async Task<int> UpsertActiveClusterInfo(this IClusterDbContext dbContext, Guid clusterId, Version clusterVersion, DateTimeOffset deployed, string? deployedBy = ActiveClusterInfo.DeployedBySuite, CancellationToken cancellationToken = default)
     {
         var activeCluster = await dbContext.ActiveClusters.FindAsync([clusterId], cancellationToken: cancellationToken);
         if (activeCluster is not null)
