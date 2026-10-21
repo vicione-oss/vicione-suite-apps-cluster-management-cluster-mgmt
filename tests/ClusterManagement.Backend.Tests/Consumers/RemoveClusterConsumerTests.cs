@@ -25,6 +25,7 @@ public class RemoveClusterConsumerTests : TestWithDbContextSqlite<ClusterDbConte
             cfg.AddConsumer<RemoveClusterConsumer>();
             cfg.AddSingleton<IClusterDbContext>(_ => TestDbContext);
             cfg.AddSingleton(_snapshotStore);
+            cfg.AddSingleton<IClusterLock, ClusterLock>();
         };
 
     [Fact]

@@ -25,6 +25,12 @@ public interface IClusterSnapshotStore
     Task Store(Cluster cluster, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Stores a cluster snapshot to the file system; <paramref name="replace"/> overwrites an existing version in place
+    /// and keeps it if the store fails.
+    /// </summary>
+    Task Store(Cluster cluster, bool replace, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Loads a cluster snapshot by ID and version.
     /// </summary>
     Task<Cluster?> Load(Guid clusterId, Version clusterVersion, CancellationToken cancellationToken = default);

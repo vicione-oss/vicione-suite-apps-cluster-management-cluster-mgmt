@@ -20,6 +20,7 @@ namespace ClusterManagement.Backend.Consumers;
 
 public sealed class CommitClusterChangeConsumer(
     IClusterSnapshotStore snapshotStore,
+    IClusterLock clusterLock,
     IDesignProvider designProvider,
     ISuiteRulesetProvider rulesetProvider,
     ILogger<CommitClusterChangeConsumer> logger) : IConsumer<CommitClusterChange>, IConsumer<Fault<CommitClusterChange>>
@@ -61,10 +62,18 @@ public sealed class CommitClusterChangeConsumer(
 
         if (context.Message.Options is not null)
         {
-            var modified = await ApplyClusterOptions(cluster, context.Message.Options, context.CancellationToken);
-            metaVersion = modified.Version;
+            var modified = await ApplyClusterOptions(cluster, context.Message.Options);
 
-            await snapshotStore.Store(modified, context.CancellationToken);
+            // Choosing the version and storing it is one change: a parallel commit of the cluster gets the next version
+            using (await clusterLock.Acquire(modified.Id, context.CancellationToken))
+            {
+                if (context.Message.Options.IncrementVersion)
+                    await IncrementVersion(modified, context.Message.Options, context.CancellationToken);
+
+                await snapshotStore.Store(modified, context.CancellationToken);
+            }
+
+            metaVersion = modified.Version;
         }
         else
         {
@@ -75,7 +84,14 @@ public sealed class CommitClusterChangeConsumer(
                 logger.LogSetClusterVersion(cluster.Id, cluster.Version);
             }
 
-            await snapshotStore.Store(cluster, context.CancellationToken);
+            using (await clusterLock.Acquire(cluster.Id, context.CancellationToken))
+            {
+                await snapshotStore.Store(cluster, context.CancellationToken);
+
+                // Only the deploy saga commits without options, so this is its own reserved version, stored now.
+                // After a failed store the deployment releases it when it fails.
+                clusterLock.Release(cluster.Id, metaInfo.ClusterVersion);
+            }
         }
 
         await context.Publish(
@@ -83,11 +99,8 @@ public sealed class CommitClusterChangeConsumer(
             context.CancellationToken);
     }
 
-    private async Task<Cluster> ApplyClusterOptions(Cluster cluster, CommitClusterOptions options, CancellationToken cancellationToken)
+    private async Task<Cluster> ApplyClusterOptions(Cluster cluster, CommitClusterOptions options)
     {
-        if (options.IncrementVersion)
-            await IncrementVersion(cluster, options, cancellationToken);
-
         var designResolver = await designProvider.CreateResolver();
         using ClusterBuilder builder = new(cluster, designResolver);
 
@@ -101,7 +114,8 @@ public sealed class CommitClusterChangeConsumer(
 
     private async Task IncrementVersion(Cluster cluster, CommitClusterOptions options, CancellationToken cancellationToken)
     {
-        cluster.Version = await snapshotStore.GetLatestVersionIncrement(cluster.Id, options.IncrementType ?? VersionIncrementKind.Patch, cancellationToken);
+        // Skips the versions reserved by running deployments
+        cluster.Version = await snapshotStore.GetLatestVersionIncrement(clusterLock, cluster.Id, options.IncrementType ?? VersionIncrementKind.Patch, cancellationToken);
         cluster.VersionCreated = DateTime.UtcNow;
         logger.LogIncreasedClusterVersion(cluster.Id, cluster.Version);
     }

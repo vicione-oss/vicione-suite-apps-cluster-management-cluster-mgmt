@@ -1,10 +1,8 @@
 ﻿using ClusterManagement.Backend.DeployCluster.Contracts;
-using ClusterManagement.Backend.Extensions;
 using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Internal.Factories;
 using ClusterManagement.Public;
 using ClusterManagement.Public.Commands;
-using ClusterManagement.Public.Enums;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using Sdk.Backend.Messaging;
@@ -55,8 +53,6 @@ public sealed partial class InstanceCreatedConsumer(IClusterSnapshotStore cluste
         cluster.NodeGroups[0].Nodes.Add(newNode); //currently only one node group. Better solution depends on how NodeGroups will be managed
         cluster.Description = $"Added node and application for instance {context.Message.InstanceId}";
 
-        cluster.Version = cluster.Version.GetVersionIncrement(VersionIncrementKind.Patch);
-
         LogNewInstanceAdded(
             logger,
             nameof(InstanceCreated),
@@ -67,7 +63,8 @@ public sealed partial class InstanceCreatedConsumer(IClusterSnapshotStore cluste
             cluster.Version);
 
         var compressed = await ClusterSerializer.CompressAsync(cluster, cancellationToken: context.CancellationToken);
-        await mediator.Send(new CommitClusterChange(compressed, new CommitClusterMetaInfo(cluster), null), context.CancellationToken);
+        // The commit chooses the next patch version under the cluster lock, past the versions running deployments reserved
+        await mediator.Send(new CommitClusterChange(compressed, new CommitClusterMetaInfo(cluster), new CommitClusterOptions()), context.CancellationToken);
     }
 
     public Task Consume(ConsumeContext<InstanceSynchronizationFailed> context)
@@ -79,7 +76,7 @@ public sealed partial class InstanceCreatedConsumer(IClusterSnapshotStore cluste
     [LoggerMessage(LogLevel.Debug, "Consumed {EventName}. Cluster model ok. Instance:{InstanceId} already exists in cluster:{ClusterId} v.{ClusterVersion}")]
     private static partial void LogClusterNodeExists(ILogger<InstanceCreatedConsumer> logger, string eventName, Guid instanceId, Guid clusterId, Version clusterVersion);
 
-    [LoggerMessage(LogLevel.Information, "Consumed {EventName}. Added new {InstanceType} application for instance:{InstanceName} (id:{InstanceId}) to cluster:{ClusterId} v.{ClusterVersion}")]
+    [LoggerMessage(LogLevel.Information, "Consumed {EventName}. Added new {InstanceType} application for instance:{InstanceName} (id:{InstanceId}) to cluster:{ClusterId}, based on v.{ClusterVersion}")]
     private static partial void LogNewInstanceAdded(ILogger<InstanceCreatedConsumer> logger, string eventName, InstanceType instanceType, string instanceName, Guid instanceId, Guid clusterId, Version clusterVersion);
 
     [LoggerMessage(LogLevel.Warning, "Failed to synchronize instance={InstanceId}")]

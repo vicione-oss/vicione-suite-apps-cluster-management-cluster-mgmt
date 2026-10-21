@@ -121,6 +121,7 @@
 - A master restarted during a deployment deploys its running version again instead of rejecting every further deployment
 - A deployment that fails right after committing its version no longer leaves that version in the version list
 - Cluster Manager shows the version being deployed instead of `0.0.0` while a new version is committed and when a deployment fails before it starts
+- Saving a cluster while another save or a deployment of it is committing no longer deletes or takes the other's version, and toggling engines or changing function block settings at the same time no longer loses one of the changes or the active snapshot
 - A failed store no longer deletes an existing cluster version
 - Committing a cluster whose id differs from the committed cluster fails instead of storing it as another cluster
 - Committing a cluster that cannot be read fails at once instead of after several retries

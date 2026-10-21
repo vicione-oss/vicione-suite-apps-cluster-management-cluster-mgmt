@@ -1,6 +1,7 @@
 ﻿using ClusterManagement.Backend.DeployCluster.Consumers;
 using ClusterManagement.Backend.DeployCluster.Persistence;
 using ClusterManagement.Backend.DeployCluster.StateMachines;
+using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Internal.Commands;
 using ClusterManagement.Internal.Events;
 using ClusterManagement.Public.Events;
@@ -20,10 +21,13 @@ public class ResetSagaStateConsumerTests : TestWithDbContextSqlite<ClusterSagaDb
 
     private static readonly Guid s_clusterId = Guid.NewGuid();
 
+    private readonly ClusterLock _clusterLock = new();
+
     private void SetupConsumer(IBusRegistrationConfigurator cfg)
     {
         cfg.AddConsumer<ResetSagaStateConsumer>();
         cfg.AddSingleton<IClusterSagaDbContext>(_ => TestDbContext);
+        cfg.AddSingleton<IClusterLock>(_clusterLock);
         cfg.AddSingleton(Substitute.For<ILogger<ResetSagaStateConsumer>>());
     }
 
@@ -92,6 +96,22 @@ public class ResetSagaStateConsumerTests : TestWithDbContextSqlite<ClusterSagaDb
             TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
+    // Issue #380: the commit version of a reset deployment is free for the next commit
+    [Fact]
+    public async Task Releases_the_commit_version_a_reset_deployment_reserved()
+    {
+        // Arrange
+        await using var tester = new MassTransitTester(cfg => SetupConsumer(cfg));
+        var state = await AddState(s_clusterId, Guid.NewGuid());
+        _clusterLock.Reserve(s_clusterId, state.CommitVersion);
+
+        // Act
+        await tester.TestCommand<ResetSagaState, ResetSagaStateConsumer>(Command(s_clusterId));
+
+        // Assert
+        _clusterLock.GetReservedVersions(s_clusterId).Should().BeEmpty();
+    }
+
     [Theory]
     [InlineData("0.1.6", "0.0.0", "0.1.6")]
     [InlineData("0.1.6", "0.1.7", "0.1.7")]
@@ -143,7 +163,7 @@ public class ResetSagaStateConsumerTests : TestWithDbContextSqlite<ClusterSagaDb
         fault.Exceptions.Returns([exception]);
         var context = Substitute.For<ConsumeContext<Fault<ResetSagaState>>>();
         context.Message.Returns(fault);
-        var consumer = new ResetSagaStateConsumer(TestDbContext, Substitute.For<ILogger<ResetSagaStateConsumer>>());
+        var consumer = new ResetSagaStateConsumer(TestDbContext, _clusterLock, Substitute.For<ILogger<ResetSagaStateConsumer>>());
 
         // Act
         await consumer.Consume(context);

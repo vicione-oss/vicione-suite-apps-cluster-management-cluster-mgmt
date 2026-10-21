@@ -33,6 +33,7 @@ public class ClusterSnapshotStoreTests
             .AddSingleton<IFileSystem>(_ => _fileSystem)
             .AddSingleton(_ => _options)
             .AddSingleton<IAtomicFileWriter, TestAtomicFileWriter>()
+            .AddSingleton<IClusterLock, ClusterLock>()
             .AddTransient<IClusterSnapshotStore, ClusterSnapshotStore>()
             .BuildServiceProvider();
     }

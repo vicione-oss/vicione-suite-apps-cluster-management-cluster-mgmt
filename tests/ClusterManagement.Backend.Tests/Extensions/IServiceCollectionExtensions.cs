@@ -25,6 +25,7 @@ internal static class IServiceCollectionExtensions
             .AddSingleton(Options.Create(options))
             .AddSingleton(Substitute.For<IWorkspaceProvider<ClusterManagementBackendModule>>())
             .AddSingleton(store)
+            .AddSingleton<IClusterLock, ClusterLock>()
             .AddSingleton<IClusterDbContext>(svc =>
             {
                 var connection = new SqliteConnection($"DataSource={TestDbContextFactory.DataSourceInMemory}");
