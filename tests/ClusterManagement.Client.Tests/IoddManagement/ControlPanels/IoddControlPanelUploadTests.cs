@@ -60,17 +60,19 @@ public class IoddControlPanelUploadTests
         await IoddControlPanelTestServices.SettleTreeAsync();
     }
 
-    public static TheoryData<int> UploadErrors => [
-        IoddChanged.ExtractZipError,
-        IoddChanged.IoddFileNotFound,
-        IoddChanged.IoddFileOutsideUploadDirectory,
+    public static TheoryData<int, string> UploadErrors => new()
+    {
+        { IoddChanged.ArchiveTooLarge, Localization.Common.ArchiveTooLarge },
+        { IoddChanged.ExtractZipError, Localization.Common.UploadFailed },
+        { IoddChanged.IoddFileNotFound, Localization.Common.UploadFailed },
+        { IoddChanged.IoddFileOutsideUploadDirectory, Localization.Common.UploadFailed },
         // Without the existing device there is nothing to name.
-        IoddChanged.IoddAlreadyExists,
-    ];
+        { IoddChanged.IoddAlreadyExists, Localization.Common.UploadFailed },
+    };
 
     [Theory]
     [MemberData(nameof(UploadErrors))]
-    public async Task Should_show_localized_message_for_backend_error(int errorCode)
+    public async Task Should_show_localized_message_for_backend_error(int errorCode, string expectedMessage)
     {
         // Arrange
         _ioddService.AddIodd(DestinationFile, Arg.Any<CancellationToken>()).Returns(new IoddServiceErrorResult("technical details", errorCode));
@@ -82,7 +84,7 @@ public class IoddControlPanelUploadTests
         await CompleteUpload(component);
 
         // Assert
-        _bannerService.Received(1).ShowMessageBanner(MessageType.Error, Localization.Common.UploadFailed);
+        _bannerService.Received(1).ShowMessageBanner(MessageType.Error, expectedMessage);
 
         await IoddControlPanelTestServices.SettleTreeAsync();
     }

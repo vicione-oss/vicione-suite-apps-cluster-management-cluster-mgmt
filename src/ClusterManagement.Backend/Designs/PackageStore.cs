@@ -1,11 +1,14 @@
 using System.IO.Abstractions;
 using System.IO.Compression;
+using ClusterManagement.Backend.Archives;
 using ClusterManagement.Backend.Designs.Consumers;
 using ClusterManagement.Backend.Designs.Extensions;
 using ClusterManagement.Backend.Extensions;
+using ClusterManagement.Internal;
 using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Internal.Events;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Sdk.Backend.Modules;
 using ViciOne.Cluster.Model;
 
@@ -15,18 +18,20 @@ internal sealed partial class PackageStore(
     IWorkspaceProvider<ClusterManagementBackendModule> workspaceProvider,
     IFileSystem fileSystem,
     IClusterDependencyStore dependencyStore,
+    IOptions<ClusterManagementOptions> options,
     ILogger<PackageStore> logger) : IPackageStore
 {
     public async Task<ClusterDependency> StorePackage(string filePath, bool overwrite = true, CancellationToken cancellationToken = default)
     {
         using var stream = fileSystem.File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         using var archive = OpenPackageArchive(stream);
+        var extractor = CreateArchiveExtractor(archive);
 
         var (packageName, packageVersion) = await VerifyPackageArchive(archive, cancellationToken);
 
         await VerifyPackageVersionNotInstalled(packageName, packageVersion, cancellationToken);
 
-        ExtractPackageArchive(archive, packageName, packageVersion);
+        ExtractPackageArchive(extractor, packageName, packageVersion);
 
         var clusterDependency = new ClusterDependency
         {
@@ -63,6 +68,21 @@ internal sealed partial class PackageStore(
         }
 
         return archive;
+    }
+
+    /// <summary>
+    /// Rejects an archive with too many entries or too large declared sizes before any of it is read.
+    /// </summary>
+    private ArchiveExtractor CreateArchiveExtractor(ZipArchive packageArchive)
+    {
+        try
+        {
+            return ArchiveExtractor.Create(packageArchive, fileSystem, options.Value);
+        }
+        catch (ArchiveTooLargeException ex)
+        {
+            throw new PackageValidationException(ClusterPackageChanged.ArchiveTooLarge, $"The provided package archive is too large. {ex.Message}", ex);
+        }
     }
 
     private async Task<(string Name, string Version)> VerifyPackageArchive(ZipArchive packageArchive, CancellationToken cancellationToken)
@@ -122,7 +142,7 @@ internal sealed partial class PackageStore(
     /// Extracts the package into a staging directory first and swaps it into the dependencies directory only once
     /// extraction has succeeded, so a failed extraction never touches an existing version.
     /// </summary>
-    private void ExtractPackageArchive(ZipArchive packageArchive, string packageName, string packageVersion)
+    private void ExtractPackageArchive(ArchiveExtractor extractor, string packageName, string packageVersion)
     {
         var dependenciesPath = fileSystem.GetDependenciesPath(workspaceProvider);
         var packageDestinationPath = fileSystem.Path.Combine(dependenciesPath, packageName, packageVersion);
@@ -135,11 +155,15 @@ internal sealed partial class PackageStore(
         try
         {
             fileSystem.Directory.CreateDirectory(stagingPath);
-            packageArchive.ExtractToDirectory(stagingPath);
+            extractor.ExtractToDirectory(stagingPath);
         }
         catch (Exception ex)
         {
             TryDeleteDirectory(stagingPath);
+
+            // Not expected once the declared sizes were checked, but the extracted bytes are counted too.
+            if (ex is ArchiveTooLargeException)
+                throw new PackageValidationException(ClusterPackageChanged.ArchiveTooLarge, $"The provided package archive of '{packageName}' is too large. {ex.Message}", ex);
 
             // A damaged entry (e.g. truncated upload) cannot be fixed by a retry.
             if (ex is InvalidDataException)

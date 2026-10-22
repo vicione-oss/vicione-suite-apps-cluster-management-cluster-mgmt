@@ -25,6 +25,16 @@ internal static partial class IoddStoreLog
     [LoggerMessage(LogLevel.Warning, "Could not extract device '{VendorId}/{DeviceId}' from archive.")]
     public static partial void DeviceExtractionError(this ILogger<IoddStore> logger, int vendorId, int deviceId, Exception exception);
 
+    // Debug only: the caller knows which upload it was and warns about it.
+    [LoggerMessage(LogLevel.Debug, "The IODD archive exceeds the configured archive limits.")]
+    public static partial void ArchiveTooLarge(this ILogger<IoddStore> logger, Exception exception);
+
+    [LoggerMessage(LogLevel.Warning, "Could not delete the partially extracted file '{FilePath}'.")]
+    public static partial void PartialFileDeleteError(this ILogger<IoddStore> logger, string filePath, Exception exception);
+
+    [LoggerMessage(LogLevel.Warning, "Could not delete the directory '{Directory}' of a partially extracted device.")]
+    public static partial void PartialDirectoryDeleteError(this ILogger<IoddStore> logger, string directory, Exception exception);
+
     [LoggerMessage(LogLevel.Error, "Failed to create IODD directory: {Directory}")]
     public static partial void LogDirectoryCreationError(this ILogger<IoddStore> logger, Exception exception, string directory);
 

@@ -76,6 +76,12 @@ public sealed partial class AddIoddConsumer(
                         id, FindDevice(id));
                     break;
 
+                case AddDeviceResult.ArchiveTooLarge:
+                    LogArchiveTooLarge(logger, command.CorrelationId, command.Filename, size);
+
+                    await PublishError(context, IoddChanged.ArchiveTooLarge, "The IODD archive exceeds the configured archive limits.");
+                    break;
+
                 default:
                     // An expected outcome such as an archive without an IODD file, so no error with a stack trace.
                     LogIoddNotAdded(logger, command.CorrelationId, command.Filename, result);
@@ -137,6 +143,9 @@ public sealed partial class AddIoddConsumer(
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Deleting IODD file '{Filename}' CorrelationId={CorrelationId}")]
     private static partial void LogDeletingIoddFile(ILogger<AddIoddConsumer> logger, Guid correlationId, string filename);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "IODD file '{Filename}' ({Size} bytes) is too large to extract CorrelationId={CorrelationId}")]
+    private static partial void LogArchiveTooLarge(ILogger<AddIoddConsumer> logger, Guid correlationId, string filename, long size);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Failed to add IODD from file '{Filename}' ({Size} bytes) CorrelationId={CorrelationId}")]
     private static partial void LogError(ILogger<AddIoddConsumer> logger, Exception exception, Guid correlationId, string filename, long size);

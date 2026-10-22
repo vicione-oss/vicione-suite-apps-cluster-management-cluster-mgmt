@@ -61,6 +61,15 @@ namespace ClusterManagement.Client.Localization {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The archive is too large to extract..
+        /// </summary>
+        internal static string ArchiveTooLarge {
+            get {
+                return ResourceManager.GetString("ArchiveTooLarge", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The uploaded archive does not contain any files..
         /// </summary>
         internal static string FileIsEmpty {

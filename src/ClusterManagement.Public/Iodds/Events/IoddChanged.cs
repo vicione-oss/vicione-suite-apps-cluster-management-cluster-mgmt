@@ -18,4 +18,8 @@ public sealed record IoddChanged(IoddId Iodd, DeviceInfo? DeviceInfo, CrudAction
     /// A device with the same vendor and device id already exists; <see cref="Iodd"/> and <see cref="DeviceInfo"/> describe it.
     /// </summary>
     public const int IoddAlreadyExists = 106;
+    /// <summary>
+    /// The archive has more entries or extracts to more bytes than <c>MaxArchiveEntries</c> or <c>MaxArchiveExtractedSize</c> allow.
+    /// </summary>
+    public const int ArchiveTooLarge = 107;
 }

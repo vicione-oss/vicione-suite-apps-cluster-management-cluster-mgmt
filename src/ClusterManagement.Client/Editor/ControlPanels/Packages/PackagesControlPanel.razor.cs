@@ -354,6 +354,7 @@ public partial class PackagesControlPanel
         {
             ClusterPackageChanged.NotAZipArchive => Client.Localization.Common.FileTypeMissmatch,
             ClusterPackageChanged.EmptyArchive => Client.Localization.Common.FileIsEmpty,
+            ClusterPackageChanged.ArchiveTooLarge => Client.Localization.Common.ArchiveTooLarge,
             ClusterPackageChanged.PackageVersionInUse => Localization.PackagesControlPanel.PackageVersionInUse,
             ClusterPackageChanged.CorruptArchive
                 or ClusterPackageChanged.InvalidPackageContent

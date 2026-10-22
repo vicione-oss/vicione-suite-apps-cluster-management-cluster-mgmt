@@ -28,4 +28,16 @@ public sealed class ClusterManagementOptions
     /// </summary>
     [ValidateObjectMembers]
     public DeploySagaTimeoutOptions DeploySagaTimeouts { get; set; } = new();
+
+    /// <summary>
+    /// Maximum number of entries an uploaded package or IODD archive may contain
+    /// </summary>
+    [Range(1, int.MaxValue)]
+    public int MaxArchiveEntries { get; set; } = 1_000;
+
+    /// <summary>
+    /// Maximum number of bytes an uploaded package or IODD archive may extract to, so a zip bomb cannot fill the disk
+    /// </summary>
+    [Range(1, long.MaxValue)]
+    public long MaxArchiveExtractedSize { get; set; } = 100 * 1024 * 1024;
 }

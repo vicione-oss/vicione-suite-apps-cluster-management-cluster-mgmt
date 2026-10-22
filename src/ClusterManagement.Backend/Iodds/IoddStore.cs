@@ -5,20 +5,29 @@ using System.Globalization;
 using System.IO.Abstractions;
 using System.IO.Compression;
 using System.Text.RegularExpressions;
+using ClusterManagement.Backend.Archives;
 using ClusterManagement.Backend.DbContext;
 using ClusterManagement.Backend.Iodds.Extensions;
+using ClusterManagement.Internal;
 using ClusterManagement.Public.Iodds;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Sdk.Backend.Modules;
 
 namespace ClusterManagement.Backend.Iodds;
 
-internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspaceProvider<ClusterManagementBackendModule> workspaceProvider, IFileSystem fileSystem, IServiceProvider serviceProvider) : IIoddStore
+internal sealed partial class IoddStore(
+    ILogger<IoddStore> logger,
+    IWorkspaceProvider<ClusterManagementBackendModule> workspaceProvider,
+    IFileSystem fileSystem,
+    IServiceProvider serviceProvider,
+    IOptions<ClusterManagementOptions> options) : IIoddStore
 {
     private const string IoddSearchPattern = "*-*-????????-IODD*.xml";
 
     private readonly ConcurrentDictionary<IoddId, DeviceInfo> _devices = [];
+    private readonly Lock _addDeviceLock = new();
     private readonly string _ioddDirectory = fileSystem.GetIoddsPath(workspaceProvider);
 
     public string IoddDirectory => _ioddDirectory;
@@ -70,17 +79,24 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
     public AddDeviceResult AddDevice(ZipArchive archive, out IoddId? ioddId)
     {
         ioddId = null;
+
+        if (!TryCreateArchiveExtractor(archive, out var extractor))
+            return AddDeviceResult.ArchiveTooLarge;
+
         var ioddEntry = archive.Entries.FirstOrDefault(e => IoddFileNameRegex().IsMatch(e.FullName));
         if (ioddEntry is null)
             return AddDeviceResult.NoIoddFile;
 
-        var result = AddDevice(archive.Entries, ioddEntry, out var id);
+        var result = AddDevice(archive.Entries, ioddEntry, extractor, out var id);
         ioddId = id;
         return result;
     }
 
     public bool TryAddDevices(ZipArchive archive)
     {
+        if (!TryCreateArchiveExtractor(archive, out var extractor))
+            return false;
+
         var success = true;
         var byDirectory = archive.Entries
             .GroupBy(e => e.FullName[..(e.FullName.Length - e.Name.Length)]);
@@ -89,10 +105,34 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
         {
             var ioddEntry = group.FirstOrDefault(e => IoddFileNameRegex().IsMatch(e.Name));
             if (ioddEntry is null) continue;
-            if (AddDevice(group, ioddEntry, out _) != AddDeviceResult.Added)
+
+            var result = AddDevice(group, ioddEntry, extractor, out _);
+            if (result != AddDeviceResult.Added)
                 success = false;
+
+            // The size limit is shared by all devices, so none of the remaining ones can be extracted either.
+            if (result == AddDeviceResult.ArchiveTooLarge)
+                break;
         }
         return success;
+    }
+
+    /// <summary>
+    /// Rejects an archive with too many entries or too large declared sizes before any of it is read.
+    /// </summary>
+    private bool TryCreateArchiveExtractor(ZipArchive archive, [NotNullWhen(true)] out ArchiveExtractor? extractor)
+    {
+        try
+        {
+            extractor = ArchiveExtractor.Create(archive, fileSystem, options.Value);
+            return true;
+        }
+        catch (ArchiveTooLargeException ex)
+        {
+            logger.ArchiveTooLarge(ex);
+            extractor = null;
+            return false;
+        }
     }
 
     public bool TryRemoveDevice(IoddId id)
@@ -172,7 +212,7 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
         return archivedDeviceIds;
     }
 
-    private AddDeviceResult AddDevice(IEnumerable<ZipArchiveEntry> entries, ZipArchiveEntry ioddEntry, out IoddId id)
+    private AddDeviceResult AddDevice(IEnumerable<ZipArchiveEntry> entries, ZipArchiveEntry ioddEntry, ArchiveExtractor extractor, out IoddId id)
     {
         IODevice device;
         using (var stream = ioddEntry.Open())
@@ -180,47 +220,116 @@ internal sealed partial class IoddStore(ILogger<IoddStore> logger, IWorkspacePro
 
         id = new(device.DeviceIdentity.VendorId, device.DeviceIdentity.DeviceId);
 
-        if (_devices.ContainsKey(id))
-            return AddDeviceResult.AlreadyExists;
-
-        try { ExtractDevice(entries, id); }
-        catch (Exception ex) { logger.DeviceExtractionError(id.VendorId, id.DeviceId, ex); return AddDeviceResult.ExtractionFailed; }
-
-        // Build DeviceInfo from what we already have — no second disk parse needed
-        var fileInfo = fileSystem.FileInfo.New(fileSystem.Path.Combine(GetDeviceDirectory(id), ioddEntry.Name));
-        var info = new DeviceInfo
+        // Two uploads of the same device would extract into the same directory, and the cleanup of a failed one
+        // would delete the files of the other; the later one finds the device instead.
+        lock (_addDeviceLock)
         {
-            DeviceDescription = device,
-            Filename = ioddEntry.Name,
-            LastWriteTime = fileInfo.LastWriteTime.ToUniversalTime(),
-        };
+            if (_devices.ContainsKey(id))
+                return AddDeviceResult.AlreadyExists;
 
-        // false means a concurrent add of the same device won
-        return _devices.TryAdd(id, info) ? AddDeviceResult.Added : AddDeviceResult.AlreadyExists;
+            try
+            {
+                ExtractDevice(entries, id, extractor);
+            }
+            catch (ArchiveTooLargeException ex)
+            {
+                logger.ArchiveTooLarge(ex);
+                return AddDeviceResult.ArchiveTooLarge;
+            }
+            catch (Exception ex)
+            {
+                logger.DeviceExtractionError(id.VendorId, id.DeviceId, ex);
+                return AddDeviceResult.ExtractionFailed;
+            }
+
+            // Build DeviceInfo from what we already have — no second disk parse needed
+            var fileInfo = fileSystem.FileInfo.New(fileSystem.Path.Combine(GetDeviceDirectory(id), ioddEntry.Name));
+            var info = new DeviceInfo
+            {
+                DeviceDescription = device,
+                Filename = ioddEntry.Name,
+                LastWriteTime = fileInfo.LastWriteTime.ToUniversalTime(),
+            };
+
+            // false means TryAddDevice(IoddId) added it from disk in the meantime
+            return _devices.TryAdd(id, info) ? AddDeviceResult.Added : AddDeviceResult.AlreadyExists;
+        }
     }
 
-    private void ExtractDevice(IEnumerable<ZipArchiveEntry> entries, IoddId id)
+    private void ExtractDevice(IEnumerable<ZipArchiveEntry> entries, IoddId id, ArchiveExtractor extractor)
     {
         fileSystem.Directory.CreateDirectory(_ioddDirectory);
         var vendorDirectory = fileSystem.Path.Combine(_ioddDirectory, id.VendorId.ToString(CultureInfo.InvariantCulture));
         var deviceDirectory = fileSystem.Path.Combine(vendorDirectory, id.DeviceId.ToString(CultureInfo.InvariantCulture));
 
-        fileSystem.Directory.CreateDirectory(vendorDirectory);
-        fileSystem.Directory.CreateDirectory(deviceDirectory);
+        // Only what this call created is removed again, an existing directory may belong to another device.
+        var createdVendorDirectory = !fileSystem.Directory.Exists(vendorDirectory);
+        var createdDeviceDirectory = !fileSystem.Directory.Exists(deviceDirectory);
 
-        foreach (var entry in entries)
+        List<string> extractedFiles = [];
+
+        try
         {
-            if (string.IsNullOrWhiteSpace(entry.Name))
-                continue;
+            fileSystem.Directory.CreateDirectory(vendorDirectory);
+            fileSystem.Directory.CreateDirectory(deviceDirectory);
 
-            var filePath = fileSystem.Path.Combine(deviceDirectory, entry.Name);
+            foreach (var entry in entries)
+            {
+                if (string.IsNullOrWhiteSpace(entry.Name))
+                    continue;
 
-            if (fileSystem.File.Exists(filePath))
-                continue;
+                var filePath = fileSystem.Path.Combine(deviceDirectory, entry.Name);
 
-            using var fileStream = fileSystem.File.Create(filePath);
-            using var entryStream = entry.Open();
-            entryStream.CopyTo(fileStream);
+                if (fileSystem.File.Exists(filePath))
+                    continue;
+
+                // Recorded only once extracted: a file that could not be created may belong to someone else,
+                // and the extractor removes a file it created but could not finish.
+                extractor.ExtractToFile(entry, filePath);
+                extractedFiles.Add(filePath);
+            }
+        }
+        catch
+        {
+            // Don't leave a partial device behind, e.g. the files extracted before the size limit was hit.
+            foreach (var filePath in extractedFiles)
+                TryDeleteFile(filePath);
+
+            // An empty device directory would make Refresh log a missing IODD file on every run, and keep a device
+            // it registered from the partly extracted files in the store until a restart.
+            if (createdDeviceDirectory)
+                TryDeleteEmptyDirectory(deviceDirectory);
+
+            if (createdVendorDirectory)
+                TryDeleteEmptyDirectory(vendorDirectory);
+
+            throw;
+        }
+    }
+
+    private void TryDeleteFile(string filePath)
+    {
+        try
+        {
+            fileSystem.File.Delete(filePath);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.PartialFileDeleteError(filePath, ex);
+        }
+    }
+
+    private void TryDeleteEmptyDirectory(string directory)
+    {
+        try
+        {
+            // Not recursive: a directory that still has files, e.g. one that could not be deleted, is kept.
+            if (fileSystem.Directory.Exists(directory) && !fileSystem.Directory.EnumerateFileSystemEntries(directory).Any())
+                fileSystem.Directory.Delete(directory);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.PartialDirectoryDeleteError(directory, ex);
         }
     }
 
