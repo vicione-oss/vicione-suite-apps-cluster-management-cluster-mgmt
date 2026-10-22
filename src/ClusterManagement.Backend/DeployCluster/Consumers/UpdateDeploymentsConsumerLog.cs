@@ -26,6 +26,9 @@ internal static partial class UpdateDeploymentsConsumerLog
     [LoggerMessage(LogLevel.Warning, "Could not publish step {Step} {Status} of the deployment on application {ClusterApplicationId}; its further steps are not published")]
     internal static partial void LogStepNotPublished(this ILogger<UpdateDeploymentsConsumer> logger, Exception exception, ClusterNodeDeploymentStep step, ClusterNodeDeploymentStepStatus status, Guid clusterApplicationId);
 
+    [LoggerMessage(LogLevel.Warning, "Could not publish the planned steps of the deployment on application {ClusterApplicationId}; its further steps are not published")]
+    internal static partial void LogPlanNotPublished(this ILogger<UpdateDeploymentsConsumer> logger, Exception exception, Guid clusterApplicationId);
+
     /* Engine Host */
 
     [LoggerMessage(LogLevel.Debug, "Deploying engine host '{HostId}' ({HostName})")]

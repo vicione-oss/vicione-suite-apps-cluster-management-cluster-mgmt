@@ -30,4 +30,20 @@ internal static class InstanceStepModelExtensions
 
         return string.Format(CultureInfo.CurrentCulture, format, step.Target ?? ClusterOverview.StepUnknownTarget);
     }
+
+    /// <summary>
+    /// What the instance is busy with during the step, in a few words that stay the same for a whole kind of steps.
+    /// </summary>
+    public static string ToPhaseText(this InstanceStepModel step) => step.Step switch
+    {
+        ClusterNodeDeploymentStep.Prepare or ClusterNodeDeploymentStep.Plan => ClusterOverview.BusyPreparing,
+        ClusterNodeDeploymentStep.CompareEngineHostSettings or ClusterNodeDeploymentStep.QueryEngineStates => ClusterOverview.BusyCheckingEngineHosts,
+        ClusterNodeDeploymentStep.DeployEngineHost or ClusterNodeDeploymentStep.StartEngineHost or ClusterNodeDeploymentStep.StopEngineHost
+            or ClusterNodeDeploymentStep.UpdateEngineHost => ClusterOverview.BusyUpdatingEngineHosts,
+        ClusterNodeDeploymentStep.StopEngine => ClusterOverview.BusyStoppingEngines,
+        ClusterNodeDeploymentStep.TearDownEngine or ClusterNodeDeploymentStep.TearDownEngineHost => ClusterOverview.BusyRemovingEngines,
+        ClusterNodeDeploymentStep.DeployEngine => ClusterOverview.BusyDeployingEngines,
+        ClusterNodeDeploymentStep.StartEngine => ClusterOverview.BusyStartingEngines,
+        _ => ClusterOverview.BusyCleaningUp,
+    };
 }

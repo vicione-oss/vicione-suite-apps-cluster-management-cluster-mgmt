@@ -33,6 +33,7 @@ internal sealed class DeploymentStepReporter(IBus bus, UpdateDeployments message
     private Dictionary<Guid, string> _engineHostNames = [];
     private Dictionary<Guid, string> _engineNames = [];
     private DeploymentStepTarget? _current;
+    private IReadOnlyList<DeploymentStepTarget>? _planned;
     private bool _brokerUnavailable;
 
     /// <summary>
@@ -106,12 +107,33 @@ internal sealed class DeploymentStepReporter(IBus bus, UpdateDeployments message
         return done;
     }
 
-    private async Task Publish(DeploymentStepTarget target, ClusterNodeDeploymentStepStatus status, ErrorInfo? error = null)
+    /// <summary>
+    /// Publishes the steps the update expects to take, unless they are the ones it published last.
+    /// </summary>
+    public Task Plan(IReadOnlyList<DeploymentStepTarget> planned)
     {
-        if (_brokerUnavailable)
-            return;
+        if (_planned is not null && _planned.SequenceEqual(planned))
+            return Task.CompletedTask;
 
-        var engineId = target.EngineId == Guid.Empty ? null : target.EngineId;
+        _planned = planned;
+        ClusterNodeDeploymentPlanned plan = new(message.CorrelationId, message.ClusterId, clusterApplicationId, [.. planned.Select(target =>
+        {
+            var engineId = EngineIdOf(target);
+            return new ClusterNodeDeploymentPlannedStep(target.Step)
+            {
+                EngineHostId = target.EngineHostId,
+                EngineHostName = NameOf(_engineHostNames, target.EngineHostId),
+                EngineId = engineId,
+                EngineName = NameOf(_engineNames, engineId),
+            };
+        })]);
+
+        return PublishBestEffort(plan, e => logger.LogPlanNotPublished(e, clusterApplicationId), cancellationToken);
+    }
+
+    private Task Publish(DeploymentStepTarget target, ClusterNodeDeploymentStepStatus status, ErrorInfo? error = null)
+    {
+        var engineId = EngineIdOf(target);
         ClusterNodeDeploymentStepChanged stepChanged = new(message.CorrelationId, message.ClusterId, clusterApplicationId, target.Step, status)
         {
             EngineHostId = target.EngineHostId,
@@ -124,11 +146,20 @@ internal sealed class DeploymentStepReporter(IBus bus, UpdateDeployments message
 
         // A cancelled deployment still reports the step it stopped at, so only the other publishes end with it.
         var deploymentCancellation = status == ClusterNodeDeploymentStepStatus.Failed ? CancellationToken.None : cancellationToken;
+        return PublishBestEffort(stepChanged, e => logger.LogStepNotPublished(e, target.Step, status, clusterApplicationId), deploymentCancellation);
+    }
+
+    private async Task PublishBestEffort<T>(T @event, Action<Exception> logNotPublished, CancellationToken deploymentCancellation)
+        where T : class
+    {
+        if (_brokerUnavailable)
+            return;
+
         using CancellationTokenSource timeout = new(s_publishTimeout, timeProvider);
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, deploymentCancellation);
         try
         {
-            await bus.Publish(stepChanged, cancellation.Token);
+            await bus.Publish(@event, cancellation.Token);
         }
         catch (OperationCanceledException) when (deploymentCancellation.IsCancellationRequested)
         {
@@ -137,9 +168,12 @@ internal sealed class DeploymentStepReporter(IBus bus, UpdateDeployments message
         catch (Exception e)
         {
             _brokerUnavailable = true;
-            logger.LogStepNotPublished(e, target.Step, status, clusterApplicationId);
+            logNotPublished(e);
         }
     }
+
+    private static Guid? EngineIdOf(DeploymentStepTarget target)
+        => target.EngineId == Guid.Empty ? null : target.EngineId;
 
     private static string? NameOf(Dictionary<Guid, string> names, Guid? id)
         => id is { } key && names.TryGetValue(key, out var name) ? name : null;

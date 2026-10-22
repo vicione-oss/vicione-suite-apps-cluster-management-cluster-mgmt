@@ -164,6 +164,21 @@ public sealed class DeploymentProgressModel
         instance?.Record(Named(step), receivedAt, Phase == DeploymentPhase.RollingBack);
     }
 
+    /// <summary>
+    /// Takes the steps one of the instances plans to take.
+    /// </summary>
+    public void Apply(ClusterNodeDeploymentPlanned planned)
+    {
+        var instance = Instances.FirstOrDefault(k => k.Id == planned.ClusterApplicationId);
+        instance?.Plan([.. planned.Steps.Select(Named)], Phase == DeploymentPhase.RollingBack);
+    }
+
+    private ClusterNodeDeploymentPlannedStep Named(ClusterNodeDeploymentPlannedStep step) => step with
+    {
+        EngineHostName = step.EngineHostName ?? NameOf(step.EngineHostId),
+        EngineName = step.EngineName ?? NameOf(step.EngineId),
+    };
+
     private ClusterNodeDeploymentStepChanged Named(ClusterNodeDeploymentStepChanged step) => step with
     {
         EngineHostName = step.EngineHostName ?? NameOf(step.EngineHostId),

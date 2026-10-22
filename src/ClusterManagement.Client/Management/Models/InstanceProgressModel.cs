@@ -7,6 +7,8 @@ namespace ClusterManagement.Client.Management.Models;
 public sealed class InstanceProgressModel(Guid id, string name, string nodeName)
 {
     private readonly List<InstanceStepModel> _steps = [];
+    private IReadOnlyList<ClusterNodeDeploymentPlannedStep> _updatePlan = [];
+    private IReadOnlyList<ClusterNodeDeploymentPlannedStep> _rollbackPlan = [];
 
     public Guid Id { get; } = id;
     public string Name { get; } = name;
@@ -32,6 +34,14 @@ public sealed class InstanceProgressModel(Guid id, string name, string nodeName)
     /// The steps of the rollback once it began, before that those of the update.
     /// </summary>
     public IReadOnlyList<InstanceStepModel> LatestRun => [.. _steps.Where(s => s.IsRollback == RollbackStarted)];
+
+    /// <summary>
+    /// The <see cref="Steps"/> followed by the planned ones the latest run has not reached yet, as
+    /// <see cref="InstanceStepState.Pending"/>; without a plan, or once the update succeeded or failed, the
+    /// <see cref="Steps"/> alone. The instance reports no end of its rollback, so a rollback keeps its pending steps.
+    /// </summary>
+    public IReadOnlyList<InstanceStepModel> Timeline
+        => !RollbackStarted && (IsUpdated || HasFailed) ? Steps : [.. _steps, .. NotReached()];
 
     /// <summary>
     /// The step in progress; <c>null</c> between steps and once the instance finished.
@@ -100,6 +110,49 @@ public sealed class InstanceProgressModel(Guid id, string name, string nodeName)
         }
 
         step.End(change);
+    }
+
+    /// <summary>
+    /// Takes the steps the instance expects its update, or its rollback once that began, to take; a later plan of the
+    /// same run replaces the earlier one.
+    /// </summary>
+    internal void Plan(IReadOnlyList<ClusterNodeDeploymentPlannedStep> planned, bool rollingBack)
+    {
+        if (RollbackStarted || rollingBack)
+            _rollbackPlan = planned;
+        else
+            _updatePlan = planned;
+    }
+
+    /// <summary>
+    /// How many steps the latest run plans to take; 0 until its plan arrived.
+    /// </summary>
+    public int PlannedCount => (RollbackStarted ? _rollbackPlan : _updatePlan).Count;
+
+    // The planned steps after the last one the run reported; a planned step it skipped is left out.
+    private IEnumerable<InstanceStepModel> NotReached()
+    {
+        var plan = RollbackStarted ? _rollbackPlan : _updatePlan;
+        var next = 0;
+        foreach (var step in LatestRun)
+        {
+            var index = IndexOf(plan, step, next);
+            if (index >= 0)
+                next = index + 1;
+        }
+
+        return plan.Skip(next).Select(planned => InstanceStepModel.Pending(planned, RollbackStarted));
+    }
+
+    private static int IndexOf(IReadOnlyList<ClusterNodeDeploymentPlannedStep> plan, InstanceStepModel step, int from)
+    {
+        for (var i = from; i < plan.Count; i++)
+        {
+            if (step.Is(plan[i]))
+                return i;
+        }
+
+        return -1;
     }
 
     // The rollback runs the instance's steps again from the start, and the saga sends it before it reports the rollback

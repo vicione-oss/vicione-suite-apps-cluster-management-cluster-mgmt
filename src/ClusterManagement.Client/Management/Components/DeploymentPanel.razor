@@ -55,8 +55,9 @@
         @foreach (var instance in VisibleInstances)
         {
             var expanded = _expanded.Contains(instance.Id);
+            var timeline = Timeline(instance);
             <div class="instance @(instance.HasFailed ? "failed" : null)" @key="instance.Id">
-                @if (Expert && instance.Steps.Count > 0)
+                @if (Expert && timeline.Count > 0)
                 {
                     <button type="button" class="steps-toggle" aria-expanded="@(expanded ? "true" : "false")" @onclick="() => ToggleSteps(instance.Id)">
                         <span class="instance-head">
@@ -71,7 +72,7 @@
                 else
                 {
                     <div class="instance-head">@InstanceHead(instance)</div>
-                    @if (instance.Steps.Count > 0)
+                    @if (timeline.Count > 0)
                     {
                         @Progress(instance)
                     }
@@ -80,22 +81,29 @@
                 {
                     <pre class="error">@ErrorText(instance, instance.Error)</pre>
                 }
-                @if (Expert && expanded && instance.Steps.Count > 0)
+                @if (Expert && expanded && timeline.Count > 0)
                 {
                     <ol class="steps" aria-label="@Format(ClusterOverview.StepsOf, instance.Name)">
-                        @for (var i = 0; i < instance.Steps.Count; i++)
+                        @foreach (var group in StepGroups(timeline, instance.Name))
                         {
-                            var step = instance.Steps[i];
-                            if (step.IsRollback && (i == 0 || !instance.Steps[i - 1].IsRollback))
+                            if (group.StartsRollback)
                             {
                                 <li class="divider">@ClusterOverview.PhaseRollingBack</li>
                             }
-                            <li class="entry @StateClass(step)">
-                                <span class="mark" aria-hidden="true">@StateMark(step)</span>
-                                <span class="visually-hidden">@StateText(step)</span>
-                                <span class="text" title="@step.ToText()">@step.ToText()</span>
-                                <span class="time">@StepTime(step)</span>
+                            <li class="group">
+                                <span class="name" title="@group.Name">@group.Name</span>
+                                <span class="count">@group.Count</span>
+                                <span class="time">@group.Time</span>
                             </li>
+                            @foreach (var step in group.Steps)
+                            {
+                                <li class="entry @StateClass(step)">
+                                    <span class="mark" aria-hidden="true">@StateMark(step)</span>
+                                    <span class="visually-hidden">@StateText(step)</span>
+                                    <span class="text" title="@step.ToText()">@step.ToText()</span>
+                                    <span class="time">@StepTime(step)</span>
+                                </li>
+                            }
                         }
                     </ol>
                 }
@@ -112,14 +120,8 @@
         <span class="chip status-@InstanceStatusName(instance)">@InstanceStatusText(instance)</span>
     </text>;
 
-    // How far the instance got, one segment per step, and the step in progress or how long the run took.
+    // What the instance is busy with and how far it got, on one bar; how long the run took once it ended.
     private RenderFragment Progress(InstanceProgressModel instance) => @<text>
-        <span class="trail" aria-hidden="true">
-            @foreach (var step in instance.Steps)
-            {
-                <span class="segment @StateClass(step)"></span>
-            }
-        </span>
         @if (instance.Error is null)
         {
             var summary = Summary(instance);
@@ -131,5 +133,8 @@
                 }
             </span>
         }
+        <span class="bar @BarClass(instance)" aria-hidden="true">
+            <span class="fill" style="width: @BarWidth(instance)"></span>
+        </span>
     </text>;
 }

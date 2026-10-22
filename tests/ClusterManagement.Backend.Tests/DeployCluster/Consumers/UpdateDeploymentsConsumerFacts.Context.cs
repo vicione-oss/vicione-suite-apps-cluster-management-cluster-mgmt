@@ -52,6 +52,7 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
     private readonly CancellationTokenSource _deploymentCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
     private readonly List<object> _events = [];
     private readonly List<ClusterNodeDeploymentStepChanged> _steps = [];
+    private readonly List<(ClusterNodeDeploymentPlanned Plan, int StepsBefore)> _plans = [];
     private CorrelatedBy<Guid>? _result;
 
     public UpdateDeploymentsConsumerFacts()
@@ -96,6 +97,8 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
         _bus = Substitute.For<IBus>();
         _bus.When(x => x.Publish(Arg.Any<ClusterNodeDeploymentStepChanged>(), Arg.Any<CancellationToken>()))
             .Do(x => _steps.Add(x.Arg<ClusterNodeDeploymentStepChanged>()));
+        _bus.When(x => x.Publish(Arg.Any<ClusterNodeDeploymentPlanned>(), Arg.Any<CancellationToken>()))
+            .Do(x => _plans.Add((x.Arg<ClusterNodeDeploymentPlanned>(), _steps.Count)));
         _workspaceProvider = Substitute.For<IWorkspaceProvider<ClusterManagementBackendModule>>();
         _workspaceProvider.Home.Returns("home");
     }
@@ -143,6 +146,7 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
     {
         _events.Clear();
         _steps.Clear();
+        _plans.Clear();
 
         var clusterVersion = version is not null ? new Version(version) : _clusterBuilder.Cluster.Version;
         var clusterCompressed = await ClusterSerializer.CompressAsync(_clusterBuilder.Cluster, cancellationToken: TestContext.Current.CancellationToken);
