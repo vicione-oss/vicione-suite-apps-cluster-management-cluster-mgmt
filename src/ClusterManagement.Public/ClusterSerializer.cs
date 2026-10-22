@@ -28,7 +28,7 @@ public static class ClusterSerializer
             Converters =
             {
                 new SynchronizedTypeJsonConverter(new TypeJsonConverter()),
-                new TypeNameHandlingConfig(additionalAssemblies: assemblies.Length > 0 ? assemblies : null, useTypeCache: false),
+                new TypeNameHandlingConfig(additionalAssemblies: assemblies.Length > 0 ? assemblies : null, useTypeCache: true),
             },
         };
     }
