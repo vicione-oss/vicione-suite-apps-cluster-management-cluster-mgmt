@@ -1,3 +1,4 @@
+@using ClusterManagement.Client.Extensions
 @using ClusterManagement.Client.Management.Components
 @using ClusterManagement.Client.Management.Extensions
 @using ClusterManagement.Client.Management.Localization
@@ -82,7 +83,7 @@
                                 <div class="host-row">
                                     <span class="dot status-@(reporting ? "running" : "previous")"
                                           title="@(reporting ? ClusterOverview.HostReporting : ClusterOverview.HostNotReporting)"></span>
-                                    <span class="host-name">@host.Name</span>
+                                    <span class="host-name" title="@HoverTexts.NameWithDescription(host.Name, host.Description)">@host.Name</span>
                                     <span class="instance muted">@string.Format(ClusterOverview.OnNode, InstanceName(host))</span>
                                     @if (!Expert)
                                     {
@@ -117,7 +118,7 @@
                             var details = DetailsOf(engine);
                             <tr class="engine" @key="engine.EngineId">
                                 <td>
-                                    <span class="engine-name" title="@engine.EngineName">@engine.EngineName</span>
+                                    <span class="engine-name" title="@HoverTexts.NameWithDescription(engine.EngineName, engine.Description)">@engine.EngineName</span>
                                     @if (!details.Enabled)
                                     {
                                         <span class="chip status-default">@ClusterOverview.EngineDisabled</span>

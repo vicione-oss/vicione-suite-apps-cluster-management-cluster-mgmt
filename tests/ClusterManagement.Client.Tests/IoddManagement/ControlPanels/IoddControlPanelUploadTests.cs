@@ -2,23 +2,15 @@ using System.Globalization;
 using Bunit;
 using ClusterManagement.Client.IoddManagement.ControlPanels;
 using ClusterManagement.Client.IoddManagement.ControlPanels.Services;
-using ClusterManagement.Client.IoddManagement.Extensions;
 using ClusterManagement.Client.IoddManagement.Services;
 using ClusterManagement.Internal.Contracts;
 using ClusterManagement.Public.Iodds.Events;
 using Microsoft.Extensions.DependencyInjection;
 using Sdk.Client.Components.Settings;
 using Sdk.Client.Contracts;
-using Sdk.Client.ControlPanels.Components;
-using Sdk.Client.ControlPanels.Services;
 using Sdk.Client.Models;
 using Sdk.Client.Services;
 using Sdk.MessageBanner.Contracts;
-using Sdk.Modules;
-using Sdk.Testing.Client;
-using ViciOne.Ui.Blazor.Components.Dialog.Extensions;
-using ViciOne.Ui.Blazor.Components.Grid.Extensions;
-using ViciOne.Ui.MonochromeIcons.Assets.Services;
 
 namespace ClusterManagement.Client.Tests.IoddManagement.ControlPanels;
 
@@ -34,43 +26,13 @@ public class IoddControlPanelUploadTests
     private BunitContext SetupContext()
     {
         var ctx = new BunitContext();
-        ctx.SetupSuiteServices();
-        ctx.SetupControlPanelServices();
-        ctx.Services.AddDialog();
-        ctx.Services.AddGridItemSelectColumn();
-
-        ctx.Services.AddIoddManagement(ModuleIdResolver.ResolveId<ClusterManagementClientModule>());
-
-        ctx.Services.AddSingleton(_ioddService);
-        ctx.Services.AddSingleton(_bannerService);
-        ctx.Services.AddSingleton(_uploadTicketFactory);
-        ctx.Services.AddSingleton(_streamUploadHandler);
-        ctx.Services.AddSingleton(Substitute.For<IMonochromeIconSvgMarkupProvider>());
-        ctx.Services.AddSingleton(Substitute.For<IJsInterop>());
-        ctx.Services.AddKeyedSingleton(Sdk.Constants.ClientTimeProviderServiceKey, TimeProvider.System);
-
-        // The upload field is on the "Manual" page, so that page has to be the active one.
-        List<IControlPanelPage> pages = [];
-        var pageRegistry = Substitute.For<IControlPanelPageRegistry>();
-        pageRegistry.When(r => r.Add(Arg.Any<IControlPanelPage>(), Arg.Any<IControlPanelRegistryItem>())).Do(c => pages.Add(c.Arg<IControlPanelPage>()));
-        var activePageProvider = Substitute.For<IActiveControlPanelPageProvider>();
-        activePageProvider.GetActiveControlPanelPage(Arg.Any<IControlPanelRegistryItem>()).Returns(_ => pages.Find(p => p.Title == Client.IoddManagement.Localization.IoddControlPanel.Manual));
-        ctx.Services.AddSingleton(pageRegistry);
-        ctx.Services.AddSingleton(activePageProvider);
-        ctx.Services.AddSingleton(Substitute.For<IActiveControlPanelDescriptorProvider>());
-
-        ctx.AddAuthorization().SetAuthorized("admin");
+        ctx.SetupIoddControlPanel(_ioddService, _bannerService, _uploadTicketFactory, _streamUploadHandler);
 
         return ctx;
     }
 
     private static IRenderedComponent<IoddControlPanel> Render(BunitContext ctx)
         => ctx.Render<IoddControlPanel>(p => p.Add(c => c.State, new IoddControlPanelState()));
-
-    // TreeEditor.Builder 2.0.1 refreshes nodes from a 25 ms timer on the thread pool, and NodeTemplate
-    // handles the refresh in an async void method. A refresh that runs while the context is disposed
-    // throws a NullReferenceException there, which crashes the test host. Let it run before disposing.
-    private static Task SettleTreeAsync() => Task.Delay(150, Xunit.TestContext.Current.CancellationToken);
 
     private static async Task CompleteUpload(IRenderedComponent<IoddControlPanel> component)
     {
@@ -95,7 +57,7 @@ public class IoddControlPanelUploadTests
         await _ioddService.Received(1).AddIodd(DestinationFile, Arg.Any<CancellationToken>());
         _bannerService.DidNotReceive().ShowMessageBanner(MessageType.Error, Arg.Any<string>());
 
-        await SettleTreeAsync();
+        await IoddControlPanelTestServices.SettleTreeAsync();
     }
 
     public static TheoryData<int> UploadErrors => [
@@ -122,7 +84,7 @@ public class IoddControlPanelUploadTests
         // Assert
         _bannerService.Received(1).ShowMessageBanner(MessageType.Error, Localization.Common.UploadFailed);
 
-        await SettleTreeAsync();
+        await IoddControlPanelTestServices.SettleTreeAsync();
     }
 
     [Fact]
@@ -143,7 +105,7 @@ public class IoddControlPanelUploadTests
         var expected = string.Format(CultureInfo.CurrentCulture, Client.IoddManagement.Localization.IoddControlPanel.IoddAlreadyExists, "Acme Sensor A…");
         _bannerService.Received(1).ShowMessageBanner(MessageType.Error, expected);
 
-        await SettleTreeAsync();
+        await IoddControlPanelTestServices.SettleTreeAsync();
     }
 
     [Fact]
@@ -161,7 +123,7 @@ public class IoddControlPanelUploadTests
         // Assert
         _bannerService.Received(1).ShowMessageBanner(MessageType.Error, "backend message");
 
-        await SettleTreeAsync();
+        await IoddControlPanelTestServices.SettleTreeAsync();
     }
 
     [Fact]
@@ -185,7 +147,7 @@ public class IoddControlPanelUploadTests
         await CompleteUpload(component);
         await _ioddService.Received(1).AddIodd(DestinationFile, Arg.Any<CancellationToken>());
 
-        await SettleTreeAsync();
+        await IoddControlPanelTestServices.SettleTreeAsync();
     }
 
     [Fact]
@@ -203,6 +165,6 @@ public class IoddControlPanelUploadTests
         _bannerService.Received(1).ShowMessageBanner(MessageType.Error, "disk full");
         await _ioddService.DidNotReceive().AddIodd(Arg.Any<string>(), Arg.Any<CancellationToken>());
 
-        await SettleTreeAsync();
+        await IoddControlPanelTestServices.SettleTreeAsync();
     }
 }

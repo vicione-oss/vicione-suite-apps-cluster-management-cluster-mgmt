@@ -83,6 +83,24 @@ public class RuntimePanelTests
         sut.FindComponents<Button>().Should().ContainSingle(b => b.Instance.Text == ClusterOverview.OpenEngines);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Shows_the_description_of_an_engine_when_its_name_is_hovered(bool expert)
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        Setup(ctx);
+        var engine = new Engine { Id = Guid.NewGuid(), Name = "Filling", Description = "Fills the bottles of line 2", MinCycleTime = 500 };
+
+        // Act
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, expert).Add(c => c.Cluster, Cluster((_instanceId, engine))));
+
+        // Assert
+        sut.Find(".engine .name").GetAttribute("title").Should().Be("Filling\nFills the bottles of line 2");
+        sut.Find(".host-head .name").GetAttribute("title").Should().Be("DCW-Host");
+    }
+
     [Fact]
     public async Task Shows_the_state_of_every_engine()
     {

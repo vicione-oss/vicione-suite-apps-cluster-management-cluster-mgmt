@@ -35,7 +35,7 @@ public class DebugEnginesPageTests
 
     private readonly Guid _lineInstance = Guid.NewGuid();
     private readonly Guid _qualityInstance = Guid.NewGuid();
-    private readonly Engine _filling = new() { Id = Guid.NewGuid(), Name = "Filling", RunIndex = 2, MinCycleTime = 100 };
+    private readonly Engine _filling = new() { Id = Guid.NewGuid(), Name = "Filling", Description = "Fills the bottles", RunIndex = 2, MinCycleTime = 100 };
     private readonly Engine _capping = new() { Id = Guid.NewGuid(), Name = "Capping", RunIndex = 1, MinCycleTime = 100 };
     private readonly Engine _vision = new() { Id = Guid.NewGuid(), Name = "Vision", RunIndex = 1, MinCycleTime = 100 };
     private readonly IClusterManagementService _managementService = Substitute.For<IClusterManagementService>();
@@ -96,6 +96,21 @@ public class DebugEnginesPageTests
             StateText(sut, "Vision").Should().Be("…");
         });
         silent.SetException(new TimeoutException());
+    }
+
+    [Fact]
+    public async Task Shows_the_descriptions_of_engine_hosts_and_engines_when_their_names_are_hovered()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+
+        // Act
+        var sut = RenderPage(ctx);
+
+        // Assert
+        sut.FindAll("tr.host .host-name").Select(name => name.GetAttribute("title")).Should().Equal("Line-Host\nRuns the bottling line", "Quality-Host");
+        EngineRow(sut, "Filling").QuerySelector(".engine-name")!.GetAttribute("title").Should().Be("Filling\nFills the bottles");
+        EngineRow(sut, "Capping").QuerySelector(".engine-name")!.GetAttribute("title").Should().Be("Capping");
     }
 
     [Fact]
@@ -606,7 +621,7 @@ public class DebugEnginesPageTests
                     Nodes =
                     [
                         Node(_qualityInstance, new EngineHost { Id = Guid.NewGuid(), Name = "Quality-Host", Engines = [_vision] }),
-                        Node(_lineInstance, new EngineHost { Id = Guid.NewGuid(), Name = "Line-Host", Engines = [_filling, _capping] }),
+                        Node(_lineInstance, new EngineHost { Id = Guid.NewGuid(), Name = "Line-Host", Description = "Runs the bottling line", Engines = [_filling, _capping] }),
                     ],
                 },
             ],

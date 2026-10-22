@@ -29,6 +29,8 @@
 - Cluster Manager shows the steps of a standalone instance only once its update has ended
 - Cluster Manager deploys the default cluster from a quick action in the version list, after a confirmation
 - Cluster Manager Expert view, switched on in the page bar for the session: adds the topology counts, the cycle times and journal links of the engine hosts, the steps of each instance, the deployment state, the packages, downloading and deleting versions and the Engines page; the Standard view keeps every state and error
+- Cluster Manager runtime panel and Engines page show the description of an engine host or engine when its name is hovered
+- IODD list shows the description of a device variant when its name is hovered
 - Event Viewer marks values the engine sent as invalid; its Expert view adds the engine cycle that sent each value and the milliseconds of its time
 - Deploy DataPort trees with envelope children (datapoints under a datapoint): the parent keeps its own connector and channel, and every child gets a connector that the parent transfers with the parent's transfer mode; serving them needs a DataPort provider built for envelope children (`dp-mqtt` from `2.0.0`)
 

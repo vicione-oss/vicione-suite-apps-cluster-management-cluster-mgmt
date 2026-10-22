@@ -4,6 +4,8 @@ namespace ClusterManagement.Client.Management.Models;
 
 public sealed record EngineHostRuntimeModel(Guid Id, Guid InstanceId, string Name, bool ElevatedPrivileges, IReadOnlyList<EngineRuntimeModel> Engines)
 {
+    public string? Description { get; init; }
+
     /// <summary>
     /// The cycle time in milliseconds all engines of the host share: the engine host runs them one after another in one
     /// cycle and rejects an engine whose cycle time differs from the one it runs with. Zero without engines.
@@ -23,7 +25,13 @@ public sealed record EngineHostRuntimeModel(Guid Id, Guid InstanceId, string Nam
                 instance.Id,
                 host.Name,
                 host.ElevatedPrivileges,
-                [.. host.Engines.Select(engine => new EngineRuntimeModel(instance.Id, engine.Id, engine.Name, engine.MinCycleTime))])))];
+                [.. host.Engines.Select(engine => new EngineRuntimeModel(instance.Id, engine.Id, engine.Name, engine.MinCycleTime)
+                {
+                    Description = engine.Description,
+                })])
+            {
+                Description = host.Description,
+            }))];
 
     /// <summary>
     /// The names of the instances that run the engine hosts of <paramref name="cluster"/>, by instance id.
