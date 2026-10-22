@@ -1,6 +1,8 @@
-﻿using ClusterManagement.Client.DataflowEvents.Services;
+﻿using System.IO.Abstractions;
+using ClusterManagement.Client.DataflowEvents.Services;
 using ClusterManagement.Public.DataflowEvents;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Sdk.Client.Services;
 
@@ -10,6 +12,7 @@ internal static class IServiceCollectionExtensions
 {
     internal static IServiceCollection AddDataflowEvents(this IServiceCollection services)
     {
+        services.TryAddSingleton<IFileSystem, FileSystem>();
         services
             .AddScoped(provider => new DataflowEventPageService(
                 provider.GetRequiredService<IDataflowEventBroker>(),
