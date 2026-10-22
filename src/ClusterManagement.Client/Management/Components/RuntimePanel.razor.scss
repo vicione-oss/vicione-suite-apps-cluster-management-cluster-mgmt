@@ -57,6 +57,17 @@
             gap: 10px;
             min-width: 0;
 
+            // Shrinks by its own width like the name, so a long chip cannot squeeze the name away in a narrow column.
+            // inline-block instead of the mixin's inline-flex, because the ellipsis does not apply to a flex container's text.
+            .chip {
+                display: inline-block;
+                flex: 0 1 auto;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                line-height: 22px;
+            }
+
             ::deep .cycle-chart {
                 width: 96px;
                 height: 24px;
@@ -65,8 +76,9 @@
             }
         }
 
+        // Shrinks by its own width next to the chips of the title, so neither squeezes the other away.
         .name {
-            flex: 1;
+            flex: 1 1 auto;
             min-width: 0;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -114,6 +126,12 @@
 
         & + .engine {
             border-top: 1px solid colors.$background-light;
+        }
+
+        // Starts where the engine names start, after the 8px state dot and the gap.
+        &.no-engines {
+            padding-left: 30px;
+            font-size: 12px;
         }
 
         ::deep .cycle-chart {
@@ -178,6 +196,10 @@
 
     .muted {
         @include overview.muted;
+    }
+
+    .empty {
+        padding: overview.$panel-padding;
     }
 
     .chip {

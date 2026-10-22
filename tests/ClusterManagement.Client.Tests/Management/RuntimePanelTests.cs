@@ -101,6 +101,44 @@ public class RuntimePanelTests
         sut.Find(".host-head .name").GetAttribute("title").Should().Be("DCW-Host");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Says_so_when_the_running_version_has_no_engine_hosts(bool expert)
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        Setup(ctx);
+
+        // Act
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, expert).Add(c => c.Cluster, Cluster()));
+
+        // Assert
+        sut.Find(".empty").TextContent.Should().Be(ClusterOverview.NoEngines);
+        sut.FindAll(".host").Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Says_so_inside_the_card_of_an_engine_host_without_engines(bool expert)
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        Setup(ctx);
+        var cluster = Cluster((_instanceId, _engine));
+        cluster.NodeGroups[0].Nodes[0].Applications[0].EngineHosts.Add(new EngineHost { Id = Guid.NewGuid(), Name = "Empty-Host", Engines = [] });
+
+        // Act
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, expert).Add(c => c.Cluster, cluster));
+
+        // Assert
+        var hosts = sut.FindAll(".host");
+        hosts.Should().HaveCount(2);
+        hosts[0].QuerySelector(".no-engines").Should().BeNull();
+        hosts[1].QuerySelector(".no-engines")!.TextContent.Should().Be(ClusterOverview.NoEnginesOnHost);
+    }
+
     [Fact]
     public async Task Shows_the_state_of_every_engine()
     {
@@ -465,6 +503,41 @@ public class RuntimePanelTests
             sut.Find(".host-cycle .cycle-value").ClassList.Should().Contain("over");
             sut.Find(".host-head .cycle-time").ClassList.Should().Contain("over");
         });
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Shows_the_full_text_of_the_cycle_time_warning_when_it_is_hovered(bool expert)
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        Setup(ctx);
+        var cluster = Cluster((_instanceId, _engine));
+        var hostId = cluster.NodeGroups[0].Nodes[0].Applications[0].EngineHosts[0].Id;
+        ctx.Services.GetRequiredService<EngineCycleHub>().Series.Add(hostId, new EngineCycleReport(650, []), DateTimeOffset.UtcNow);
+
+        // Act
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, expert).Add(c => c.Cluster, cluster));
+
+        // Assert
+        sut.WaitForAssertion(() => sut.Find(".host-title .chip.status-warning").GetAttribute("title").Should().Be(ClusterOverview.CycleTimeExceeded));
+    }
+
+    [Fact]
+    public async Task Shows_the_full_text_of_the_privileged_chip_when_it_is_hovered()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        Setup(ctx);
+        var cluster = Cluster((_instanceId, _engine));
+        cluster.NodeGroups[0].Nodes[0].Applications[0].EngineHosts[0].ElevatedPrivileges = true;
+
+        // Act
+        var sut = ctx.Render<RuntimePanel>(p => p.Add(c => c.Expert, true).Add(c => c.Cluster, cluster));
+
+        // Assert
+        sut.Find(".host-title .chip.status-default").GetAttribute("title").Should().Be(ClusterOverview.Privileged);
     }
 
     [Fact]

@@ -809,6 +809,15 @@ namespace ClusterManagement.Client.Management.Localization {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to No engines on this host..
+        /// </summary>
+        internal static string NoEnginesOnHost {
+            get {
+                return ResourceManager.GetString("NoEnginesOnHost", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to This version uses no packages..
         /// </summary>
         internal static string NoPackages {
