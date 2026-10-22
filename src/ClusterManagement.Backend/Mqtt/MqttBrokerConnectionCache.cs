@@ -26,8 +26,7 @@ public sealed class MqttBrokerConnectionCache(IServiceProvider services) : IMqtt
         var fileSystem = services.GetRequiredService<IFileSystem>();
         var connection = await GetMqttConnection(cancellationToken);
         return new MqttClientOptionsBuilder()
-            .WithSuiteConnection(connection)
-            .WithSslProtocol(connection, fileSystem);
+            .WithSuiteConnection(connection, fileSystem);
     }
 
     public async Task<MqttConnection> GetMqttConnection(CancellationToken cancellationToken)

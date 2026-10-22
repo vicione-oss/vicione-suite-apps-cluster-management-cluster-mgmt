@@ -11,10 +11,16 @@ namespace ClusterManagement.Internal.Extensions;
 
 /// <summary>
 /// Copy of suite internal extension methods for <see cref="MqttClientOptionsBuilder"/> to support MQTT connections in the cluster management backend and client.
+/// Keep it in line with the suite's <c>Core.Shared/Extensions/MqttClientOptionsBuilderExtensions.cs</c>.
 /// </summary>
 public static class MqttClientOptionsBuilderExtensions
 {
-    public static MqttClientOptionsBuilder WithSuiteConnection(this MqttClientOptionsBuilder builder, MqttConnection connection)
+    /// <summary>
+    /// Applies all settings of <paramref name="connection"/>, its TLS settings included. Broker certificates are only accepted
+    /// without validation when <see cref="MqttConnection.AllowUntrustedCertificates"/> is set. A client certificate and key given
+    /// as file paths are read through <paramref name="fileSystem"/>.
+    /// </summary>
+    public static MqttClientOptionsBuilder WithSuiteConnection(this MqttClientOptionsBuilder builder, MqttConnection connection, IFileSystem fileSystem)
     {
         if (!string.IsNullOrWhiteSpace(connection.Username))
         {
@@ -27,96 +33,93 @@ public static class MqttClientOptionsBuilderExtensions
         if (!string.IsNullOrWhiteSpace(connection.ClientId))
             builder.WithClientId(connection.ClientId);
 
+        // A keep-alive of 0 turns keep-alive off. MQTTnet waits the timeout for every response from the broker, not only for
+        // the connection.
+        builder
+            .WithKeepAlivePeriod(TimeSpan.FromSeconds(connection.KeepAliveSeconds))
+            .WithTimeout(TimeSpan.FromSeconds(connection.ConnectTimeoutSeconds));
+
+        var useTls = connection.UsesTls();
+
         builder
             .WithCleanSession(connection.CleanSession)
-            .WithProtocolAndVersion(connection)
+            .WithProtocolAndVersion(connection, useTls)
             .WithWillOptions(connection);
+
+        if (useTls)
+            builder.WithTlsOptions(CreateTlsOptions(connection, fileSystem));
 
         return builder;
     }
 
     /// <summary>
-    /// Applies the TLS settings of <paramref name="connection"/>: its client certificate, or else the TLS version it
-    /// selects. Without either the options stay unencrypted.
+    /// Creates the TLS options from the selected TLS version, <see cref="MqttConnection.AllowUntrustedCertificates"/> and the
+    /// client certificate. Over WebSocket MQTTnet does not apply the TLS version; the operating system chooses it.
     /// </summary>
-    public static MqttClientOptionsBuilder WithSslProtocol(this MqttClientOptionsBuilder builder, MqttConnection connection, IFileSystem fileSystem)
+    private static MqttClientTlsOptions CreateTlsOptions(MqttConnection connection, IFileSystem fileSystem)
     {
-        if (string.IsNullOrWhiteSpace(connection.ClientCertificate) && connection.SslProtocol is null)
-            return builder;
-
         var tlsOptions = new MqttClientTlsOptions
         {
             UseTls = true,
             AllowUntrustedCertificates = connection.AllowUntrustedCertificates,
         };
 
-        // prefer certificate over tls
-        if (connection.ClientCertificate is not null)
-        {
-            // Accept all certs. This is not very secure, but necessary for self-signed certs
-            if (tlsOptions.AllowUntrustedCertificates && !string.IsNullOrWhiteSpace(connection.ClientCertificate))
-            {
-                tlsOptions.CertificateValidationHandler = _ => true;
-            }
+        if (connection.SslProtocol is { } sslProtocol)
+            tlsOptions.SslProtocol = ToSslProtocols(sslProtocol);
 
+        // Accepts any broker certificate. This is not very secure, but necessary for self-signed certificates.
+        if (connection.AllowUntrustedCertificates)
+            tlsOptions.CertificateValidationHandler = _ => true;
+
+        if (!string.IsNullOrWhiteSpace(connection.ClientCertificate))
+        {
             using var clientCert = CreateOrLoadClientCertificate(
                 connection.ClientCertificate,
                 connection.ClientCertificateKey,
                 connection.ClientCertificateKeyPassword,
                 fileSystem);
 
-            if (clientCert is not null)
-            {
-                var pkcs12 = clientCert.Export(X509ContentType.Pkcs12);
+            // SChannel refuses the ephemeral key of a PEM certificate. A PKCS#12 import gives it a key that is not ephemeral,
+            // whose key file is removed again when the certificate is disposed or finalized.
+            var fixedCert = X509CertificateLoader.LoadPkcs12(clientCert.Export(X509ContentType.Pkcs12), password: null);
 
-#pragma warning disable SYSLIB0057 // Workaround for certificate not marked as exportable or persistent
-                var fixedCert = new X509Certificate2(
-                    pkcs12,
-                    (string?)null,
-                    X509KeyStorageFlags.UserKeySet | X509KeyStorageFlags.Exportable | X509KeyStorageFlags.PersistKeySet
-                );
-#pragma warning restore SYSLIB0057
-
-                tlsOptions.ClientCertificatesProvider = new DefaultMqttCertificatesProvider(
-                    new List<X509Certificate2> { fixedCert });
-            }
-
-            builder.WithTlsOptions(tlsOptions);
-
-            return builder;
+            tlsOptions.ClientCertificatesProvider = new DefaultMqttCertificatesProvider(
+                new List<X509Certificate2> { fixedCert });
         }
 
-        // We have no ClientCertificate here but tls selection
-        if (connection.SslProtocol is MqttSslProtocol.Tls12 or MqttSslProtocol.Tls13)
-        {
-            builder.WithTlsOptions(tls =>
-            {
-                tls.UseTls();
-                tls.WithSslProtocols(ToSslProtocols(connection.SslProtocol ?? throw new InvalidOperationException("SslProtocol error")));
-            });
-        }
-
-        return builder;
+        return tlsOptions;
 
         [SuppressMessage("Security", "CA5398:Avoid hardcoded SslProtocols values",
             Justification = "The TLS version is selected by the user through MqttConnection.SslProtocol; this only maps that choice onto SslProtocols.")]
-        static SslProtocols ToSslProtocols(MqttSslProtocol proctocol) => proctocol switch
+        static SslProtocols ToSslProtocols(MqttSslProtocol protocol) => protocol switch
         {
             MqttSslProtocol.Tls12 => SslProtocols.Tls12,
             MqttSslProtocol.Tls13 => SslProtocols.Tls13,
-            _ => throw new InvalidEnumArgumentException(nameof(proctocol), (int)proctocol, typeof(MqttSslProtocol)),
+            _ => throw new InvalidEnumArgumentException(nameof(protocol), (int)protocol, typeof(MqttSslProtocol)),
         };
     }
 
-    private static X509Certificate2? CreateOrLoadClientCertificate(string clientCertificate, string? clientCertificateKey, string? clientCertificateKeyPassword, IFileSystem fileSystem)
+    /// <summary>
+    /// The settings UI hides the certificate fields when no TLS version is selected, so only <see cref="MqttConnection.SslProtocol"/>
+    /// and the obsolete <see cref="MqttConnectionType.TCPWithTLS"/> switch TLS on.
+    /// </summary>
+    private static bool UsesTls(this MqttConnection connection)
+#pragma warning disable CS0618 // Connections stored before SslProtocol existed still carry TCPWithTLS.
+        => connection.SslProtocol is not null || connection.Protocol == MqttConnectionType.TCPWithTLS;
+#pragma warning restore CS0618
+
+    private static X509Certificate2 CreateOrLoadClientCertificate(string clientCertificate, string? clientCertificateKey, string? clientCertificateKeyPassword, IFileSystem fileSystem)
     {
+        if (string.IsNullOrWhiteSpace(clientCertificateKey))
+            clientCertificateKey = null;
+
         if (fileSystem.Path.IsPathRooted(clientCertificate)
-            && (string.IsNullOrEmpty(clientCertificateKey) || fileSystem.Path.IsPathRooted(clientCertificateKey)))
+            && (clientCertificateKey is null || fileSystem.Path.IsPathRooted(clientCertificateKey)))
         {
             if (!fileSystem.File.Exists(clientCertificate))
                 throw new FileNotFoundException($"Could not find certificate file in {clientCertificate}");
 
-            if (!string.IsNullOrEmpty(clientCertificateKey) && !fileSystem.File.Exists(clientCertificateKey))
+            if (clientCertificateKey is not null && !fileSystem.File.Exists(clientCertificateKey))
                 throw new FileNotFoundException($"Could not find private key file in {clientCertificateKey}");
 
             return fileSystem.CreateFromPemFile(clientCertificate, clientCertificateKey, clientCertificateKeyPassword);
@@ -125,32 +128,37 @@ public static class MqttClientOptionsBuilderExtensions
         if (fileSystem.Path.IsPathRooted(clientCertificate) || fileSystem.Path.IsPathRooted(clientCertificateKey))
             throw new InvalidOperationException("The certificates and the certificate key must either both be a file path, or none");
 
-        if (!string.IsNullOrWhiteSpace(clientCertificateKeyPassword))
-            return X509Certificate2.CreateFromEncryptedPemFile(clientCertificate, clientCertificateKeyPassword, clientCertificateKey);
-
-        return X509Certificate2.CreateFromPem(clientCertificate, clientCertificateKey);
+        return CreateFromPem(clientCertificate, clientCertificateKey ?? clientCertificate, clientCertificateKeyPassword);
     }
 
     private static X509Certificate2 CreateFromPemFile(this IFileSystem fileSystem, string certPemFilePath, string? keyPemFilePath = null, string? certificateKeyPassword = null)
     {
         var certContents = fileSystem.File.ReadAllText(certPemFilePath);
-        var keyContents = keyPemFilePath is null ? certContents : fileSystem.File.ReadAllText(keyPemFilePath);
+        var keyContents = string.IsNullOrWhiteSpace(keyPemFilePath) ? certContents : fileSystem.File.ReadAllText(keyPemFilePath);
 
-        if (!string.IsNullOrWhiteSpace(certificateKeyPassword))
-            return X509Certificate2.CreateFromEncryptedPemFile(certContents, certificateKeyPassword, keyContents);
-
-        return X509Certificate2.CreateFromPem(certContents, keyContents);
+        return CreateFromPem(certContents, keyContents, certificateKeyPassword);
     }
 
-    private static MqttClientOptionsBuilder WithProtocolAndVersion(this MqttClientOptionsBuilder builder, MqttConnection connection)
+    /// <summary>
+    /// Takes PEM content; the <c>*PemFile</c> variants of <see cref="X509Certificate2"/> read from the real file system.
+    /// </summary>
+    private static X509Certificate2 CreateFromPem(string certPem, string keyPem, string? keyPassword)
+        => string.IsNullOrWhiteSpace(keyPassword)
+            ? X509Certificate2.CreateFromPem(certPem, keyPem)
+            : X509Certificate2.CreateFromEncryptedPem(certPem, keyPem, keyPassword);
+
+    private static MqttClientOptionsBuilder WithProtocolAndVersion(this MqttClientOptionsBuilder builder, MqttConnection connection, bool useTls)
     {
         switch (connection.Protocol)
         {
             case MqttConnectionType.TCP:
+#pragma warning disable CS0618 // Connections stored before SslProtocol existed still carry TCPWithTLS.
+            case MqttConnectionType.TCPWithTLS:
+#pragma warning restore CS0618
                 builder.WithTcpServer(connection.Address, connection.Port);
                 break;
             case MqttConnectionType.WebSocket:
-                builder.WithWebSocketServer(b => b.WithUri(connection.GetWebsocketUri().ToString()));
+                builder.WithWebSocketServer(b => b.WithUri(GetWebSocketUri(connection, useTls)));
                 break;
             default:
                 throw new InvalidEnumArgumentException(nameof(connection.Protocol),
@@ -162,20 +170,37 @@ public static class MqttClientOptionsBuilderExtensions
 
         return builder;
 
-        static MQTTnet.Formatter.MqttProtocolVersion ToMqttProtocolVersion(MqttProtocolVersion proctocolVersion) => proctocolVersion switch
+        static MQTTnet.Formatter.MqttProtocolVersion ToMqttProtocolVersion(MqttProtocolVersion protocolVersion) => protocolVersion switch
         {
             MqttProtocolVersion.V311 => MQTTnet.Formatter.MqttProtocolVersion.V311,
             MqttProtocolVersion.V500 => MQTTnet.Formatter.MqttProtocolVersion.V500,
-            _ => throw new InvalidEnumArgumentException(nameof(proctocolVersion), (int)proctocolVersion, typeof(MqttProtocolVersion)),
+            _ => throw new InvalidEnumArgumentException(nameof(protocolVersion), (int)protocolVersion, typeof(MqttProtocolVersion)),
         };
     }
 
+    /// <summary>
+    /// <see cref="MqttConnectionExtensions.GetWebsocketUri"/> maps only <c>http</c> to <c>ws</c>; the WebSocket client accepts
+    /// nothing but <c>ws</c> and <c>wss</c>, and a selected TLS version has to end up as <c>wss</c>.
+    /// </summary>
+    private static string GetWebSocketUri(MqttConnection connection, bool useTls)
+    {
+        var uriBuilder = new UriBuilder(connection.GetWebsocketUri());
+        var isSecureScheme = uriBuilder.Scheme is "https" or "wss";
+
+        uriBuilder.Scheme = useTls || isSecureScheme ? "wss" : "ws";
+
+        return uriBuilder.Uri.ToString();
+    }
+
+    /// <summary>
+    /// An empty <see cref="MqttConnection.WillMessage"/> is sent as an empty payload, which MQTT allows.
+    /// </summary>
     private static MqttClientOptionsBuilder WithWillOptions(this MqttClientOptionsBuilder builder, MqttConnection connection)
     {
-        if (string.IsNullOrWhiteSpace(connection.WillMessage) || string.IsNullOrWhiteSpace(connection.WillTopic))
+        if (string.IsNullOrWhiteSpace(connection.WillTopic))
             return builder;
 
-        builder.WithWillPayload(connection.WillMessage);
+        builder.WithWillPayload(connection.WillMessage ?? string.Empty);
         builder.WithWillTopic(connection.WillTopic);
         builder.WithWillRetain(connection.WillRetain);
         builder.WithWillQualityOfServiceLevel(ToMqttQualityOfServiceLevel(connection.QualityOfService));

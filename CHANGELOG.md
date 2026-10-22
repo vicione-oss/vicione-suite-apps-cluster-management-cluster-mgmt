@@ -134,6 +134,10 @@
 - Dataflow events page no longer stops receiving values when a write or subscription reconnects to the broker after the connection dropped
 - Uploaded package and IODD archives are rejected if they have more than `MaxArchiveEntries` (default 1,000) entries or extract to more than `MaxArchiveExtractedSize` (default 100 MB), so a zip bomb can no longer fill the disk; package entries that would be extracted outside of the package directory are rejected as damaged
 - The dataflow events page and the debug engines page require full access to Cluster Management like its other pages; any signed-in user could open them by URL, write dataflow inputs and start, stop or tear down engines
+- MQTT connections to the suite broker, the engine host brokers and the dataflow events broker apply their keep-alive, timeout and TLS settings, also with an encrypted client key or the obsolete TCP with TLS transport
+- MQTT connections over WebSocket use `wss` for an `https` address or a selected TLS version
+- An MQTT will with an empty message is sent
+- A client certificate no longer switches TLS on; a connection that needs it has to select a TLS version
 
 ## 2.3.0 - 2026-07-13
 

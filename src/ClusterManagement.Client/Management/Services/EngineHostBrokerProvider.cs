@@ -30,8 +30,7 @@ internal sealed class EngineHostBrokerProvider(IUiMediator mediator, IFileSystem
     // The same TLS settings the backend connects the engine hosts with.
     private MqttClientOptions ToOptions(MqttConnection mqtt)
         => new MqttClientOptionsBuilder()
-            .WithSuiteConnection(mqtt)
-            .WithSslProtocol(mqtt, fileSystem)
+            .WithSuiteConnection(mqtt, fileSystem)
             .WithClientId($"cm-cycles-{Guid.NewGuid()}")
             .Build();
 }

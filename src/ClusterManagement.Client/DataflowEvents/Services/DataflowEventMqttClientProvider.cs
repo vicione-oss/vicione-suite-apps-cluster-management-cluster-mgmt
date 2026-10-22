@@ -1,4 +1,5 @@
-﻿using ClusterManagement.Internal.Extensions;
+﻿using System.IO.Abstractions;
+using ClusterManagement.Internal.Extensions;
 using MQTTnet;
 using Sdk.Client.Infrastructure;
 using Sdk.Connections;
@@ -8,9 +9,10 @@ using Sdk.Connections.Requests;
 
 namespace ClusterManagement.Client.DataflowEvents.Services;
 
-internal sealed class DataflowEventMqttClientProvider(IUiMediator mediator) : IDataflowEventMqttClientProvider, IDisposable
+internal sealed class DataflowEventMqttClientProvider(IUiMediator mediator, IFileSystem fileSystem) : IDataflowEventMqttClientProvider, IDisposable
 {
     private readonly IUiMediator _mediator = mediator;
+    private readonly IFileSystem _fileSystem = fileSystem;
     private readonly SemaphoreSlim _connectionSemaphore = new(1, 1);
     private MqttConnection? _connection;
 
@@ -40,7 +42,7 @@ internal sealed class DataflowEventMqttClientProvider(IUiMediator mediator) : ID
             throw new InvalidOperationException("Failed to load system mqtt connection");
 
         return new MqttClientOptionsBuilder()
-                .WithSuiteConnection(_connection)
+                .WithSuiteConnection(_connection, _fileSystem)
                 .WithClientId($"cm-events-{Guid.NewGuid()}")
                 .Build();
     }
