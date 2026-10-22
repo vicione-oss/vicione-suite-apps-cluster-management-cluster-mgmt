@@ -24,4 +24,9 @@ public enum AddDeviceResult
     /// The IODD files could not be extracted to the store.
     /// </summary>
     ExtractionFailed,
+
+    /// <summary>
+    /// The archive has more entries or extracts to more bytes than the configured archive limits allow; nothing of the device was kept.
+    /// </summary>
+    ArchiveTooLarge,
 }

@@ -337,6 +337,7 @@ public sealed partial class IoddControlPanel
         {
             IoddChanged.IoddAlreadyExists when error.ExistingDevice is not null
                 => string.Format(CultureInfo.CurrentCulture, Localization.IoddControlPanel.IoddAlreadyExists, error.ExistingDevice.GetDisplayName()),
+            IoddChanged.ArchiveTooLarge => Common.ArchiveTooLarge,
             IoddChanged.ExtractZipError
                 or IoddChanged.IoddAlreadyExists
                 or IoddChanged.IoddFileNotFound

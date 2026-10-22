@@ -91,6 +91,7 @@ public class PackagesControlPanelUploadTests
     {
         { ClusterPackageChanged.NotAZipArchive, Common.FileTypeMissmatch },
         { ClusterPackageChanged.EmptyArchive, Common.FileIsEmpty },
+        { ClusterPackageChanged.ArchiveTooLarge, Common.ArchiveTooLarge },
         { ClusterPackageChanged.PackageVersionInUse, Client.Editor.ControlPanels.Packages.Localization.PackagesControlPanel.PackageVersionInUse },
         { ClusterPackageChanged.CorruptArchive, Common.UploadFailed },
         { ClusterPackageChanged.InvalidPackageContent, Common.UploadFailed },

@@ -1,8 +1,11 @@
 ﻿using System.IO.Abstractions.TestingHelpers;
 using System.IO.Compression;
+using System.Text;
 using ClusterManagement.Backend.Iodds;
+using ClusterManagement.Internal;
 using ClusterManagement.Public.Iodds;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Sdk.Backend.Modules;
 
 namespace ClusterManagement.Backend.Tests.Iodds;
@@ -11,11 +14,27 @@ public class IoddStoreTests
 {
     private readonly MockFileSystem _fileSystem = new();
 
-    private IoddStore CreateStore() => new(
+    private IoddStore CreateStore(ClusterManagementOptions? options = null) => new(
         new NullLogger<IoddStore>(),
         Substitute.For<IWorkspaceProvider<ClusterManagementBackendModule>>(),
         _fileSystem,
-        Substitute.For<IServiceProvider>());
+        Substitute.For<IServiceProvider>(),
+        Options.Create(options ?? new ClusterManagementOptions()));
+
+    private static ZipArchive OpenArchive(params (string Name, string Content)[] entries)
+    {
+        var memoryStream = new MemoryStream();
+        using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+        {
+            foreach (var (name, content) in entries)
+            {
+                using StreamWriter writer = new(archive.CreateEntry(name).Open());
+                writer.Write(content);
+            }
+        }
+        memoryStream.Position = 0;
+        return new(memoryStream, ZipArchiveMode.Read);
+    }
 
     public sealed class AddDevice : IoddStoreTests
     {
@@ -99,6 +118,81 @@ public class IoddStoreTests
             result.Should().Be(AddDeviceResult.AlreadyExists);
             ioddId.Should().Be(new IoddId(310, 2));
             store.Devices.Should().ContainSingle();
+        }
+
+        [Fact]
+        public void Should_return_archive_too_large_and_extract_nothing_when_archive_has_too_many_entries()
+        {
+            // Arrange
+            var store = CreateStore(new ClusterManagementOptions { MaxArchiveEntries = 1 });
+            using var archive = OpenArchive(("ifm-myDevice-20250323-IODD1.1.xml", IoddConstants.IoddDeviceTwo), ("readme.txt", "readme"));
+
+            // Act
+            var result = store.AddDevice(archive, out _);
+
+            // Assert
+            result.Should().Be(AddDeviceResult.ArchiveTooLarge);
+            store.Devices.Should().BeEmpty();
+            _fileSystem.AllFiles.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Should_return_archive_too_large_and_extract_nothing_when_archive_declares_too_many_bytes()
+        {
+            // Arrange
+            var store = CreateStore(new ClusterManagementOptions { MaxArchiveExtractedSize = 100 });
+            using var archive = OpenArchive(("ifm-myDevice-20250323-IODD1.1.xml", IoddConstants.IoddDeviceTwo));
+
+            // Act
+            var result = store.AddDevice(archive, out _);
+
+            // Assert
+            result.Should().Be(AddDeviceResult.ArchiveTooLarge);
+            store.Devices.Should().BeEmpty();
+            _fileSystem.AllFiles.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Should_return_archive_too_large_and_remove_extracted_files_when_size_limit_is_hit_while_extracting()
+        {
+            // Arrange
+            // Entries of an update mode archive declare no size, so the limit is only hit while extracting.
+            var store = CreateStore(new ClusterManagementOptions { MaxArchiveExtractedSize = Encoding.UTF8.GetByteCount(IoddConstants.IoddDeviceTwo) + 100 });
+            using ZipArchive archive = new(new MemoryStream(), ZipArchiveMode.Update);
+            using (StreamWriter writer = new(archive.CreateEntry("ifm-myDevice-20250323-IODD1.1.xml").Open()))
+                writer.Write(IoddConstants.IoddDeviceTwo);
+            using (var stream = archive.CreateEntry("ifm-myDevice-pic.png").Open())
+                stream.Write(new byte[1_000]);
+
+            // Act
+            var result = store.AddDevice(archive, out _);
+
+            // Assert
+            result.Should().Be(AddDeviceResult.ArchiveTooLarge);
+            store.Devices.Should().BeEmpty();
+            _fileSystem.AllFiles.Should().BeEmpty();
+            _fileSystem.Directory.GetDirectories(store.IoddDirectory).Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Should_keep_existing_vendor_directory_when_size_limit_is_hit_while_extracting()
+        {
+            // Arrange
+            var store = CreateStore(new ClusterManagementOptions { MaxArchiveExtractedSize = Encoding.UTF8.GetByteCount(IoddConstants.IoddDeviceTwo) + 100 });
+            var vendorDirectory = _fileSystem.Path.Combine(store.IoddDirectory, "310");
+            _fileSystem.AddFile(_fileSystem.Path.Combine(vendorDirectory, "1500", "ifm-myOtherDevice-20250323-IODD1.1.xml"), IoddConstants.IoddDeviceRevOneOne);
+            using ZipArchive archive = new(new MemoryStream(), ZipArchiveMode.Update);
+            using (StreamWriter writer = new(archive.CreateEntry("ifm-myDevice-20250323-IODD1.1.xml").Open()))
+                writer.Write(IoddConstants.IoddDeviceTwo);
+            using (var stream = archive.CreateEntry("ifm-myDevice-pic.png").Open())
+                stream.Write(new byte[1_000]);
+
+            // Act
+            var result = store.AddDevice(archive, out _);
+
+            // Assert
+            result.Should().Be(AddDeviceResult.ArchiveTooLarge);
+            _fileSystem.Directory.GetDirectories(vendorDirectory).Should().ContainSingle().Which.Should().EndWith("1500");
         }
     }
 
@@ -301,6 +395,46 @@ public class IoddStoreTests
                     second.DeviceDescription.DeviceIdentity.VendorId.Should().Be(311);
                     second.DeviceDescription.DeviceIdentity.DeviceId.Should().Be(3);
                 });
+        }
+
+        [Fact]
+        public void Should_return_false_and_extract_nothing_when_archive_has_too_many_entries()
+        {
+            // Arrange
+            var store = CreateStore(new ClusterManagementOptions { MaxArchiveEntries = 1 });
+            using var archive = OpenArchive(
+                ("310/2/ifm-myDevice-20250323-IODD1.1.xml", IoddConstants.IoddDeviceTwo),
+                ("311/3/ifm-myDevice-20250323-IODD1.1.xml", IoddConstants.IoddDeviceThree));
+
+            // Act
+            var result = store.TryAddDevices(archive);
+
+            // Assert
+            result.Should().BeFalse();
+            store.Devices.Should().BeEmpty();
+            _fileSystem.AllFiles.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Should_return_false_and_keep_devices_extracted_before_the_size_limit_was_hit()
+        {
+            // Arrange
+            // Entries of an update mode archive declare no size, so the limit is only hit while extracting the second device.
+            var store = CreateStore(new ClusterManagementOptions { MaxArchiveExtractedSize = Encoding.UTF8.GetByteCount(IoddConstants.IoddDeviceTwo) + 100 });
+            using ZipArchive archive = new(new MemoryStream(), ZipArchiveMode.Update);
+            using (StreamWriter writer = new(archive.CreateEntry("310/2/ifm-myDevice-20250323-IODD1.1.xml").Open()))
+                writer.Write(IoddConstants.IoddDeviceTwo);
+            using (StreamWriter writer = new(archive.CreateEntry("311/3/ifm-myDevice-20250323-IODD1.1.xml").Open()))
+                writer.Write(IoddConstants.IoddDeviceThree);
+
+            // Act
+            var result = store.TryAddDevices(archive);
+
+            // Assert
+            result.Should().BeFalse();
+            store.Devices.Should().ContainSingle().Which.DeviceDescription.DeviceIdentity.VendorId.Should().Be(310);
+            _fileSystem.AllFiles.Should().ContainSingle().Which.Should().Contain("310");
+            _fileSystem.Directory.Exists(_fileSystem.Path.Combine(store.IoddDirectory, "311")).Should().BeFalse();
         }
     }
 

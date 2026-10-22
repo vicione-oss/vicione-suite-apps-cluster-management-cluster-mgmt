@@ -42,6 +42,7 @@ public interface IIoddStore
     /// <param name="ioddId">
     /// When this method returns, contains the IODD ID read from the archive if the result is
     /// <see cref="AddDeviceResult.Added"/>, <see cref="AddDeviceResult.AlreadyExists"/> or <see cref="AddDeviceResult.ExtractionFailed"/>.
+    /// For <see cref="AddDeviceResult.ArchiveTooLarge"/> it is only set if the limit was hit while extracting.
     /// </param>
     /// <returns>Whether the device was added, or why not.</returns>
     AddDeviceResult AddDevice(ZipArchive archive, out IoddId? ioddId);
@@ -50,9 +51,13 @@ public interface IIoddStore
     /// Attempts to add multiple devices from an archive that contains IODDs in a structured format.
     /// </summary>
     /// <param name="archive">
-    /// A ZIP archive with the expected folder structure: 
+    /// A ZIP archive with the expected folder structure:
     /// <c>&lt;vendor-id&gt;/&lt;device-id&gt;/&lt;IODD files&gt;</c>.
     /// </param>
+    /// <returns>
+    /// <see langword="false"/> if any device could not be added. An archive that exceeds the configured archive limits
+    /// adds nothing if its headers tell so, otherwise the devices extracted before the limit was hit are kept.
+    /// </returns>
     bool TryAddDevices(ZipArchive archive);
 
     /// <summary>

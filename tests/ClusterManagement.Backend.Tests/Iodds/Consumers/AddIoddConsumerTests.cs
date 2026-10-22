@@ -187,6 +187,28 @@ public class AddIoddConsumerTests
     }
 
     [Fact]
+    public async Task Should_publish_archive_too_large_error_when_archive_exceeds_limits()
+    {
+        // Arrange
+        await using var tester = new MassTransitTester(_configureServices);
+        var zipData = CreateValidZipArchive();
+        var command = new AddIodd(s_emptyZipDataFilename);
+
+        _ioddStore.AddDevice(Arg.Any<ZipArchive>(), out Arg.Any<IoddId?>())
+            .Returns(AddDeviceResult.ArchiveTooLarge);
+
+        // Act
+        await tester.TestCommand<AddIodd, AddIoddConsumer>(command);
+
+        // Assert
+        (await tester.Harness.Published.Any<IoddChanged>(k
+            => k.Context.Message.Error != null
+            && k.Context.Message.Error.ErrorCode == IoddChanged.ArchiveTooLarge
+            && k.Context.Message.CorrelationId == command.CorrelationId,
+            TestContext.Current.CancellationToken)).Should().BeTrue();
+    }
+
+    [Fact]
     public async Task Should_publish_change_with_error_on_handle_invalid_zip_data()
     {
         // Arrange

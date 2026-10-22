@@ -65,8 +65,9 @@
 - Engine hosts write log event properties such as `SOURCE_CONTEXT`, `ENGINE_ID` and `EVENT_ID` as separate journal fields, not only inside `SYSLOG_STRUCTURED_DATA`
 - Clusters are read with a cache of resolved types instead of resolving every typed value against all package assemblies, which shortens deployments and the Cluster Manager's CPU load while engines run
 - `Public`
-  - `IoddChanged`, added the error codes `IoddFileNotFound`, `IoddFileOutsideUploadDirectory` and `IoddAlreadyExists`; for `IoddAlreadyExists` the event carries the id and `DeviceInfo` of the existing device
-  - **Breaking:** `IIoddStore`, replaced `TryAddDevice(ZipArchive, out IoddId?)` with `AddDevice(ZipArchive, out IoddId?)`, which returns an `AddDeviceResult` telling whether the device was added, the archive has no IODD file, the device already exists or extracting it failed
+  - `IoddChanged`, added the error codes `IoddFileNotFound`, `IoddFileOutsideUploadDirectory`, `IoddAlreadyExists` and `ArchiveTooLarge`; for `IoddAlreadyExists` the event carries the id and `DeviceInfo` of the existing device
+  - **Breaking:** `IIoddStore`, replaced `TryAddDevice(ZipArchive, out IoddId?)` with `AddDevice(ZipArchive, out IoddId?)`, which returns an `AddDeviceResult` telling whether the device was added, the archive has no IODD file, the device already exists, extracting it failed or the archive exceeds the configured archive limits
+  - `IIoddStore`, `TryAddDevices` returns `false` if the archive exceeds the configured archive limits
   - `ClusterErrors`, added the error codes `EngineNotDeployed` and `EngineHostDidNotAnswer`
   - `IIoddStore`, replaced `FillDeviceArchive` with `FillVendorArchive` which archives several devices of a vendor as `<vendor-id>/<device-id>/<IODD files>`
   - `DownloadIoddRequest`, replaced `Id` with `VendorId` and `DeviceIds`
@@ -131,6 +132,7 @@
 - Committing a cluster that cannot be read fails at once instead of after several retries
 - Cluster Manager groups the versions by cluster when several are stored, and shows draft and default only for the running cluster
 - Dataflow events page no longer stops receiving values when a write or subscription reconnects to the broker after the connection dropped
+- Uploaded package and IODD archives are rejected if they have more than `MaxArchiveEntries` (default 1,000) entries or extract to more than `MaxArchiveExtractedSize` (default 100 MB), so a zip bomb can no longer fill the disk; package entries that would be extracted outside of the package directory are rejected as damaged
 - The dataflow events page and the debug engines page require full access to Cluster Management like its other pages; any signed-in user could open them by URL, write dataflow inputs and start, stop or tear down engines
 
 ## 2.3.0 - 2026-07-13

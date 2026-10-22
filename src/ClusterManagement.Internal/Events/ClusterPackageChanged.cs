@@ -17,6 +17,7 @@ public sealed record ClusterPackageChanged(string PackageName, string Version, C
     public const int InvalidPackageContent = 205;
     public const int PackageVersionInUse = 206;
     public const int PackageFileOutsideUploadDirectory = 207;
+    public const int ArchiveTooLarge = 208;
 }
 
 public enum ClusterPackageChange

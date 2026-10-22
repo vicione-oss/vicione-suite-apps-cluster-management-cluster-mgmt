@@ -8,6 +8,7 @@ using ClusterManagement.Internal.Events;
 using ClusterManagement.Tests.Tools.Factories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Sdk.Backend.Modules;
 using Sdk.Testing;
 using ViciOne.Cluster.Model;
@@ -37,12 +38,12 @@ public class PackageStorageTests
         return sourceDirectory;
     }
 
-    private ServiceProvider CreateServices(IFileSystem? fileSystem = null)
+    private ServiceProvider CreateServices(IFileSystem? fileSystem = null, ClusterManagementOptions? options = null)
     {
         fileSystem ??= new FileSystem();
 
         return new ServiceCollection()
-            .AddSingleton<ClusterManagementOptions>()
+            .AddSingleton(Options.Create(options ?? new ClusterManagementOptions()))
             .AddSingleton<IPackageStore, PackageStore>()
             .AddSingleton(_dependencyStore)
             .AddSingleton(fileSystem)
@@ -290,6 +291,63 @@ public class PackageStorageTests
 
             var packageVersionPath = fileSystem.Path.Combine(destinationPath, IFileSystemExtensions.DependenciesDirectory, dependency.Name, dependency.Version.ToString());
             fileSystem.Directory.Exists(packageVersionPath).Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData(1, 100 * 1024 * 1024)]
+        [InlineData(1_000, 1)]
+        public async Task Should_throw_and_extract_nothing_if_archive_exceeds_limits(int maxEntries, long maxExtractedSize)
+        {
+            // Arrange
+            using var services = CreateServices(options: new ClusterManagementOptions { MaxArchiveEntries = maxEntries, MaxArchiveExtractedSize = maxExtractedSize });
+            var fileSystem = services.GetRequiredService<IFileSystem>();
+            var dependency = PackageFactory.ConstantPackageDependency;
+
+            using var sourceDirectory = SetupValidArchiveFileSystem(fileSystem, dependency, out var packagePath);
+            using var tempDirectory = new TemporaryDirectory();
+            var destinationPath = fileSystem.Path.Combine(tempDirectory.Path, "ViciOne.Suite.ClusterManagement");
+            var store = services.GetRequiredService<IPackageStore>();
+
+            _workspaceService.Cache.Returns(destinationPath);
+
+            // Act
+            var act = () => store.StorePackage(packagePath, true, CancellationToken.None);
+
+            // Assert
+            (await act.Should().ThrowAsync<PackageValidationException>())
+                .Which.ErrorCode.Should().Be(ClusterPackageChanged.ArchiveTooLarge);
+
+            fileSystem.Directory.Exists(destinationPath).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task Should_throw_and_remove_partial_extraction_if_entry_would_be_extracted_outside_of_package()
+        {
+            // Arrange
+            using var services = CreateServices();
+            var fileSystem = services.GetRequiredService<IFileSystem>();
+            var dependency = PackageFactory.ConstantPackageDependency;
+
+            using var sourceDirectory = SetupValidArchiveFileSystem(fileSystem, dependency, out var packagePath);
+            using var tempDirectory = new TemporaryDirectory();
+            var destinationPath = fileSystem.Path.Combine(tempDirectory.Path, "ViciOne.Suite.ClusterManagement");
+            var store = services.GetRequiredService<IPackageStore>();
+
+            _workspaceService.Cache.Returns(destinationPath);
+
+            using (var stream = fileSystem.File.Open(packagePath, FileMode.Open, FileAccess.ReadWrite))
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Update))
+            using (var writer = new StreamWriter(archive.CreateEntry("../outside.txt").Open()))
+                writer.Write("outside");
+
+            // Act
+            var act = () => store.StorePackage(packagePath, true, CancellationToken.None);
+
+            // Assert
+            (await act.Should().ThrowAsync<PackageValidationException>())
+                .Which.ErrorCode.Should().Be(ClusterPackageChanged.CorruptArchive);
+
+            fileSystem.Directory.EnumerateFiles(tempDirectory.Path, "*", SearchOption.AllDirectories).Should().BeEmpty();
         }
 
         [Fact]

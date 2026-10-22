@@ -126,6 +126,9 @@
   <data name="DownloadFailed" xml:space="preserve">
     <value>Die IODDs konnten nicht heruntergeladen werden.</value>
   </data>
+  <data name="ArchiveTooLarge" xml:space="preserve">
+    <value>Das Archiv ist zum Entpacken zu groß.</value>
+  </data>
   <data name="FileIsEmpty" xml:space="preserve">
     <value>Das hochgeladene Archiv enthält keine Dateien.</value>
   </data>
