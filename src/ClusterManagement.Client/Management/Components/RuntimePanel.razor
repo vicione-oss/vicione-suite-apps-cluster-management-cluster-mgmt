@@ -34,7 +34,7 @@
 
     @if (Hosts.Count == 0)
     {
-        <div class="muted">@ClusterOverview.NoEngines</div>
+        <div class="empty muted">@ClusterOverview.NoEngines</div>
     }
     else if (Expert)
     {
@@ -52,11 +52,11 @@
                             <span class="name" title="@HoverTexts.NameWithDescription(host.Name, host.Description)">@host.Name</span>
                             @if (isOverCycleTime)
                             {
-                                <span class="chip status-warning">@ClusterOverview.CycleTimeExceeded</span>
+                                <span class="chip status-warning" title="@ClusterOverview.CycleTimeExceeded">@ClusterOverview.CycleTimeExceeded</span>
                             }
                             @if (host.ElevatedPrivileges)
                             {
-                                <span class="chip status-default">@ClusterOverview.Privileged</span>
+                                <span class="chip status-default" title="@ClusterOverview.Privileged">@ClusterOverview.Privileged</span>
                             }
                         </div>
                         <div class="host-cycle" title="@HostCycleTitle(host, latestChainCycle)">
@@ -100,6 +100,11 @@
                             <span class="log-spacer"></span>
                         </div>
                     }
+
+                    @if (host.Engines.Count == 0)
+                    {
+                        <div class="engine no-engines muted">@ClusterOverview.NoEnginesOnHost</div>
+                    }
                 </div>
             }
         </div>
@@ -119,7 +124,7 @@
                             <span class="name" title="@HoverTexts.NameWithDescription(host.Name, host.Description)">@host.Name</span>
                             @if (host.IsOverCycleTime(chain))
                             {
-                                <span class="chip status-warning">@ClusterOverview.CycleTimeExceeded</span>
+                                <span class="chip status-warning" title="@ClusterOverview.CycleTimeExceeded">@ClusterOverview.CycleTimeExceeded</span>
                             }
                             <CycleTimeChart Samples="@chain" Limit="@host.CycleTime" />
                         </div>
@@ -135,6 +140,11 @@
                             </div>
                             <CycleTimeChart Samples="@CycleWindow(engine)" Limit="@engine.MinCycleTime" />
                         </div>
+                    }
+
+                    @if (host.Engines.Count == 0)
+                    {
+                        <div class="engine no-engines muted">@ClusterOverview.NoEnginesOnHost</div>
                     }
                 </div>
             }

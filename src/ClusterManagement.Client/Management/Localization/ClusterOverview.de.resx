@@ -318,6 +318,9 @@
   <data name="NoEngines" xml:space="preserve">
     <value>Die aktive Version hat keine Engines.</value>
   </data>
+  <data name="NoEnginesOnHost" xml:space="preserve">
+    <value>Keine Engines auf diesem Host.</value>
+  </data>
   <data name="NoPackages" xml:space="preserve">
     <value>Diese Version verwendet keine Pakete.</value>
   </data>
