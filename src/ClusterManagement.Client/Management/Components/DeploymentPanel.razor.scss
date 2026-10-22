@@ -258,43 +258,14 @@
         }
     }
 
-    // One segment per step: how far the instance got and where it stopped, at a glance.
-    .trail {
-        display: flex;
-        gap: 3px;
-        padding: 0 12px 8px;
-
-        .segment {
-            flex: 1;
-            height: 4px;
-            border-radius: 1px;
-            background-color: colors.$border;
-
-            &.done {
-                background-color: colors-staged.$color-green;
-            }
-
-            &.current {
-                background-color: colors.$primary;
-            }
-
-            &.failed {
-                background-color: colors.$error;
-            }
-
-            &.refused {
-                background-color: colors-staged.$color-warning;
-            }
-        }
-    }
-
-    // Its line stays when nothing is running between two steps, so the card keeps its height.
+    // Its line stays when nothing is running between two steps, so the card keeps its height. The time column has a fixed
+    // width, so a changing percentage does not move the text beside it.
     .summary {
         display: flex;
         justify-content: space-between;
         gap: 12px;
         min-height: 18px;
-        padding: 0 12px 10px;
+        padding: 0 12px 6px;
         font-size: 12px;
 
         .text {
@@ -306,6 +277,8 @@
 
         .time {
             flex-shrink: 0;
+            min-width: 7ch;
+            text-align: right;
             font-family: monospace;
             @include overview.muted;
         }
@@ -319,11 +292,95 @@
         }
     }
 
+    // One bar for the whole run. The planned steps set its length; the width moves in a transition as long as the
+    // panel's step clock, so it fills evenly. Stripes run through it while the instance works.
+    .bar {
+        position: relative;
+        display: block;
+        height: 6px;
+        margin: 0 12px 10px;
+        border-radius: 3px;
+        overflow: hidden;
+        background-color: colors.$border;
+
+        .fill {
+            position: absolute;
+            inset: 0 auto 0 0;
+            border-radius: 3px;
+            background-color: colors-staged.$color-green;
+            transition: width 1s linear;
+        }
+
+        &.running .fill,
+        &.rollback .fill,
+        &.waiting .fill {
+            background-image: repeating-linear-gradient(115deg, rgba(255, 255, 255, .14) 0 8px, transparent 8px 16px);
+            background-size: 18px 100%;
+            animation: cm-bar-flow 1s linear infinite;
+        }
+
+        // Without a plan the bar cannot tell how far it is, so the stripes run over a faint full bar.
+        &.waiting .fill {
+            opacity: .35;
+        }
+
+        &.rollback .fill {
+            background-color: colors-staged.$color-warning;
+        }
+
+        &.failed .fill {
+            background-color: colors.$error;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .fill {
+                animation: none;
+                transition: none;
+            }
+        }
+    }
+
+    @keyframes cm-bar-flow {
+        to {
+            background-position: 18px 0;
+        }
+    }
+
     .steps {
         margin: 0 12px 12px;
         padding: 8px 0 0;
         list-style: none;
         border-top: 1px solid colors.$border;
+
+        // Heads the steps of one engine host, or of the whole instance, with how many ended and how long they took.
+        .group {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 7ch 9ch;
+            gap: 8px;
+            align-items: center;
+            min-height: 26px;
+            margin-top: 6px;
+            padding: 0 0 0 4px;
+            font-size: 11px;
+            letter-spacing: .4px;
+            text-transform: uppercase;
+            @include overview.muted;
+
+            .name {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                font-weight: 600;
+            }
+
+            .count,
+            .time {
+                text-align: right;
+                white-space: nowrap;
+                font-family: monospace;
+                text-transform: none;
+            }
+        }
 
         // Echoes the dashed rollback line of the phase flow, so the steps below read as the rollback, not as repeats.
         .divider {
@@ -348,7 +405,7 @@
         .entry {
             position: relative;
             display: grid;
-            grid-template-columns: 20px minmax(0, 1fr) auto;
+            grid-template-columns: 20px minmax(0, 1fr) 9ch;
             align-items: center;
             gap: 8px;
             min-height: 26px;
@@ -366,6 +423,8 @@
             }
 
             .time {
+                text-align: right;
+                white-space: nowrap;
                 font-family: monospace;
                 @include overview.muted;
             }
@@ -394,6 +453,10 @@
 
             &.refused .mark {
                 color: colors-staged.$color-warning;
+            }
+
+            &.pending {
+                @include overview.muted;
             }
         }
     }

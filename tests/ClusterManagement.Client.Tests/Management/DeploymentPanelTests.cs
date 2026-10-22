@@ -36,7 +36,7 @@ public class DeploymentPanelTests
 
         // Assert
         sut.FindAll(".instance").Should().ContainSingle();
-        sut.FindAll(".instance .trail .segment").Should().ContainSingle();
+        sut.Find(".instance .bar").ClassList.Should().Contain("failed");
         sut.Find(".instance .error").TextContent.Should().EndWith("Engine start failed");
         sut.FindAll(".steps-toggle").Should().BeEmpty();
         sut.FindAll(".status-line button").Should().BeEmpty();
@@ -225,7 +225,7 @@ public class DeploymentPanelTests
     }
 
     [Fact]
-    public async Task Shows_the_step_of_an_instance_and_how_long_it_has_been_running()
+    public async Task Without_a_plan_shows_what_an_instance_is_busy_with_and_how_long_its_step_has_been_running()
     {
         // Arrange
         await using var ctx = new BunitContext();
@@ -240,9 +240,56 @@ public class DeploymentPanelTests
         // Assert
         sut.WaitForAssertion(() =>
         {
-            sut.Find(".instance .summary .text").TextContent.Should().Be(string.Format(CultureInfo.CurrentCulture, ClusterOverview.StepStartEngineHost, "Packaging"));
+            sut.Find(".instance .summary .text").TextContent.Should().Be(ClusterOverview.BusyUpdatingEngineHosts);
             sut.Find(".instance .summary .time").TextContent.Should().Be("0:37");
+            sut.Find(".instance .bar").ClassList.Should().Contain("waiting");
         });
+    }
+
+    [Fact]
+    public async Task With_a_plan_shows_how_far_the_instance_got_in_percent_and_on_the_bar()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var clock = ClientClock(ctx);
+        var (deployment, instanceIds) = Deployment(instanceCount: 1);
+        deployment.Apply(Planned(deployment, instanceIds[0], ClusterNodeDeploymentStep.DeployEngineHost, ClusterNodeDeploymentStep.StartEngineHost,
+            ClusterNodeDeploymentStep.QueryEngineStates, ClusterNodeDeploymentStep.DeployEngine));
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.DeployEngineHost), clock.GetUtcNow());
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded, ClusterNodeDeploymentStep.DeployEngineHost),
+            clock.GetUtcNow().AddSeconds(2));
+
+        // Act
+        var sut = RenderWith(ctx, deployment);
+
+        // Assert
+        sut.Find(".instance .summary .text").TextContent.Should().Be(ClusterOverview.BusyUpdatingEngineHosts);
+        sut.Find(".instance .summary .time").TextContent.Should().Be(string.Format(CultureInfo.CurrentCulture, ClusterOverview.Percent, 25));
+        sut.Find(".instance .bar").ClassList.Should().Contain("running");
+        sut.Find(".instance .bar .fill").GetAttribute("style").Should().Contain("width: 25%");
+    }
+
+    [Fact]
+    public async Task Fills_the_bar_during_a_step_by_how_long_the_steps_before_took_but_not_to_its_end()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var clock = ClientClock(ctx);
+        var (deployment, instanceIds) = Deployment(instanceCount: 1);
+        deployment.Apply(Planned(deployment, instanceIds[0], ClusterNodeDeploymentStep.DeployEngineHost, ClusterNodeDeploymentStep.StartEngineHost));
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.DeployEngineHost), clock.GetUtcNow());
+        clock.Advance(TimeSpan.FromSeconds(2));
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded, ClusterNodeDeploymentStep.DeployEngineHost), clock.GetUtcNow());
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started), clock.GetUtcNow());
+        var sut = RenderWith(ctx, deployment);
+
+        // Act
+        clock.Advance(TimeSpan.FromSeconds(1));
+
+        // Assert
+        sut.WaitForAssertion(() => sut.Find(".instance .bar .fill").GetAttribute("style").Should().Contain("width: 75%"));
+        clock.Advance(TimeSpan.FromSeconds(10));
+        sut.WaitForAssertion(() => sut.Find(".instance .bar .fill").GetAttribute("style").Should().Contain("width: 95%"));
     }
 
     [Fact]
@@ -259,8 +306,7 @@ public class DeploymentPanelTests
         var sut = Render(ctx, deployment);
 
         // Assert
-        sut.FindAll(".instance .trail .segment").Select(s => s.ClassList.Contains("done") ? "done" : s.ClassList.Contains("current") ? "current" : "other")
-            .Should().Equal("done", "current");
+        sut.FindAll(".instance .bar").Should().ContainSingle();
         sut.Find(".steps-toggle").GetAttribute("aria-expanded").Should().Be("false");
         sut.FindAll(".instance .steps").Should().BeEmpty();
     }
@@ -292,6 +338,75 @@ public class DeploymentPanelTests
     }
 
     [Fact]
+    public async Task Shows_the_planned_steps_an_instance_has_not_reached_as_pending()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var (deployment, instanceIds) = Deployment(instanceCount: 1);
+        deployment.Apply(Planned(deployment, instanceIds[0], ClusterNodeDeploymentStep.DeployEngineHost, ClusterNodeDeploymentStep.StartEngineHost,
+            ClusterNodeDeploymentStep.QueryEngineStates));
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.DeployEngineHost), DateTimeOffset.UnixEpoch);
+        var sut = Render(ctx, deployment);
+
+        // Act
+        await sut.Find(".steps-toggle").ClickAsync(new());
+
+        // Assert
+        sut.Find(".instance .bar").ClassList.Should().Contain("running");
+        var pending = sut.FindAll(".instance .steps .entry.pending");
+        pending.Select(e => e.QuerySelector(".text")!.TextContent).Should().Equal(
+            string.Format(CultureInfo.CurrentCulture, ClusterOverview.StepStartEngineHost, "Packaging"),
+            string.Format(CultureInfo.CurrentCulture, ClusterOverview.StepQueryEngineStates, "Packaging"));
+        pending.Should().OnlyContain(e => e.QuerySelector(".visually-hidden")!.TextContent == ClusterOverview.StepStatePending
+            && e.QuerySelector(".time")!.TextContent.Length == 0);
+    }
+
+    [Fact]
+    public async Task Leaves_out_the_planned_steps_once_the_deployment_ended()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var (deployment, instanceIds) = Deployment(instanceCount: 1);
+        deployment.Apply(Planned(deployment, instanceIds[0], ClusterNodeDeploymentStep.StartEngineHost, ClusterNodeDeploymentStep.QueryEngineStates));
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded), DateTimeOffset.UnixEpoch);
+
+        // Act
+        deployment.Complete(new ClusterUpdateCompleted(deployment.CorrelationId, s_clusterId, s_targetVersion, TimeSpan.FromSeconds(2)));
+        var sut = Render(ctx, deployment);
+
+        // Assert
+        sut.Find(".instance .bar").ClassList.Should().Contain("done");
+        sut.Find(".instance .bar .fill").GetAttribute("style").Should().Contain("width: 100%");
+        await sut.Find(".steps-toggle").ClickAsync(new());
+        sut.FindAll(".instance .steps .entry").Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Groups_the_steps_by_the_engine_host_they_work_on()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var (deployment, instanceIds) = Deployment(instanceCount: 1);
+        var otherHost = Guid.NewGuid();
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.Prepare) with { EngineHostId = null, EngineHostName = null },
+            DateTimeOffset.UnixEpoch);
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded, ClusterNodeDeploymentStep.Prepare) with { EngineHostId = null, EngineHostName = null },
+            DateTimeOffset.UnixEpoch.AddSeconds(1));
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started), DateTimeOffset.UnixEpoch.AddSeconds(1));
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded), DateTimeOffset.UnixEpoch.AddSeconds(3));
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started) with { EngineHostId = otherHost, EngineHostName = "Filling" },
+            DateTimeOffset.UnixEpoch.AddSeconds(3));
+        var sut = Render(ctx, deployment);
+
+        // Act
+        await sut.Find(".steps-toggle").ClickAsync(new());
+
+        // Assert
+        sut.FindAll(".instance .steps .group").Select(g => (g.QuerySelector(".name")!.TextContent, g.QuerySelector(".count")!.TextContent, g.QuerySelector(".time")!.TextContent))
+            .Should().Equal(("CoreOS 0", "1/1", "1.0 s"), ("Packaging", "1/1", "2.0 s"), ("Filling", "0/1", ""));
+    }
+
+    [Fact]
     public async Task Marks_where_the_rollback_starts_in_the_steps()
     {
         // Arrange
@@ -306,8 +421,8 @@ public class DeploymentPanelTests
         await sut.Find(".steps-toggle").ClickAsync(new());
 
         // Assert
-        sut.FindAll(".instance .steps li").Select(li => li.ClassList.Contains("divider") ? "divider" : "entry")
-            .Should().Equal("entry", "divider", "entry");
+        sut.FindAll(".instance .steps li").Select(li => li.ClassList.Contains("divider") ? "divider" : li.ClassList.Contains("group") ? "group" : "entry")
+            .Should().Equal("group", "entry", "divider", "group", "entry");
     }
 
     [Fact]
@@ -515,6 +630,10 @@ public class DeploymentPanelTests
             EngineHostName = "Packaging",
             OccurredAt = DateTimeOffset.UnixEpoch,
         };
+
+    private static ClusterNodeDeploymentPlanned Planned(DeploymentProgressModel deployment, Guid instanceId, params ClusterNodeDeploymentStep[] steps)
+        => new(deployment.CorrelationId, s_clusterId, instanceId,
+            [.. steps.Select(step => new ClusterNodeDeploymentPlannedStep(step) { EngineHostId = s_engineHostId, EngineHostName = "Packaging" })]);
 
     // On an instance whose clock agrees with the client's, so the steps take as long as their events lie apart.
     private static void Receive(DeploymentProgressModel deployment, ClusterNodeDeploymentStepChanged step, DateTimeOffset receivedAt)

@@ -118,7 +118,35 @@ public sealed class ClusterManagementPageTests
     }
 
     [Fact]
-    public async Task Shows_the_step_an_instance_works_on()
+    public async Task Shows_the_steps_an_instance_planned()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var sut = RenderPage(ctx, RunningAndDraft(), expert: true);
+        var correlationId = Guid.NewGuid();
+        var nodeId = Guid.NewGuid();
+        var instanceId = Guid.NewGuid();
+        _managementService.OnClusterUpdateStarted += Raise.Event<EventHandler<ClusterUpdateStarted>>(_managementService,
+            new ClusterUpdateStarted(correlationId, s_clusterId, s_draftVersion)
+            {
+                NodeApplications = new() { [nodeId] = instanceId },
+                Nodes = new() { [nodeId] = "edge-1" },
+                Applications = new() { [instanceId] = "CoreOS" },
+            });
+
+        // Act
+        _managementService.OnClusterNodeDeploymentPlanned += Raise.Event<EventHandler<ClusterNodeDeploymentPlanned>>(_managementService,
+            new ClusterNodeDeploymentPlanned(correlationId, s_clusterId, instanceId,
+                [new ClusterNodeDeploymentPlannedStep(ClusterNodeDeploymentStep.Prepare), new ClusterNodeDeploymentPlannedStep(ClusterNodeDeploymentStep.Plan)]));
+
+        // Assert
+        sut.WaitForAssertion(() => sut.Find(".deployment .instance .bar").ClassList.Should().Contain("running"));
+        await sut.Find(".deployment .steps-toggle").ClickAsync(new());
+        sut.FindAll(".deployment .instance .steps .entry.pending").Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task Shows_what_an_instance_is_busy_with()
     {
         // Arrange
         await using var ctx = new BunitContext();
@@ -143,7 +171,7 @@ public sealed class ClusterManagementPageTests
             });
 
         // Assert
-        sut.WaitForAssertion(() => sut.Find(".deployment .instance .summary .text").TextContent.Should().Be(Format(ClusterOverview.StepDeployEngine, "Line 1")));
+        sut.WaitForAssertion(() => sut.Find(".deployment .instance .summary .text").TextContent.Should().Be(ClusterOverview.BusyDeployingEngines));
     }
 
     [Fact]
@@ -165,7 +193,7 @@ public sealed class ClusterManagementPageTests
                 EngineHosts = [new EngineHost { Id = removedHostId, Name = "Packaging" }],
             }] }] }],
         };
-        var sut = RenderPage(ctx, RunningAndDraft(), runningCluster: running);
+        var sut = RenderPage(ctx, RunningAndDraft(), runningCluster: running, expert: true);
         _managementService.OnClusterUpdateStarted += Raise.Event<EventHandler<ClusterUpdateStarted>>(_managementService,
             new ClusterUpdateStarted(correlationId, s_clusterId, s_draftVersion)
             {
@@ -183,7 +211,9 @@ public sealed class ClusterManagementPageTests
             });
 
         // Assert
-        sut.WaitForAssertion(() => sut.Find(".deployment .instance .summary .text").TextContent.Should().Be(Format(ClusterOverview.StepTearDownEngineHost, "Packaging")));
+        sut.WaitForElement(".deployment .steps-toggle");
+        await sut.Find(".deployment .steps-toggle").ClickAsync(new());
+        sut.WaitForAssertion(() => sut.Find(".deployment .instance .steps .entry .text").TextContent.Should().Be(Format(ClusterOverview.StepTearDownEngineHost, "Packaging")));
     }
 
     [Fact]
@@ -205,7 +235,7 @@ public sealed class ClusterManagementPageTests
                 EngineHosts = [new EngineHost { Id = addedHostId, Name = "Packaging" }],
             }] }] }],
         });
-        var sut = RenderPage(ctx, RunningAndDraft());
+        var sut = RenderPage(ctx, RunningAndDraft(), expert: true);
         _managementService.OnClusterUpdateStarted += Raise.Event<EventHandler<ClusterUpdateStarted>>(_managementService,
             new ClusterUpdateStarted(correlationId, s_clusterId, s_draftVersion)
             {
@@ -223,7 +253,9 @@ public sealed class ClusterManagementPageTests
             });
 
         // Assert
-        sut.WaitForAssertion(() => sut.Find(".deployment .instance .summary .text").TextContent.Should().Be(Format(ClusterOverview.StepTearDownEngineHost, "Packaging")));
+        sut.WaitForElement(".deployment .steps-toggle");
+        await sut.Find(".deployment .steps-toggle").ClickAsync(new());
+        sut.WaitForAssertion(() => sut.Find(".deployment .instance .steps .entry .text").TextContent.Should().Be(Format(ClusterOverview.StepTearDownEngineHost, "Packaging")));
     }
 
     [Fact]

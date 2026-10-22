@@ -20,6 +20,12 @@ public sealed partial class DeploymentPanel : IDisposable
 {
     private static readonly TimeSpan s_stepClockInterval = TimeSpan.FromSeconds(1);
 
+    // How long the first step is expected to take before one has ended; only moves the bar during that step.
+    private static readonly TimeSpan s_firstStepGuess = TimeSpan.FromSeconds(1);
+
+    // The bar stops short of the end of a step that takes longer than the steps before it, until it ended.
+    private const double RunningStepShare = .9;
+
     private readonly HashSet<Guid> _expanded = [];
     private readonly string _sagaStateIconCssClass = MonochromeIconName.InfoLight.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
     private readonly string _resetIconCssClass = MonochromeIconName.Reload.GetCssClasses(ButtonSize.Small.ToMonochromeIconSize()).ToSpaceSeparated();
@@ -113,22 +119,80 @@ public sealed partial class DeploymentPanel : IDisposable
     private InstanceStepModel? StepInProgress(InstanceProgressModel instance)
         => Deployment?.IsRunning == true ? instance.CurrentStep : null;
 
+    // The steps the instance planned and has not reached yet are shown only while the deployment runs.
+    private IReadOnlyList<InstanceStepModel> Timeline(InstanceProgressModel instance)
+        => Deployment?.IsRunning == true ? instance.Timeline : instance.Steps;
+
     private void ToggleSteps(Guid instanceId)
     {
         if (!_expanded.Remove(instanceId))
             _expanded.Add(instanceId);
     }
 
-    // The step in progress, or how long the update or the rollback of an instance took; nothing between two steps.
+    // What the instance is busy with and how far it got, or how long its update or rollback took. Without a plan the
+    // percentage is unknown, so the time of the step in progress stands in for it.
     private StepSummary? Summary(InstanceProgressModel instance)
     {
-        if (StepInProgress(instance) is { } step)
-            return new(step.ToText(), Elapsed(step), "current");
-
         if (FinishedRunText(instance) is { } text && instance.Duration is { } duration)
             return new(text, duration.ToDisplayText(CultureInfo.CurrentCulture), "done");
 
-        return null;
+        if (Deployment?.IsRunning != true || instance.LatestRun.Count == 0)
+            return null;
+
+        var step = StepInProgress(instance);
+        var time = Fraction(instance) is { } fraction
+            ? Format(ClusterOverview.Percent, Math.Floor(fraction * 100))
+            : step is null ? string.Empty : Elapsed(step);
+        return new((step ?? instance.LatestRun[^1]).ToPhaseText(), time, "current");
+    }
+
+    // The steps of the latest run that ended, and a share of the one in progress by how long the ended ones took on
+    // average; null without a plan.
+    private double? Fraction(InstanceProgressModel instance)
+    {
+        if (instance.PlannedCount == 0)
+            return null;
+
+        var run = instance.LatestRun;
+        var ended = run.Count(s => s.State != InstanceStepState.Running);
+        var durations = run.Select(s => s.Duration).OfType<TimeSpan>().ToList();
+        var average = durations.Count > 0 ? durations.Average(d => d.TotalMilliseconds) : s_firstStepGuess.TotalMilliseconds;
+        var running = StepInProgress(instance) is { StartedAt: { } startedAt }
+            ? Math.Min(RunningStepShare, (TimeProvider.GetUtcNow() - startedAt).TotalMilliseconds / Math.Max(1, average))
+            : 0;
+        return Math.Min(1, (ended + running) / instance.PlannedCount);
+    }
+
+    private string BarClass(InstanceProgressModel instance) => instance switch
+    {
+        { HasFailed: true } => "failed",
+        _ when Deployment?.IsRunning != true || (instance.IsUpdated && !instance.RollbackStarted) => "done",
+        { RollbackStarted: true } => "rollback",
+        _ when instance.PlannedCount == 0 => "waiting",
+        _ => "running",
+    };
+
+    private string BarWidth(InstanceProgressModel instance)
+    {
+        var fraction = BarClass(instance) is "done" or "waiting" ? 1 : Fraction(instance) ?? 1;
+        return string.Create(CultureInfo.InvariantCulture, $"{fraction * 100:0.#}%");
+    }
+
+    // The steps of the update and then of the rollback, each grouped by the engine host they work on in the order the
+    // instance reached them; the steps of the whole instance go under its name.
+    private static IEnumerable<StepGroup> StepGroups(IReadOnlyList<InstanceStepModel> timeline, string instanceName)
+    {
+        foreach (var run in timeline.GroupBy(s => s.IsRollback))
+        {
+            var startsRollback = run.Key;
+            foreach (var group in run.GroupBy(s => s.EngineHostId))
+            {
+                var steps = group.ToList();
+                var name = group.Key is null ? instanceName : steps[0].EngineHostName ?? group.Key.ToString()!;
+                yield return new(name, steps, startsRollback);
+                startsRollback = false;
+            }
+        }
     }
 
     // The saga reports no end of an instance's rollback, so the rollback counts as finished once the deployment ended.
@@ -144,10 +208,12 @@ public sealed partial class DeploymentPanel : IDisposable
     private static string CountText(int count, string one, string many)
         => count == 1 ? one : Format(many, count);
 
-    private string StepTime(InstanceStepModel step)
-        => StateOf(step) == InstanceStepState.Running
-            ? Elapsed(step)
-            : step.Duration?.ToDisplayText(CultureInfo.CurrentCulture) ?? "–";
+    private string StepTime(InstanceStepModel step) => StateOf(step) switch
+    {
+        InstanceStepState.Running => Elapsed(step),
+        InstanceStepState.Pending => string.Empty,
+        _ => step.Duration?.ToDisplayText(CultureInfo.CurrentCulture) ?? "–",
+    };
 
     private string Elapsed(InstanceStepModel step)
         => step.StartedAt is { } startedAt ? (TimeProvider.GetUtcNow() - startedAt).ToStopwatchText() : string.Empty;
@@ -162,6 +228,7 @@ public sealed partial class DeploymentPanel : IDisposable
         InstanceStepState.Running => "current",
         InstanceStepState.Failed => "failed",
         InstanceStepState.Refused => "refused",
+        InstanceStepState.Pending => "pending",
         _ => "interrupted",
     };
 
@@ -171,6 +238,7 @@ public sealed partial class DeploymentPanel : IDisposable
         InstanceStepState.Running => "●",
         InstanceStepState.Failed => "✕",
         InstanceStepState.Refused => "!",
+        InstanceStepState.Pending => "○",
         _ => "–",
     };
 
@@ -180,6 +248,7 @@ public sealed partial class DeploymentPanel : IDisposable
         InstanceStepState.Running => ClusterOverview.StepStateRunning,
         InstanceStepState.Failed => ClusterOverview.StepStateFailed,
         InstanceStepState.Refused => ClusterOverview.StepStateRefused,
+        InstanceStepState.Pending => ClusterOverview.StepStatePending,
         _ => ClusterOverview.StepStateInterrupted,
     };
 
@@ -288,4 +357,13 @@ public sealed partial class DeploymentPanel : IDisposable
     };
 
     private sealed record StepSummary(string Text, string Time, string CssClass);
+
+    private sealed record StepGroup(string Name, IReadOnlyList<InstanceStepModel> Steps, bool StartsRollback)
+    {
+        public string Count => $"{Steps.Count(s => s.State is not (InstanceStepState.Running or InstanceStepState.Pending))}/{Steps.Count}";
+
+        public string Time => Steps.Select(s => s.Duration).OfType<TimeSpan>().Aggregate(TimeSpan.Zero, (a, b) => a + b) is { Ticks: > 0 } total
+            ? total.ToDisplayText(CultureInfo.CurrentCulture)
+            : string.Empty;
+    }
 }

@@ -1385,6 +1385,96 @@ namespace ClusterManagement.Client.Management.Localization {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Preparing.
+        /// </summary>
+        internal static string BusyPreparing {
+            get {
+                return ResourceManager.GetString("BusyPreparing", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Checking the engine hosts.
+        /// </summary>
+        internal static string BusyCheckingEngineHosts {
+            get {
+                return ResourceManager.GetString("BusyCheckingEngineHosts", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Updating the engine hosts.
+        /// </summary>
+        internal static string BusyUpdatingEngineHosts {
+            get {
+                return ResourceManager.GetString("BusyUpdatingEngineHosts", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Stopping the engines.
+        /// </summary>
+        internal static string BusyStoppingEngines {
+            get {
+                return ResourceManager.GetString("BusyStoppingEngines", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Removing the engines.
+        /// </summary>
+        internal static string BusyRemovingEngines {
+            get {
+                return ResourceManager.GetString("BusyRemovingEngines", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Deploying the engines.
+        /// </summary>
+        internal static string BusyDeployingEngines {
+            get {
+                return ResourceManager.GetString("BusyDeployingEngines", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Starting the engines.
+        /// </summary>
+        internal static string BusyStartingEngines {
+            get {
+                return ResourceManager.GetString("BusyStartingEngines", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cleaning up.
+        /// </summary>
+        internal static string BusyCleaningUp {
+            get {
+                return ResourceManager.GetString("BusyCleaningUp", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} %.
+        /// </summary>
+        internal static string Percent {
+            get {
+                return ResourceManager.GetString("Percent", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to pending.
+        /// </summary>
+        internal static string StepStatePending {
+            get {
+                return ResourceManager.GetString("StepStatePending", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to running.
         /// </summary>
         internal static string StepStateRunning {

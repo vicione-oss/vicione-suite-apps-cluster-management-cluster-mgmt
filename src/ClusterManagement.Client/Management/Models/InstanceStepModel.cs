@@ -19,6 +19,11 @@ public enum InstanceStepState
     /// Still open when the instance's update ended or its rollback began, so its end will not come.
     /// </summary>
     Interrupted,
+
+    /// <summary>
+    /// Planned by the instance and not reached yet.
+    /// </summary>
+    Pending,
 }
 
 /// <summary>
@@ -32,16 +37,30 @@ public sealed class InstanceStepModel
     private readonly Guid? _engineId;
 
     private InstanceStepModel(ClusterNodeDeploymentStepChanged change, bool isRollback)
+        : this(change.Step, change.EngineHostId, change.EngineHostName, change.EngineId, change.EngineName, isRollback)
     {
-        Step = change.Step;
-        _engineHostId = change.EngineHostId;
-        _engineId = change.EngineId;
-        Target = TargetOf(change);
+    }
+
+    private InstanceStepModel(ClusterNodeDeploymentStep step, Guid? engineHostId, string? engineHostName, Guid? engineId, string? engineName,
+        bool isRollback)
+    {
+        Step = step;
+        _engineHostId = engineHostId;
+        _engineId = engineId;
+        EngineHostName = engineHostName;
+        Target = IsAboutEngine(step) ? engineName ?? engineId?.ToString() : engineHostName ?? engineHostId?.ToString();
         IsRollback = isRollback;
     }
 
     public ClusterNodeDeploymentStep Step { get; }
     public string? Target { get; }
+
+    /// <summary>
+    /// The engine host the step works on or the engine runs on; <c>null</c> for a step of the whole instance.
+    /// </summary>
+    public Guid? EngineHostId => _engineHostId;
+
+    public string? EngineHostName { get; }
     public bool IsRollback { get; }
 
     public InstanceStepState State { get; private set; }
@@ -73,9 +92,18 @@ public sealed class InstanceStepModel
     internal static InstanceStepModel Unstarted(ClusterNodeDeploymentStepChanged change, bool isRollback)
         => new(change, isRollback);
 
+    internal static InstanceStepModel Pending(ClusterNodeDeploymentPlannedStep planned, bool isRollback)
+        => new(planned.Step, planned.EngineHostId, planned.EngineHostName, planned.EngineId, planned.EngineName, isRollback)
+        {
+            State = InstanceStepState.Pending,
+        };
+
     // By id, as two engines on different engine hosts can have the same name.
     internal bool Is(ClusterNodeDeploymentStepChanged change)
         => Step == change.Step && _engineHostId == change.EngineHostId && _engineId == change.EngineId;
+
+    internal bool Is(ClusterNodeDeploymentPlannedStep planned)
+        => Step == planned.Step && _engineHostId == planned.EngineHostId && _engineId == planned.EngineId;
 
     internal void StartedLate(ClusterNodeDeploymentStepChanged change, DateTimeOffset receivedAt)
     {
@@ -100,11 +128,6 @@ public sealed class InstanceStepModel
         if (State == InstanceStepState.Running)
             State = InstanceStepState.Interrupted;
     }
-
-    private static string? TargetOf(ClusterNodeDeploymentStepChanged change)
-        => IsAboutEngine(change.Step)
-            ? change.EngineName ?? change.EngineId?.ToString()
-            : change.EngineHostName ?? change.EngineHostId?.ToString();
 
     private static bool IsAboutEngine(ClusterNodeDeploymentStep step) => step is ClusterNodeDeploymentStep.StopEngine
         or ClusterNodeDeploymentStep.TearDownEngine

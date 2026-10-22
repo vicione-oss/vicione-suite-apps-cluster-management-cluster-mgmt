@@ -20,6 +20,7 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
     IEventConsumer<ClusterUpdateFailed>,
     IEventConsumer<ClusterUpdateRejected>,
     IEventConsumer<ClusterNodeDeploymentStepChanged>,
+    IEventConsumer<ClusterNodeDeploymentPlanned>,
     IEventConsumer<DeploymentStateReset>,
     IDisposable
 {
@@ -37,6 +38,7 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
     public event EventHandler<ClusterUpdateRejected>? OnClusterUpdateRejected;
     public event EventHandler<ClusterUpdateStarted>? OnClusterUpdateStarted;
     public event EventHandler<ClusterNodeDeploymentStepChanged>? OnClusterNodeDeploymentStepChanged;
+    public event EventHandler<ClusterNodeDeploymentPlanned>? OnClusterNodeDeploymentPlanned;
     public event EventHandler<DeploymentStateReset>? OnDeploymentStateReset;
 
     public ClusterManagementPageService(IUiMediator mediator, IClusterService clusterService, ILogger<ClusterManagementPageService> logger)
@@ -51,6 +53,7 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
         _subscriptionHandle.Add(_mediator.Register<ClusterUpdateFailed>(this));
         _subscriptionHandle.Add(_mediator.Register<ClusterUpdateRejected>(this));
         _subscriptionHandle.Add(_mediator.Register<ClusterNodeDeploymentStepChanged>(this));
+        _subscriptionHandle.Add(_mediator.Register<ClusterNodeDeploymentPlanned>(this));
         _subscriptionHandle.Add(_mediator.Register<DeploymentStateReset>(this));
     }
 
@@ -128,6 +131,13 @@ public sealed class ClusterManagementPageService : IClusterManagementService,
     {
         LogReceivedEvent(nameof(ClusterNodeDeploymentStepChanged), context.CorrelationId);
         OnClusterNodeDeploymentStepChanged?.Invoke(this, context.Message);
+        return Task.CompletedTask;
+    }
+
+    public Task Consume(ClientContext<ClusterNodeDeploymentPlanned> context, CancellationToken cancellationToken)
+    {
+        LogReceivedEvent(nameof(ClusterNodeDeploymentPlanned), context.CorrelationId);
+        OnClusterNodeDeploymentPlanned?.Invoke(this, context.Message);
         return Task.CompletedTask;
     }
 

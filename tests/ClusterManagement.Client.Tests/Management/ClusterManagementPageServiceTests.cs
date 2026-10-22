@@ -210,4 +210,26 @@ public class ClusterManagementPageServiceTests
             .Raise(nameof(ClusterManagementPageService.OnClusterNodeDeploymentStepChanged))
             .WithArgs<ClusterNodeDeploymentStepChanged>(ev => ev == stepEvent);
     }
+
+    [Fact]
+    public async Task Consume_event_should_trigger_cluster_node_deployment_planned()
+    {
+        // Arrange
+        using var ctx = new BunitContext();
+        ctx.SetupSuiteServices();
+        ctx.Services.AddSingleton(_clusterService);
+        ctx.Services.AddSingleton<ClusterManagementPageService>();
+        var planned = new ClusterNodeDeploymentPlanned(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            [new ClusterNodeDeploymentPlannedStep(ClusterNodeDeploymentStep.Prepare)]);
+        var service = ctx.Services.GetRequiredService<ClusterManagementPageService>();
+        using var monitor = service.Monitor();
+
+        // Act
+        await service.Consume(new ClientContext<ClusterNodeDeploymentPlanned>(planned, planned.CorrelationId), CancellationToken.None);
+
+        // Assert
+        monitor.Should()
+            .Raise(nameof(ClusterManagementPageService.OnClusterNodeDeploymentPlanned))
+            .WithArgs<ClusterNodeDeploymentPlanned>(ev => ev == planned);
+    }
 }

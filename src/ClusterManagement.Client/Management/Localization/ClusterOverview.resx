@@ -468,6 +468,36 @@
   <data name="StepStateRefused" xml:space="preserve">
     <value>refused by the engine host</value>
   </data>
+  <data name="BusyPreparing" xml:space="preserve">
+    <value>Preparing</value>
+  </data>
+  <data name="BusyCheckingEngineHosts" xml:space="preserve">
+    <value>Checking the engine hosts</value>
+  </data>
+  <data name="BusyUpdatingEngineHosts" xml:space="preserve">
+    <value>Updating the engine hosts</value>
+  </data>
+  <data name="BusyStoppingEngines" xml:space="preserve">
+    <value>Stopping the engines</value>
+  </data>
+  <data name="BusyRemovingEngines" xml:space="preserve">
+    <value>Removing the engines</value>
+  </data>
+  <data name="BusyDeployingEngines" xml:space="preserve">
+    <value>Deploying the engines</value>
+  </data>
+  <data name="BusyStartingEngines" xml:space="preserve">
+    <value>Starting the engines</value>
+  </data>
+  <data name="BusyCleaningUp" xml:space="preserve">
+    <value>Cleaning up</value>
+  </data>
+  <data name="Percent" xml:space="preserve">
+    <value>{0} %</value>
+  </data>
+  <data name="StepStatePending" xml:space="preserve">
+    <value>pending</value>
+  </data>
   <data name="StepStateRunning" xml:space="preserve">
     <value>running</value>
   </data>

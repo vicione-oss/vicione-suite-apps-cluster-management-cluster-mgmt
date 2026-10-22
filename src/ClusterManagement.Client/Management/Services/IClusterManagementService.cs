@@ -17,6 +17,7 @@ public interface IClusterManagementService
     /// </summary>
     event EventHandler<ClusterUpdateRejected>? OnClusterUpdateRejected;
     event EventHandler<ClusterNodeDeploymentStepChanged>? OnClusterNodeDeploymentStepChanged;
+    event EventHandler<ClusterNodeDeploymentPlanned>? OnClusterNodeDeploymentPlanned;
 
     /// <summary>
     /// Raised with the outcome of the last reset this service sent.

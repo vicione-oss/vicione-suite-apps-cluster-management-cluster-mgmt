@@ -748,6 +748,111 @@ public class DeploymentProgressModelTests
     }
 
     [Fact]
+    public void Timeline_adds_the_planned_steps_the_instance_has_not_reached_as_pending()
+    {
+        // Arrange
+        var progress = Start();
+        Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Started), s_receivedAt);
+
+        // Act
+        progress.Apply(Planned(PlannedHost(ClusterNodeDeploymentStep.Prepare), PlannedHost(ClusterNodeDeploymentStep.StartEngineHost), PlannedEngine(ClusterNodeDeploymentStep.StartEngine)));
+
+        // Assert
+        progress.Instances.Single().Timeline.Select(s => (s.Step, s.State, s.Target)).Should().Equal(
+            (ClusterNodeDeploymentStep.Prepare, InstanceStepState.Running, "Packaging"),
+            (ClusterNodeDeploymentStep.StartEngineHost, InstanceStepState.Pending, "Packaging"),
+            (ClusterNodeDeploymentStep.StartEngine, InstanceStepState.Pending, "Line 1"));
+    }
+
+    [Fact]
+    public void Later_plan_of_the_same_run_replaces_the_earlier_one()
+    {
+        // Arrange
+        var progress = Start();
+        progress.Apply(Planned(PlannedHost(ClusterNodeDeploymentStep.Prepare), PlannedHost(ClusterNodeDeploymentStep.QueryEngineStates)));
+
+        // Act
+        progress.Apply(Planned(PlannedHost(ClusterNodeDeploymentStep.Prepare), PlannedHost(ClusterNodeDeploymentStep.QueryEngineStates), PlannedEngine(ClusterNodeDeploymentStep.StartEngine)));
+
+        // Assert
+        progress.Instances.Single().Timeline.Select(s => s.Step).Should().Equal(
+            ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStep.QueryEngineStates, ClusterNodeDeploymentStep.StartEngine);
+    }
+
+    [Fact]
+    public void Planned_step_the_instance_went_past_is_left_out()
+    {
+        // Arrange
+        var progress = Start();
+        progress.Apply(Planned(PlannedHost(ClusterNodeDeploymentStep.Prepare), PlannedHost(ClusterNodeDeploymentStep.UpdateEngineHost), PlannedHost(ClusterNodeDeploymentStep.StartEngineHost), PlannedEngine(ClusterNodeDeploymentStep.StartEngine)));
+        Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Succeeded), s_receivedAt);
+
+        // Act
+        Receive(progress, HostStep(ClusterNodeDeploymentStep.StartEngineHost, ClusterNodeDeploymentStepStatus.Started), s_receivedAt);
+
+        // Assert
+        progress.Instances.Single().Timeline.Select(s => (s.Step, s.State)).Should().Equal(
+            (ClusterNodeDeploymentStep.Prepare, InstanceStepState.Succeeded),
+            (ClusterNodeDeploymentStep.StartEngineHost, InstanceStepState.Running),
+            (ClusterNodeDeploymentStep.StartEngine, InstanceStepState.Pending));
+    }
+
+    [Fact]
+    public void Timeline_of_an_updated_instance_holds_only_its_steps()
+    {
+        // Arrange
+        var progress = Start();
+        progress.Apply(Planned(PlannedHost(ClusterNodeDeploymentStep.Prepare), PlannedEngine(ClusterNodeDeploymentStep.StartEngine)));
+        Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Succeeded), s_receivedAt);
+
+        // Act
+        progress.Apply(InstanceChange(ClusterUpdateChange.Update));
+
+        // Assert
+        progress.Instances.Single().Timeline.Should().ContainSingle().Which.Step.Should().Be(ClusterNodeDeploymentStep.Prepare);
+    }
+
+    [Fact]
+    public void Rollback_shows_the_pending_steps_of_its_own_plan()
+    {
+        // Arrange
+        var progress = FailedUpdateThatRollsBack();
+
+        // Act
+        progress.Apply(Planned(PlannedHost(ClusterNodeDeploymentStep.Prepare), PlannedHost(ClusterNodeDeploymentStep.StopEngineHost), PlannedHost(ClusterNodeDeploymentStep.TearDownEngineHost)));
+
+        // Assert
+        progress.Instances.Single().Timeline.Select(s => (s.Step, s.State, s.IsRollback)).Should().Equal(
+            (ClusterNodeDeploymentStep.DeployEngine, InstanceStepState.Failed, false),
+            (ClusterNodeDeploymentStep.Prepare, InstanceStepState.Succeeded, true),
+            (ClusterNodeDeploymentStep.StopEngineHost, InstanceStepState.Running, true),
+            (ClusterNodeDeploymentStep.TearDownEngineHost, InstanceStepState.Pending, true));
+    }
+
+    [Fact]
+    public void Planned_step_without_a_name_takes_it_from_a_known_version()
+    {
+        // Arrange
+        var progress = Start();
+        progress.KnowNamesOf(new Cluster
+        {
+            NodeGroups = [new ClusterNodeGroup { Nodes = [Node("edge-1", new ClusterApplication
+            {
+                Id = s_instanceId,
+                Name = "CoreOS",
+                Type = ClusterApplicationType.CoreOsMaster,
+                EngineHosts = [new EngineHost { Id = s_engineHostId, Name = "Packaging", Engines = [new Engine { Id = s_engineId, Name = "Filling" }] }],
+            })] }],
+        });
+
+        // Act
+        progress.Apply(Planned(PlannedEngine(ClusterNodeDeploymentStep.TearDownEngine) with { EngineName = null }));
+
+        // Assert
+        progress.Instances.Single().Timeline.Single().Target.Should().Be("Filling");
+    }
+
+    [Fact]
     public void Matches_the_steps_of_its_deployment()
         => Start().Matches(s_clusterId, s_correlationId).Should().BeTrue();
 
@@ -825,6 +930,15 @@ public class DeploymentProgressModelTests
 
     private static ClusterNodeDeploymentStepChanged EngineStep(ClusterNodeDeploymentStep step, ClusterNodeDeploymentStepStatus status, ErrorInfo? error = null)
         => HostStep(step, status, error) with { EngineId = s_engineId, EngineName = "Line 1" };
+
+    private static ClusterNodeDeploymentPlanned Planned(params ClusterNodeDeploymentPlannedStep[] steps)
+        => new(s_correlationId, s_clusterId, s_instanceId, steps);
+
+    private static ClusterNodeDeploymentPlannedStep PlannedHost(ClusterNodeDeploymentStep step)
+        => new(step) { EngineHostId = s_engineHostId, EngineHostName = "Packaging" };
+
+    private static ClusterNodeDeploymentPlannedStep PlannedEngine(ClusterNodeDeploymentStep step)
+        => PlannedHost(step) with { EngineId = s_engineId, EngineName = "Line 1" };
 
     private static ClusterUpdateFailed Failed(string? sagaState)
         => new(s_correlationId, s_clusterId, s_targetVersion)

@@ -295,6 +295,172 @@ public partial class UpdateDeploymentsConsumerFacts
             await Then_engine_gets_started(_engineHost1, _engine1);
         }
 
+        [Fact]
+        public async Task Plans_every_step_of_a_new_engineHost_before_it_deploys_it()
+        {
+            Given_configured_suite();
+            Given_user_added_engineHost(_engineHost1);
+            Given_user_added_engine(_engine1, _engineHost1);
+            Given_user_added_functionBlock(_engine1, _functionBlock1);
+
+            await When_updating_deployments();
+
+            Then_update_succeeded();
+            var (plan, stepsBefore) = _plans.Should().ContainSingle().Subject;
+            stepsBefore.Should().Be(4, "the plan follows preparing and planning");
+            plan.CorrelationId.Should().Be(_correlationId);
+            plan.ClusterApplicationId.Should().Be(_instanceInformation.Id);
+            plan.Steps.Single(s => s.Step == Step.StartEngine).EngineName.Should().Be(_engine1.ToString());
+            Then_the_last_plan_lists_the_published_steps();
+        }
+
+        [Fact]
+        public async Task Plans_every_step_of_a_removed_engineHost_and_the_retained_messages_of_its_engine()
+        {
+            Given_cluster_node_group();
+            Given_cluster_node();
+            Given_engineHost_is_known(_engineHost1);
+            Given_engineHost_is_deployed(_engineHost1);
+            Given_engineHost_is_started(_engineHost1);
+            Given_engine_is_known(_engineHost1, _engine1, true);
+            Given_engine_is_deployed(_engineHost1, _engine1);
+            Given_engine_is_started(_engineHost1, _engine1);
+            Given_engine_has_functionBlock(_engine1, _functionBlock1);
+
+            await When_updating_deployments();
+
+            Then_update_succeeded();
+            _plans.Should().ContainSingle();
+            Then_the_last_plan_lists_the_published_steps();
+        }
+
+        [Fact]
+        public async Task Plans_the_restart_of_an_engineHost_once_it_finds_its_settings_changed()
+        {
+            Given_configured_suite();
+            Given_user_added_engineHost(_engineHost1);
+            Given_user_added_engine(_engine1, _engineHost1);
+            Given_user_added_functionBlock(_engine1, _functionBlock1);
+            Given_engineHost_is_known(_engineHost1);
+            Given_engineHost_is_deployed(_engineHost1);
+            Given_engineHost_is_started(_engineHost1);
+            Given_engineHost_has_different_appsettings(_engineHost1);
+            Given_engine_is_known(_engineHost1, _engine1, true);
+            Given_engine_is_deployed(_engineHost1, _engine1);
+            Given_engine_is_started(_engineHost1, _engine1);
+            Given_engine_has_functionBlock(_engine1, _functionBlock1);
+
+            await When_updating_deployments();
+
+            Then_update_succeeded();
+            _plans.Should().HaveCount(2);
+            _plans[0].Plan.Steps.Select(s => s.Step).Should().Equal(Step.Prepare, Step.Plan, Step.CompareEngineHostSettings, Step.QueryEngineStates);
+            Then_the_last_plan_lists_the_published_steps();
+        }
+
+        [Fact]
+        public async Task Plans_the_tear_down_of_an_unexpected_deployment_once_the_engine_states_show_it()
+        {
+            Given_configured_suite();
+            Given_user_added_engineHost(_engineHost1);
+            Given_user_added_engine(_engine1, _engineHost1);
+            Given_user_disabled_engine(_engine1);
+            Given_user_added_functionBlock(_engine1, _functionBlock1);
+            Given_engineHost_is_known(_engineHost1);
+            Given_engineHost_is_deployed(_engineHost1);
+            Given_engineHost_is_started(_engineHost1);
+            Given_engine_is_known(_engineHost1, _engine1, true);
+            Given_engine_is_deployed(_engineHost1, _engine1);
+            Given_engine_has_functionBlock(_engine1, _functionBlock1);
+            Given_engine_is_deployed(_engineHost1, _engine2);
+
+            await When_updating_deployments();
+
+            Then_update_succeeded();
+            _plans.Should().HaveCount(2);
+            _plans[0].Plan.Steps.Should().NotContain(s => s.Step == Step.TearDownEngine);
+            Then_the_last_plan_lists_the_published_steps();
+        }
+
+        [Fact]
+        public async Task Plans_the_restart_of_an_engineHost_whose_privileges_changed_from_the_start()
+        {
+            Given_configured_suite();
+            Given_user_added_engineHost(_engineHost1, elevatedPrivileges: true);
+            Given_user_added_engine(_engine1, _engineHost1);
+            Given_user_added_functionBlock(_engine1, _functionBlock1);
+            Given_engineHost_is_known(_engineHost1, elevatedPrivileges: false);
+            Given_engineHost_is_deployed(_engineHost1);
+            Given_engineHost_is_started(_engineHost1);
+            Given_engine_is_known(_engineHost1, _engine1, true);
+            Given_engine_is_deployed(_engineHost1, _engine1);
+            Given_engine_is_started(_engineHost1, _engine1);
+            Given_engine_has_functionBlock(_engine1, _functionBlock1);
+
+            await When_updating_deployments();
+
+            Then_update_succeeded();
+            _plans[0].Plan.Steps.Select(s => s.Step).Should().ContainInOrder(Step.StopEngineHost, Step.StartEngineHost);
+            Then_the_last_plan_lists_the_published_steps();
+        }
+
+        [Fact]
+        public async Task Plans_the_start_of_a_stopped_engineHost_from_the_start()
+        {
+            Given_configured_suite();
+            Given_user_added_engineHost(_engineHost1);
+            Given_user_added_engine(_engine1, _engineHost1);
+            Given_user_added_functionBlock(_engine1, _functionBlock1);
+            Given_engineHost_is_known(_engineHost1);
+            Given_engineHost_is_deployed(_engineHost1);
+            Given_engine_is_known(_engineHost1, _engine1, true);
+            Given_engine_is_deployed(_engineHost1, _engine1);
+            Given_engine_has_functionBlock(_engine1, _functionBlock1);
+
+            await When_updating_deployments();
+
+            Then_update_succeeded();
+            _plans[0].Plan.Steps.Select(s => s.Step).Should().ContainInOrder(Step.CompareEngineHostSettings, Step.StartEngineHost, Step.QueryEngineStates);
+            Then_the_last_plan_lists_the_published_steps();
+        }
+
+        [Fact]
+        public async Task Plans_the_removal_of_an_engineHost_that_is_not_started_without_querying_it()
+        {
+            Given_cluster_node_group();
+            Given_cluster_node();
+            Given_engineHost_is_known(_engineHost1);
+            Given_engineHost_is_deployed(_engineHost1);
+            Given_engine_is_known(_engineHost1, _engine1);
+            Given_engine_is_deployed(_engineHost1, _engine1);
+            Given_engine_has_functionBlock(_engine1, _functionBlock1);
+
+            await When_updating_deployments();
+
+            Then_update_succeeded();
+            var planned = _plans[0].Plan.Steps.Select(s => s.Step).ToList();
+            planned.Should().Contain(Step.TearDownEngineHost).And.NotContain([Step.QueryEngineStates, Step.StopEngineHost]);
+            Then_the_last_plan_lists_the_published_steps();
+        }
+
+        [Fact]
+        public async Task Deploys_although_the_plan_cannot_be_published()
+        {
+            Given_configured_suite();
+            Given_user_added_engineHost(_engineHost1);
+            Given_user_added_engine(_engine1, _engineHost1);
+            Given_user_added_functionBlock(_engine1, _functionBlock1);
+            _bus.Publish(Arg.Any<ClusterNodeDeploymentPlanned>(), Arg.Any<CancellationToken>())
+                .ThrowsAsync(new InvalidOperationException("Broker unavailable"));
+
+            await When_updating_deployments();
+
+            _result.Should().BeOfType<ClusterNodeDeploymentsUpdatedEvent>();
+            _logger.LogEntries.Should().Contain(e => e.LogLevel == LogLevel.Warning && e.Message.Contains("Could not publish the planned steps"));
+            _steps.Should().HaveCount(4, "no step is published after the broker failed to take the plan");
+            await Then_engine_gets_started(_engineHost1, _engine1);
+        }
+
         private void Given_deploying_the_engineHost_cancels_the_deployment(Guid id)
             => _poolCommunication.DeployHost(Arg.Is(id), Arg.Any<CancellationToken>()).Returns(_ =>
             {
@@ -323,6 +489,10 @@ public partial class UpdateDeploymentsConsumerFacts
         private void Then_steps_were_published(params (Step Step, Status Status, Guid? EngineHostId, Guid? EngineId)[] expected)
             => _steps.Select(s => (s.Step, s.Status, s.EngineHostId, s.EngineId))
                 .Should().Equal(expected);
+
+        private void Then_the_last_plan_lists_the_published_steps()
+            => _plans.Last().Plan.Steps.Select(s => (s.Step, s.EngineHostId, s.EngineId))
+                .Should().Equal(_steps.Where(s => s.Status == Status.Started).Select(s => (s.Step, s.EngineHostId, s.EngineId)));
 
         private void Then_last_step_failed_with_the_reported_error(Step step, Guid engineHostId, Guid? engineId)
         {

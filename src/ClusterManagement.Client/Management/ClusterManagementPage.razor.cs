@@ -94,6 +94,7 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
         ManagementService.OnClusterUpdateFailed -= OnClusterUpdateFailed;
         ManagementService.OnClusterUpdateRejected -= OnClusterUpdateRejected;
         ManagementService.OnClusterNodeDeploymentStepChanged -= OnClusterNodeDeploymentStepChanged;
+        ManagementService.OnClusterNodeDeploymentPlanned -= OnClusterNodeDeploymentPlanned;
         ManagementService.OnDeploymentStateReset -= OnDeploymentStateReset;
 
         try
@@ -122,6 +123,7 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
         ManagementService.OnClusterUpdateFailed += OnClusterUpdateFailed;
         ManagementService.OnClusterUpdateRejected += OnClusterUpdateRejected;
         ManagementService.OnClusterNodeDeploymentStepChanged += OnClusterNodeDeploymentStepChanged;
+        ManagementService.OnClusterNodeDeploymentPlanned += OnClusterNodeDeploymentPlanned;
         ManagementService.OnDeploymentStateReset += OnDeploymentStateReset;
 
         await ReloadVersions();
@@ -260,6 +262,9 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
 
     private async void OnClusterNodeDeploymentStepChanged(object? sender, ClusterNodeDeploymentStepChanged ev)
         => await UpdateDeployment(() => DeploymentFor(ev.ClusterId, ev.CorrelationId)?.Apply(ev, TimeProvider.GetUtcNow()));
+
+    private async void OnClusterNodeDeploymentPlanned(object? sender, ClusterNodeDeploymentPlanned ev)
+        => await UpdateDeployment(() => DeploymentFor(ev.ClusterId, ev.CorrelationId)?.Apply(ev));
 
     private async void OnClusterUpdateRejected(object? sender, ClusterUpdateRejected ev)
         => await HandleEvent(() =>
