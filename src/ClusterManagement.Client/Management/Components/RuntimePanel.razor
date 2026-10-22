@@ -1,3 +1,4 @@
+@using ClusterManagement.Client.Extensions
 @using ClusterManagement.Client.Management.Extensions
 @using ClusterManagement.Client.Management.Localization
 @using ClusterManagement.Client.Management.Models
@@ -48,7 +49,7 @@
                     <div class="host-head">
                         <div class="host-title">
                             <MonochromeIcon Name="MonochromeIconName.TopologyApplicationLight" Size="MonochromeIconSize.SmallMedium" />
-                            <span class="name" title="@host.Name">@host.Name</span>
+                            <span class="name" title="@HoverTexts.NameWithDescription(host.Name, host.Description)">@host.Name</span>
                             @if (isOverCycleTime)
                             {
                                 <span class="chip status-warning">@ClusterOverview.CycleTimeExceeded</span>
@@ -91,7 +92,7 @@
                         <div class="engine" @key="engine.EngineId">
                             <span class="dot status-@engine.StatusName(_tracker.IsDeploying)"></span>
                             <div class="engine-name">
-                                <span class="name" title="@engine.EngineName">@engine.EngineName</span>
+                                <span class="name" title="@HoverTexts.NameWithDescription(engine.EngineName, engine.Description)">@engine.EngineName</span>
                                 <span class="state muted">@engine.StateText(_tracker.IsDeploying)</span>
                             </div>
                             <CycleTimeChart Samples="@CycleWindow(engine)" Limit="@engine.MinCycleTime" />
@@ -115,7 +116,7 @@
                     <div class="host-head">
                         <div class="host-title">
                             <MonochromeIcon Name="MonochromeIconName.TopologyApplicationLight" Size="MonochromeIconSize.SmallMedium" />
-                            <span class="name" title="@host.Name">@host.Name</span>
+                            <span class="name" title="@HoverTexts.NameWithDescription(host.Name, host.Description)">@host.Name</span>
                             @if (host.IsOverCycleTime(chain))
                             {
                                 <span class="chip status-warning">@ClusterOverview.CycleTimeExceeded</span>
@@ -129,7 +130,7 @@
                         <div class="engine" @key="engine.EngineId">
                             <span class="dot status-@engine.StatusName(_tracker.IsDeploying)"></span>
                             <div class="engine-name">
-                                <span class="name" title="@engine.EngineName">@engine.EngineName</span>
+                                <span class="name" title="@HoverTexts.NameWithDescription(engine.EngineName, engine.Description)">@engine.EngineName</span>
                                 <span class="state muted">@engine.StateText(_tracker.IsDeploying)</span>
                             </div>
                             <CycleTimeChart Samples="@CycleWindow(engine)" Limit="@engine.MinCycleTime" />

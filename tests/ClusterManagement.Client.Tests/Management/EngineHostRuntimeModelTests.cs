@@ -26,6 +26,22 @@ public class EngineHostRuntimeModelTests
     }
 
     [Fact]
+    public void Keeps_the_descriptions_of_engine_hosts_and_engines()
+    {
+        // Arrange
+        var engine = new Engine { Name = "Scanner", Description = "Scans the IO-Link masters" };
+        var host = new EngineHost { Name = "DCW-Host", Description = "Hosts the device scanner", Engines = [engine] };
+        var cluster = new Cluster { NodeGroups = [new ClusterNodeGroup { Nodes = [new ClusterNode { Applications = [new ClusterApplication { EngineHosts = [host] }] }] }] };
+
+        // Act
+        var model = EngineHostRuntimeModel.FromCluster(cluster).Single();
+
+        // Assert
+        model.Description.Should().Be("Hosts the device scanner");
+        model.Engines.Should().ContainSingle().Which.Description.Should().Be("Scans the IO-Link masters");
+    }
+
+    [Fact]
     public void Leaves_out_engine_hosts_the_deployment_does_not_deploy()
     {
         // Arrange

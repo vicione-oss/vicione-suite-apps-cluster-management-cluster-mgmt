@@ -77,7 +77,7 @@
                         if (!string.IsNullOrEmpty(State.FilterText))
                             key = key.WithHighlightedText(State.FilterText);
 
-                        @key
+                        <span title="@HoverTexts.NameWithDescription(context.Name, context.DeviceDescription)">@key</span>
                     }
                 </TemplateColumn>
 

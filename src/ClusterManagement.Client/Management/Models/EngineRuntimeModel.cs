@@ -7,6 +7,8 @@ namespace ClusterManagement.Client.Management.Models;
 /// </summary>
 public sealed record EngineRuntimeModel(Guid InstanceId, Guid EngineId, string EngineName, uint MinCycleTime)
 {
+    public string? Description { get; init; }
+
     /// <summary>
     /// <c>false</c> until the engine's instance answered or the request for its state failed.
     /// </summary>
