@@ -3,7 +3,7 @@
     "Title": "Cluster Management",
     "Description": "Use this module to manage and edit the Cluster visually or manage IODD files",
     "Version": "__VERSION__",
-    "MinSuiteSdkVersion": "3.2.0",
+    "MinSuiteSdkVersion": "3.7.0",
     "Company": "ViciOne open automation gmbh",
     "ProjectUrl": "https://gitlab.com/vicione-oss/vicione/suite-apps/cluster-management/cluster-mgmt",
     "ReadmeUrl": "https://gitlab.com/vicione-oss/vicione/suite-apps/cluster-management/cluster-mgmt/-/blob/master/README.md",
