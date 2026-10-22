@@ -85,7 +85,7 @@ include:
       tags:
         - saas-linux-small-amd64
   ### Restore
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-restore@v2.7.1
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-restore@v2.7.2
     inputs:
       image: ${IMAGE_NAME}
       rules: *rules
@@ -95,7 +95,7 @@ include:
       tags:
         - ${RUNNER_TAG}
   ### Renovate configuration validation
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/renovate/configuration-validation@v1.1.0
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/renovate/configuration-validation@v1.1.1
     inputs:
       rules: *rules
       tags:
@@ -111,7 +111,7 @@ include:
       tags:
         - saas-linux-small-amd64
   ### Build
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-build@v2.7.1
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-build@v2.7.2
     inputs:
       image: ${IMAGE_NAME}
       rules: *rules
@@ -121,7 +121,7 @@ include:
       tags:
         - ${RUNNER_TAG}
   ### Test
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-test@v2.7.1
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-test@v2.7.2
     inputs:
       image: ${IMAGE_NAME}
       rules: *rules
@@ -134,7 +134,7 @@ include:
       tags:
         - ${RUNNER_TAG}
   ### Pack NuGet
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-pack@v2.7.1
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-pack@v2.7.2
     inputs:
       name: "Pack NuGet ClusterManagement.Public"
       stage: "publish"
@@ -145,7 +145,7 @@ include:
         - *activate_mise
         - *update_nuget_source_ro
   ### Push NuGet
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-nuget-push@v2.7.1
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-nuget-push@v2.7.2
     inputs:
       pack_job_name: "Pack NuGet ClusterManagement.Public"
       name: "Push NuGet ClusterManagement.Public"
@@ -183,7 +183,7 @@ include:
       tags:
         - saas-linux-small-amd64
   ### Prerelease to dev repository
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/release@v2.1.1
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/release@v3.0.0
     inputs:
       name: "Prerelease to JFrog"
       stage: release-dev
@@ -195,7 +195,7 @@ include:
       artifacts:
         - "build/**/*"
   ### Release to staging (on tag)
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/release@v2.1.1
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/release@v3.0.0
     inputs:
       name: "Release to JFrog"
       stage: release-staging
@@ -207,7 +207,7 @@ include:
       artifacts:
         - "build/**/*"
   ### Promote staging to production (on tag)
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/promote@v2.1.1
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/promote@v3.0.0
     inputs:
       name: "Public Release"
       stage: release-public
@@ -215,6 +215,10 @@ include:
       source_repository: "vicione-suite-staging"
       destination_repository: "vicione-suite"
       remote_path: "modules/${MODULE_FULLNAME}"
+      # one pattern per OS, so promoting 3.0.0 doesn't also move 3.0.0-beta* files
+      remote_patterns:
+        - '${Version}-linux-*'
+        - '${Version}-win-*'
 
 ### Override needs for "Pack NuGet ClusterManagement.Public" ###
 Pack NuGet ClusterManagement.Public:
