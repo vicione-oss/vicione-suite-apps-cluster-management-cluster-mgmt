@@ -414,7 +414,7 @@ public class DeploymentPanelTests
         var (deployment, instanceIds) = Deployment(instanceCount: 1);
         Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.DeployEngineHost), DateTimeOffset.UnixEpoch);
         deployment.Apply(new ClusterUpdateChanged(deployment.CorrelationId, s_clusterId, s_targetVersion, "RollingBackDeployments") { Change = ClusterUpdateChange.Transition });
-        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch);
+        Receive(deployment, RollbackStep(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch);
         var sut = Render(ctx, deployment);
 
         // Act
@@ -452,10 +452,10 @@ public class DeploymentPanelTests
         Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch);
         Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch.AddSeconds(1));
         deployment.Apply(new ClusterUpdateChanged(deployment.CorrelationId, s_clusterId, s_targetVersion, "UpdatingDeployments") { Change = ClusterUpdateChange.Update, ApplicationId = instanceIds[0] });
-        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch.AddSeconds(10));
-        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch.AddSeconds(11));
-        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.StopEngineHost), DateTimeOffset.UnixEpoch.AddSeconds(11));
-        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded, ClusterNodeDeploymentStep.StopEngineHost), DateTimeOffset.UnixEpoch.AddSeconds(14.5));
+        Receive(deployment, RollbackStep(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch.AddSeconds(10));
+        Receive(deployment, RollbackStep(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch.AddSeconds(11));
+        Receive(deployment, RollbackStep(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.StopEngineHost), DateTimeOffset.UnixEpoch.AddSeconds(11));
+        Receive(deployment, RollbackStep(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded, ClusterNodeDeploymentStep.StopEngineHost), DateTimeOffset.UnixEpoch.AddSeconds(14.5));
         deployment.Fail(new ClusterUpdateFailed(deployment.CorrelationId, s_clusterId, s_targetVersion) { State = "RollingBackDeployments" });
 
         // Act
@@ -465,6 +465,155 @@ public class DeploymentPanelTests
         sut.Find(".instance .chip").TextContent.Should().Be(ClusterOverview.InstanceRolledBack);
         sut.Find(".instance .summary .text").TextContent.Should().Be(string.Format(CultureInfo.CurrentCulture, ClusterOverview.StepsRolledBack, 2));
         sut.Find(".instance .summary .time").TextContent.Should().Be("4.5 s");
+    }
+
+    [Fact]
+    public async Task Runs_the_rollback_of_a_failed_instance_in_the_rollback_color()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var (deployment, instanceIds) = Deployment(instanceCount: 1);
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Failed, ClusterNodeDeploymentStep.DeployEngineHost) with { Error = Failure(instanceIds[0]).Error },
+            DateTimeOffset.UnixEpoch);
+        deployment.Apply(Failure(instanceIds[0]));
+        deployment.Apply(new ClusterUpdateChanged(deployment.CorrelationId, s_clusterId, s_targetVersion, "RollingBackDeployments") { Change = ClusterUpdateChange.Transition });
+
+        // Act
+        Receive(deployment, RollbackStep(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch);
+        var sut = Render(ctx, deployment);
+
+        // Assert
+        sut.Find(".instance .bar").ClassList.Should().Contain("rollback").And.NotContain("failed");
+    }
+
+    [Theory]
+    [InlineData(false, "rolled-back")]
+    [InlineData(true, "failed")]
+    public async Task Ends_a_rolled_back_instance_in_the_rollback_color_unless_the_rollback_failed(bool rollbackFailed, string barClass)
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var (deployment, instanceIds) = Deployment(instanceCount: 1);
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch);
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch.AddSeconds(1));
+        Receive(deployment, RollbackStep(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch.AddSeconds(5));
+
+        // Act
+        deployment.Fail(new ClusterUpdateFailed(deployment.CorrelationId, s_clusterId, s_targetVersion)
+        {
+            State = "RollingBackDeployments",
+            ErrorsByApplication = rollbackFailed ? new() { [instanceIds[0]] = new ErrorInfo(204, "Could not stop engine host") } : [],
+        });
+        var sut = Render(ctx, deployment);
+
+        // Assert
+        sut.Find(".instance .bar").ClassList.Should().Contain(barClass);
+        sut.Find(".instance .bar .fill").GetAttribute("style").Should().Contain("width: 100%");
+    }
+
+    [Fact]
+    public async Task Counts_the_planned_steps_of_an_updated_instance_and_leaves_out_a_duration_the_page_saw_only_part_of()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var (deployment, instanceIds) = Deployment(instanceCount: 1);
+        deployment.Apply(Planned(deployment, instanceIds[0], ClusterNodeDeploymentStep.DeployEngineHost, ClusterNodeDeploymentStep.StartEngineHost,
+            ClusterNodeDeploymentStep.QueryEngineStates));
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.QueryEngineStates), DateTimeOffset.UnixEpoch);
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded, ClusterNodeDeploymentStep.QueryEngineStates), DateTimeOffset.UnixEpoch.AddSeconds(1));
+
+        // Act
+        deployment.Apply(new ClusterUpdateChanged(deployment.CorrelationId, s_clusterId, s_targetVersion, "UpdatingDeployments") { Change = ClusterUpdateChange.Update, ApplicationId = instanceIds[0] });
+        var sut = Render(ctx, deployment);
+
+        // Assert
+        sut.Find(".instance .summary .text").TextContent.Should().Be(string.Format(CultureInfo.CurrentCulture, ClusterOverview.StepsUpdated, 3));
+        sut.Find(".instance .summary .time").TextContent.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Leaves_out_the_duration_of_a_run_whose_first_start_the_page_did_not_see()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var (deployment, instanceIds) = Deployment(instanceCount: 1);
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch);
+        deployment.Apply(Planned(deployment, instanceIds[0], ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStep.QueryEngineStates));
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.QueryEngineStates), DateTimeOffset.UnixEpoch.AddSeconds(1));
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded, ClusterNodeDeploymentStep.QueryEngineStates), DateTimeOffset.UnixEpoch.AddSeconds(2));
+
+        // Act
+        deployment.Apply(new ClusterUpdateChanged(deployment.CorrelationId, s_clusterId, s_targetVersion, "UpdatingDeployments") { Change = ClusterUpdateChange.Update, ApplicationId = instanceIds[0] });
+        var sut = Render(ctx, deployment);
+
+        // Assert
+        sut.Find(".instance .summary .time").TextContent.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Ends_only_the_instance_whose_rollback_failed_in_the_failure_color()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var (deployment, instanceIds) = Deployment(instanceCount: 2);
+        foreach (var instanceId in instanceIds)
+        {
+            Receive(deployment, Step(deployment, instanceId, ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch);
+            Receive(deployment, Step(deployment, instanceId, ClusterNodeDeploymentStepStatus.Succeeded, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch.AddSeconds(1));
+            Receive(deployment, RollbackStep(deployment, instanceId, ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch.AddSeconds(5));
+        }
+
+        // Act
+        deployment.Fail(new ClusterUpdateFailed(deployment.CorrelationId, s_clusterId, s_targetVersion)
+        {
+            State = "RollingBackDeployments",
+            ErrorsByApplication = new() { [instanceIds[0]] = new ErrorInfo(204, "Could not stop engine host") },
+        });
+        var sut = Render(ctx, deployment);
+
+        // Assert
+        sut.FindAll(".instance .bar").Select(b => b.ClassList.Contains("failed") ? "failed" : b.ClassList.Contains("rolled-back") ? "rolled-back" : "other")
+            .Should().Equal("failed", "rolled-back");
+    }
+
+    [Fact]
+    public async Task Ends_a_rollback_the_reset_stopped_in_the_failure_color()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var (deployment, instanceIds) = Deployment(instanceCount: 1);
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch);
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch.AddSeconds(1));
+        Receive(deployment, RollbackStep(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.Prepare), DateTimeOffset.UnixEpoch.AddSeconds(5));
+
+        // Act
+        deployment.Fail(new ClusterUpdateFailed(deployment.CorrelationId, s_clusterId, s_targetVersion) { State = "RollingBackDeployments", WasReset = true });
+        var sut = Render(ctx, deployment);
+
+        // Assert
+        sut.Find(".instance .bar").ClassList.Should().Contain("failed");
+    }
+
+    [Fact]
+    public async Task Keeps_the_steps_and_the_duration_of_a_run_that_skipped_a_planned_step()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var (deployment, instanceIds) = Deployment(instanceCount: 1);
+        deployment.Apply(Planned(deployment, instanceIds[0], ClusterNodeDeploymentStep.DeployEngineHost, ClusterNodeDeploymentStep.StartEngineHost,
+            ClusterNodeDeploymentStep.QueryEngineStates));
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.DeployEngineHost), DateTimeOffset.UnixEpoch);
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded, ClusterNodeDeploymentStep.DeployEngineHost), DateTimeOffset.UnixEpoch.AddSeconds(1));
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Started, ClusterNodeDeploymentStep.QueryEngineStates), DateTimeOffset.UnixEpoch.AddSeconds(1));
+        Receive(deployment, Step(deployment, instanceIds[0], ClusterNodeDeploymentStepStatus.Succeeded, ClusterNodeDeploymentStep.QueryEngineStates), DateTimeOffset.UnixEpoch.AddSeconds(3));
+
+        // Act
+        deployment.Apply(new ClusterUpdateChanged(deployment.CorrelationId, s_clusterId, s_targetVersion, "UpdatingDeployments") { Change = ClusterUpdateChange.Update, ApplicationId = instanceIds[0] });
+        var sut = Render(ctx, deployment);
+
+        // Assert
+        sut.Find(".instance .summary .text").TextContent.Should().Be(string.Format(CultureInfo.CurrentCulture, ClusterOverview.StepsUpdated, 2));
+        sut.Find(".instance .summary .time").TextContent.Should().Be("3.0 s");
     }
 
     [Fact]
@@ -634,6 +783,10 @@ public class DeploymentPanelTests
     private static ClusterNodeDeploymentPlanned Planned(DeploymentProgressModel deployment, Guid instanceId, params ClusterNodeDeploymentStep[] steps)
         => new(deployment.CorrelationId, s_clusterId, instanceId,
             [.. steps.Select(step => new ClusterNodeDeploymentPlannedStep(step) { EngineHostId = s_engineHostId, EngineHostName = "Packaging" })]);
+
+    private static ClusterNodeDeploymentStepChanged RollbackStep(DeploymentProgressModel deployment, Guid instanceId, ClusterNodeDeploymentStepStatus status,
+        ClusterNodeDeploymentStep step = ClusterNodeDeploymentStep.StartEngineHost)
+        => Step(deployment, instanceId, status, step) with { IsRollback = true };
 
     // On an instance whose clock agrees with the client's, so the steps take as long as their events lie apart.
     private static void Receive(DeploymentProgressModel deployment, ClusterNodeDeploymentStepChanged step, DateTimeOffset receivedAt)

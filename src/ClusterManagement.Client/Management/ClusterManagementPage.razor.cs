@@ -198,6 +198,8 @@ public sealed partial class ClusterManagementPage : IEventConsumer<ClusterChange
             var deployment = Named(DeploymentProgressModel.Resume(state, target));
             if (target is not null)
                 deployment.KnowNamesOf(target);
+            foreach (var plan in state.Plans)
+                deployment.Apply(plan);
 
             _deployment ??= deployment;
             return;

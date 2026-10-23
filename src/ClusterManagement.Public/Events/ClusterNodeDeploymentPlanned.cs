@@ -15,4 +15,10 @@ public sealed record ClusterNodeDeploymentPlanned(
     Guid CorrelationId,
     Guid ClusterId,
     Guid ClusterApplicationId,
-    IReadOnlyList<ClusterNodeDeploymentPlannedStep> Steps) : IEvent, CorrelatedBy<Guid>;
+    IReadOnlyList<ClusterNodeDeploymentPlannedStep> Steps) : IEvent, CorrelatedBy<Guid>
+{
+    /// <summary>
+    /// The plan is the one of the rollback that restores the version that ran before, not the one of the update.
+    /// </summary>
+    public bool IsRollback { get; init; }
+}

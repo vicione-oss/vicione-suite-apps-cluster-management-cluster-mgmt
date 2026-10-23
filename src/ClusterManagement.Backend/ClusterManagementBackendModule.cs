@@ -1,6 +1,7 @@
 ﻿using ClusterManagement.Backend.Connections;
 using ClusterManagement.Backend.Connections.Extensions;
 using ClusterManagement.Backend.DbContext;
+using ClusterManagement.Backend.DeployCluster.Extensions;
 using ClusterManagement.Backend.DeployCluster.Persistence;
 using ClusterManagement.Backend.DeployCluster.StateMachines;
 using ClusterManagement.Backend.Designs.Extensions;
@@ -49,6 +50,7 @@ public sealed class ClusterManagementBackendModule : BackendModule
         services
             .AddDesignsSupport()
             .AddSnapshotStore()
+            .AddDeploymentPlans()
             .AddMqttSupport(options)
             .AddEngineHostSupport(options)
             .AddIoddSupport()

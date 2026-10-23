@@ -161,7 +161,7 @@ public sealed class DeploymentProgressModel
     public void Apply(ClusterNodeDeploymentStepChanged step, DateTimeOffset receivedAt)
     {
         var instance = Instances.FirstOrDefault(k => k.Id == step.ClusterApplicationId);
-        instance?.Record(Named(step), receivedAt, Phase == DeploymentPhase.RollingBack);
+        instance?.Record(Named(step), receivedAt);
     }
 
     /// <summary>
@@ -170,7 +170,7 @@ public sealed class DeploymentProgressModel
     public void Apply(ClusterNodeDeploymentPlanned planned)
     {
         var instance = Instances.FirstOrDefault(k => k.Id == planned.ClusterApplicationId);
-        instance?.Plan([.. planned.Steps.Select(Named)], Phase == DeploymentPhase.RollingBack);
+        instance?.Plan([.. planned.Steps.Select(Named)], planned.IsRollback);
     }
 
     private ClusterNodeDeploymentPlannedStep Named(ClusterNodeDeploymentPlannedStep step) => step with
@@ -209,7 +209,13 @@ public sealed class DeploymentProgressModel
         Duration = failed.Duration;
 
         foreach (var (applicationId, error) in failed.ErrorsByApplication)
-            Instances.FirstOrDefault(k => k.Id == applicationId)?.Fail(error);
+        {
+            var instance = Instances.FirstOrDefault(k => k.Id == applicationId);
+            if (failedPhase == DeploymentPhase.RollingBack)
+                instance?.FailRollback(error);
+            else
+                instance?.Fail(error);
+        }
     }
 
     public IReadOnlyList<DeploymentStep> GetSteps()

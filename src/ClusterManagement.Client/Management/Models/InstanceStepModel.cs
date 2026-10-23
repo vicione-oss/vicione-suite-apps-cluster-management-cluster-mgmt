@@ -100,7 +100,7 @@ public sealed class InstanceStepModel
 
     // By id, as two engines on different engine hosts can have the same name.
     internal bool Is(ClusterNodeDeploymentStepChanged change)
-        => Step == change.Step && _engineHostId == change.EngineHostId && _engineId == change.EngineId;
+        => Step == change.Step && _engineHostId == change.EngineHostId && _engineId == change.EngineId && IsRollback == change.IsRollback;
 
     internal bool Is(ClusterNodeDeploymentPlannedStep planned)
         => Step == planned.Step && _engineHostId == planned.EngineHostId && _engineId == planned.EngineId;

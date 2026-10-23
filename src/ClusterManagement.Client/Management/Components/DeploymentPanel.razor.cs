@@ -133,8 +133,9 @@ public sealed partial class DeploymentPanel : IDisposable
     // percentage is unknown, so the time of the step in progress stands in for it.
     private StepSummary? Summary(InstanceProgressModel instance)
     {
+        // A client that missed steps, as on a page opened during the deployment, knows only part of the run's duration.
         if (FinishedRunText(instance) is { } text && instance.Duration is { } duration)
-            return new(text, duration.ToDisplayText(CultureInfo.CurrentCulture), "done");
+            return new(text, MissedSteps(instance) ? string.Empty : duration.ToDisplayText(CultureInfo.CurrentCulture), "done");
 
         if (Deployment?.IsRunning != true || instance.LatestRun.Count == 0)
             return null;
@@ -146,35 +147,36 @@ public sealed partial class DeploymentPanel : IDisposable
         return new((step ?? instance.LatestRun[^1]).ToPhaseText(), time, "current");
     }
 
-    // The steps of the latest run that ended, and a share of the one in progress by how long the ended ones took on
-    // average; null without a plan.
+    // The planned steps the latest run left behind, and a share of the one in progress by how long the ended steps the
+    // client saw took on average; null without a plan.
     private double? Fraction(InstanceProgressModel instance)
     {
         if (instance.PlannedCount == 0)
             return null;
 
-        var run = instance.LatestRun;
-        var ended = run.Count(s => s.State != InstanceStepState.Running);
-        var durations = run.Select(s => s.Duration).OfType<TimeSpan>().ToList();
+        var durations = instance.LatestRun.Select(s => s.Duration).OfType<TimeSpan>().ToList();
         var average = durations.Count > 0 ? durations.Average(d => d.TotalMilliseconds) : s_firstStepGuess.TotalMilliseconds;
         var running = StepInProgress(instance) is { StartedAt: { } startedAt }
             ? Math.Min(RunningStepShare, (TimeProvider.GetUtcNow() - startedAt).TotalMilliseconds / Math.Max(1, average))
             : 0;
-        return Math.Min(1, (ended + running) / instance.PlannedCount);
+        return Math.Min(1, (instance.PlannedReached + running) / instance.PlannedCount);
     }
 
+    // A rollback keeps its own color, also for an instance whose update failed, and after the deployment ended unless
+    // the instance's rollback failed or the deployment was reset during it.
     private string BarClass(InstanceProgressModel instance) => instance switch
     {
+        { RollbackStarted: true } when Deployment?.IsRunning == true => "rollback",
+        { RollbackStarted: true } => instance.RollbackFailed || Deployment?.WasReset == true ? "failed" : "rolled-back",
         { HasFailed: true } => "failed",
-        _ when Deployment?.IsRunning != true || (instance.IsUpdated && !instance.RollbackStarted) => "done",
-        { RollbackStarted: true } => "rollback",
+        _ when Deployment?.IsRunning != true || instance.IsUpdated => "done",
         _ when instance.PlannedCount == 0 => "waiting",
         _ => "running",
     };
 
     private string BarWidth(InstanceProgressModel instance)
     {
-        var fraction = BarClass(instance) is "done" or "waiting" ? 1 : Fraction(instance) ?? 1;
+        var fraction = BarClass(instance) is "done" or "waiting" or "rolled-back" ? 1 : Fraction(instance) ?? 1;
         return string.Create(CultureInfo.InvariantCulture, $"{fraction * 100:0.#}%");
     }
 
@@ -198,12 +200,15 @@ public sealed partial class DeploymentPanel : IDisposable
     // The saga reports no end of an instance's rollback, so the rollback counts as finished once the deployment ended.
     private string? FinishedRunText(InstanceProgressModel instance)
     {
-        var steps = instance.LatestRun.Count;
+        var steps = MissedSteps(instance) ? Math.Max(instance.LatestRun.Count, instance.PlannedReached) : instance.LatestRun.Count;
         if (instance.RollbackStarted)
             return Deployment?.IsRunning == true ? null : CountText(steps, ClusterOverview.StepsRolledBackOne, ClusterOverview.StepsRolledBack);
 
         return instance.IsUpdated ? CountText(steps, ClusterOverview.StepsUpdatedOne, ClusterOverview.StepsUpdated) : null;
     }
+
+    private static bool MissedSteps(InstanceProgressModel instance)
+        => !instance.SawRunFromStart;
 
     private static string CountText(int count, string one, string many)
         => count == 1 ? one : Format(many, count);

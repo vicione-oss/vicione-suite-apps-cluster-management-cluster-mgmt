@@ -18,6 +18,11 @@ public sealed record ClusterNodeDeploymentStepChanged(
     ClusterNodeDeploymentStepStatus Status) : IEvent, CorrelatedBy<Guid>
 {
     /// <summary>
+    /// The step belongs to the rollback that restores the version that ran before, not to the update.
+    /// </summary>
+    public bool IsRollback { get; init; }
+
+    /// <summary>
     /// <c>null</c> for a step of the whole instance, such as preparing or planning.
     /// </summary>
     public Guid? EngineHostId { get; init; }

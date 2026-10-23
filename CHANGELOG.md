@@ -10,8 +10,9 @@
   - `ClusterInfo.Deployed`, when the active version was deployed
   - `OpcUaClientConnection` contract and `ConnectionType.OpcUaClient` / `Connection.SetOpcUaClientConnection` / `Connection.GetOpcUaClientConnection` extension members for configuring a client-side connection to an OPC UA server
   - `OpcUaServerConnection` contract and `ConnectionType.OpcUaServer` / `Connection.SetOpcUaServerConnection` / `Connection.GetOpcUaServerConnection` extension members for configuring a server-side OPC UA connection, bound to a single network interface by name
-  - `ClusterNodeDeploymentStepChanged` event, published by every instance when a step of its deployment starts, succeeds, fails or is refused by the engine host, with the engine host or engine it works on
-  - `ClusterNodeDeploymentPlanned` event, the steps an instance expects its deployment to take, published once it planned the deployment and again when what it finds changes them
+  - `ClusterNodeDeploymentStepChanged` event, published by every instance when a step of its deployment starts, succeeds, fails or is refused by the engine host, with the engine host or engine it works on, and whether the step belongs to the rollback
+  - `ClusterNodeDeploymentPlanned` event, the steps an instance expects its deployment to take, published once it planned the deployment and again when what it finds changes them, and whether it is the plan of the rollback
+  - `DeploymentState.Plans`, the latest plan of the update and of the rollback of each instance of the running deployment
   - `DeploymentState.CorrelationId`, the correlation id of the running deployment's events
   - `ClusterUpdateFailed.WasReset`, set when a deployment did not fail on its own but its state was reset
   - `ClusterUpdateFailed.FailedVersionKept`, set when the rollback could not delete the failed version
@@ -28,7 +29,7 @@
 - Cluster Manager names the step and the engine host or engine a failed instance stopped at
 - Cluster Manager lists the steps of each instance of a deployment with their durations, and the step a working instance is on and for how long
 - Cluster Manager shows the steps of a standalone instance only once its update has ended
-- Cluster Manager shows the deployment of each instance as one bar that fills with the steps it planned, with what it is busy with and the share done, and how long it took once it is done; the Expert step list lists the planned steps from the start, grouped by engine host with how many ended and how long they took
+- Cluster Manager shows the deployment of each instance as one bar that fills with the steps it planned, with what it is busy with and the share done, and how long it took once it is done, also on a page opened during the deployment; a rollback keeps its own colour; the Expert step list lists the planned steps from the start, grouped by engine host with how many ended and how long they took
 - Cluster Manager deploys the default cluster from a quick action in the version list, after a confirmation
 - Cluster Manager Expert view, switched on in the page bar for the session: adds the topology counts, the cycle times and journal links of the engine hosts, the steps of each instance, the deployment state, the packages, downloading and deleting versions and the Engines page; the Standard view keeps every state and error
 - Cluster Manager runtime panel and Engines page show the description of an engine host or engine when its name is hovered

@@ -248,6 +248,7 @@ public sealed class ClusterManagementPageTests
         _managementService.OnClusterNodeDeploymentStepChanged += Raise.Event<EventHandler<ClusterNodeDeploymentStepChanged>>(_managementService,
             new ClusterNodeDeploymentStepChanged(correlationId, s_clusterId, instanceId, ClusterNodeDeploymentStep.TearDownEngineHost, ClusterNodeDeploymentStepStatus.Started)
             {
+                IsRollback = true,
                 EngineHostId = addedHostId,
                 OccurredAt = DateTimeOffset.UnixEpoch,
             });
@@ -490,6 +491,45 @@ public sealed class ClusterManagementPageTests
         // Assert
         sut.Find(".deployment .headline").TextContent.Should().Be(Format(ClusterOverview.DeployingVersion, s_draftVersion));
         await _managementService.DidNotReceive().QueryCluster(s_clusterId, s_draftVersion, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Takes_the_plans_of_a_resumed_deployment()
+    {
+        // Arrange
+        await using var ctx = new BunitContext();
+        var correlationId = Guid.NewGuid();
+        var instanceId = Guid.NewGuid();
+        _managementService.QueryClusterDeploymentState(s_clusterId, Arg.Any<CancellationToken>())
+            .Returns(new DeploymentState(s_clusterId, "UpdatingDeployments", s_runningVersion, s_draftVersion)
+            {
+                CorrelationId = correlationId,
+                Plans = [new ClusterNodeDeploymentPlanned(correlationId, s_clusterId, instanceId,
+                    [new ClusterNodeDeploymentPlannedStep(ClusterNodeDeploymentStep.Prepare), new ClusterNodeDeploymentPlannedStep(ClusterNodeDeploymentStep.Plan)])],
+            });
+        _managementService.QueryCluster(s_clusterId, s_draftVersion, Arg.Any<CancellationToken>()).Returns(new Cluster
+        {
+            NodeGroups =
+            [
+                new ClusterNodeGroup
+                {
+                    Nodes =
+                    [
+                        new ClusterNode
+                        {
+                            Name = "edge-1",
+                            Applications = [new ClusterApplication { Id = instanceId, Name = "Master", Type = ClusterApplicationType.CoreOsMaster }],
+                        },
+                    ],
+                },
+            ],
+        });
+
+        // Act
+        var sut = RenderPage(ctx, RunningAndDraft());
+
+        // Assert
+        sut.Find(".deployment .instance .bar").ClassList.Should().Contain("running");
     }
 
     [Fact]
