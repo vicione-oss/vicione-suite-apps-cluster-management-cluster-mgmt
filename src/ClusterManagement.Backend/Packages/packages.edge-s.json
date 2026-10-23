@@ -5,27 +5,27 @@
     },
     {
         "Name": "ViciOne.Analysis",
-        "Version": "1.0.0"
+        "Version": "1.0.1"
     },
     {
         "Name": "ViciOne.Constant",
-        "Version": "1.0.0"
+        "Version": "1.0.1"
     },
     {
         "Name": "ViciOne.Converter",
-        "Version": "1.0.0"
+        "Version": "1.0.1"
     },
     {
         "Name": "ViciOne.Logic",
-        "Version": "1.0.0"
+        "Version": "1.0.1"
     },
     {
         "Name": "ViciOne.Math",
-        "Version": "1.0.0"
+        "Version": "1.0.1"
     },
     {
         "Name": "ViciOne.Time",
-        "Version": "1.0.0"
+        "Version": "1.0.1"
     },
     {
         "Name": "ifm.Anna.FunctionBlocks",
