@@ -584,7 +584,7 @@ public class DeploymentProgressModelTests
         progress.Apply(Transition("RollingBackDeployments"));
 
         // Act
-        Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Started), s_receivedAt.AddSeconds(1));
+        Receive(progress, RollbackStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Started), s_receivedAt.AddSeconds(1));
 
         // Assert
         progress.Instances.Single().Steps.Select(s => (s.Step, s.State, s.IsRollback)).Should().Equal(
@@ -601,7 +601,7 @@ public class DeploymentProgressModelTests
         progress.Apply(Transition("UpdatingDeployments"));
         Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Started), s_receivedAt);
         Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Succeeded), s_receivedAt.AddSeconds(1));
-        Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Started), s_receivedAt.AddSeconds(2));
+        Receive(progress, RollbackStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Started), s_receivedAt.AddSeconds(2));
 
         // Act
         progress.Apply(Transition("RollingBackDeployments"));
@@ -615,33 +615,93 @@ public class DeploymentProgressModelTests
     }
 
     [Fact]
-    public void Preparation_whose_end_arrived_before_its_start_does_not_begin_a_rollback()
+    public void Update_step_that_arrives_after_the_rollback_began_stays_a_step_of_the_update()
     {
         // Arrange
         var progress = Start();
-        Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Succeeded), s_receivedAt.AddSeconds(1));
+        Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Started), s_receivedAt);
+        Receive(progress, RollbackStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Started), s_receivedAt.AddSeconds(2));
 
         // Act
-        Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Started), s_receivedAt);
+        Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Succeeded), s_receivedAt.AddSeconds(1));
 
         // Assert
-        var instance = progress.Instances.Single();
-        instance.RollbackStarted.Should().BeFalse();
-        instance.Steps.Should().ContainSingle();
+        progress.Instances.Single().Steps.Select(s => (s.State, s.IsRollback)).Should().Equal(
+            (InstanceStepState.Succeeded, false),
+            (InstanceStepState.Running, true));
     }
 
     [Fact]
-    public void First_step_seen_during_the_rollback_belongs_to_the_rollback()
+    public void Step_of_the_rollback_belongs_to_the_rollback_whatever_the_phase()
     {
         // Arrange
         var progress = Start();
-        progress.Apply(Transition("RollingBackDeployments"));
+        progress.Apply(Transition("UpdatingDeployments"));
 
         // Act
-        Receive(progress, HostStep(ClusterNodeDeploymentStep.StopEngineHost, ClusterNodeDeploymentStepStatus.Started), s_receivedAt);
+        Receive(progress, RollbackStep(ClusterNodeDeploymentStep.StopEngineHost, ClusterNodeDeploymentStepStatus.Started), s_receivedAt);
 
         // Assert
-        progress.Instances.Single().Steps.Single().IsRollback.Should().BeTrue();
+        var instance = progress.Instances.Single();
+        instance.RollbackStarted.Should().BeTrue();
+        instance.Steps.Single().IsRollback.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Plan_of_the_rollback_begins_the_rollback()
+    {
+        // Arrange
+        var progress = Start();
+        progress.Apply(Planned(PlannedHost(ClusterNodeDeploymentStep.Prepare), PlannedHost(ClusterNodeDeploymentStep.QueryEngineStates)));
+
+        // Act
+        progress.Apply(RollbackPlanned(PlannedHost(ClusterNodeDeploymentStep.Prepare)));
+
+        // Assert
+        var instance = progress.Instances.Single();
+        instance.RollbackStarted.Should().BeTrue();
+        instance.PlannedCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void Error_of_the_update_that_arrives_after_the_rollback_began_does_not_fail_the_rollback()
+    {
+        // Arrange
+        var progress = Start();
+        Receive(progress, RollbackStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Started), s_receivedAt);
+
+        // Act
+        progress.Apply(InstanceChange(ClusterUpdateChange.Update, s_updateError));
+
+        // Assert
+        progress.Instances.Single().RollbackFailed.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Failed_step_of_the_rollback_fails_the_rollback()
+    {
+        // Arrange
+        var progress = Start();
+        Receive(progress, RollbackStep(ClusterNodeDeploymentStep.StopEngineHost, ClusterNodeDeploymentStepStatus.Started), s_receivedAt);
+
+        // Act
+        Receive(progress, RollbackStep(ClusterNodeDeploymentStep.StopEngineHost, ClusterNodeDeploymentStepStatus.Failed, s_rollbackError), s_receivedAt);
+
+        // Assert
+        progress.Instances.Single().RollbackFailed.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Error_of_the_failed_rollback_phase_fails_the_rollback_of_its_instance()
+    {
+        // Arrange
+        var progress = FailedUpdateThatRollsBack();
+
+        // Act
+        progress.Fail(Failed("RollingBackDeployments"));
+
+        // Assert
+        progress.Instances.Single().RollbackFailed.Should().BeTrue();
     }
 
     [Fact]
@@ -651,12 +711,12 @@ public class DeploymentProgressModelTests
         var progress = Start();
         Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Started), s_receivedAt);
         Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Succeeded), s_receivedAt.AddSeconds(9));
-        Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Started), s_receivedAt.AddSeconds(20));
-        Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Succeeded), s_receivedAt.AddSeconds(21));
+        Receive(progress, RollbackStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Started), s_receivedAt.AddSeconds(20));
+        Receive(progress, RollbackStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Succeeded), s_receivedAt.AddSeconds(21));
 
         // Act
-        Receive(progress, HostStep(ClusterNodeDeploymentStep.Plan, ClusterNodeDeploymentStepStatus.Started), s_receivedAt.AddSeconds(21));
-        Receive(progress, HostStep(ClusterNodeDeploymentStep.Plan, ClusterNodeDeploymentStepStatus.Succeeded), s_receivedAt.AddSeconds(23));
+        Receive(progress, RollbackStep(ClusterNodeDeploymentStep.Plan, ClusterNodeDeploymentStepStatus.Started), s_receivedAt.AddSeconds(21));
+        Receive(progress, RollbackStep(ClusterNodeDeploymentStep.Plan, ClusterNodeDeploymentStepStatus.Succeeded), s_receivedAt.AddSeconds(23));
 
         // Assert
         var instance = progress.Instances.Single();
@@ -723,7 +783,7 @@ public class DeploymentProgressModelTests
         var progress = FailedUpdateThatRollsBack();
 
         // Act
-        Receive(progress, HostStep(ClusterNodeDeploymentStep.StopEngineHost, ClusterNodeDeploymentStepStatus.Failed, s_rollbackError), s_receivedAt);
+        Receive(progress, RollbackStep(ClusterNodeDeploymentStep.StopEngineHost, ClusterNodeDeploymentStepStatus.Failed, s_rollbackError), s_receivedAt);
 
         // Assert
         var instance = progress.Instances.Single();
@@ -736,7 +796,7 @@ public class DeploymentProgressModelTests
     {
         // Arrange
         var progress = FailedUpdateThatRollsBack();
-        Receive(progress, HostStep(ClusterNodeDeploymentStep.StopEngineHost, ClusterNodeDeploymentStepStatus.Failed, s_rollbackError), s_receivedAt);
+        Receive(progress, RollbackStep(ClusterNodeDeploymentStep.StopEngineHost, ClusterNodeDeploymentStepStatus.Failed, s_rollbackError), s_receivedAt);
 
         // Act
         progress.Fail(Failed("RollingBackDeployments") with { ErrorsByApplication = new() { [s_instanceId] = s_rollbackError } });
@@ -819,7 +879,8 @@ public class DeploymentProgressModelTests
         var progress = FailedUpdateThatRollsBack();
 
         // Act
-        progress.Apply(Planned(PlannedHost(ClusterNodeDeploymentStep.Prepare), PlannedHost(ClusterNodeDeploymentStep.StopEngineHost), PlannedHost(ClusterNodeDeploymentStep.TearDownEngineHost)));
+        progress.Apply(RollbackPlanned(PlannedHost(ClusterNodeDeploymentStep.Prepare), PlannedHost(ClusterNodeDeploymentStep.StopEngineHost),
+            PlannedHost(ClusterNodeDeploymentStep.TearDownEngineHost)));
 
         // Assert
         progress.Instances.Single().Timeline.Select(s => (s.Step, s.State, s.IsRollback)).Should().Equal(
@@ -850,6 +911,39 @@ public class DeploymentProgressModelTests
 
         // Assert
         progress.Instances.Single().Timeline.Single().Target.Should().Be("Filling");
+    }
+
+    [Fact]
+    public void Plan_of_an_update_still_running_after_a_timeout_stays_the_update_plan()
+    {
+        // Arrange
+        var progress = Start();
+        progress.Apply(Transition("UpdatingDeployments"));
+        Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Started), s_receivedAt);
+        progress.Apply(Planned(PlannedHost(ClusterNodeDeploymentStep.Prepare), PlannedHost(ClusterNodeDeploymentStep.QueryEngineStates)));
+        progress.Apply(Transition("RollingBackDeployments"));
+
+        // Act
+        progress.Apply(Planned(PlannedHost(ClusterNodeDeploymentStep.Prepare), PlannedHost(ClusterNodeDeploymentStep.QueryEngineStates), PlannedEngine(ClusterNodeDeploymentStep.StartEngine)));
+
+        // Assert
+        progress.Instances.Single().PlannedCount.Should().Be(3);
+    }
+
+    [Fact]
+    public void Planned_reached_counts_the_planned_steps_before_the_last_reported_one_also_when_the_client_missed_them()
+    {
+        // Arrange
+        var progress = Start();
+        progress.Apply(Planned(PlannedHost(ClusterNodeDeploymentStep.Prepare), PlannedHost(ClusterNodeDeploymentStep.Plan),
+            PlannedHost(ClusterNodeDeploymentStep.QueryEngineStates), PlannedEngine(ClusterNodeDeploymentStep.StartEngine)));
+        Receive(progress, HostStep(ClusterNodeDeploymentStep.QueryEngineStates, ClusterNodeDeploymentStepStatus.Succeeded), s_receivedAt);
+
+        // Act
+        Receive(progress, EngineStep(ClusterNodeDeploymentStep.StartEngine, ClusterNodeDeploymentStepStatus.Started), s_receivedAt);
+
+        // Assert
+        progress.Instances.Single().PlannedReached.Should().Be(3);
     }
 
     [Fact]
@@ -890,9 +984,9 @@ public class DeploymentProgressModelTests
         Receive(progress, EngineStep(ClusterNodeDeploymentStep.DeployEngine, ClusterNodeDeploymentStepStatus.Failed, s_updateError), s_receivedAt);
         progress.Apply(InstanceChange(ClusterUpdateChange.Update, s_updateError));
         progress.Apply(Transition("RollingBackDeployments"));
-        Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Started), s_receivedAt);
-        Receive(progress, HostStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Succeeded), s_receivedAt);
-        Receive(progress, HostStep(ClusterNodeDeploymentStep.StopEngineHost, ClusterNodeDeploymentStepStatus.Started), s_receivedAt);
+        Receive(progress, RollbackStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Started), s_receivedAt);
+        Receive(progress, RollbackStep(ClusterNodeDeploymentStep.Prepare, ClusterNodeDeploymentStepStatus.Succeeded), s_receivedAt);
+        Receive(progress, RollbackStep(ClusterNodeDeploymentStep.StopEngineHost, ClusterNodeDeploymentStepStatus.Started), s_receivedAt);
         return progress;
     }
 
@@ -928,11 +1022,17 @@ public class DeploymentProgressModelTests
     private static void Receive(DeploymentProgressModel progress, ClusterNodeDeploymentStepChanged step, DateTimeOffset receivedAt)
         => progress.Apply(step with { OccurredAt = receivedAt }, receivedAt);
 
+    private static ClusterNodeDeploymentStepChanged RollbackStep(ClusterNodeDeploymentStep step, ClusterNodeDeploymentStepStatus status, ErrorInfo? error = null)
+        => HostStep(step, status, error) with { IsRollback = true };
+
     private static ClusterNodeDeploymentStepChanged EngineStep(ClusterNodeDeploymentStep step, ClusterNodeDeploymentStepStatus status, ErrorInfo? error = null)
         => HostStep(step, status, error) with { EngineId = s_engineId, EngineName = "Line 1" };
 
     private static ClusterNodeDeploymentPlanned Planned(params ClusterNodeDeploymentPlannedStep[] steps)
         => new(s_correlationId, s_clusterId, s_instanceId, steps);
+
+    private static ClusterNodeDeploymentPlanned RollbackPlanned(params ClusterNodeDeploymentPlannedStep[] steps)
+        => Planned(steps) with { IsRollback = true };
 
     private static ClusterNodeDeploymentPlannedStep PlannedHost(ClusterNodeDeploymentStep step)
         => new(step) { EngineHostId = s_engineHostId, EngineHostName = "Packaging" };

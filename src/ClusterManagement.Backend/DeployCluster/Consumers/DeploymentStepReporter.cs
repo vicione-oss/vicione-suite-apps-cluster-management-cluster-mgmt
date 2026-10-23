@@ -126,7 +126,10 @@ internal sealed class DeploymentStepReporter(IBus bus, UpdateDeployments message
                 EngineId = engineId,
                 EngineName = NameOf(_engineNames, engineId),
             };
-        })]);
+        })])
+        {
+            IsRollback = message.IsRollback,
+        };
 
         return PublishBestEffort(plan, e => logger.LogPlanNotPublished(e, clusterApplicationId), cancellationToken);
     }
@@ -136,6 +139,7 @@ internal sealed class DeploymentStepReporter(IBus bus, UpdateDeployments message
         var engineId = EngineIdOf(target);
         ClusterNodeDeploymentStepChanged stepChanged = new(message.CorrelationId, message.ClusterId, clusterApplicationId, target.Step, status)
         {
+            IsRollback = message.IsRollback,
             EngineHostId = target.EngineHostId,
             EngineHostName = NameOf(_engineHostNames, target.EngineHostId),
             EngineId = engineId,

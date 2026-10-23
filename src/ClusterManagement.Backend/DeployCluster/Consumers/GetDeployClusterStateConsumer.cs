@@ -10,7 +10,8 @@ using Sdk.Backend.Messaging;
 
 namespace ClusterManagement.Backend.DeployCluster.Consumers;
 
-public sealed partial class GetDeployClusterStateConsumer(IClusterSagaDbContext sagaDbContext, ILogger<GetDeployClusterStateConsumer> logger) :
+public sealed partial class GetDeployClusterStateConsumer(IClusterSagaDbContext sagaDbContext, DeploymentPlanStore plans,
+    ILogger<GetDeployClusterStateConsumer> logger) :
     RequestConsumer<GetDeployClusterStateRequest, GetDeployClusterStateResponse>
 {
     public override async Task<GetDeployClusterStateResponse> Respond(GetDeployClusterStateRequest message, CancellationToken cancellationToken)
@@ -32,6 +33,7 @@ public sealed partial class GetDeployClusterStateConsumer(IClusterSagaDbContext 
                 deployState.ReportedTargetVersion())
             {
                 CorrelationId = deployState.CorrelationId,
+                Plans = plans.Of(deployState.ClusterId, deployState.CorrelationId),
             },
         };
     }

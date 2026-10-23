@@ -168,19 +168,20 @@ public sealed partial class DeployClusterStateMachine
             new CleanClusterNodesCommand(ctx.Saga.CorrelationId, ctx.Saga.ClusterId, [.. nodesToClean]));
 
     private Task<UpdateDeployments> CreateUpdateDeploymentsTargetVersion<TMessage>(BehaviorContext<DeployClusterState, TMessage> ctx)
-        where TMessage : class => CreateUpdateDeploymentsEvent(ctx.Saga.CorrelationId, ctx.Saga.ClusterId, ctx.Saga.TargetVersion, ctx.CancellationToken);
+        where TMessage : class => CreateUpdateDeploymentsEvent(ctx.Saga.CorrelationId, ctx.Saga.ClusterId, ctx.Saga.TargetVersion, isRollback: false, ctx.CancellationToken);
 
     private Task<UpdateDeployments> CreateUpdateDeploymentsActiveVersion<TMessage>(BehaviorContext<DeployClusterState, TMessage> ctx)
         where TMessage : class
-        => CreateUpdateDeploymentsEvent(ctx.Saga.CorrelationId, ctx.Saga.ClusterId, ctx.Saga.ActiveVersion, ctx.CancellationToken);
+        => CreateUpdateDeploymentsEvent(ctx.Saga.CorrelationId, ctx.Saga.ClusterId, ctx.Saga.ActiveVersion, isRollback: true, ctx.CancellationToken);
 
-    private async Task<UpdateDeployments> CreateUpdateDeploymentsEvent(Guid correlationId, Guid clusterId, Version version, CancellationToken cancellationToken)
+    private async Task<UpdateDeployments> CreateUpdateDeploymentsEvent(Guid correlationId, Guid clusterId, Version version, bool isRollback,
+        CancellationToken cancellationToken)
     {
         using var scope = _services.CreateScope();
         var snapshotStore = scope.ServiceProvider.GetRequiredService<IClusterSnapshotStore>();
         var targetCluster = await snapshotStore.LoadCompressedJson(clusterId, version, cancellationToken) ??
             throw new ArgumentException($"Cluster {clusterId} v{version} not found"); //Will throw in IClusterSnapshotStore
 
-        return new(targetCluster, correlationId, clusterId, version);
+        return new(targetCluster, correlationId, clusterId, version) { IsRollback = isRollback };
     }
 }

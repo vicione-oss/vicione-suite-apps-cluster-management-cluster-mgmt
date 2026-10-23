@@ -1,6 +1,9 @@
-﻿using ClusterManagement.Backend.DeployCluster.Consumers;
+﻿using ClusterManagement.Backend.DeployCluster;
+using ClusterManagement.Backend.DeployCluster.Consumers;
 using ClusterManagement.Backend.DeployCluster.Persistence;
 using ClusterManagement.Backend.DeployCluster.StateMachines;
+using ClusterManagement.Public.Enums;
+using ClusterManagement.Public.Events;
 using ClusterManagement.Public.Requests;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,9 +14,12 @@ namespace ClusterManagement.Backend.Tests.DeployCluster.Consumers;
 
 public class GetDeployClusterStateConsumerTests : TestWithDbContextSqlite<ClusterSagaDbContextSqlite>
 {
+    private readonly DeploymentPlanStore _plans = new();
+
     private void SetupConsumer(IBusRegistrationConfigurator cfg)
     {
         cfg.AddConsumer<GetDeployClusterStateConsumer>();
+        cfg.AddSingleton(_plans);
         cfg.AddSingleton<IClusterSagaDbContext>(_ => TestDbContext);
         cfg.AddSingleton(Substitute.For<ILogger<GetDeployClusterStateConsumer>>());
     }
@@ -46,6 +52,25 @@ public class GetDeployClusterStateConsumerTests : TestWithDbContextSqlite<Cluste
         response.State.ActiveVersion.Should().Be(activeVersion);
         response.State.TargetVersion.Should().Be(targetVersion);
         response.State.CorrelationId.Should().Be(correlationId);
+    }
+
+    [Fact]
+    public async Task Should_return_the_plans_the_instances_published_for_the_deployment()
+    {
+        // Arrange
+        await using var tester = new MassTransitTester(cfg => SetupConsumer(cfg));
+        var clusterId = Guid.NewGuid();
+        var correlationId = Guid.NewGuid();
+        TestDbContext.DeployClusterState.Add(new DeployClusterState { CorrelationId = correlationId, ClusterId = clusterId, CurrentState = 5, TargetVersion = new(1, 2, 0) });
+        await TestDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        ClusterNodeDeploymentPlanned plan = new(correlationId, clusterId, Guid.NewGuid(), [new ClusterNodeDeploymentPlannedStep(ClusterNodeDeploymentStep.Prepare)]);
+        _plans.Keep(plan);
+
+        // Act
+        var response = await tester.TestRequest<GetDeployClusterStateResponse, GetDeployClusterStateRequest>(new GetDeployClusterStateRequest(clusterId));
+
+        // Assert
+        response.State!.Plans.Should().ContainSingle().Which.Should().BeEquivalentTo(plan);
     }
 
     [Fact]

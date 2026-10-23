@@ -142,7 +142,7 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
         _instanceInformation.Id.Returns(application.Id);
     }
 
-    internal async Task When_updating_deployments(string? version = default)
+    internal async Task When_updating_deployments(string? version = default, bool isRollback = false)
     {
         _events.Clear();
         _steps.Clear();
@@ -154,7 +154,7 @@ public partial class UpdateDeploymentsConsumerFacts : TestWithDbContextSqlite<Cl
 
         var cancellationToken = _deploymentCancellation.Token;
         var consumeContext = Substitute.For<ConsumeContext<UpdateDeployments>>();
-        consumeContext.Message.Returns(new UpdateDeployments(clusterCompressed, _correlationId, _clusterBuilder.Cluster.Id, clusterVersion));
+        consumeContext.Message.Returns(new UpdateDeployments(clusterCompressed, _correlationId, _clusterBuilder.Cluster.Id, clusterVersion) { IsRollback = isRollback });
         consumeContext.CorrelationId.Returns(_correlationId);
         consumeContext.CancellationToken.Returns(cancellationToken);
         consumeContext.When(x => x.Publish(Arg.Any<Arg.AnyType>(), Arg.Is(cancellationToken))).Do(x => _events.Add(x[0]));

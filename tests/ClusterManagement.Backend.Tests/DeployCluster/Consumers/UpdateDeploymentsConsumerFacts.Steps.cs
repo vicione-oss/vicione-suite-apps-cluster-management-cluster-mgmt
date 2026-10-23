@@ -443,6 +443,23 @@ public partial class UpdateDeploymentsConsumerFacts
             Then_the_last_plan_lists_the_published_steps();
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Marks_the_steps_and_the_plan_by_whether_the_update_is_a_rollback(bool isRollback)
+        {
+            Given_configured_suite();
+            Given_user_added_engineHost(_engineHost1);
+            Given_user_added_engine(_engine1, _engineHost1);
+            Given_user_added_functionBlock(_engine1, _functionBlock1);
+
+            await When_updating_deployments(isRollback: isRollback);
+
+            Then_update_succeeded();
+            _steps.Should().NotBeEmpty().And.OnlyContain(s => s.IsRollback == isRollback);
+            _plans.Should().NotBeEmpty().And.OnlyContain(p => p.Plan.IsRollback == isRollback);
+        }
+
         [Fact]
         public async Task Deploys_although_the_plan_cannot_be_published()
         {

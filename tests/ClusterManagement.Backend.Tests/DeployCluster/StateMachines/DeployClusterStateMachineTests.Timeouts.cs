@@ -156,6 +156,29 @@ public partial class DeployClusterStateMachineTests
         }
 
         [Fact]
+        public async Task Marks_only_the_rollback_it_sends_after_a_timeout_as_rollback()
+        {
+            // Arrange
+            await using var provider = SetupServiceProvider(CreateOptions(t => t.UpdatingDeployments = s_shortTimeout));
+
+            SetupSagaClusterWithTargetOnSameNode(provider);
+            var harness = provider.GetTestHarness();
+            await harness.Start();
+
+            // Act: the application never answers, so the saga sends the update and then the rollback
+            await harness.DeployCluster(_correlationId, _clusterId, _targetVersion);
+
+            // Assert
+            await AssertFinalized(harness);
+            var sent = await harness.Published.SelectAsync<UpdateDeployments>(TestContext.Current.CancellationToken)
+                .Select(k => k.Context.Message)
+                .ToListAsync(TestContext.Current.CancellationToken);
+            Assert.Contains(sent, m => m.ClusterVersion == _targetVersion && !m.IsRollback);
+            Assert.Contains(sent, m => m.ClusterVersion == _activeVersion && m.IsRollback);
+            Assert.All(sent, m => Assert.Equal(m.ClusterVersion == _activeVersion, m.IsRollback));
+        }
+
+        [Fact]
         public async Task Late_replies_after_the_deployment_ended_are_dropped()
         {
             // Arrange

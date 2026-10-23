@@ -85,43 +85,56 @@ public sealed class InstanceProgressModel(Guid id, string name, string nodeName)
 
     // The events of one instance can arrive out of order: an end closes the open step it belongs to, and a start that
     // arrives after its end completes that step instead of opening it again.
-    internal void Record(ClusterNodeDeploymentStepChanged change, DateTimeOffset receivedAt, bool rollingBack)
+    internal void Record(ClusterNodeDeploymentStepChanged change, DateTimeOffset receivedAt)
     {
-        if (!RollbackStarted && BeginsRollback(change, rollingBack))
-        {
-            RollbackStarted = true;
-            InterruptRunningSteps();
-        }
+        if (change.IsRollback)
+            BeginRollback();
 
         if (change.Status == ClusterNodeDeploymentStepStatus.Started)
         {
             if (_steps.LastOrDefault(s => s.Is(change) && s.StartedAt is null) is { } ended)
                 ended.StartedLate(change, receivedAt);
             else
-                _steps.Add(InstanceStepModel.Start(change, receivedAt, RollbackStarted));
+                _steps.Add(InstanceStepModel.Start(change, receivedAt, change.IsRollback));
             return;
         }
 
         var step = _steps.LastOrDefault(s => s.Is(change) && s.EndedOnInstance is null);
         if (step is null)
         {
-            step = InstanceStepModel.Unstarted(change, RollbackStarted);
+            step = InstanceStepModel.Unstarted(change, change.IsRollback);
             _steps.Add(step);
         }
 
         step.End(change);
+        RollbackFailed |= change is { IsRollback: true, Status: ClusterNodeDeploymentStepStatus.Failed };
     }
 
     /// <summary>
-    /// Takes the steps the instance expects its update, or its rollback once that began, to take; a later plan of the
-    /// same run replaces the earlier one.
+    /// Takes the steps the instance expects its update or its rollback to take; a later plan of the same run replaces
+    /// the earlier one, and a plan of the rollback begins it.
     /// </summary>
-    internal void Plan(IReadOnlyList<ClusterNodeDeploymentPlannedStep> planned, bool rollingBack)
+    internal void Plan(IReadOnlyList<ClusterNodeDeploymentPlannedStep> planned, bool isRollback)
     {
-        if (RollbackStarted || rollingBack)
+        if (isRollback)
+        {
             _rollbackPlan = planned;
+            BeginRollback();
+        }
         else
+        {
             _updatePlan = planned;
+        }
+    }
+
+    // A step of the update still running once the rollback began counts as interrupted unless its end still arrives.
+    private void BeginRollback()
+    {
+        if (RollbackStarted)
+            return;
+
+        RollbackStarted = true;
+        InterruptRunningSteps();
     }
 
     /// <summary>
@@ -129,19 +142,61 @@ public sealed class InstanceProgressModel(Guid id, string name, string nodeName)
     /// </summary>
     public int PlannedCount => (RollbackStarted ? _rollbackPlan : _updatePlan).Count;
 
+    /// <summary>
+    /// A step of the instance's rollback failed, or the deployment ended with an error of it from the rollback.
+    /// </summary>
+    public bool RollbackFailed { get; private set; }
+
+    /// <summary>
+    /// Whether the client saw the latest run from the start of its first planned step on, so its steps and their duration
+    /// are the whole run; without a plan the client cannot tell and counts it as seen.
+    /// </summary>
+    public bool SawRunFromStart
+    {
+        get
+        {
+            var plan = RollbackStarted ? _rollbackPlan : _updatePlan;
+            var run = LatestRun;
+            return plan.Count == 0 || (run.Count > 0 && run[0].Is(plan[0]) && run[0].StartedOnInstance is not null);
+        }
+    }
+
+    /// <summary>
+    /// How many planned steps of the latest run lie behind it, counted by the place in the plan of the last step it
+    /// reported, so steps the client did not see, as on a page opened during the deployment, count as well. A step in
+    /// progress does not count yet.
+    /// </summary>
+    public int PlannedReached
+    {
+        get
+        {
+            var (next, last) = PlanPosition();
+            return last?.State == InstanceStepState.Running ? next - 1 : next;
+        }
+    }
+
     // The planned steps after the last one the run reported; a planned step it skipped is left out.
     private IEnumerable<InstanceStepModel> NotReached()
+        => (RollbackStarted ? _rollbackPlan : _updatePlan).Skip(PlanPosition().Next)
+            .Select(planned => InstanceStepModel.Pending(planned, RollbackStarted));
+
+    // The place in the plan after the last reported step of the latest run that the plan holds, and that step.
+    private (int Next, InstanceStepModel? Last) PlanPosition()
     {
         var plan = RollbackStarted ? _rollbackPlan : _updatePlan;
         var next = 0;
+        InstanceStepModel? last = null;
         foreach (var step in LatestRun)
         {
             var index = IndexOf(plan, step, next);
             if (index >= 0)
+            {
                 next = index + 1;
+                last = step;
+            }
         }
 
-        return plan.Skip(next).Select(planned => InstanceStepModel.Pending(planned, RollbackStarted));
+        return (next, last);
     }
 
     private static int IndexOf(IReadOnlyList<ClusterNodeDeploymentPlannedStep> plan, InstanceStepModel step, int from)
@@ -155,20 +210,17 @@ public sealed class InstanceProgressModel(Guid id, string name, string nodeName)
         return -1;
     }
 
-    // The rollback runs the instance's steps again from the start, and the saga sends it before it reports the rollback
-    // phase, so the rollback begins with the second start of the first step. A preparation whose end arrived first is
-    // still the update's own; a client that saw no step of the update goes by the phase.
-    private bool BeginsRollback(ClusterNodeDeploymentStepChanged change, bool rollingBack)
-        => _steps.Count == 0
-            ? rollingBack
-            : change is { Step: ClusterNodeDeploymentStep.Prepare, Status: ClusterNodeDeploymentStepStatus.Started }
-                && !_steps.Any(s => s.Is(change) && s.StartedAt is null);
-
     internal void Fail(ErrorInfo error)
     {
         Error = error;
         IsUpdated = false;
         InterruptRunningSteps();
+    }
+
+    internal void FailRollback(ErrorInfo error)
+    {
+        Fail(error);
+        RollbackFailed = true;
     }
 
     internal void InterruptRunningSteps()
