@@ -20,6 +20,13 @@ internal static class DeployClusterStateExtensions
     public static Version ReportedTargetVersion(this DeployClusterState state)
         => state.TargetVersion == DeployClusterState.EmptyVersion ? state.CommitVersion : state.TargetVersion;
 
+    /// <summary>
+    /// The target version is the active version: it was activated, or the active version is deployed again.
+    /// Whether every application runs it is checked separately where a redeploy matters.
+    /// </summary>
+    public static bool IsTargetVersionActive(this DeployClusterState state)
+        => state.ActiveVersion == state.TargetVersion;
+
     public static bool ShouldRemovePreviousVersion(this DeployClusterState state)
         => state.RemoveVersion != Public.Constants.DefaultClusterVersion
         && state.RemoveVersion != DeployClusterState.EmptyVersion;

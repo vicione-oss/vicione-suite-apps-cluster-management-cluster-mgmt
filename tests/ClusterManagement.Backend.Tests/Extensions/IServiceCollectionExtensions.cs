@@ -44,6 +44,13 @@ internal static class IServiceCollectionExtensions
 
             configure?.Invoke(x);
 
+            // As the Suite does (ADR-004 D1): a consumer's publishes and sends only go out once it handled the message
+            x.AddConfigureEndpointsCallback((context, _, endpoint) =>
+            {
+                endpoint.UseMessageScope(context);
+                endpoint.UseInMemoryOutbox(context);
+            });
+
             x.UsingInMemory((context, cfg) =>
             {
                 cfg.UseMessageRetry(x => x.None());

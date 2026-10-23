@@ -255,6 +255,8 @@ public partial class DeployClusterStateMachineTests
             await harness.AssertClusterUpdateFailed(_correlationId, commitVersion);
             Assert.True(await harness.Published.Any<ClusterUpdateFailed>(k => k.Context.Message.Reason == "TestFailure", TestContext.Current.CancellationToken),
                 "Commit error should be the failure reason");
+            await AssertSagaFinalized(harness);
+            AssertCommitVersionReleased(provider, commitVersion);
         }
 
         [Fact]

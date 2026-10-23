@@ -30,7 +30,7 @@ public sealed partial class DeployClusterStateMachine
     }
 
     // A timeout that faults would leave the saga overdue, and the watchdog would send it again on every check,
-    // so the handlers that send or load something fail the deployment instead
+    // so the rollback handles an active version that cannot be loaded, see RollBack
     private void HandleStateTimeouts()
     {
         // Nothing was deployed yet
@@ -40,9 +40,9 @@ public sealed partial class DeployClusterStateMachine
 
         // Nothing was deployed yet, remove nodes created so far and the committed version
         During(AddingClusterNodes,
-            ContinueAfterDeploymentsRolledBack(WhenStateTimedOut()
-                .Then(SetTimeoutFailureReason))
-                .Catch<Exception>(ex => FailDeployment(ex, nameof(AddingClusterNodes))));
+            WhenStateTimedOut()
+                .Then(SetTimeoutFailureReason)
+                .ThenAsync(ctx => RollBack(ctx, RollingBackClusterNodes!)));
 
         // Treat missing responses as failed deployments -> rollback to active version.
         // Instances that didn't answer the update, e.g. offline nodes, are unlikely to answer the rollback either:
@@ -53,9 +53,8 @@ public sealed partial class DeployClusterStateMachine
                 .Then(ctx => ctx.Saga.AtLeastOneDeployReturnedError = true)
                 .Then(ctx => ctx.Saga.ClusterApplicationsToUpdate.RemoveAll(id => !ctx.Saga.ClusterApplicationsUpdateFinished.ContainsKey(id)))
                 .IfElse(ctx => ctx.Saga.ClusterApplicationsToUpdate.Count > 0,
-                    StartRollingBackDeployments,
-                    noneAnswered => ContinueAfterDeploymentsRolledBack(noneAnswered.PublishAsync(CreateUpdateDeploymentsActiveVersion)))
-                .Catch<Exception>(ex => FailDeployment(ex, nameof(UpdatingDeployments))));
+                    answered => answered.ThenAsync(ctx => RollBack(ctx, RollingBackDeployments!)),
+                    noneAnswered => noneAnswered.ThenAsync(RollBackWithoutWaiting)));
 
         // Active cluster was already updated, the deployment itself succeeded
         During(CleaningClusterNodes, CleaningCluster,
@@ -66,15 +65,15 @@ public sealed partial class DeployClusterStateMachine
 
         // Give up waiting for the rollback, but still remove the created nodes and the committed version
         During(RollingBackDeployments,
-            ContinueAfterDeploymentsRolledBack(WhenStateTimedOut()
-                .Then(SetTimeoutFailureReason))
-                .Catch<Exception>(ex => FailDeployment(ex, nameof(RollingBackDeployments))));
+            WhenStateTimedOut()
+                .Then(SetTimeoutFailureReason)
+                .ThenAsync(ctx => RollBack(ctx, RollingBackClusterNodes!)));
 
         // Give up waiting for the created nodes, but still remove the committed version
         During(RollingBackClusterNodes,
-            ContinueAfterClusterNodesRolledBack(WhenStateTimedOut()
-                .Then(SetTimeoutFailureReason))
-                .Catch<Exception>(ex => FailDeployment(ex, nameof(RollingBackClusterNodes))));
+            WhenStateTimedOut()
+                .Then(SetTimeoutFailureReason)
+                .ThenAsync(ctx => RollBack(ctx, RollingBackCommit!)));
 
         // Giving up waiting for the removal of the committed version, which may be kept
         During(RollingBackCommit,
@@ -112,7 +111,11 @@ public sealed partial class DeployClusterStateMachine
     {
         LogTimeout(ctx);
 
-        // Keep the first reason, e.g. a timeout in UpdatingDeployments followed by a timeout in RollingBackDeployments
+        // Keep the first failure, e.g. a timeout in UpdatingDeployments followed by a timeout in RollingBackDeployments,
+        // or failed application updates followed by a timeout of their rollback, as KeepFailure does
+        if (ctx.Saga.AtLeastOneDeployReturnedError)
+            return;
+
         var state = GetState(ctx.Saga.CurrentState);
         ctx.Saga.FailureReason ??= $"Timeout after {GetStateTimeout(state)} in state {state}";
     }
