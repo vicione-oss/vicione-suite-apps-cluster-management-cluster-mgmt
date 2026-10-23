@@ -144,7 +144,7 @@ public sealed partial class DeployClusterStateMachine : MassTransitStateMachine<
                 // Any failure fails the deployment, after removing the committed version if the reply confirmed it was created.
                 // An unexpected reply leaves nothing to remove: the commit version may belong to another commit.
                 .Catch<Exception>(ex => ex.IfElse(ctx => ctx.Saga.IsCommitVersionCreated(),
-                    created => FailAndRemoveCommittedVersion(created, nameof(CommittingCluster)),
+                    created => FailAndRollBack(created, nameof(CommittingCluster)),
                     notCreated => FailDeployment(notCreated, nameof(CommittingCluster)))),
             When(CommitClusterFailed)
                 .ThenAsync(PublishCommitClusterFailed)
@@ -152,15 +152,16 @@ public sealed partial class DeployClusterStateMachine : MassTransitStateMachine<
                 .Finalize());
 
         // Stay until all nodes are created and their apps are running
+        // Any failure removes the created nodes and the committed version
         During(AddingClusterNodes,
             When(ClusterNodeAdded)
                 .ThenAsync(AddingClusterNodesWhenClusterNodeAdded)
                 .If(ctx => AreAllNodesAddedAndAppsRunning(ctx.Saga), StartUpdatingDeployments)
-                .Catch<Exception>(ex => FailDeployment(ex, nameof(AddingClusterNodes))),
+                .Catch<Exception>(ex => FailAndRollBack(ex, nameof(AddingClusterNodes))),
             When(ClusterApplicationStarted)
                 .ThenAsync(AddingClusterNodesWhenClusterApplicationStarted)
                 .If(ctx => AreAllNodesAddedAndAppsRunning(ctx.Saga), StartUpdatingDeployments)
-                .Catch<Exception>(ex => FailDeployment(ex, nameof(AddingClusterNodes))));
+                .Catch<Exception>(ex => FailAndRollBack(ex, nameof(AddingClusterNodes))));
 
         // Update deployments on all nodes/apps, then clean up or roll back
         // Replies of another version are late replies of a previous deployment attempt and are ignored
@@ -168,11 +169,11 @@ public sealed partial class DeployClusterStateMachine : MassTransitStateMachine<
             When(NodeDeploymentsUpdated, ctx => ctx.Message.ClusterVersion == ctx.Saga.TargetVersion)
                 .ThenAsync(ProcessNodeDeploymentUpdated)
                 .If(ctx => AreAllDeploymentsUpdated(ctx.Saga), ContinueAfterDeploymentsUpdated)
-                .Catch<Exception>(ex => FailDeployment(ex, nameof(UpdatingDeployments))),
+                .Catch<Exception>(ex => FailAndRollBackUnlessActivated(ex, nameof(UpdatingDeployments))),
             When(NodeDeploymentsUpdateFailed, ctx => ctx.Message.ClusterVersion == ctx.Saga.TargetVersion)
                 .ThenAsync(ProcessNodeDeploymentFailed)
                 .If(ctx => AreAllDeploymentsUpdated(ctx.Saga), ContinueAfterDeploymentsUpdated)
-                .Catch<Exception>(ex => FailDeployment(ex, nameof(UpdatingDeployments))),
+                .Catch<Exception>(ex => FailAndRollBackUnlessActivated(ex, nameof(UpdatingDeployments))),
             Ignore(ClusterNodeAdded),
             Ignore(ClusterApplicationStarted));
 

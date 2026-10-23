@@ -8,6 +8,8 @@ using ClusterManagement.Public.Commands;
 using ClusterManagement.Public.Enums;
 using ClusterManagement.Public.Requests;
 using ClusterManagement.Tests.Tools;
+using MassTransit;
+using MassTransit.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ViciOne.Cluster.Model;
@@ -41,6 +43,38 @@ public partial class DeployClusterStateMachineTests
                 x.AddSingleton(_logger);
             }, options)
             .BuildServiceProvider(true);
+
+    /// <summary>
+    /// The saga finalized and handled every exception, so no message faulted.
+    /// </summary>
+    private async Task AssertSagaFinalized(ITestHarness harness)
+    {
+        var sagaHarness = harness.GetSagaStateMachineHarness<DeployClusterStateMachine, DeployClusterState>();
+        Assert.Null(await sagaHarness.NotExists(_correlationId));
+        Assert.False(await harness.Published.Any(m => m.MessageObject is Fault, TestContext.Current.CancellationToken),
+            "The saga should handle every exception");
+    }
+
+    /// <summary>
+    /// The saga released the reservation of <paramref name="commitVersion"/>, so another commit of the cluster can take it.
+    /// </summary>
+    private void AssertCommitVersionReleased(IServiceProvider provider, Version commitVersion)
+        => provider.GetRequiredService<IClusterLock>().GetReservedVersions(_clusterId)
+            .Should().NotContain(commitVersion, "a failed deployment releases the version it reserved");
+
+    /// <summary>
+    /// The active version runs on <see cref="_nodeIdToClean"/>, so a commit from <see cref="SetupDeployOptions"/> creates <see cref="_nodeIdToAdd"/>.
+    /// </summary>
+    private Cluster SetupSagaClusterActiveVersionOnNodeToClean(IServiceProvider services)
+            => services.PrepareActiveClusterSaga(_snapshotStore, (_) =>
+            {
+                var cluster = ClusterDbContextTools.CreateCluster(_clusterId, _activeVersion);
+                var group = AddNodeGroup(cluster, _nodeGroupId);
+
+                AddClusterApplication(group, _nodeIdToClean, _applicationId, ClusterApplicationType.CoreOsStandalone);
+
+                return cluster;
+            });
 
     private Cluster SetupSagaClusterActiveVersionOnly(IServiceProvider services)
             => services.PrepareActiveClusterSaga(_snapshotStore, (_) =>

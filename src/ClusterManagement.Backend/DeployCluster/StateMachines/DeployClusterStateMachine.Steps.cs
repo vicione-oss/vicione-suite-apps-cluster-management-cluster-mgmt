@@ -73,16 +73,12 @@ public sealed partial class DeployClusterStateMachine
                 .Finalize());
 
     /// <summary>
-    /// Update the deployments back to the active version.
+    /// Update the deployments back to the active version, then continue the rollback, see <see cref="RollBack"/>.
     /// </summary>
     private EventActivityBinder<DeployClusterState, TMessage> StartRollingBackDeployments<TMessage>(
         EventActivityBinder<DeployClusterState, TMessage> binder)
         where TMessage : class
-        => TransitionWithNotification(
-            binder
-                .Then(ctx => ctx.Saga.ClusterApplicationsUpdateFinished.Clear())
-                .PublishAsync(CreateUpdateDeploymentsActiveVersion),
-            RollingBackDeployments!);
+        => binder.ThenAsync(ctx => RollBack(ctx, RollingBackDeployments!));
 
     /// <summary>
     /// Rollback replied: remove the nodes this saga created, then continue with the commit.
@@ -90,16 +86,7 @@ public sealed partial class DeployClusterStateMachine
     private EventActivityBinder<DeployClusterState, TMessage> ContinueAfterDeploymentsRolledBack<TMessage>(
         EventActivityBinder<DeployClusterState, TMessage> binder)
         where TMessage : class
-        => binder.IfElse(ctx => ctx.Saga.ClusterNodesCreated.Count > 0,
-            StartRollingBackClusterNodes,
-            ContinueAfterClusterNodesRolledBack);
-
-    private EventActivityBinder<DeployClusterState, TMessage> StartRollingBackClusterNodes<TMessage>(
-        EventActivityBinder<DeployClusterState, TMessage> binder)
-        where TMessage : class
-        => TransitionWithNotification(
-            binder.ThenAsync(ctx => SendCleanClusterNodesCommand(ctx, [.. ctx.Saga.ClusterNodesCreated])),
-            RollingBackClusterNodes!);
+        => binder.ThenAsync(ctx => RollBack(ctx, RollingBackClusterNodes!));
 
     /// <summary>
     /// Remove the version this saga committed, or fail if nothing was committed.
@@ -107,9 +94,7 @@ public sealed partial class DeployClusterStateMachine
     private EventActivityBinder<DeployClusterState, TMessage> ContinueAfterClusterNodesRolledBack<TMessage>(
         EventActivityBinder<DeployClusterState, TMessage> binder)
         where TMessage : class
-        => binder.IfElse(ctx => ctx.Saga.IsCommitVersionEmpty(),
-            PublishFailedAndFinalize,
-            removeCommit => TransitionWithNotification(removeCommit.ThenAsync(SendRemoveCommittedVersion), RollingBackCommit!));
+        => binder.ThenAsync(ctx => RollBack(ctx, RollingBackCommit!));
 
     /// <summary>
     /// An activity of <paramref name="state"/> threw: publishes <see cref="Public.Events.ClusterUpdateFailed"/> with the error and finalizes the saga.
@@ -117,25 +102,10 @@ public sealed partial class DeployClusterStateMachine
     private ExceptionActivityBinder<DeployClusterState, TMessage, Exception> FailDeployment<TMessage>(
         ExceptionActivityBinder<DeployClusterState, TMessage, Exception> binder, string state)
         where TMessage : class
-        => binder
-            .Then(ctx => LogDeploymentStepFailed(_logger, ctx.Exception, ctx.Saga.CorrelationId, ctx.Saga.ClusterId, state))
+        => LogStepFailed(binder, state)
             .ThenAsync(ctx => PublishClusterUpdateFailed(ctx, ctx.Saga.ReportedTargetVersion(), GetFailureReason(ctx.Exception), state))
             .Then(BeforeFailedFinalize)
             .Finalize();
-
-    /// <summary>
-    /// An activity of <paramref name="state"/> threw after the saga committed a version: keeps the failure and removes the
-    /// committed version in <see cref="RollingBackCommit"/>, which publishes <see cref="Public.Events.ClusterUpdateFailed"/>.
-    /// </summary>
-    private ExceptionActivityBinder<DeployClusterState, TMessage, Exception> FailAndRemoveCommittedVersion<TMessage>(
-        ExceptionActivityBinder<DeployClusterState, TMessage, Exception> binder, string state)
-        where TMessage : class
-        => binder
-            .Then(ctx => LogDeploymentStepFailed(_logger, ctx.Exception, ctx.Saga.CorrelationId, ctx.Saga.ClusterId, state))
-            .Then(ctx => KeepFailure(ctx, GetFailureReason(ctx.Exception)))
-            .ThenAsync(SendRemoveCommittedVersion)
-            .ThenAsync(ctx => PublishTransition(ctx, RollingBackCommit!.Name))
-            .TransitionTo(RollingBackCommit);
 
     /// <summary>
     /// The message of <paramref name="exception"/>, or of its inner exception if MassTransit wrapped it in an

@@ -1,7 +1,9 @@
 ﻿using ClusterManagement.Backend.Tests.Extensions;
+using ClusterManagement.Backend.Snapshots;
 using ClusterManagement.Public.Enums;
 using ClusterManagement.Tests.Tools;
 using MassTransit.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using ViciOne.Cluster.Model;
 
 namespace ClusterManagement.Backend.Tests.DeployCluster.StateMachines;
@@ -83,6 +85,9 @@ public partial class DeployClusterStateMachineTests
 
             // Assert
             await harness.AssertClusterUpdateCompleted(_correlationId, null);
+            await AssertSagaFinalized(harness);
+            provider.GetRequiredService<IClusterLock>().GetReservedVersions(_clusterId).Should().Contain(commitVersion,
+                "the commit that stored the version releases it, not a successful deployment");
         }
 
         [Fact]

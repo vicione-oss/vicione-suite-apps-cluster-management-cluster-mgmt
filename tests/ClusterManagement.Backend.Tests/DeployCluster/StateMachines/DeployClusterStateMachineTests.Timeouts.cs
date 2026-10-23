@@ -257,7 +257,7 @@ public partial class DeployClusterStateMachineTests
         }
 
         [Fact]
-        public async Task Rolling_back_commit_timeout_fails_and_finalizes()
+        public async Task Rolling_back_commit_timeout_fails_with_the_application_failure_and_finalizes()
         {
             // Arrange
             await using var provider = SetupServiceProvider(CreateOptions(t => t.RollingBackCommit = s_shortTimeout));
@@ -278,8 +278,39 @@ public partial class DeployClusterStateMachineTests
             // Act: rollback succeeds but removing the committed version is never confirmed
             await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _applicationId, _activeVersion);
 
-            // Assert
-            await AssertTimeoutFailure(harness, nameof(DeployClusterStateMachine.RollingBackCommit));
+            // Assert: the application failure came first, the timeout only means the version may be kept
+            Assert.True(await harness.Published.Any<ClusterUpdateFailed>(k => k.Context.CorrelationId == _correlationId
+                && k.Context.Message.Reason == "At least one application update failed"
+                && k.Context.Message.State == nameof(DeployClusterStateMachine.RollingBackCommit)
+                && k.Context.Message.FailedVersionKept, TestContext.Current.CancellationToken),
+                "The failure should report the application failure and the kept committed version");
+            await AssertFinalized(harness);
+        }
+
+        [Fact]
+        public async Task Rolling_back_commit_timeout_after_a_failed_step_reports_the_timeout()
+        {
+            // Arrange
+            await using var provider = SetupServiceProvider(CreateOptions(t => t.RollingBackCommit = s_shortTimeout));
+
+            var commitVersion = SetupCommitClusterInfos(VersionIncrementKind.Patch);
+            var options = SetupDeployOptions(commitVersion);
+            SetupSagaClusterActiveVersionOnly(provider);
+            _snapshotStore.Load(_clusterId, commitVersion, Arg.Any<CancellationToken>())
+                .Returns<Cluster?>(_ => throw new InvalidOperationException("Load failed"));
+
+            var harness = provider.GetTestHarness();
+            await harness.Start();
+            await harness.DeployCluster(_correlationId, _clusterId, null, options);
+
+            // Act: the committed version cannot be loaded, and removing it is never confirmed
+            await harness.PublishClusterChangedCreated(_correlationId, _clusterId, commitVersion);
+
+            // Assert: the first failure is reported
+            Assert.True(await harness.Published.Any<ClusterUpdateFailed>(k => k.Context.CorrelationId == _correlationId
+                && k.Context.Message.Reason == "Load failed"
+                && k.Context.Message.FailedVersionKept, TestContext.Current.CancellationToken),
+                "The failure should report the failed step and the kept committed version");
             await AssertFinalized(harness);
         }
 
@@ -302,6 +333,78 @@ public partial class DeployClusterStateMachineTests
             // Assert
             await harness.AssertClusterUpdateCompleted(_correlationId, prepared.Item2.Version);
             await AssertFinalized(harness);
+        }
+
+        [Fact]
+        public async Task Rolling_back_deployments_timeout_keeps_the_application_failure_as_reason()
+        {
+            // Arrange
+            await using var provider = SetupServiceProvider(CreateOptions(t => t.RollingBackDeployments = s_shortTimeout));
+
+            var prepared = SetupSagaClusterWithExistingTargetVersion(provider, _snapshotStore);
+            var harness = provider.GetTestHarness();
+            await harness.Start();
+            await harness.DeployCluster(_correlationId, _clusterId, prepared.Item2.Version);
+            await harness.PublishClusterNodeAdded(_correlationId, _clusterId, _nodeIdToAdd);
+            await harness.PublishClusterApplicationStarted(_correlationId, _clusterId, _applicationId);
+
+            // Act: the update fails and the rollback is never answered
+            await harness.PublishClusterNodeDeploymentsUpdateFailed(_correlationId, _clusterId, _applicationId, prepared.Item2.Version);
+            await harness.AssertDeployClusterState(_correlationId, x => x.RollingBackClusterNodes);
+            await harness.PublishClusterNodeCleaned(_correlationId, _clusterId, _nodeIdToAdd);
+
+            // Assert: the application failure came first
+            Assert.True(await harness.Published.Any<ClusterUpdateFailed>(k => k.Context.CorrelationId == _correlationId
+                && k.Context.Message.Reason == "At least one application update failed", TestContext.Current.CancellationToken),
+                "The failure should report the application failure, not the later timeout");
+            await AssertSagaFinalized(harness);
+        }
+
+        [Fact]
+        public async Task Updating_deployments_timeout_keeps_the_created_nodes_if_the_rollback_cannot_start()
+        {
+            // Arrange
+            await using var provider = SetupServiceProvider(CreateOptions(t => t.UpdatingDeployments = s_shortTimeout));
+
+            var prepared = SetupSagaClusterWithExistingTargetVersion(provider, _snapshotStore);
+            _snapshotStore.LoadCompressedJson(_clusterId, prepared.Item1.Version, Arg.Any<CancellationToken>())
+                .Returns(Task.FromException<byte[]>(new InvalidOperationException("Snapshot not found")));
+
+            var harness = provider.GetTestHarness();
+            await harness.Start();
+            await harness.DeployCluster(_correlationId, _clusterId, prepared.Item2.Version);
+            await harness.PublishClusterNodeAdded(_correlationId, _clusterId, _nodeIdToAdd);
+
+            // Act: the application starts but never answers the update
+            await harness.PublishClusterApplicationStarted(_correlationId, _clusterId, _applicationId);
+
+            // Assert: the application may still run the target version
+            await AssertTimeoutFailure(harness, nameof(DeployClusterStateMachine.UpdatingDeployments));
+            await AssertSagaFinalized(harness);
+            Assert.False(await harness.Sent.Any<CleanClusterNodesCommand>(TestContext.Current.CancellationToken),
+                "The application may still run the target version, so its nodes must not be cleaned");
+        }
+
+        [Fact]
+        public async Task Updating_deployments_timeout_fails_if_the_rollback_of_the_answered_instances_cannot_start()
+        {
+            // Arrange
+            await using var provider = SetupServiceProvider(CreateOptions(t => t.UpdatingDeployments = s_updateTimeout));
+
+            SetupSagaClusterWithTwoInstances(provider);
+            var harness = provider.GetTestHarness();
+            await harness.Start();
+            await harness.DeployCluster(_correlationId, _clusterId, _targetVersion);
+            await harness.AssertDeployClusterState(_correlationId, x => x.UpdatingDeployments);
+            _snapshotStore.LoadCompressedJson(_clusterId, _activeVersion, Arg.Any<CancellationToken>())
+                .Returns(Task.FromException<byte[]>(new InvalidOperationException("Snapshot not found")));
+
+            // Act: the first instance answers, the second one is offline
+            await harness.PublishClusterNodeDeploymentsUpdated(_correlationId, _clusterId, _applicationId, _targetVersion);
+
+            // Assert: nothing else was created or committed, so the deployment fails
+            await AssertTimeoutFailure(harness, nameof(DeployClusterStateMachine.UpdatingDeployments));
+            await AssertSagaFinalized(harness);
         }
 
         [Fact]

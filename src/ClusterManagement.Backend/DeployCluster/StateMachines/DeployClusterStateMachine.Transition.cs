@@ -338,16 +338,22 @@ public sealed partial class DeployClusterStateMachine
         var dbContext = scope.ServiceProvider.GetRequiredService<IClusterDbContext>();
 
         await dbContext.UpsertActiveClusterInfo(ctx.Saga.ClusterId, ctx.Saga.TargetVersion, DateTimeOffset.UtcNow, null, ctx.CancellationToken);
+
+        // A later failure must not roll back an active version, see IsTargetVersionActive
+        ctx.Saga.ActiveVersion = ctx.Saga.TargetVersion;
     }
 
     /// <summary>
     /// Keep the failure until it's reported after the rollback. The version being deployed is kept as target version,
     /// as the commit version is cleared once it's removed.
+    /// The first failure is reported: an earlier reason, or failed application updates, are kept.
     /// </summary>
     private static void KeepFailure<TMessage>(BehaviorContext<DeployClusterState, TMessage> ctx, string reason)
         where TMessage : class
     {
-        ctx.Saga.FailureReason = reason;
+        if (!ctx.Saga.AtLeastOneDeployReturnedError)
+            ctx.Saga.FailureReason ??= reason;
+
         ctx.Saga.TargetVersion = ctx.Saga.ReportedTargetVersion();
     }
 
